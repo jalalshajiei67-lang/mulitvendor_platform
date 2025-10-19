@@ -1,0 +1,193 @@
+<template>
+  <div class="home" dir="rtl">
+    <div class="hero-section">
+      <div class="hero-content">
+        <h1>{{ t('home.welcomeTitle') }}</h1>
+        <p>{{ t('home.welcomeSubtitle') }}</p>
+        <div class="hero-actions">
+          <router-link to="/products" class="btn btn-primary">{{ t('home.browseProducts') }}</router-link>
+          <router-link v-if="!authStore.isAuthenticated" to="/register" class="btn btn-secondary">{{ t('home.joinAsSeller') }}</router-link>
+          <router-link v-else to="/my-products" class="btn btn-secondary">{{ t('nav.myProducts') }}</router-link>
+        </div>
+      </div>
+    </div>
+    
+    <div class="features-section">
+      <div class="container">
+        <h2>{{ t('home.whyChooseUs') }}</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <v-icon size="64" color="primary" class="mb-4">mdi-store-multiple</v-icon>
+            <h3>{{ t('home.multipleVendors') }}</h3>
+            <p>{{ t('home.multipleVendorsDesc') }}</p>
+          </div>
+          <div class="feature-card">
+            <v-icon size="64" color="primary" class="mb-4">mdi-cog</v-icon>
+            <h3>{{ t('home.easyManagement') }}</h3>
+            <p>{{ t('home.easyManagementDesc') }}</p>
+          </div>
+          <div class="feature-card">
+            <v-icon size="64" color="primary" class="mb-4">mdi-shield-check</v-icon>
+            <h3>{{ t('home.securePlatform') }}</h3>
+            <p>{{ t('home.securePlatformDesc') }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { useAuthStore } from '@/stores/auth'
+import { useI18n } from 'vue-i18n'
+
+export default {
+  name: 'HomeView',
+  setup() {
+    const authStore = useAuthStore()
+    const { t } = useI18n()
+    
+    return {
+      authStore,
+      t
+    }
+  }
+}
+</script>
+
+<style scoped>
+.home {
+  min-height: 100vh;
+  direction: rtl;
+  text-align: right;
+}
+
+.hero-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.hero-content h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  font-weight: 700;
+}
+
+.hero-content p {
+  font-size: 1.2rem;
+  margin-bottom: 40px;
+  opacity: 0.9;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  flex-direction: row-reverse;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.btn-primary {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #45a049;
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: white;
+  border: 2px solid white;
+}
+
+.btn-secondary:hover {
+  background-color: white;
+  color: #667eea;
+  transform: translateY(-2px);
+}
+
+.features-section {
+  padding: 80px 20px;
+  background-color: #f8f9fa;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.features-section h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 60px;
+  color: #333;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 40px;
+}
+
+.feature-card {
+  background: white;
+  padding: 40px 30px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+
+.feature-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.feature-card p {
+  color: #666;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+  
+  .hero-content p {
+    font-size: 1rem;
+  }
+  
+  .hero-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .features-section h2 {
+    font-size: 2rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
