@@ -1,0 +1,74 @@
+/* Admin CSS for product images */
+.file-count-display {
+    margin-top: 10px;
+    padding: 10px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #155724;
+}
+
+.file-list-display {
+    margin-top: 5px;
+    padding: 5px;
+    background: #f8f9fa;
+    border-radius: 3px;
+    font-size: 12px;
+    max-height: 100px;
+    overflow-y: auto;
+    color: #495057;
+}
+
+/* Style the multiple images fieldset */
+.field-multiple_images {
+    background: #f8f9fa;
+    border: 2px dashed #007cba;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 15px 0;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.field-multiple_images:hover {
+    border-color: #28a745;
+    background-color: #e8f5e8;
+}
+
+.field-multiple_images .help {
+    font-style: italic;
+    color: #6c757d;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+/* Style the inline images */
+.inline-group .tabular tr.has_original td {
+    background-color: #f8f9fa;
+}
+
+.inline-group .tabular tr.has_original td .image_thumbnail {
+    border: 2px solid #28a745;
+}
+
+/* Primary image indicator */
+.inline-group .tabular tr.has_original td input[name$="-is_primary"]:checked+label::after {
+    content: " ⭐";
+    color: #ffc107;
+    font-size: 16px;
+}
+
+/* Image preview in list view */
+.image-count img {
+    border: 2px solid #28a745;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Drag and drop styling */
+.drag-over {
+    border-color: #007cba !important;
+    background-color: #f0f8ff !important;
+}
