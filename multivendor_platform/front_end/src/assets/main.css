@@ -1,0 +1,163 @@
+@import './base.css';
+
+/* RTL Support - Global */
+html {
+  direction: rtl;
+  text-align: right;
+}
+
+body {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#app {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  font-weight: normal;
+  direction: rtl;
+}
+
+/* RTL Specific Adjustments */
+.v-application {
+  direction: rtl;
+}
+
+/* Fix margins and paddings for RTL */
+.mr-auto {
+  margin-right: 0 !important;
+  margin-left: auto !important;
+}
+
+.ml-auto {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+.pr-auto {
+  padding-right: 0 !important;
+  padding-left: auto !important;
+}
+
+.pl-auto {
+  padding-left: 0 !important;
+  padding-right: auto !important;
+}
+
+/* Vuetify RTL Fixes */
+.v-toolbar .v-toolbar__content {
+  flex-direction: row-reverse;
+}
+
+.v-list-item__prepend {
+  margin-inline-start: 0;
+  margin-inline-end: 16px;
+}
+
+.v-list-item__append {
+  margin-inline-start: 16px;
+  margin-inline-end: 0;
+}
+
+/* Navigation Drawer RTL */
+.v-navigation-drawer {
+  right: auto !important;
+  left: auto !important;
+}
+
+.v-navigation-drawer--left {
+  left: auto !important;
+  right: 0 !important;
+}
+
+.v-navigation-drawer--right {
+  right: auto !important;
+  left: 0 !important;
+}
+
+/* Text Alignment */
+.text-right {
+  text-align: right !important;
+}
+
+.text-left {
+  text-align: left !important;
+}
+
+/* Flexbox RTL */
+.flex-row-reverse {
+  flex-direction: row-reverse !important;
+}
+
+/* Links */
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: 0.3s;
+}
+
+@media (hover: hover) {
+  a:hover {
+    opacity: 0.8;
+  }
+}
+
+/* Scrollbar RTL Support */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Persian Number Support */
+.persian-numbers {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  body {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 960px) {
+  body {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 960px) {
+  body {
+    font-size: 16px;
+  }
+}

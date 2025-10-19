@@ -1,0 +1,52 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block content_title %}
+<h1>{{ title }}</h1>
+<div style="margin: 20px 0; display: flex; gap: 15px; flex-wrap: wrap;">
+    <a href="{% url 'admin:products_add_scrape_jobs' %}" class="addlink" style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 14px 28px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: bold;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s;
+        box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+        font-size: 15px;
+    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(102, 126, 234, 0.4)';" 
+       onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(102, 126, 234, 0.3)';">
+        <span style="font-size: 20px;">🚀</span>
+        <span>Batch Scraper (NEW!)</span>
+    </a>
+    
+    <a href="{% url 'admin:products_bulk_scrape' %}" class="addlink" style="
+        background: #28a745;
+        color: white;
+        padding: 14px 28px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: bold;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s;
+        box-shadow: 0 4px 6px rgba(40, 167, 69, 0.3);
+        font-size: 15px;
+    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(40, 167, 69, 0.4)';" 
+       onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(40, 167, 69, 0.3)';">
+        <span style="font-size: 20px;">📋</span>
+        <span>Simple Bulk Scrape</span>
+    </a>
+</div>
+
+<div style="background: #e7f3ff; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 4px;">
+    <p style="margin: 0; color: #004085; font-size: 14px;">
+        <strong>💡 Tip:</strong> Use the <strong>Batch Scraper</strong> for real-time progress tracking and better control over multiple URLs!
+    </p>
+</div>
+{% endblock %}
+

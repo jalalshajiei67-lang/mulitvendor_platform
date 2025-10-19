@@ -1,0 +1,210 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .scraper-container {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .scraper-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #417690;
+    }
+    
+    .scraper-header h1 {
+        color: #417690;
+        font-size: 28px;
+        margin: 0 0 10px 0;
+    }
+    
+    .scraper-header p {
+        color: #666;
+        font-size: 14px;
+        margin: 0;
+    }
+    
+    .form-row {
+        margin-bottom: 25px;
+    }
+    
+    .form-row label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #333;
+        font-size: 14px;
+    }
+    
+    .form-row textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 13px;
+        box-sizing: border-box;
+        transition: border-color 0.3s;
+    }
+    
+    .form-row textarea:focus {
+        outline: none;
+        border-color: #417690;
+        box-shadow: 0 0 0 3px rgba(65, 118, 144, 0.1);
+    }
+    
+    .form-row select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    
+    .helptext {
+        display: block;
+        margin-top: 5px;
+        color: #666;
+        font-size: 12px;
+    }
+    
+    .errorlist {
+        list-style: none;
+        padding: 10px 15px;
+        margin: 10px 0;
+        background: #fee;
+        border-left: 4px solid #c00;
+        border-radius: 4px;
+    }
+    
+    .errorlist li {
+        color: #c00;
+        font-size: 13px;
+    }
+    
+    .submit-row {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+        text-align: right;
+    }
+    
+    .submit-button {
+        background: #417690;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 4px;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    
+    .submit-button:hover {
+        background: #2e5468;
+    }
+    
+    .cancel-button {
+        background: #999;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 4px;
+        font-size: 15px;
+        cursor: pointer;
+        margin-right: 10px;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .cancel-button:hover {
+        background: #777;
+        color: white;
+    }
+    
+    .info-box {
+        background: #e7f3f8;
+        border-left: 4px solid #417690;
+        padding: 15px;
+        margin-bottom: 25px;
+        border-radius: 4px;
+    }
+    
+    .info-box h3 {
+        margin: 0 0 10px 0;
+        color: #417690;
+        font-size: 16px;
+    }
+    
+    .info-box ul {
+        margin: 5px 0 0 20px;
+        color: #555;
+        font-size: 13px;
+    }
+    
+    .info-box li {
+        margin: 5px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scraper-container">
+    <div class="scraper-header">
+        <h1>🔍 Bulk Product Scraper</h1>
+        <p>Scrape products from WordPress/WooCommerce websites and automatically create products in your store.</p>
+    </div>
+    
+    <div class="info-box">
+        <h3>ℹ️ How it works:</h3>
+        <ul>
+            <li>Enter product URLs from WordPress/WooCommerce sites (one per line)</li>
+            <li>The system will automatically extract: product name, description, price, images, and categories</li>
+            <li>Each URL will be queued and processed in the background</li>
+            <li>Created products will be set as "draft" (inactive) for your review</li>
+            <li>You can monitor progress in the Scrape Jobs list</li>
+        </ul>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+            {{ form.non_field_errors }}
+        {% endif %}
+        
+        <div class="form-row">
+            <label for="{{ form.urls.id_for_label }}">{{ form.urls.label }}:</label>
+            {{ form.urls.errors }}
+            {{ form.urls }}
+            {% if form.urls.help_text %}
+                <span class="helptext">{{ form.urls.help_text }}</span>
+            {% endif %}
+        </div>
+        
+        <div class="form-row">
+            <label for="{{ form.supplier.id_for_label }}">{{ form.supplier.label }}:</label>
+            {{ form.supplier.errors }}
+            {{ form.supplier }}
+            {% if form.supplier.help_text %}
+                <span class="helptext">{{ form.supplier.help_text }}</span>
+            {% endif %}
+        </div>
+        
+        <div class="submit-row">
+            <a href="{% url 'admin:products_productscrapejob_changelist' %}" class="cancel-button">Cancel</a>
+            <button type="submit" class="submit-button">🚀 Start Scraping</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

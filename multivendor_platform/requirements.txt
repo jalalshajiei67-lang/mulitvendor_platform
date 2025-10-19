@@ -1,0 +1,19 @@
+# Django and Core Packages
+Django>=4.2,<5.0
+djangorestframework>=3.14.0
+django-cors-headers>=4.0.0
+django-filter>=23.0
+Pillow>=10.0.0
+
+# Rich Text Editor
+django-tinymce>=3.6.0
+
+# Scraping Dependencies
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+lxml>=4.9.0
+urllib3>=2.0.0
+
+# Additional utilities
+python-slugify>=8.0.0
+
