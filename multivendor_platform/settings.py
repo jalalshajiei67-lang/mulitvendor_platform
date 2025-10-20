@@ -1,18 +1,22 @@
 # multivendor_platform/settings.py
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'your-secret-key-here'  # Make sure to set this properly
+SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-#LLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
-ALLOWED_HOSTS = ['backend.indexo.ir', 'indexo.ir']
+# Parse ALLOWED_HOSTS from environment variable (comma-separated)
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -73,12 +77,12 @@ WSGI_APPLICATION = 'multivendor_platform.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'your_actual_password_from_connection_string',
-        'HOST': 'srv-captain--multivendor-db',  # matches CapRover service name
-        'PORT': '5432',
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': os.getenv('DB_NAME', 'postgres'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'your_password_here'),
+        'HOST': os.getenv('DB_HOST', 'srv-captain--multivendor-db'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
@@ -105,8 +109,13 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] if os.path.exists(os.path.join(BASE_DIR, 'static')) else []
+
+# WhiteNoise configuration for serving static files
+MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (user uploaded content)
 MEDIA_URL = '/media/'
@@ -116,18 +125,23 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8080",  # Default Vue dev server port
-    "http://127.0.0.1:8080",
-    "http://localhost:5173",  # Vite dev server port
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",  # Alternative Vite port
-    "http://127.0.0.1:5174",
-]
+if DEBUG:
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    ]
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    # Parse CORS origins from environment variable (comma-separated)
+    cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
+    CORS_ALLOWED_ORIGINS = cors_origins.split(',') if cors_origins else []
+    CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
 
-# Additional CORS settings for development
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True  # Only for development - remove in production
 
 # Configure DRF
 REST_FRAMEWORK = {
