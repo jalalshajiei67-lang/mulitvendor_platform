@@ -742,3 +742,6 @@ Batch Report → "View All Jobs in Batch"
 
 Every scraping session now has a complete report with the option to retry only failed URLs!
 
+
+
+
