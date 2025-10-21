@@ -17,12 +17,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY ../requirements.txt /app/
+COPY requirements.txt /app/
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
 # Copy project files
-COPY . /app/
+COPY multivendor_platform/multivendor_platform /app/
 
 # Create necessary directories
 RUN mkdir -p /app/static /app/media
