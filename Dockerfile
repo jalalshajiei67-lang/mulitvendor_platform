@@ -21,8 +21,8 @@ COPY requirements.txt /app/
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
-# Copy project files
-COPY multivendor_platform/multivendor_platform /app/
+# Copy project files (in deploy-django branch, files are at root)
+COPY . /app/
 
 # Create necessary directories
 RUN mkdir -p /app/static /app/media
@@ -31,9 +31,9 @@ RUN mkdir -p /app/static /app/media
 RUN python manage.py collectstatic --noinput || true
 
 # Expose port
-EXPOSE 8000
+EXPOSE 80
 
 # Run migrations and start server
 CMD python manage.py migrate --noinput && \
-    gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120
+    gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:80 --workers 4 --timeout 120
 
