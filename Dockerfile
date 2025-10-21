@@ -4,19 +4,23 @@ FROM node:20-alpine as build-stage
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with legacy peer deps for compatibility
+RUN npm ci --legacy-peer-deps --prefer-offline
 
-# Copy project files
-COPY . .
+# Copy project configuration
+COPY vite.config.js jsconfig.json index.html ./
+
+# Copy source code and public assets
+COPY src ./src
+COPY public ./public
 
 # Set production environment
 ENV NODE_ENV=production
 
-# Build the app with increased memory limit
-RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
+# Build the app with increased memory and verbose logging
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build -- --logLevel info
 
 # Production stage
 FROM nginx:alpine as production-stage

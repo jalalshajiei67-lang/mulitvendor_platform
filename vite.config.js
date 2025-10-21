@@ -2,18 +2,27 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools'
+// Removed vueDevTools import to avoid build issues in production
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
-    // Only enable devtools in development, not in production builds
-    ...(process.env.NODE_ENV !== 'production' ? [vueDevTools()] : []),
+    // DevTools removed for production compatibility
   ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
+    },
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
     },
   },
   server: {
