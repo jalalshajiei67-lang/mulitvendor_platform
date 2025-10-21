@@ -12,8 +12,11 @@ RUN npm ci
 # Copy project files
 COPY . .
 
-# Build the app
-RUN npm run build
+# Set production environment
+ENV NODE_ENV=production
+
+# Build the app with increased memory limit
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Production stage
 FROM nginx:alpine as production-stage
