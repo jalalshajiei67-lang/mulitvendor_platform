@@ -1,0 +1,117 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: multivendor_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-multivendor_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - multivendor_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Django Backend
+  backend:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: multivendor_backend
+    restart: always
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-multivendor_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-changeme123}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS:-False}
+    volumes:
+      - media_files:/app/media
+      - static_files:/app/static
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - multivendor_network
+    expose:
+      - "80"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:80/api/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Vue.js Frontend
+  frontend:
+    build:
+      context: ./multivendor_platform/front_end
+      dockerfile: ./Dockerfile
+    container_name: multivendor_frontend
+    restart: always
+    networks:
+      - multivendor_network
+    expose:
+      - "80"
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: multivendor_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - media_files:/var/www/media:ro
+      - static_files:/var/www/static:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    networks:
+      - multivendor_network
+
+  # Certbot for SSL (optional, for HTTPS)
+  certbot:
+    image: certbot/certbot
+    container_name: multivendor_certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - multivendor_network
+
+volumes:
+  postgres_data:
+  media_files:
+  static_files:
+
+
+networks:
+  multivendor_network:
+    driver: bridge

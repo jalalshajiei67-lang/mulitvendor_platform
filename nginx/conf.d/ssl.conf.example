@@ -1,0 +1,97 @@
+# HTTPS Server Configuration (Uncomment after obtaining SSL certificate)
+# To enable HTTPS:
+# 1. Obtain SSL certificate using certbot
+# 2. Rename this file to ssl.conf
+# 3. Replace DOMAIN_NAME with your actual domain
+# 4. Restart nginx
+
+# server {
+#     listen 443 ssl http2;
+#     server_name DOMAIN_NAME www.DOMAIN_NAME;
+#     
+#     ssl_certificate /etc/letsencrypt/live/DOMAIN_NAME/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/DOMAIN_NAME/privkey.pem;
+#     
+#     # SSL configuration
+#     ssl_protocols TLSv1.2 TLSv1.3;
+#     ssl_ciphers HIGH:!aNULL:!MD5;
+#     ssl_prefer_server_ciphers on;
+#     ssl_session_cache shared:SSL:10m;
+#     ssl_session_timeout 10m;
+#     
+#     client_max_body_size 100M;
+#     client_body_timeout 300s;
+#     
+#     # API requests
+#     location /api/ {
+#         proxy_pass http://backend;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#         proxy_read_timeout 300s;
+#         proxy_connect_timeout 75s;
+#     }
+#     
+#     # Admin panel
+#     location /admin/ {
+#         proxy_pass http://backend;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#     }
+#     
+#     # Static files
+#     location /static/ {
+#         alias /var/www/static/;
+#         expires 1y;
+#         add_header Cache-Control "public, immutable";
+#     }
+#     
+#     # Media files
+#     location /media/ {
+#         alias /var/www/media/;
+#         expires 1y;
+#         add_header Cache-Control "public";
+#     }
+#     
+#     # Sitemap
+#     location /sitemap.xml {
+#         proxy_pass http://backend;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#     }
+#     
+#     # Frontend
+#     location / {
+#         proxy_pass http://frontend;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#         
+#         proxy_http_version 1.1;
+#         proxy_set_header Upgrade $http_upgrade;
+#         proxy_set_header Connection "upgrade";
+#     }
+# }
+# 
+# # HTTP to HTTPS redirect
+# server {
+#     listen 80;
+#     server_name DOMAIN_NAME www.DOMAIN_NAME;
+#     
+#     location /.well-known/acme-challenge/ {
+#         root /var/www/certbot;
+#     }
+#     
+#     location / {
+#         return 301 https://$server_name$request_uri;
+#     }
+# }
+
+
+

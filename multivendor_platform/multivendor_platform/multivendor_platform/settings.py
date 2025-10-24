@@ -11,8 +11,11 @@ SECRET_KEY = 'your-secret-key-here'  # Make sure to set this properly
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-#LLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
-ALLOWED_HOSTS = ['backend.indexo.ir', 'indexo.ir']
+# ALLOWED_HOSTS for local development
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
+
+# Uncomment below for production
+# ALLOWED_HOSTS = ['backend.indexo.ir', 'indexo.ir']
 
 # Application definition
 INSTALLED_APPS = [
@@ -71,16 +74,25 @@ WSGI_APPLICATION = 'multivendor_platform.wsgi.application'
 
 
 
+# Database configuration - using SQLite for local development
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'your_actual_password_from_connection_string',
-        'HOST': 'srv-captain--multivendor-db',  # matches CapRover service name
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# Uncomment below for PostgreSQL production setup
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'postgres',
+#         'USER': 'postgres',
+#         'PASSWORD': 'your_actual_password_from_connection_string',
+#         'HOST': 'srv-captain--multivendor-db',  # matches CapRover service name
+#         'PORT': '5432',
+#     }
+# }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
