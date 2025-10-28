@@ -4,6 +4,9 @@ FROM node:20-alpine as build-stage
 # Set working directory
 WORKDIR /app
 
+# Set environment variable for API URL
+ENV VITE_API_BASE_URL=https://multivendor-backend.indexo.ir
+
 # Copy package files
 COPY multivendor_platform/front_end/package*.json ./
 
