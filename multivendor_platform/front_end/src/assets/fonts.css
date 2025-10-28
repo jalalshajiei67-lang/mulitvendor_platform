@@ -1,4 +1,38 @@
-/* IRANSans Font Definitions */
+/* IRANSans Font Definitions - TEMPORARILY DISABLED */
+/* Font files are missing and causing build failures */
+/* TODO: Download IRANSans fonts from https://github.com/rastikerdar/iransans-font */
+
+/* Using system fonts as fallback for now */
+:root {
+    --font-family-persian: 'Tahoma', 'Arial', 'Segoe UI', sans-serif;
+}
+
+/* Font family utility classes - using fallback fonts */
+.font-iransans,
+.font-iransans-light,
+.font-iransans-regular,
+.font-iransans-medium,
+.font-iransans-bold {
+    font-family: var(--font-family-persian);
+}
+
+.font-iransans-light {
+    font-weight: 300;
+}
+
+.font-iransans-regular {
+    font-weight: 400;
+}
+
+.font-iransans-medium {
+    font-weight: 500;
+}
+
+.font-iransans-bold {
+    font-weight: 700;
+}
+
+/* Uncomment when font files are added:
 
 @font-face {
     font-family: 'IRANSans';
@@ -50,27 +84,4 @@
     font-display: swap;
 }
 
-/* Font family utility classes */
-.font-iransans {
-    font-family: 'IRANSans', 'Tahoma', 'Arial', sans-serif;
-}
-
-.font-iransans-light {
-    font-family: 'IRANSans', 'Tahoma', 'Arial', sans-serif;
-    font-weight: 300;
-}
-
-.font-iransans-regular {
-    font-family: 'IRANSans', 'Tahoma', 'Arial', sans-serif;
-    font-weight: 400;
-}
-
-.font-iransans-medium {
-    font-family: 'IRANSans', 'Tahoma', 'Arial', sans-serif;
-    font-weight: 500;
-}
-
-.font-iransans-bold {
-    font-family: 'IRANSans', 'Tahoma', 'Arial', sans-serif;
-    font-weight: 700;
-}
+*/

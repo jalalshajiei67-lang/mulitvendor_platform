@@ -4,20 +4,32 @@ FROM node:20-alpine as build-stage
 # Set working directory
 WORKDIR /app
 
-# Set environment variable for API URL (with /api suffix)
+# Set environment variables
+ENV NODE_ENV=production
 ENV VITE_API_BASE_URL=https://multivendor-backend.indexo.ir/api
 
 # Copy package files
 COPY multivendor_platform/front_end/package*.json ./
 
-# Install dependencies
+# Install ALL dependencies (including devDependencies for build)
 RUN npm install
 
 # Copy source code
 COPY multivendor_platform/front_end/ ./
 
-# Build the app
-RUN npm run build
+# Build the app with verbose logging
+RUN echo "========================================" && \
+    echo "Starting Vite build..." && \
+    echo "NODE_ENV: $NODE_ENV" && \
+    echo "VITE_API_BASE_URL: $VITE_API_BASE_URL" && \
+    echo "========================================" && \
+    npm run build && \
+    echo "========================================" && \
+    echo "Build completed! Checking dist folder..." && \
+    ls -la dist/ && \
+    echo "Dist folder contents:" && \
+    find dist/ -type f && \
+    echo "========================================"
 
 # Production stage
 FROM nginx:alpine as production-stage
