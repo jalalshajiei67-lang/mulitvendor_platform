@@ -109,10 +109,10 @@ class ProductModelTest(TestCase):
             description='Latest iPhone model',
             price=Decimal('999.99'),
             vendor=self.user,
-            category=self.category,
-            subcategory=self.subcategory,
+            primary_category=self.category,
             stock=10
         )
+        product.subcategories.add(self.subcategory)
         self.assertEqual(product.name, 'iPhone 14 Pro')
         self.assertEqual(product.price, Decimal('999.99'))
         self.assertEqual(product.vendor, self.user)
@@ -126,7 +126,7 @@ class ProductModelTest(TestCase):
             description='Android phone',
             price=Decimal('799.99'),
             vendor=self.user,
-            category=self.category,
+            primary_category=self.category,
             stock=5
         )
         self.assertTrue(product.slug)
@@ -139,7 +139,7 @@ class ProductModelTest(TestCase):
             description='Test',
             price=Decimal('100.00'),
             vendor=self.user,
-            category=self.category,
+            primary_category=self.category,
             stock=1
         )
         self.assertEqual(str(product), 'Test Product')
@@ -151,7 +151,7 @@ class ProductModelTest(TestCase):
             description='Test',
             price=Decimal('50.00'),
             vendor=self.user,
-            category=self.category,
+            primary_category=self.category,
             stock=5
         )
         self.assertTrue(product.stock > 0)
@@ -215,7 +215,7 @@ class ProductImageTest(TestCase):
             description='Test',
             price=Decimal('100.00'),
             vendor=self.user,
-            category=self.category,
+            primary_category=self.category,
             stock=10
         )
     
