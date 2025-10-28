@@ -421,6 +421,13 @@
                 </div>
                 
                 <div class="status-log" id="status-log"></div>
+                
+                <!-- Results Section -->
+                <div id="results-section" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #dee2e6;">
+                    <h3 style="margin: 0 0 15px 0; color: #28a745;">✅ Scraping Complete!</h3>
+                    <div id="results-summary" style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 15px; margin-bottom: 15px;"></div>
+                    <div id="results-details"></div>
+                </div>
             </div>
             
             <!-- Action Buttons -->
@@ -608,27 +615,21 @@ async function checkProgress() {
         if (finished === total) {
             scrapingInProgress = false;
             addLog(`✅ All jobs completed! ${data.completed} succeeded, ${data.failed} failed`, 'success');
-            addLog(`📊 Generating batch report...`, 'info');
             
             const startBtn = document.getElementById('start-btn');
             startBtn.disabled = false;
-            startBtn.innerHTML = '✓ Complete - View Report';
+            startBtn.innerHTML = '🔄 Scrape More Products';
             startBtn.classList.remove('btn-primary');
             startBtn.classList.add('btn-success');
+            startBtn.onclick = () => window.location.reload();
             
             if (data.failed > 0) {
                 document.getElementById('retry-btn').style.display = 'inline-flex';
-                addLog(`⚠️ ${data.failed} job(s) failed - you can retry them from the report`, 'warning');
+                addLog(`⚠️ ${data.failed} job(s) failed - you can retry them`, 'warning');
             }
             
-            // Redirect to batch report instead of jobs list
-            setTimeout(() => {
-                if (window.batchId) {
-                    window.location.href = `/admin/products/scrapejobatch/${window.batchId}/report/`;
-                } else {
-                    window.location.href = '{% url "admin:products_productscrapejob_changelist" %}';
-                }
-            }, 2000);
+            // Show results inline instead of redirecting
+            showResults(data);
         } else {
             // Check again in 2 seconds
             setTimeout(checkProgress, 2000);
@@ -642,6 +643,72 @@ async function checkProgress() {
 async function retryFailed() {
     addLog('🔄 Retrying failed jobs...', 'info');
     window.location.href = '{% url "admin:products_productscrapejob_changelist" %}';
+}
+
+async function showResults(stats) {
+    const resultsSection = document.getElementById('results-section');
+    const resultsSummary = document.getElementById('results-summary');
+    const resultsDetails = document.getElementById('results-details');
+    
+    // Show summary
+    resultsSummary.innerHTML = `
+        <div style="display: flex; justify-content: space-around; text-align: center;">
+            <div>
+                <div style="font-size: 32px; font-weight: bold; color: #28a745;">${stats.completed}</div>
+                <div style="color: #155724;">Products Created</div>
+            </div>
+            <div>
+                <div style="font-size: 32px; font-weight: bold; color: #dc3545;">${stats.failed}</div>
+                <div style="color: #721c24;">Failed</div>
+            </div>
+            <div>
+                <div style="font-size: 32px; font-weight: bold; color: #007bff;">${stats.total}</div>
+                <div style="color: #004085;">Total Processed</div>
+            </div>
+        </div>
+    `;
+    
+    // Fetch detailed job results
+    try {
+        const response = await fetch('{% url "admin:products_productscrapejob_changelist" %}?batch__id=' + window.batchId);
+        const text = await response.text();
+        
+        // Create action buttons
+        resultsDetails.innerHTML = `
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <a href="{% url 'admin:products_productscrapejob_changelist' %}?batch__id=${window.batchId}" 
+                   class="btn btn-primary" target="_blank">
+                    📋 View All Jobs
+                </a>
+                <a href="{% url 'admin:products_product_changelist' %}?batch__id=${window.batchId}" 
+                   class="btn btn-success" target="_blank">
+                    🛍️ View Created Products
+                </a>
+                ${stats.failed > 0 ? `
+                <a href="{% url 'admin:products_productscrapejob_changelist' %}?batch__id=${window.batchId}&status__exact=failed" 
+                   class="btn btn-secondary" target="_blank" style="background: #dc3545;">
+                    ❌ View Failed Jobs
+                </a>
+                ` : ''}
+            </div>
+            <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 13px;">
+                <strong>Batch #${window.batchId}</strong> - Processing complete<br>
+                Success Rate: <strong>${stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%</strong>
+            </div>
+        `;
+        
+        resultsSection.style.display = 'block';
+    } catch (error) {
+        console.error('Error fetching results:', error);
+        resultsDetails.innerHTML = `
+            <div style="margin-top: 15px;">
+                <a href="{% url 'admin:products_productscrapejob_changelist' %}" class="btn btn-primary">
+                    📋 View All Jobs
+                </a>
+            </div>
+        `;
+        resultsSection.style.display = 'block';
+    }
 }
 </script>
 {% endblock %}
