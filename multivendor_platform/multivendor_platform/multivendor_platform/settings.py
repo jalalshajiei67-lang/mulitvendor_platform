@@ -206,6 +206,8 @@ UNFOLD = {
         "light": lambda request: static("icon-light.svg"),  # Optional
         "dark": lambda request: static("icon-dark.svg"),  # Optional
     },
+    "SHOW_HISTORY": True,  # Show history button
+    "SHOW_VIEW_ON_SITE": True,  # Show view on site button
     "SIDEBAR": {
         "show_search": True,
         "show_all_applications": False,

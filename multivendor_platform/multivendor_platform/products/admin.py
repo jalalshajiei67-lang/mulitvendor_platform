@@ -273,6 +273,7 @@ class ProductAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
     filter_horizontal = ['subcategories']
     inlines = [ProductImageInline, ProductCommentInline]
+    actions = ['make_active', 'make_inactive', 'delete_selected']  # Enable bulk actions with delete
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'slug', 'description', 'image', 'image_alt_text')
@@ -354,6 +355,19 @@ class ProductAdmin(admin.ModelAdmin):
             return format_html('<span style="color: orange;">Error</span>')
     comment_count.short_description = 'Comments'
     
+    # Bulk actions
+    def make_active(self, request, queryset):
+        """Mark selected products as active"""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated} product(s) marked as active.')
+    make_active.short_description = "✅ Mark as Active"
+    
+    def make_inactive(self, request, queryset):
+        """Mark selected products as inactive"""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated} product(s) marked as inactive.')
+    make_inactive.short_description = "❌ Mark as Inactive"
+    
     def save_model(self, request, obj, form, change):
         """Override save_model to handle multiple images"""
         super().save_model(request, obj, form, change)
@@ -378,6 +392,11 @@ class ProductAdmin(admin.ModelAdmin):
                             sort_order=existing_count + i
                         )
                         product_image.save()
+    
+    class Media:
+        css = {
+            'all': ('admin/css/custom_admin.css',)
+        }
 
 @admin.register(ProductComment)
 class ProductCommentAdmin(admin.ModelAdmin):
