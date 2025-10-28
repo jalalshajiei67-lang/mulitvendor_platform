@@ -5,11 +5,11 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     vue(),
     // Only use devtools in development
-    process.env.NODE_ENV !== 'production' && vueDevTools(),
+    mode !== 'production' && vueDevTools(),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -35,4 +35,4 @@ export default defineConfig({
       }
     }
   },
-})
+}))

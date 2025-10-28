@@ -1,0 +1,20 @@
+ESLint Error Fixed!
+==================
+
+Problem: 'process' is not defined in vite.config.js
+
+Solution: Changed from process.env.NODE_ENV to use Vite's mode parameter
+
+What was changed:
+- OLD: export default defineConfig({ ... })
+- NEW: export default defineConfig(({ mode }) => ({ ... }))
+- Used 'mode' instead of 'process.env.NODE_ENV'
+
+Deploy now:
+-----------
+git add -A
+git commit -m "Fix ESLint error in vite.config.js"
+git push origin main
+
+The warnings (no-unused-vars) won't block deployment, only the error did.
+
