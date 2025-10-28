@@ -12,9 +12,9 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'ads', SellerAdViewSet, basename='seller-ad')
+router.register(r'ads', SellerAdViewSet, basename='sellerad')
 router.register(r'suppliers', SupplierViewSet, basename='supplier')
-router.register(r'supplier-comments', SupplierCommentViewSet, basename='supplier-comment')
+router.register(r'supplier-comments', SupplierCommentViewSet, basename='suppliercomment')
 
 urlpatterns = [
     # Authentication

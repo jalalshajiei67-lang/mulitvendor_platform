@@ -7,20 +7,17 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'categories', CategoryViewSet)
-router.register(r'subcategories', SubcategoryViewSet)
-router.register(r'departments', DepartmentViewSet)
-router.register(r'product-comments', ProductCommentViewSet)
+router.register(r'categories', CategoryViewSet, basename='category')
+router.register(r'subcategories', SubcategoryViewSet, basename='subcategory')
+router.register(r'departments', DepartmentViewSet, basename='department')
+router.register(r'products', ProductViewSet, basename='product')
+router.register(r'product-comments', ProductCommentViewSet, basename='product-comment')
 
 urlpatterns = [
-    # Put specific routes FIRST
+    # Put specific routes FIRST before router
     path('products/my_products/', MyProductsView.as_view({'get': 'list'}), name='my-products'),
     path('search/', global_search, name='global-search'),
     
-    # Then include router URLs
+    # Then include router URLs (this will handle all ViewSet routes automatically)
     path('', include(router.urls)),
-    
-    # Register products separately to avoid conflicts
-    path('products/', ProductViewSet.as_view({'get': 'list', 'post': 'create'}), name='product-list'),
-    path('products/<int:pk>/', ProductViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='product-detail'),
 ]

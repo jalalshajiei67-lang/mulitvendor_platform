@@ -26,8 +26,5 @@ class Migration(migrations.Migration):
                 'ordering': ['-is_primary', 'sort_order', 'created_at'],
             },
         ),
-        migrations.AddConstraint(
-            model_name='productimage',
-            constraint=models.UniqueConstraint(fields=('product', 'is_primary'), name='unique_primary_per_product'),
-        ),
+        # Constraint moved to migration 0012 for proper conditional constraint
     ]

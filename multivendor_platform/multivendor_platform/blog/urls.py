@@ -7,9 +7,9 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'posts', BlogPostViewSet)
-router.register(r'categories', BlogCategoryViewSet)
-router.register(r'comments', BlogCommentViewSet)
+router.register(r'posts', BlogPostViewSet, basename='blogpost')
+router.register(r'categories', BlogCategoryViewSet, basename='blogcategory')
+router.register(r'comments', BlogCommentViewSet, basename='blogcomment')
 
 urlpatterns = [
     path('', include(router.urls)),

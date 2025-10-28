@@ -6,19 +6,21 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'your-secret-key-here'  # Make sure to set this properly
+SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production-12345678')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-# ALLOWED_HOSTS for local development
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
-
-# Uncomment below for production
-# ALLOWED_HOSTS = ['backend.indexo.ir', 'indexo.ir']
-
+# ALLOWED_HOSTS - read from environment or use defaults
+allowed_hosts_str = os.environ.get("ALLOWED_HOSTS", "")
+if allowed_hosts_str:
+    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(",")]
+else:
+    # Default for development
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
 # Application definition
 INSTALLED_APPS = [
+    'unfold',  # Modern admin theme - must be before django.contrib.admin
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -74,25 +76,29 @@ WSGI_APPLICATION = 'multivendor_platform.wsgi.application'
 
 
 
-# Database configuration - using SQLite for local development
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# Database configuration - reads from environment variables (for Docker)
+# Falls back to SQLite if no DB_ENGINE is set
+DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
 
-# Uncomment below for PostgreSQL production setup
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'postgres',
-#         'USER': 'postgres',
-#         'PASSWORD': 'your_actual_password_from_connection_string',
-#         'HOST': 'srv-captain--multivendor-db',  # matches CapRover service name
-#         'PORT': '5432',
-#     }
-# }
+if DB_ENGINE == 'django.db.backends.postgresql':
+    DATABASES = {
+        'default': {
+            'ENGINE': DB_ENGINE,
+            'NAME': os.environ.get('DB_NAME', 'multivendor_db'),
+            'USER': os.environ.get('DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
+    }
+else:
+    # SQLite for local development without Docker
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -117,8 +123,9 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATICFILES_DIRS = []
 
 # Media files (user uploaded content)
 MEDIA_URL = '/media/'
@@ -127,19 +134,45 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8080",  # Default Vue dev server port
-    "http://127.0.0.1:8080",
-    "http://localhost:5173",  # Vite dev server port
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",  # Alternative Vite port
-    "http://127.0.0.1:5174",
-]
+# CORS settings - read from environment or use defaults
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
 
-# Additional CORS settings for development
+if not CORS_ALLOW_ALL_ORIGINS:
+    # Parse CORS origins from environment
+    cors_origins_str = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+    if cors_origins_str:
+        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',')]
+    else:
+        CORS_ALLOWED_ORIGINS = [
+            "http://localhost:8080",
+            "http://127.0.0.1:8080",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        
+        ]
+else:
+    CORS_ALLOWED_ORIGINS = []
+
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True  # Only for development - remove in production
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 # Configure DRF
 REST_FRAMEWORK = {
@@ -148,10 +181,15 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+        'rest_framework.permissions.AllowAny',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10
+    'PAGE_SIZE': 10,
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ]
 }
 
 # Media files configuration

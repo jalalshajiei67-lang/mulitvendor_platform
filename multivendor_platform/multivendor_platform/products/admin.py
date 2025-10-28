@@ -175,7 +175,14 @@ class CategoryAdmin(admin.ModelAdmin):
     )
     
     def get_departments(self, obj):
-        return ', '.join([dept.name for dept in obj.departments.all()])
+        """Get departments with error handling"""
+        try:
+            depts = obj.departments.all()
+            if depts.exists():
+                return ', '.join([dept.name for dept in depts])
+            return 'None'
+        except Exception as e:
+            return f'Error: {str(e)}'
     get_departments.short_description = 'Departments'
 
 @admin.register(Subcategory)
@@ -204,13 +211,25 @@ class SubcategoryAdmin(admin.ModelAdmin):
     )
     
     def get_departments(self, obj):
-        """Get departments through categories"""
-        departments = obj.get_departments()
-        return ', '.join([dept.name for dept in departments]) if departments else 'None'
+        """Get departments through categories with error handling"""
+        try:
+            departments = obj.get_departments()
+            if departments:
+                return ', '.join([dept.name for dept in departments])
+            return 'None'
+        except Exception as e:
+            return f'Error: {str(e)}'
     get_departments.short_description = 'Departments (via Categories)'
     
     def get_categories(self, obj):
-        return ', '.join([cat.name for cat in obj.categories.all()])
+        """Get categories with error handling"""
+        try:
+            cats = obj.categories.all()
+            if cats.exists():
+                return ', '.join([cat.name for cat in cats])
+            return 'None'
+        except Exception as e:
+            return f'Error: {str(e)}'
     get_categories.short_description = 'Categories'
 
 class ProductImageInline(admin.TabularInline):
@@ -279,36 +298,60 @@ class ProductAdmin(admin.ModelAdmin):
     )
     
     def get_subcategories(self, obj):
-        """Get subcategories as comma-separated string"""
-        subcats = obj.subcategories.all()
-        return ', '.join([subcat.name for subcat in subcats]) if subcats.exists() else 'None'
+        """Get subcategories as comma-separated string with error handling"""
+        try:
+            subcats = obj.subcategories.all()
+            if subcats.exists():
+                return ', '.join([subcat.name for subcat in subcats])
+            return 'None'
+        except Exception as e:
+            return f'Error: {str(e)}'
     get_subcategories.short_description = 'Subcategories'
     
     def get_category_path(self, obj):
-        return obj.get_full_category_path
+        """Get full category path with error handling"""
+        try:
+            if hasattr(obj, 'get_full_category_path'):
+                # It's a property, not a method
+                return obj.get_full_category_path or 'N/A'
+            return 'N/A'
+        except Exception as e:
+            return f'Error: {str(e)}'
     get_category_path.short_description = 'Category Path'
     
     def image_count(self, obj):
-        count = obj.images.count()
-        if count > 0:
-            primary_img = obj.primary_image
-            if primary_img:
-                return format_html(
-                    '<span style="color: green;">{}/20</span> <br>'
-                    '<img src="{}" style="max-width: 50px; max-height: 50px; border-radius: 4px;" />',
-                    count, primary_img.url
-                )
-        return format_html('<span style="color: red;">{}/20</span>', count)
+        """Count images with error handling"""
+        try:
+            count = obj.images.count()
+            if count > 0:
+                primary_img = obj.primary_image
+                if primary_img:
+                    try:
+                        return format_html(
+                            '<span style="color: green;">{}/20</span> <br>'
+                            '<img src="{}" style="max-width: 50px; max-height: 50px; border-radius: 4px;" />',
+                            count, primary_img.url
+                        )
+                    except:
+                        # If image URL fails, just show count
+                        return format_html('<span style="color: green;">{}/20</span>', count)
+            return format_html('<span style="color: red;">{}/20</span>', count)
+        except Exception as e:
+            return format_html('<span style="color: orange;">Error</span>')
     image_count.short_description = 'Images'
     
     def comment_count(self, obj):
-        count = obj.comments.count()
-        approved = obj.comments.filter(is_approved=True).count()
-        return format_html(
-            '<span style="color: {};">{} ({} approved)</span>',
-            'green' if approved > 0 else 'gray',
-            count, approved
-        )
+        """Count comments with error handling"""
+        try:
+            count = obj.comments.count()
+            approved = obj.comments.filter(is_approved=True).count()
+            return format_html(
+                '<span style="color: {};">{} ({} approved)</span>',
+                'green' if approved > 0 else 'gray',
+                count, approved
+            )
+        except Exception as e:
+            return format_html('<span style="color: orange;">Error</span>')
     comment_count.short_description = 'Comments'
     
     def save_model(self, request, obj, form, change):

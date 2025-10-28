@@ -64,7 +64,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
-    filterset_fields = ['subcategories', 'vendor', 'is_active', 'primary_category']
+    filterset_fields = ['vendor', 'is_active', 'primary_category']
     ordering_fields = ['created_at', 'price', 'name']
     
     def get_permissions(self):
@@ -76,6 +76,17 @@ class ProductViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = []
         return [permission() for permission in permission_classes]
+    
+    def get_queryset(self):
+        """
+        Optionally restricts the returned products to a given category,
+        by filtering against a `category` query parameter in the URL.
+        """
+        queryset = Product.objects.all().order_by('-created_at')
+        category_id = self.request.query_params.get('category', None)
+        if category_id is not None:
+            queryset = queryset.filter(primary_category=category_id)
+        return queryset
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""

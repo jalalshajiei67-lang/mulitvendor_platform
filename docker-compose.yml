@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-multivendor_db}
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme123}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-1mWL!8qU%_I(si@4Hyvo3txPo3@q3FF+9!e#K44^}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -31,7 +31,7 @@ services:
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=${DB_NAME:-multivendor_db}
       - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-changeme123}
+      - DB_PASSWORD=${DB_PASSWORD:-1mWL!8qU%_I(si@4Hyvo3txPo3@q3FF+9!e#K44^}
       - DB_HOST=db
       - DB_PORT=5432
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
@@ -46,9 +46,9 @@ services:
     networks:
       - multivendor_network
     expose:
-      - "80"
+      - "8000"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:80/api/" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -66,7 +66,7 @@ services:
     expose:
       - "80"
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/" ]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/" ]
       interval: 30s
       timeout: 10s
       retries: 3

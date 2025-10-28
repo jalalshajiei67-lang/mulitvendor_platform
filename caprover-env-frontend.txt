@@ -1,0 +1,13 @@
+# CapRover Frontend Environment Variables
+# Copy these to your CapRover frontend app environment variables
+
+# API Configuration
+VITE_API_BASE_URL=https://multivendor-backend.indexo.ir
+VITE_DJANGO_ADMIN_URL=https://multivendor-backend.indexo.ir/admin/
+
+# App Configuration
+VUE_APP_TITLE=Multivendor Platform
+VUE_APP_DESCRIPTION=Your Multivendor E-commerce Platform
+
+# CapRover specific
+CAPROVER_APP_NAME=multivendor-frontend

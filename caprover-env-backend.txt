@@ -1,0 +1,28 @@
+# CapRover Backend Environment Variables
+# Copy these to your CapRover backend app environment variables
+
+# Database Configuration (will be updated after PostgreSQL setup)
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=multivendor_db
+DB_USER=postgres
+DB_PASSWORD=1mWL!8qU%_I(si@4Hyvo3txPo3@q3FF+9!e#K44^
+DB_HOST=srv-captain--postgres-db
+DB_PORT=5432
+
+# Django Configuration
+SECRET_KEY=tfu9y@exp6tdda$%f_+u&o80jd!%ld5@y=iua)$176x5bf(aut
+DEBUG=False
+ALLOWED_HOSTS=multivendor-backend.indexo.ir,indexo.ir,www.indexo.ir
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS=https://multivendor-frontend.indexo.ir,https://indexo.ir,https://www.indexo.ir,http://multivendor-frontend.indexo.ir
+CORS_ALLOW_ALL_ORIGINS=False
+
+# Static Files Configuration
+STATIC_URL=/static/
+STATIC_ROOT=/app/static
+MEDIA_URL=/media/
+MEDIA_ROOT=/app/media
+
+# CapRover specific
+CAPROVER_APP_NAME=multivendor-backend

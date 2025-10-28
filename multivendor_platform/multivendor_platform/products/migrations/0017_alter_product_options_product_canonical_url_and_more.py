@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('products', '0016_add_seo_fields_to_all_categories'),
+        ('products', '0016_6_fix_null_slugs'),
     ]
 
     operations = [
