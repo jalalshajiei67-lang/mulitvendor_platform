@@ -5,6 +5,7 @@ from .views import (
     ProductViewSet, CategoryViewSet, SubcategoryViewSet, DepartmentViewSet, 
     MyProductsView, ProductCommentViewSet, global_search
 )
+from .test_scraper_api import test_scraper_connection, test_network_access
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='category')
@@ -17,6 +18,10 @@ urlpatterns = [
     # Put specific routes FIRST before router
     path('products/my_products/', MyProductsView.as_view({'get': 'list'}), name='my-products'),
     path('search/', global_search, name='global-search'),
+    
+    # Scraper test endpoints (admin only)
+    path('test-scraper/', test_scraper_connection, name='test-scraper'),
+    path('test-network/', test_network_access, name='test-network'),
     
     # Then include router URLs (this will handle all ViewSet routes automatically)
     path('', include(router.urls)),

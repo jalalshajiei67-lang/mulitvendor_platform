@@ -1,6 +1,7 @@
 # CapRover Production Settings
 import os
 from pathlib import Path
+from django.templatetags.static import static
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -148,6 +149,165 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10
+}
+
+# Unfold Admin Configuration  
+UNFOLD = {
+    "SITE_TITLE": "Multivendor Admin",
+    "SITE_HEADER": "Product Management System",
+    "SITE_URL": "/",
+    "SITE_ICON": {
+        "light": lambda request: static("icon-light.svg"),
+        "dark": lambda request: static("icon-dark.svg"),
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "🛍️ Products Management",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Products",
+                        "icon": "shopping_bag",
+                        "link": lambda request: "/admin/products/product/",
+                        "badge": lambda request: "primary",
+                    },
+                    {
+                        "title": "Categories",
+                        "icon": "category",
+                        "link": lambda request: "/admin/products/category/",
+                    },
+                    {
+                        "title": "Subcategories",
+                        "icon": "account_tree",
+                        "link": lambda request: "/admin/products/subcategory/",
+                    },
+                    {
+                        "title": "Departments",
+                        "icon": "store",
+                        "link": lambda request: "/admin/products/department/",
+                    },
+                    {
+                        "title": "Product Images",
+                        "icon": "image",
+                        "link": lambda request: "/admin/products/productimage/",
+                    },
+                    {
+                        "title": "Product Comments",
+                        "icon": "comment",
+                        "link": lambda request: "/admin/products/productcomment/",
+                    },
+                ],
+            },
+            {
+                "title": "🤖 Scraping Tools",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "📋 Batch Scraper",
+                        "icon": "rocket_launch",
+                        "link": lambda request: "/admin/products/productscrapejob/add-scrape-jobs/",
+                        "badge": lambda request: "⭐ START HERE",
+                    },
+                    {
+                        "title": "Scrape Jobs",
+                        "icon": "task",
+                        "link": lambda request: "/admin/products/productscrapejob/",
+                    },
+                    {
+                        "title": "Scrape Batches",
+                        "icon": "inventory_2",
+                        "link": lambda request: "/admin/products/scrapejobatch/",
+                    },
+                ],
+            },
+            {
+                "title": "👥 Users & Vendors",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Users",
+                        "icon": "person",
+                        "link": lambda request: "/admin/auth/user/",
+                    },
+                    {
+                        "title": "Suppliers",
+                        "icon": "business",
+                        "link": lambda request: "/admin/users/supplier/",
+                    },
+                    {
+                        "title": "Vendor Profiles",
+                        "icon": "badge",
+                        "link": lambda request: "/admin/users/vendorprofile/",
+                    },
+                    {
+                        "title": "User Profiles",
+                        "icon": "account_circle",
+                        "link": lambda request: "/admin/users/userprofile/",
+                    },
+                ],
+            },
+            {
+                "title": "📝 Blog & Content",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Blog Posts",
+                        "icon": "article",
+                        "link": lambda request: "/admin/blog/blogpost/",
+                    },
+                    {
+                        "title": "Blog Categories",
+                        "icon": "label",
+                        "link": lambda request: "/admin/blog/blogcategory/",
+                    },
+                    {
+                        "title": "Blog Comments",
+                        "icon": "chat",
+                        "link": lambda request: "/admin/blog/blogcomment/",
+                    },
+                ],
+            },
+            {
+                "title": "📦 Orders",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Orders",
+                        "icon": "receipt",
+                        "link": lambda request: "/admin/orders/order/",
+                    },
+                    {
+                        "title": "Order Items",
+                        "icon": "list_alt",
+                        "link": lambda request: "/admin/orders/orderitem/",
+                    },
+                ],
+            },
+        ],
+    },
+    "COLORS": {
+        "primary": {
+            "50": "239 246 255",
+            "100": "219 234 254",
+            "200": "191 219 254",
+            "300": "147 197 253",
+            "400": "96 165 250",
+            "500": "59 130 246",
+            "600": "37 99 235",
+            "700": "29 78 216",
+            "800": "30 64 175",
+            "900": "30 58 138",
+            "950": "23 37 84",
+        },
+    },
 }
 
 # TinyMCE Configuration

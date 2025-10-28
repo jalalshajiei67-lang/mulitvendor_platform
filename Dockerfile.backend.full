@@ -1,0 +1,43 @@
+# Django Backend Dockerfile for CapRover
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=multivendor_platform.settings_caprover
+
+# Set work directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y \
+    postgresql-client \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY multivendor_platform/requirements.txt /app/
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Copy Django project
+COPY multivendor_platform/multivendor_platform/ /app/
+
+# Create necessary directories
+RUN mkdir -p /app/staticfiles /app/media /app/logs
+
+# Collect static files with verbose output for debugging
+# Using --clear to remove old files, --noinput for non-interactive mode
+RUN python manage.py collectstatic --noinput --clear -v 2 || echo "Note: collectstatic will run again at startup"
+
+# Expose port (CapRover will handle port mapping)
+EXPOSE 80
+
+# Run migrations and start server
+# Note: collectstatic errors won't prevent gunicorn from starting
+CMD python manage.py migrate --noinput && \
+    (python manage.py collectstatic --noinput --clear && echo "✓ Static files collected" || echo "⚠ collectstatic failed, but continuing...") && \
+    gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:80 --workers 4 --timeout 120
