@@ -14,6 +14,10 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 # ALLOWED_HOSTS for CapRover production
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'multivendor-backend.indexo.ir,indexo.ir,www.indexo.ir').split(',')
 
+# CSRF Trusted Origins - Required for production HTTPS
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 
+    'https://multivendor-backend.indexo.ir,https://indexo.ir,https://www.indexo.ir').split(',')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -188,6 +192,12 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
+
+# Cookie security settings for HTTPS
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Logging configuration
 LOGGING = {
