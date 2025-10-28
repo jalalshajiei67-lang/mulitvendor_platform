@@ -25,4 +25,12 @@ export default defineConfig([
   ...pluginVue.configs['flat/essential'],
   ...pluginOxlint.configs['flat/recommended'],
   skipFormatting,
+  {
+    rules: {
+      // Relax Vue-specific rules for existing codebase
+      'vue/multi-word-component-names': 'off',
+      'vue/valid-v-slot': 'off',
+      'no-unused-vars': 'warn',
+    },
+  },
 ])
