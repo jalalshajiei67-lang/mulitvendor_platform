@@ -46,7 +46,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Add this at the top
     'django.middleware.security.SecurityMiddleware',
-    # 'whitenoise.middleware.WhiteNoiseMiddleware',  # Temporarily disabled
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files
     'django.contrib.sessions.middleware.SessionMiddleware',  # Required for admin
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
