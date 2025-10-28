@@ -2,16 +2,16 @@
 import axios from 'axios';
 
 // Use VITE_API_BASE_URL environment variable, or default based on mode
-// In production, use empty string to make requests relative (handled by Nginx)
+// In production, VITE_API_BASE_URL should include /api suffix
 // In development, use local Django server
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (
   import.meta.env.MODE === 'production'
     ? ''  // Empty for relative URLs in production (Nginx handles routing)
-    : 'http://127.0.0.1:8000'
+    : 'http://127.0.0.1:8000/api'
 );
 
 const apiClient = axios.create({
-  baseURL: API_BASE_URL ? `${API_BASE_URL}/api` : '/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

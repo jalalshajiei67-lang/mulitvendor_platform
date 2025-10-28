@@ -115,7 +115,8 @@ MEDIA_ROOT = os.environ.get('MEDIA_ROOT', '/app/media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings for CapRover production
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'https://multivendor-frontend.indexo.ir,https://indexo.ir,https://www.indexo.ir').split(',')
+# Note: Update these to match your actual frontend and backend URLs
+CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'https://indexo.ir,https://www.indexo.ir,https://multivendor-backend.indexo.ir').split(',')
 
 # Additional CORS settings for production
 CORS_ALLOW_CREDENTIALS = True
