@@ -1,7 +1,6 @@
 // src/stores/auth.js
 import { defineStore } from 'pinia';
 import api from '@/services/api';
-import { useI18n } from 'vue-i18n';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({

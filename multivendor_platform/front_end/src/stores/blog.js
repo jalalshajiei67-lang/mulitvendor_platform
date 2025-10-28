@@ -133,7 +133,6 @@ export const useBlogStore = defineStore('blog', {
             none: 'هیچکدام',
             linkedToProductCategory: 'مرتبط با دسته‌بندی محصول',
             postCount: 'پست',
-            posts: 'پست‌ها',
             thisWillBeShown: 'این در لیست وبلاگ و پیش‌نمایش شبکه‌های اجتماعی نمایش داده می‌شود',
             useLineBreaks: 'از خطوط جدید برای جدا کردن پاراگراف‌ها استفاده کنید',
             leaveEmptyToUse: 'خالی بگذارید تا از عنوان پست استفاده شود',
