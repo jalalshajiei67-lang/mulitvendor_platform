@@ -1,0 +1,30 @@
+# MINIMAL VERSION - Get APIs working immediately
+# This skips static files completely
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=multivendor_platform.settings_caprover
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y postgresql-client build-essential libpq-dev curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY multivendor_platform/requirements.txt /app/
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+# Copy Django project
+COPY multivendor_platform/multivendor_platform/ /app/
+
+# Create directories
+RUN mkdir -p /app/staticfiles /app/media /app/logs
+
+EXPOSE 80
+
+# MINIMAL: Just migrate and start - NO collectstatic
+CMD python manage.py migrate --noinput ; gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:80 --workers 4 --timeout 120
+
