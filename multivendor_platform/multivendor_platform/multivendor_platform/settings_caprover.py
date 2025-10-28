@@ -46,6 +46,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Add this at the top
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',  # Required for admin
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -110,7 +111,17 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images) for CapRover
 STATIC_URL = os.environ.get('STATIC_URL', '/static/')
-STATIC_ROOT = os.environ.get('STATIC_ROOT', '/app/static')
+STATIC_ROOT = os.environ.get('STATIC_ROOT', '/app/staticfiles')  # Different from source directory
+
+# STATICFILES_DIRS - where Django looks for additional static files before collectstatic
+# Empty because we're only collecting from installed apps
+STATICFILES_DIRS = []
+
+# Static files finders - tells Django where to look for static files
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
 
 # Media files (user uploaded content) for CapRover
 MEDIA_URL = os.environ.get('MEDIA_URL', '/media/')

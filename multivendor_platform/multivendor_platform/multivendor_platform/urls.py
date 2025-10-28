@@ -59,12 +59,21 @@ urlpatterns = [
     # You can add other app URLs here
 ]
 
-# Serve media files during development
+# Serve static and media files
 if settings.DEBUG:
+    # Development: Use Django's static file serving
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-# Serve static files in production (when WhiteNoise is not available)
-# Note: This is not ideal for high-traffic production, but works for admin files
-if not settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # Production: Use Django's serve view directly (works without DEBUG=True)
+    from django.views.static import serve
+    from django.urls import re_path
+    
+    urlpatterns += [
+        re_path(r'^static/(?P<path>.*)$', serve, {
+            'document_root': settings.STATIC_ROOT,
+        }),
+        re_path(r'^media/(?P<path>.*)$', serve, {
+            'document_root': settings.MEDIA_ROOT,
+        }),
+    ]

@@ -20,7 +20,7 @@ CORS_ALLOW_ALL_ORIGINS=False
 
 # Static Files Configuration
 STATIC_URL=/static/
-STATIC_ROOT=/app/static
+STATIC_ROOT=/app/staticfiles
 MEDIA_URL=/media/
 MEDIA_ROOT=/app/media
 
