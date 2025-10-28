@@ -4,15 +4,16 @@ FROM node:20-alpine as build-stage
 # Set working directory
 WORKDIR /app
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV VITE_API_BASE_URL=https://multivendor-backend.indexo.ir/api
-
-# Copy package files
+# Copy package files first
 COPY multivendor_platform/front_end/package*.json ./
 
-# Install ALL dependencies (including devDependencies for build)
+# Install ALL dependencies (including devDependencies needed for build)
+# Don't set NODE_ENV=production yet, as it would skip devDependencies
 RUN npm install
+
+# Now set environment variables for the build
+ENV NODE_ENV=production
+ENV VITE_API_BASE_URL=https://multivendor-backend.indexo.ir/api
 
 # Copy source code
 COPY multivendor_platform/front_end/ ./
