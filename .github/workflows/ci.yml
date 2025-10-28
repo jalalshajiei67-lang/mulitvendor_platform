@@ -111,7 +111,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd multivendor_platform/front_end
-          npm ci
+          npm install
 
       - name: Run linting
         run: |

@@ -26,17 +26,17 @@ jobs:
       - name: Create backend deployment tarball
         run: |
           tar -czf backend-deploy.tar.gz \
+            --exclude='multivendor_platform/front_end' \
+            --exclude='multivendor_platform/multivendor_platform/venv' \
+            --exclude='multivendor_platform/multivendor_platform/__pycache__' \
+            --exclude='multivendor_platform/multivendor_platform/*/__pycache__' \
+            --exclude='multivendor_platform/multivendor_platform/*/migrations/__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='*.pyo' \
             captain-definition-backend \
             Dockerfile.backend \
             multivendor_platform/ \
-            requirements.txt \
-            --exclude=multivendor_platform/front_end \
-            --exclude=multivendor_platform/multivendor_platform/venv \
-            --exclude=multivendor_platform/multivendor_platform/__pycache__ \
-            --exclude=multivendor_platform/multivendor_platform/*/__pycache__ \
-            --exclude=multivendor_platform/multivendor_platform/*/migrations/__pycache__ \
-            --exclude=*.pyc \
-            --exclude=*.pyo
+            requirements.txt
 
       - name: Deploy Backend to CapRover
         env:
@@ -98,12 +98,12 @@ jobs:
       - name: Create frontend deployment tarball
         run: |
           tar -czf frontend-deploy.tar.gz \
+            --exclude='multivendor_platform/front_end/node_modules' \
+            --exclude='multivendor_platform/front_end/dist' \
             captain-definition-frontend \
             Dockerfile.frontend \
             multivendor_platform/front_end/ \
-            nginx/frontend.conf \
-            --exclude=multivendor_platform/front_end/node_modules \
-            --exclude=multivendor_platform/front_end/dist
+            nginx/frontend.conf
 
       - name: Deploy Frontend to CapRover
         env:
