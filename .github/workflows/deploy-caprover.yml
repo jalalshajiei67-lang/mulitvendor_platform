@@ -25,6 +25,7 @@ jobs:
 
       - name: Create backend deployment tarball
         run: |
+          cp captain-definition-backend captain-definition
           tar -czf backend-deploy.tar.gz \
             --exclude='multivendor_platform/front_end' \
             --exclude='multivendor_platform/multivendor_platform/venv' \
@@ -33,7 +34,7 @@ jobs:
             --exclude='multivendor_platform/multivendor_platform/*/migrations/__pycache__' \
             --exclude='*.pyc' \
             --exclude='*.pyo' \
-            captain-definition-backend \
+            captain-definition \
             Dockerfile.backend \
             multivendor_platform/ \
             requirements.txt
@@ -97,10 +98,11 @@ jobs:
 
       - name: Create frontend deployment tarball
         run: |
+          cp captain-definition-frontend captain-definition
           tar -czf frontend-deploy.tar.gz \
             --exclude='multivendor_platform/front_end/node_modules' \
             --exclude='multivendor_platform/front_end/dist' \
-            captain-definition-frontend \
+            captain-definition \
             Dockerfile.frontend \
             multivendor_platform/front_end/ \
             nginx/frontend.conf
