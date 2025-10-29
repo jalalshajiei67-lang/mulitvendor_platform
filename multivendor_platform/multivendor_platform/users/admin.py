@@ -21,6 +21,9 @@ class UserProfileAdmin(admin.ModelAdmin):
     
     class Media:
         js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
 
 class BuyerProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'created_at']
@@ -29,6 +32,9 @@ class BuyerProfileAdmin(admin.ModelAdmin):
     
     class Media:
         js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
     
 class VendorProfileAdmin(admin.ModelAdmin):
     list_display = ['store_name', 'user', 'is_approved', 'contact_email', 'created_at']
@@ -42,6 +48,9 @@ class VendorProfileAdmin(admin.ModelAdmin):
     
     class Media:
         js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
 
 class SupplierAdImageInline(admin.TabularInline):
     model = SellerAdImage
@@ -58,6 +67,9 @@ class SupplierAdAdmin(admin.ModelAdmin):
     
     class Media:
         js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
 
 class ProductReviewAdmin(admin.ModelAdmin):
     list_display = ['buyer', 'product', 'rating', 'is_verified_purchase', 'is_approved', 'created_at']
@@ -76,6 +88,9 @@ class ProductReviewAdmin(admin.ModelAdmin):
     
     class Media:
         js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
 
 class SupplierCommentAdmin(admin.ModelAdmin):
     list_display = ['user', 'supplier', 'rating', 'is_approved', 'created_at']
@@ -94,6 +109,9 @@ class SupplierCommentAdmin(admin.ModelAdmin):
     
     class Media:
         js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
 
 class UserActivityAdmin(admin.ModelAdmin):
     list_display = ['user', 'action', 'ip_address', 'created_at']
@@ -104,6 +122,9 @@ class UserActivityAdmin(admin.ModelAdmin):
     
     class Media:
         js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
 
 @admin.register(Supplier)
 class SupplierAdmin(admin.ModelAdmin):
@@ -135,6 +156,9 @@ class SupplierAdmin(admin.ModelAdmin):
     
     class Media:
         js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
 
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(BuyerProfile, BuyerProfileAdmin)

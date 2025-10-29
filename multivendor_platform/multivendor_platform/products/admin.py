@@ -154,7 +154,7 @@ class DepartmentAdmin(admin.ModelAdmin):
     class Media:
         js = ('admin/js/fix_action_button.js',)
         css = {
-            'all': ('admin/css/custom_admin.css',)
+            'all': ('admin/css/custom_admin.css', 'admin/css/force_action_button.css',)
         }
 
 @admin.register(Category)
@@ -197,7 +197,7 @@ class CategoryAdmin(admin.ModelAdmin):
     class Media:
         js = ('admin/js/fix_action_button.js',)
         css = {
-            'all': ('admin/css/custom_admin.css',)
+            'all': ('admin/css/custom_admin.css', 'admin/css/force_action_button.css',)
         }
 
 @admin.register(Subcategory)
@@ -251,7 +251,7 @@ class SubcategoryAdmin(admin.ModelAdmin):
     class Media:
         js = ('admin/js/fix_action_button.js',)
         css = {
-            'all': ('admin/css/custom_admin.css',)
+            'all': ('admin/css/custom_admin.css', 'admin/css/force_action_button.css',)
         }
 
 class ProductImageInline(admin.TabularInline):
@@ -418,7 +418,7 @@ class ProductAdmin(admin.ModelAdmin):
     class Media:
         js = ('admin/js/fix_action_button.js',)
         css = {
-            'all': ('admin/css/custom_admin.css',)
+            'all': ('admin/css/custom_admin.css', 'admin/css/force_action_button.css',)
         }
 
 @admin.register(ProductComment)

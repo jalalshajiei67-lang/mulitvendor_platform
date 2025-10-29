@@ -20,5 +20,8 @@ class OrderAdmin(admin.ModelAdmin):
     
     class Media:
         js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
 
 admin.site.register(Order, OrderAdmin)
