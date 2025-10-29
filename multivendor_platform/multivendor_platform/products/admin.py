@@ -136,6 +136,7 @@ class DepartmentAdmin(admin.ModelAdmin):
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'description']
     prepopulated_fields = {'slug': ('name',)}
+    actions = ['delete_selected']  # Explicitly include delete action
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'slug', 'description', 'image', 'image_alt_text')
@@ -149,6 +150,12 @@ class DepartmentAdmin(admin.ModelAdmin):
             'fields': ('is_active', 'sort_order')
         }),
     )
+    
+    class Media:
+        js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/custom_admin.css',)
+        }
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -157,6 +164,7 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ['name', 'description']
     prepopulated_fields = {'slug': ('name',)}
     filter_horizontal = ['departments', 'subcategories']
+    actions = ['delete_selected']  # Explicitly include delete action
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'slug', 'description', 'image', 'image_alt_text')
@@ -185,6 +193,12 @@ class CategoryAdmin(admin.ModelAdmin):
         except Exception as e:
             return f'Error: {str(e)}'
     get_departments.short_description = 'Departments'
+    
+    class Media:
+        js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/custom_admin.css',)
+        }
 
 @admin.register(Subcategory)
 class SubcategoryAdmin(admin.ModelAdmin):
@@ -193,6 +207,7 @@ class SubcategoryAdmin(admin.ModelAdmin):
     search_fields = ['name', 'description']
     prepopulated_fields = {'slug': ('name',)}
     filter_horizontal = ['categories']
+    actions = ['delete_selected']  # Explicitly include delete action
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'slug', 'description', 'image', 'image_alt_text')
@@ -232,6 +247,12 @@ class SubcategoryAdmin(admin.ModelAdmin):
         except Exception as e:
             return f'Error: {str(e)}'
     get_categories.short_description = 'Categories'
+    
+    class Media:
+        js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/custom_admin.css',)
+        }
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage

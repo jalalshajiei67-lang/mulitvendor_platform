@@ -16,5 +16,9 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ['order_number', 'buyer__username', 'buyer__email']
     inlines = [OrderItemInline, PaymentInline]
     readonly_fields = ['order_number', 'created_at', 'updated_at']
+    actions = ['delete_selected']  # Include delete action
+    
+    class Media:
+        js = ('admin/js/fix_action_button.js',)
 
 admin.site.register(Order, OrderAdmin)

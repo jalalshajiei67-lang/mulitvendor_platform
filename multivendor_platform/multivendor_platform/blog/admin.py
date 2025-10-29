@@ -12,6 +12,7 @@ class BlogCategoryAdmin(admin.ModelAdmin):
     search_fields = ['name', 'description']
     prepopulated_fields = {'slug': ('name',)}
     readonly_fields = ['created_at', 'updated_at']
+    actions = ['delete_selected']  # Include delete action
     
     def color_display(self, obj):
         return format_html(
@@ -24,6 +25,9 @@ class BlogCategoryAdmin(admin.ModelAdmin):
     def post_count(self, obj):
         return obj.blog_posts.filter(status='published').count()
     post_count.short_description = 'Published Posts'
+    
+    class Media:
+        js = ('admin/js/fix_action_button.js',)
 
 class BlogPostAdminForm(forms.ModelForm):
     content = forms.CharField(
@@ -47,6 +51,7 @@ class BlogPostAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('title',)}
     readonly_fields = ['view_count', 'created_at', 'updated_at', 'published_at']
     raw_id_fields = ['author']
+    actions = ['delete_selected']  # Include delete action
     
     fieldsets = (
         ('Basic Information', {
@@ -68,6 +73,9 @@ class BlogPostAdmin(admin.ModelAdmin):
         if not change:  # If creating new object
             obj.author = request.user
         super().save_model(request, obj, form, change)
+    
+    class Media:
+        js = ('admin/js/fix_action_button.js',)
 
 @admin.register(BlogComment)
 class BlogCommentAdmin(admin.ModelAdmin):
@@ -77,7 +85,7 @@ class BlogCommentAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'updated_at']
     raw_id_fields = ['post', 'author', 'parent']
     
-    actions = ['approve_comments', 'disapprove_comments']
+    actions = ['approve_comments', 'disapprove_comments', 'delete_selected']  # Include delete action
     
     def approve_comments(self, request, queryset):
         updated = queryset.update(is_approved=True)
@@ -88,3 +96,6 @@ class BlogCommentAdmin(admin.ModelAdmin):
         updated = queryset.update(is_approved=False)
         self.message_user(request, f'{updated} comments were disapproved.')
     disapprove_comments.short_description = 'Disapprove selected comments'
+    
+    class Media:
+        js = ('admin/js/fix_action_button.js',)
