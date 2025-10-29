@@ -10,6 +10,7 @@ from django.utils import timezone
 from tinymce.widgets import TinyMCE
 from .models import Department, Category, Subcategory, Product, ProductImage, ProductComment, ProductScrapeJob, ScrapeJobBatch
 from .scraper import WordPressScraper, create_product_from_scraped_data
+from .universal_scraper import UniversalProductScraper
 import threading
 
 # Custom widget for multiple file uploads
@@ -394,6 +395,7 @@ class ProductAdmin(admin.ModelAdmin):
                         product_image.save()
     
     class Media:
+        js = ('admin/js/fix_action_button.js',)
         css = {
             'all': ('admin/css/custom_admin.css',)
         }
@@ -511,7 +513,8 @@ def process_scrape_job(job_id):
         last_error = None
         for attempt in attempts:
             try:
-                scraper = WordPressScraper(
+                # Use Universal Scraper - works with ALL e-commerce platforms
+                scraper = UniversalProductScraper(
                     job.url, 
                     verify_ssl=attempt['verify_ssl'],
                     use_proxy=attempt['use_proxy']
