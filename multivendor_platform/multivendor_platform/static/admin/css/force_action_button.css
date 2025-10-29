@@ -1,58 +1,93 @@
-/* Force action button to always be visible when action is selected */
+/* Ultra-aggressive CSS to force action button visibility */
 
-/* Override Alpine.js x-show hiding */
-.actions button[name="index"][x-show] {
+/* Target the button by multiple attributes */
+button[name="index"],
+button[type="submit"][name="index"],
+.actions button[name="index"],
+button[name="index"][x-show],
+button[title="Run the selected action"] {
     display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
-}
-
-/* Force visibility even with inline styles */
-.actions button[type="submit"][style*="display: none"] {
-    display: flex !important;
-}
-
-.actions button[type="submit"][style*="display:none"] {
-    display: flex !important;
-}
-
-/* Ensure button is always clickable */
-.actions button[name="index"] {
     pointer-events: auto !important;
-    cursor: pointer !important;
 }
 
-/* Remove Alpine.js cloak */
-[x-cloak] {
-    display: block !important;
-}
-
-/* Make sure the actions container is visible */
-.actions {
+/* Override any inline style="display: none" */
+button[name="index"][style*="display"],
+button[name="index"][style*="display: none"],
+button[name="index"][style*="display:none"] {
     display: flex !important;
 }
 
-/* Style the button nicely */
-.actions button[name="index"] {
+/* Target buttons with specific classes */
+button.bg-primary-900[name="index"],
+.actions .bg-primary-900[type="submit"] {
+    display: flex !important;
+    visibility: visible !important;
+}
+
+/* Override Alpine.js x-show directive */
+[x-show] button[name="index"],
+button[x-show][name="index"] {
+    display: flex !important;
+}
+
+/* Remove any hidden classes */
+button[name="index"].hidden {
+    display: flex !important;
+}
+
+/* Target the parent container */
+.group.primary button[name="index"],
+.actions .group button[name="index"] {
+    display: flex !important;
+}
+
+/* Ensure the actions container itself is visible */
+.actions,
+#changelist-actions,
+#changelist-actions-wrapper {
+    display: flex !important;
+}
+
+/* Style the button nicely when visible */
+button[name="index"] {
     background-color: rgb(30 27 75) !important;
     color: white !important;
     padding: 0.5rem 0.75rem !important;
     border-radius: 0.375rem !important;
     font-weight: 500 !important;
     font-size: 0.875rem !important;
+    cursor: pointer !important;
+    min-width: 60px !important;
 }
 
-.actions button[name="index"]:hover {
+button[name="index"]:hover {
     background-color: rgb(49 46 129) !important;
 }
 
-/* Additional overrides for Unfold theme */
-.group.primary button[name="index"] {
+/* Remove Alpine.js cloaking */
+[x-cloak],
+button[x-cloak],
+.actions [x-cloak] {
     display: flex !important;
+    opacity: 1 !important;
 }
 
-/* Override any display:none from inline styles */
+/* Additional nuclear option - use attribute selector with any style */
 button[name="index"][style] {
     display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
+/* Target by position in DOM */
+.actions > div > button[type="submit"],
+.group.primary > button[type="submit"] {
+    display: flex !important;
+}
+
+/* Ensure no conflicts with Tailwind utilities */
+.flex button[name="index"] {
+    display: flex !important;
+}
