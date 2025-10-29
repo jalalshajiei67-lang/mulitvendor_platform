@@ -79,14 +79,22 @@ class ProductViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """
-        Optionally restricts the returned products to a given category,
-        by filtering against a `category` query parameter in the URL.
+        Optionally restricts the returned products to a given category or subcategory,
+        by filtering against query parameters in the URL.
         """
         queryset = Product.objects.all().order_by('-created_at')
+        
+        # Filter by category
         category_id = self.request.query_params.get('category', None)
         if category_id is not None:
             queryset = queryset.filter(primary_category=category_id)
-        return queryset
+        
+        # Filter by subcategory (using M2M relationship)
+        subcategory_id = self.request.query_params.get('subcategories', None)
+        if subcategory_id is not None:
+            queryset = queryset.filter(subcategories__id=subcategory_id)
+        
+        return queryset.distinct()  # Use distinct to avoid duplicates from M2M
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""
@@ -177,9 +185,30 @@ class ProductViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     """
     A simple ViewSet for viewing and editing categories.
+    Supports filtering by department and slug.
     """
     queryset = Category.objects.all().order_by('name')
     serializer_class = CategorySerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['name', 'description']
+    
+    def get_queryset(self):
+        """
+        Optionally filter categories by department
+        """
+        queryset = Category.objects.all().order_by('sort_order', 'name')
+        
+        # Filter by department
+        department_id = self.request.query_params.get('department', None)
+        if department_id:
+            queryset = queryset.filter(departments__id=department_id)
+        
+        # Filter by slug (for detail view)
+        slug = self.request.query_params.get('slug', None)
+        if slug:
+            queryset = queryset.filter(slug=slug)
+        
+        return queryset.distinct()  # Use distinct to avoid duplicates from M2M
     
     def get_permissions(self):
         """
@@ -194,9 +223,30 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class SubcategoryViewSet(viewsets.ModelViewSet):
     """
     A simple ViewSet for viewing and editing subcategories.
+    Supports filtering by category and slug.
     """
     queryset = Subcategory.objects.all().order_by('name')
     serializer_class = SubcategorySerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['name', 'description']
+    
+    def get_queryset(self):
+        """
+        Optionally filter subcategories by category
+        """
+        queryset = Subcategory.objects.all().order_by('sort_order', 'name')
+        
+        # Filter by category
+        category_id = self.request.query_params.get('category', None)
+        if category_id:
+            queryset = queryset.filter(categories__id=category_id)
+        
+        # Filter by slug (for detail view)
+        slug = self.request.query_params.get('slug', None)
+        if slug:
+            queryset = queryset.filter(slug=slug)
+        
+        return queryset.distinct()  # Use distinct to avoid duplicates from M2M
     
     def get_permissions(self):
         """
@@ -211,9 +261,25 @@ class SubcategoryViewSet(viewsets.ModelViewSet):
 class DepartmentViewSet(viewsets.ModelViewSet):
     """
     A simple ViewSet for viewing and editing departments.
+    Supports filtering by slug.
     """
     queryset = Department.objects.all().order_by('name')
     serializer_class = DepartmentSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['name', 'description']
+    
+    def get_queryset(self):
+        """
+        Optionally filter departments by slug
+        """
+        queryset = Department.objects.all().order_by('sort_order', 'name')
+        
+        # Filter by slug (for detail view)
+        slug = self.request.query_params.get('slug', None)
+        if slug:
+            queryset = queryset.filter(slug=slug)
+        
+        return queryset
     
     def get_permissions(self):
         """

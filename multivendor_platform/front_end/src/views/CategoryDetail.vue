@@ -161,9 +161,9 @@ export default {
           category.value = Array.isArray(catData) ? catData[0] : catData
           console.log('Category found:', category.value)
           
-          // Fetch all subcategories and filter by category
-          const subResponse = await api.getSubcategories()
-          console.log('Subcategories response:', subResponse)
+          // Fetch subcategories filtered by category ID using backend API
+          const subResponse = await api.getSubcategories({ category: category.value.id })
+          console.log('Subcategories response for category:', subResponse)
           console.log('Subcategories data:', subResponse.data)
           
           let subcategoriesData = subResponse.data
@@ -171,18 +171,15 @@ export default {
             subcategoriesData = subResponse.data.results
           }
           
-          console.log('All subcategories:', subcategoriesData)
+          console.log('Filtered subcategories for this category:', subcategoriesData)
           
-          // Filter subcategories - temporarily not filtering by is_active
+          // Assign subcategories (already filtered by backend)
           if (Array.isArray(subcategoriesData)) {
-            subcategories.value = subcategoriesData.filter(sub => 
-              sub.categories && sub.categories.some(cat => cat.id === category.value.id)
-            )
+            subcategories.value = subcategoriesData
           } else {
             subcategories.value = []
           }
           
-          console.log('Filtered subcategories for this category:', subcategories.value)
           console.log('Number of subcategories:', subcategories.value.length)
         } else {
           error.value = 'دسته‌بندی یافت نشد'

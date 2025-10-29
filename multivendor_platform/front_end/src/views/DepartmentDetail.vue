@@ -150,9 +150,9 @@ export default {
           department.value = Array.isArray(deptData) ? deptData[0] : deptData
           console.log('Department found:', department.value)
           
-          // Fetch all categories and filter by department
-          const catResponse = await api.getCategories()
-          console.log('Categories response:', catResponse)
+          // Fetch categories filtered by department ID using backend API
+          const catResponse = await api.getCategories({ department: department.value.id })
+          console.log('Categories response for department:', catResponse)
           console.log('Categories data:', catResponse.data)
           
           let categoriesData = catResponse.data
@@ -160,18 +160,15 @@ export default {
             categoriesData = catResponse.data.results
           }
           
-          console.log('All categories:', categoriesData)
+          console.log('Filtered categories for this department:', categoriesData)
           
-          // Filter categories - temporarily not filtering by is_active
+          // Assign categories (already filtered by backend)
           if (Array.isArray(categoriesData)) {
-            categories.value = categoriesData.filter(cat => 
-              cat.departments && cat.departments.some(dept => dept.id === department.value.id)
-            )
+            categories.value = categoriesData
           } else {
             categories.value = []
           }
           
-          console.log('Filtered categories for this department:', categories.value)
           console.log('Number of categories:', categories.value.length)
         } else {
           error.value = 'بخش یافت نشد'
