@@ -1,115 +1,142 @@
 /**
- * Fix for Unfold admin action button not showing
- * This ensures the "Run" button appears when an action is selected
- * Compatible with both standard Django admin and Unfold theme
+ * Fix for Unfold Admin Action Button with Alpine.js
+ * Forces the button to show by updating Alpine.js state
  */
 (function () {
     'use strict';
 
-    // Wait for DOM to be ready
+    console.log('🔧 Action button fix loaded (Alpine.js compatible)');
+
     function initActionButton() {
-        // Find the action select element (try multiple selectors for compatibility)
-        const actionSelect = document.querySelector('select[name="action"]') ||
-            document.querySelector('#action-select') ||
-            document.querySelector('[name="action"]');
+        console.log('🔍 Searching for action elements...');
 
-        // Find the run button (try multiple selectors)
-        const runButton = document.querySelector('button[name="index"]') ||
-            document.querySelector('button[type="submit"][name="index"]') ||
-            document.querySelector('.actions button[type="submit"]') ||
-            document.querySelector('button.action-submit');
-
-        if (!actionSelect || !runButton) {
-            console.log('Action button fix: Elements not found, retrying...');
-            // Retry after a short delay in case elements load later
+        // Find the action select
+        const actionSelect = document.querySelector('select[name="action"]');
+        
+        if (!actionSelect) {
+            console.warn('⚠️ Action select not found. Retrying...');
             setTimeout(initActionButton, 500);
             return;
         }
 
-        console.log('Action button fix: Elements found, initializing...');
+        console.log('✅ Action select found');
 
-        // Function to show/hide the run button
+        // Find the button
+        const actionButton = document.querySelector('button[name="index"]');
+        
+        if (!actionButton) {
+            console.error('❌ Action button not found');
+            return;
+        }
+
+        console.log('✅ Action button found');
+
+        // Find the parent container with Alpine.js x-data
+        const alpineContainer = actionSelect.closest('[x-data]');
+        
+        if (alpineContainer) {
+            console.log('✅ Alpine.js container found');
+        }
+
         function updateButtonVisibility() {
             const selectedAction = actionSelect.value;
 
+            console.log('🔄 Action changed:', selectedAction);
+
             if (selectedAction && selectedAction !== '' && selectedAction !== '---------') {
-                // Show the button
-                runButton.style.display = 'flex';
-                runButton.style.visibility = 'visible';
-                runButton.style.opacity = '1';
-                runButton.removeAttribute('x-show');
-                runButton.removeAttribute('hidden');
-                runButton.classList.remove('hidden');
-                console.log('Action button fix: Button shown for action:', selectedAction);
+                // Method 1: Update Alpine.js state directly
+                if (alpineContainer && typeof Alpine !== 'undefined') {
+                    try {
+                        Alpine.store(alpineContainer).action = selectedAction;
+                        console.log('✅ Alpine.js state updated');
+                    } catch (e) {
+                        // Alpine store might not work, try direct property
+                        if (alpineContainer._x_dataStack && alpineContainer._x_dataStack[0]) {
+                            alpineContainer._x_dataStack[0].action = selectedAction;
+                            console.log('✅ Alpine.js data stack updated');
+                        }
+                    }
+                }
+
+                // Method 2: Force CSS visibility (override everything)
+                actionButton.style.setProperty('display', 'flex', 'important');
+                actionButton.style.setProperty('visibility', 'visible', 'important');
+                actionButton.style.setProperty('opacity', '1', 'important');
+                actionButton.removeAttribute('x-cloak');
+                actionButton.classList.remove('hidden');
+
+                // Method 3: Remove the x-show attribute temporarily
+                const xShowValue = actionButton.getAttribute('x-show');
+                if (xShowValue) {
+                    actionButton.removeAttribute('x-show');
+                    // Re-add it after a moment to keep Alpine.js happy
+                    setTimeout(() => {
+                        actionButton.setAttribute('x-show', xShowValue);
+                        // But keep forcing visibility
+                        actionButton.style.setProperty('display', 'flex', 'important');
+                    }, 100);
+                }
+
+                console.log('✅ Button forced visible');
             } else {
-                // Hide the button
-                runButton.style.display = 'none';
-                runButton.style.visibility = 'hidden';
-                runButton.style.opacity = '0';
-                console.log('Action button fix: Button hidden (no action selected)');
+                actionButton.style.display = 'none';
+                console.log('ℹ️ Button hidden (no action selected)');
             }
         }
 
-        // Listen for changes on the action select
+        // Listen for changes
         actionSelect.addEventListener('change', updateButtonVisibility);
-
-        // Also listen for input events (for better responsiveness)
         actionSelect.addEventListener('input', updateButtonVisibility);
 
-        // Also check on page load in case an action is pre-selected
-        updateButtonVisibility();
+        // Initial check
+        setTimeout(updateButtonVisibility, 100);
 
-        // Handle "select all" functionality
-        const selectAllCheckbox = document.getElementById('action-toggle') ||
-            document.querySelector('input[name="_all"]') ||
-            document.querySelector('.action-select-all');
-
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('change', function () {
-                // When select all is toggled, recheck button visibility
-                setTimeout(updateButtonVisibility, 100);
-            });
-        }
-
-        // Watch for any item selection changes
-        const checkboxes = document.querySelectorAll('input[name="_selected_action"]');
-        checkboxes.forEach(function (checkbox) {
-            checkbox.addEventListener('change', function () {
-                setTimeout(updateButtonVisibility, 50);
-            });
-        });
-
-        // Use MutationObserver to watch for DOM changes (for dynamic content)
-        const observer = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                if (mutation.type === 'attributes' &&
-                    (mutation.attributeName === 'style' ||
-                        mutation.attributeName === 'class' ||
-                        mutation.attributeName === 'x-show')) {
-                    // Re-apply our visibility logic if something else changed the button
-                    setTimeout(updateButtonVisibility, 10);
+        // Aggressive polling - check every second
+        setInterval(function() {
+            const currentAction = actionSelect.value;
+            if (currentAction && currentAction !== '' && currentAction !== '---------') {
+                const computedStyle = window.getComputedStyle(actionButton);
+                if (computedStyle.display === 'none') {
+                    console.log('🔄 Button hidden detected, forcing visible...');
+                    updateButtonVisibility();
                 }
-            });
+            }
+        }, 1000);
+
+        // Watch for Alpine.js mutations
+        const observer = new MutationObserver(function(mutations) {
+            for (let mutation of mutations) {
+                if (mutation.attributeName === 'style' && mutation.target === actionButton) {
+                    const currentAction = actionSelect.value;
+                    if (currentAction && currentAction !== '' && currentAction !== '---------') {
+                        if (actionButton.style.display === 'none' || actionButton.style.display === '') {
+                            console.log('🔄 Alpine.js tried to hide button, forcing visible...');
+                            setTimeout(updateButtonVisibility, 10);
+                        }
+                    }
+                }
+            }
         });
 
-        // Start observing the button for attribute changes
-        observer.observe(runButton, {
+        observer.observe(actionButton, {
             attributes: true,
-            attributeFilter: ['style', 'class', 'x-show', 'hidden']
+            attributeFilter: ['style', 'class']
         });
 
-        console.log('Action button fix: Initialized successfully');
+        console.log('✅ Action button fix initialized');
     }
 
-    // Initialize when DOM is ready
+    // Initialize
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initActionButton);
     } else {
-        // DOM is already ready
         initActionButton();
     }
 
-    // Also try after a delay (for cases where content loads asynchronously)
-    setTimeout(initActionButton, 1000);
-})();
+    // Multiple retry attempts
+    setTimeout(initActionButton, 500);
+    setTimeout(initActionButton, 1500);
+    setTimeout(initActionButton, 3000);
 
+    console.log('🎯 Script fully loaded');
+})();

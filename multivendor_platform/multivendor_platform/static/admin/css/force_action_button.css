@@ -1,0 +1,58 @@
+/* Force action button to always be visible when action is selected */
+
+/* Override Alpine.js x-show hiding */
+.actions button[name="index"][x-show] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Force visibility even with inline styles */
+.actions button[type="submit"][style*="display: none"] {
+    display: flex !important;
+}
+
+.actions button[type="submit"][style*="display:none"] {
+    display: flex !important;
+}
+
+/* Ensure button is always clickable */
+.actions button[name="index"] {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Remove Alpine.js cloak */
+[x-cloak] {
+    display: block !important;
+}
+
+/* Make sure the actions container is visible */
+.actions {
+    display: flex !important;
+}
+
+/* Style the button nicely */
+.actions button[name="index"] {
+    background-color: rgb(30 27 75) !important;
+    color: white !important;
+    padding: 0.5rem 0.75rem !important;
+    border-radius: 0.375rem !important;
+    font-weight: 500 !important;
+    font-size: 0.875rem !important;
+}
+
+.actions button[name="index"]:hover {
+    background-color: rgb(49 46 129) !important;
+}
+
+/* Additional overrides for Unfold theme */
+.group.primary button[name="index"] {
+    display: flex !important;
+}
+
+/* Override any display:none from inline styles */
+button[name="index"][style] {
+    display: flex !important;
+}
+
