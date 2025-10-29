@@ -9,8 +9,8 @@ from django.contrib import messages
 from django.utils import timezone
 from tinymce.widgets import TinyMCE
 from .models import Department, Category, Subcategory, Product, ProductImage, ProductComment, ProductScrapeJob, ScrapeJobBatch
-from .scraper import WordPressScraper, create_product_from_scraped_data
-from .universal_scraper import UniversalProductScraper
+from .scraper import WordPressScraper
+from .universal_scraper import UniversalProductScraper, create_product_from_scraped_data
 import threading
 
 # Custom widget for multiple file uploads
@@ -836,7 +836,7 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
     list_display = ['id', 'batch_link', 'url_preview', 'vendor', 'supplier', 'status_display', 'retry_info', 'created_product_link', 'created_at', 'processed_at']
     list_filter = ['status', 'batch', 'created_at', 'supplier']
     search_fields = ['url', 'vendor__username', 'error_message']
-    readonly_fields = ['batch', 'scraped_data', 'created_product', 'processed_at', 'created_at', 'updated_at', 'error_details', 'retry_count', 'last_retry_at']
+    readonly_fields = ['batch', 'scraped_data', 'created_product', 'processed_at', 'created_at', 'updated_at', 'display_errors_formatted', 'retry_count', 'last_retry_at']
     
     fieldsets = (
         ('Job Information', {
@@ -846,10 +846,9 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
             'fields': ('created_product', 'error_message', 'processed_at'),
             'description': 'Product creation results and primary error message'
         }),
-        ('Error Details', {
-            'fields': ('error_details',),
-            'classes': ('collapse',),
-            'description': 'Detailed error and warning information from the scraper'
+        ('Error Details & Warnings', {
+            'fields': ('display_errors_formatted',),
+            'description': 'Detailed error and warning information from the scraper with suggestions'
         }),
         ('Retry Information', {
             'fields': ('retry_count', 'last_retry_at'),
@@ -945,6 +944,152 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
             )
         return format_html('<span style="color: gray;">-</span>')
     created_product_link.short_description = 'Created Product'
+    
+    def display_errors_formatted(self, obj):
+        """Display errors and warnings in a nicely formatted HTML view"""
+        import json
+        
+        if not obj.error_details:
+            return format_html(
+                '<div style="padding: 15px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">'
+                '<strong style="color: #2e7d32;">✓ No errors recorded</strong>'
+                '</div>'
+            )
+        
+        try:
+            # Parse error_details - it could be from scraping_metadata or direct error list
+            if isinstance(obj.error_details, str):
+                error_data = json.loads(obj.error_details)
+            else:
+                error_data = obj.error_details
+            
+            # Extract errors and warnings
+            errors = []
+            warnings = []
+            summary = ""
+            platform = "Unknown"
+            should_retry = False
+            
+            # Handle different error_details structures
+            if isinstance(error_data, dict):
+                # From scraping_metadata structure
+                errors = error_data.get('errors', [])
+                warnings = error_data.get('warnings', [])
+                summary = error_data.get('summary', '')
+                should_retry = error_data.get('should_retry', False)
+                platform = error_data.get('platform_detected', 'Unknown')
+            elif isinstance(error_data, list):
+                # Direct error list
+                errors = error_data
+            
+            html_parts = []
+            
+            # Header with summary
+            html_parts.append(
+                '<div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin-bottom: 15px;">'
+                f'<strong>Platform Detected:</strong> <span style="color: #667eea;">{platform}</span><br>'
+                f'<strong>Should Retry:</strong> <span style="color: {"#28a745" if should_retry else "#dc3545"};">{"Yes" if should_retry else "No"}</span>'
+                '</div>'
+            )
+            
+            # Display errors
+            if errors:
+                html_parts.append('<h3 style="color: #dc3545; margin-top: 20px;">Errors ({0})</h3>'.format(len(errors)))
+                
+                severity_colors = {
+                    'critical': '#dc3545',
+                    'high': '#fd7e14',
+                    'medium': '#ffc107',
+                    'low': '#17a2b8'
+                }
+                
+                severity_icons = {
+                    'critical': '🔴',
+                    'high': '🟠',
+                    'medium': '🟡',
+                    'low': '🔵'
+                }
+                
+                for i, error in enumerate(errors):
+                    severity = error.get('severity', 'medium')
+                    color = severity_colors.get(severity, '#999')
+                    icon = severity_icons.get(severity, '⚠️')
+                    category = error.get('category', 'unknown')
+                    message = error.get('message', 'No message')
+                    details = error.get('details', '')
+                    suggested_action = error.get('suggested_action', '')
+                    
+                    html_parts.append(
+                        f'<div style="margin: 10px 0; padding: 12px; background: #fff; border-left: 4px solid {color}; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">'
+                        f'<div style="margin-bottom: 8px;">'
+                        f'<span style="background: {color}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: bold;">{icon} {severity.upper()}</span> '
+                        f'<span style="background: #e9ecef; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{category}</span>'
+                        f'</div>'
+                        f'<strong style="color: #333;">{message}</strong>'
+                    )
+                    
+                    if details:
+                        # Truncate very long details
+                        display_details = details[:300] + '...' if len(details) > 300 else details
+                        html_parts.append(
+                            f'<div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 3px; font-size: 12px; color: #666;">'
+                            f'{display_details}'
+                            f'</div>'
+                        )
+                    
+                    if suggested_action:
+                        html_parts.append(
+                            f'<div style="margin-top: 8px; padding: 8px; background: #d4edda; border-left: 3px solid #28a745; border-radius: 3px;">'
+                            f'<strong style="color: #155724;">💡 Suggestion:</strong> {suggested_action}'
+                            f'</div>'
+                        )
+                    
+                    html_parts.append('</div>')
+            
+            # Display warnings
+            if warnings:
+                html_parts.append('<h3 style="color: #856404; margin-top: 20px;">Warnings ({0})</h3>'.format(len(warnings)))
+                
+                for warning in warnings[:10]:  # Limit to 10 warnings
+                    message = warning.get('message', 'No message')
+                    details = warning.get('details', '')
+                    
+                    html_parts.append(
+                        '<div style="margin: 10px 0; padding: 12px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">'
+                        f'<strong style="color: #856404;">⚠️ {message}</strong>'
+                    )
+                    
+                    if details:
+                        html_parts.append(
+                            f'<div style="margin-top: 5px; font-size: 12px; color: #856404;">{details}</div>'
+                        )
+                    
+                    html_parts.append('</div>')
+                
+                if len(warnings) > 10:
+                    html_parts.append(
+                        f'<div style="padding: 8px; color: #856404; font-style: italic;">... and {len(warnings) - 10} more warnings</div>'
+                    )
+            
+            # If we have a summary, display it at the end
+            if summary and not errors and not warnings:
+                html_parts.append(
+                    f'<div style="padding: 12px; background: #f8f9fa; border-radius: 4px; margin-top: 15px;">'
+                    f'<strong>Summary:</strong><br>{summary}'
+                    f'</div>'
+                )
+            
+            return format_html(''.join(html_parts))
+            
+        except Exception as e:
+            return format_html(
+                '<div style="padding: 15px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 4px;">'
+                f'<strong style="color: #721c24;">Error parsing error details:</strong> {str(e)}<br><br>'
+                f'<pre style="background: #fff; padding: 10px; border-radius: 3px; overflow: auto;">{obj.error_details}</pre>'
+                '</div>'
+            )
+    
+    display_errors_formatted.short_description = 'Error Details & Warnings'
     
     def retry_failed_jobs(self, request, queryset):
         """Retry failed scrape jobs with tracking"""

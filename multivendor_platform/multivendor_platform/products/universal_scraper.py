@@ -23,6 +23,13 @@ class UniversalProductScraper:
     Universal scraper that works with any e-commerce platform
     """
     
+    # Configuration constants
+    MIN_PAGE_LENGTH = 200
+    MIN_DESCRIPTION_LENGTH = 30
+    MAX_PRICE_VALUE = 999999999
+    MAX_PRODUCT_IMAGES = 20
+    IMAGE_DOWNLOAD_TIMEOUT = 30
+    
     def __init__(self, url, verify_ssl=True, use_proxy=False):
         self.url = url
         self.soup = None
@@ -37,8 +44,8 @@ class UniversalProductScraper:
         Fetch the HTML content with robust error handling
         """
         if not self.verify_ssl:
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            # Log warning but don't suppress globally
+            logger.warning(f"SSL verification disabled for {self.url}")
             self.error_handler.add_warning(
                 "SSL verification disabled",
                 "Connecting without SSL verification"
@@ -165,7 +172,7 @@ class UniversalProductScraper:
             ))
             return False
         
-        if len(page_text) < 200:
+        if len(page_text) < self.MIN_PAGE_LENGTH:
             self.error_handler.add_warning("Page has very little content", "Might not be a valid product page")
         
         return True
@@ -373,8 +380,9 @@ class UniversalProductScraper:
         """
         Clean HTML - remove scripts, styles, links
         """
-        from copy import copy
-        element_copy = copy(element)
+        # Create a proper copy of the BeautifulSoup element
+        from bs4 import BeautifulSoup
+        element_copy = BeautifulSoup(str(element), 'html.parser')
         
         # Remove unwanted tags
         for tag in element_copy.find_all(['script', 'style', 'noscript', 'iframe', 'nav', 'header', 'footer']):
@@ -460,12 +468,12 @@ class UniversalProductScraper:
                 elements = self.soup.select(selector)
                 for element in elements:
                     price_text = element.get_text(strip=True)
-                    # Extract numbers (handle Persian/Arabic numbers too)
-                    price_match = re.search(r'[\d,\.]+', price_text.replace(',', ''))
-                    if price_match:
+                    # Extract numbers - remove all non-numeric except decimal point
+                    price_text_clean = re.sub(r'[^\d.]', '', price_text)
+                    if price_text_clean:
                         try:
-                            price = float(price_match.group().replace(',', ''))
-                            if price > 0 and price < 999999999:  # Sanity check
+                            price = float(price_text_clean)
+                            if price > 0 and price < self.MAX_PRICE_VALUE:  # Sanity check
                                 logger.info(f"Found price: {price}")
                                 return price
                         except:
@@ -546,7 +554,7 @@ class UniversalProductScraper:
                             seen_urls.add(img_url)
                             
                         # Limit to prevent too many images
-                        if len(images) >= 30:
+                        if len(images) >= self.MAX_PRODUCT_IMAGES:
                             break
                 
                 if len(images) >= 5:  # If we found enough, stop searching
@@ -563,11 +571,11 @@ class UniversalProductScraper:
                         if img_url not in seen_urls and 'placeholder' not in img_url.lower():
                             images.append(img_url)
                             seen_urls.add(img_url)
-                            if len(images) >= 10:
+                            if len(images) >= self.MAX_PRODUCT_IMAGES:
                                 break
             
             logger.info(f"Found {len(images)} product images")
-            return images[:20]  # Return max 20 images
+            return images[:self.MAX_PRODUCT_IMAGES]
             
         except Exception as e:
             logger.warning(f"Error extracting images: {str(e)}")
@@ -656,6 +664,8 @@ def download_image(image_url):
     """
     Download image from URL
     """
+    IMAGE_DOWNLOAD_TIMEOUT = 30
+    
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -666,12 +676,12 @@ def download_image(image_url):
         proxies = {'http': None, 'https': None}
         
         try:
-            response = session.get(image_url, headers=headers, timeout=30, stream=True, verify=True, proxies=proxies)
+            response = session.get(image_url, headers=headers, timeout=IMAGE_DOWNLOAD_TIMEOUT, stream=True, verify=True, proxies=proxies)
             response.raise_for_status()
         except requests.exceptions.SSLError:
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            response = session.get(image_url, headers=headers, timeout=30, stream=True, verify=False, proxies=proxies)
+            # Retry without SSL verification but don't suppress warnings globally
+            logger.warning(f"SSL error downloading image {image_url}, retrying without verification")
+            response = session.get(image_url, headers=headers, timeout=IMAGE_DOWNLOAD_TIMEOUT, stream=True, verify=False, proxies=proxies)
             response.raise_for_status()
         
         filename = image_url.split('/')[-1].split('?')[0]
@@ -694,10 +704,14 @@ def download_image(image_url):
 
 def create_product_from_scraped_data(scraped_data, vendor, supplier=None):
     """
-    Create Product from scraped data
+    Create Product from scraped data with transaction safety
     """
     from .models import Product, ProductImage
+    from django.db import transaction, IntegrityError
     import random
+    import time
+    
+    MAX_PRODUCT_IMAGES = 20
     
     try:
         base_slug = slugify(scraped_data['name'])
@@ -710,8 +724,7 @@ def create_product_from_scraped_data(scraped_data, vendor, supplier=None):
             unique_slug = f"{base_slug}-{random_number}"
             collision_count += 1
             if collision_count > 10:
-                import time
-                unique_slug = f"{base_slug}-{int(time.time())}"
+                unique_slug = f"{base_slug}-{int(time.time())}-{random.randint(100, 999)}"
                 break
         
         logger.info(f"Generated unique slug: {unique_slug}")
@@ -726,10 +739,19 @@ def create_product_from_scraped_data(scraped_data, vendor, supplier=None):
             stock=0,
             is_active=False,
         )
-        product.save()
+        
+        # Use atomic transaction to prevent race conditions
+        try:
+            with transaction.atomic():
+                product.save()
+        except IntegrityError:
+            # Slug collision detected during save - use timestamp-based slug
+            unique_slug = f"{base_slug}-{int(time.time())}-{random.randint(100, 999)}"
+            product.slug = unique_slug
+            product.save()
         
         images = scraped_data.get('images', [])
-        for i, img_url in enumerate(images[:20]):
+        for i, img_url in enumerate(images[:MAX_PRODUCT_IMAGES]):
             content, filename = download_image(img_url)
             if content and filename:
                 product_image = ProductImage(

@@ -11,7 +11,7 @@
     function initActionButton() {
         // Find the action select
         const actionSelect = document.querySelector('select[name="action"]');
-        
+
         if (!actionSelect) {
             console.warn('⚠️ Action select not found. Retrying...');
             setTimeout(initActionButton, 500);
@@ -22,7 +22,7 @@
 
         // Find the button
         const actionButton = document.querySelector('button[name="index"]');
-        
+
         if (!actionButton) {
             console.error('❌ Action button not found');
             return;
@@ -34,13 +34,13 @@
         actionButton.removeAttribute('x-show');
         actionButton.removeAttribute('x-cloak');
         actionButton.removeAttribute('x-bind:style');
-        
+
         console.log('✅ Alpine.js attributes removed');
 
         // STEP 2: Make button always visible
         actionButton.style.display = 'flex';
         actionButton.style.visibility = 'visible';
-        
+
         console.log('✅ Button set to always visible');
 
         // STEP 3: Function to enable/disable button based on selection
@@ -54,7 +54,7 @@
                 actionButton.style.cursor = 'pointer';
                 actionButton.style.pointerEvents = 'auto';
                 actionButton.classList.remove('disabled');
-                
+
                 console.log('✅ Button enabled for action:', selectedAction);
             } else {
                 // Disable button
@@ -63,18 +63,18 @@
                 actionButton.style.cursor = 'not-allowed';
                 actionButton.style.pointerEvents = 'none';
                 actionButton.classList.add('disabled');
-                
+
                 console.log('ℹ️ Button disabled (no action selected)');
             }
         }
 
         // STEP 4: Listen for select changes
-        actionSelect.addEventListener('change', function() {
+        actionSelect.addEventListener('change', function () {
             console.log('📢 Action changed');
             updateButtonState();
         });
-        
-        actionSelect.addEventListener('input', function() {
+
+        actionSelect.addEventListener('input', function () {
             updateButtonState();
         });
 
