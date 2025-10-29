@@ -12,7 +12,7 @@
 
         // Find the action select
         const actionSelect = document.querySelector('select[name="action"]');
-        
+
         if (!actionSelect) {
             console.warn('⚠️ Action select not found. Retrying...');
             setTimeout(initActionButton, 500);
@@ -23,7 +23,7 @@
 
         // Find the button
         const actionButton = document.querySelector('button[name="index"]');
-        
+
         if (!actionButton) {
             console.error('❌ Action button not found');
             return;
@@ -33,7 +33,7 @@
 
         // Find the parent container with Alpine.js x-data
         const alpineContainer = actionSelect.closest('[x-data]');
-        
+
         if (alpineContainer) {
             console.log('✅ Alpine.js container found');
         }
@@ -92,7 +92,7 @@
         setTimeout(updateButtonVisibility, 100);
 
         // Aggressive polling - check every second
-        setInterval(function() {
+        setInterval(function () {
             const currentAction = actionSelect.value;
             if (currentAction && currentAction !== '' && currentAction !== '---------') {
                 const computedStyle = window.getComputedStyle(actionButton);
@@ -104,7 +104,7 @@
         }, 1000);
 
         // Watch for Alpine.js mutations
-        const observer = new MutationObserver(function(mutations) {
+        const observer = new MutationObserver(function (mutations) {
             for (let mutation of mutations) {
                 if (mutation.attributeName === 'style' && mutation.target === actionButton) {
                     const currentAction = actionSelect.value;
