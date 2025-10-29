@@ -1,5 +1,4 @@
-# MINIMAL VERSION - Get APIs working immediately
-# This skips static files completely
+# FIXED VERSION - Includes static files collection
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -25,6 +24,8 @@ RUN mkdir -p /app/staticfiles /app/media /app/logs
 
 EXPOSE 80
 
-# MINIMAL: Just migrate and start - NO collectstatic
-CMD python manage.py migrate --noinput ; gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:80 --workers 4 --timeout 120
+# FIXED: Includes collectstatic to serve CSS/JS files properly
+CMD python manage.py migrate --noinput && \
+    python manage.py collectstatic --noinput --clear && \
+    gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:80 --workers 4 --timeout 120
 
