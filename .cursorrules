@@ -1,0 +1,88 @@
+# Cursor Rules for Multivendor Platform
+
+## Project Overview
+This is a Django REST API backend with Vue.js frontend for a multivendor e-commerce platform.
+
+## Code Style & Standards
+
+### Python (Django Backend)
+- Follow PEP 8 style guidelines
+- Use Django REST Framework conventions
+- Prefer class-based views for API endpoints
+- Use serializers for data validation
+- Include proper docstrings for functions and classes
+- Use type hints when possible (Python 3.9+)
+- Follow Django naming conventions (models use PascalCase, fields use snake_case)
+
+### JavaScript/Vue.js (Frontend)
+- Use ES6+ features
+- Follow Vue 3 Composition API patterns
+- Use Pinia stores for state management
+- Prefer async/await over promises
+- Use Vuetify components for UI
+- Follow Vue style guide conventions
+- Use camelCase for variables and functions
+- Use PascalCase for components
+- designe should be mobile first
+- designe should be RTL
+- all UX copys should be Persian.
+
+## File Organization
+- Backend: `multivendor_platform/multivendor_platform/`
+- Frontend: `multivendor_platform/front_end/`
+- Keep related files together
+- Use appropriate folder structure for Django apps
+
+## API Design
+- RESTful API endpoints
+- Use appropriate HTTP methods (GET, POST, PUT, PATCH, DELETE)
+- Include proper error handling and status codes
+- Validate input data on both frontend and backend
+- Use serializers for API responses
+
+## Security
+- Never commit sensitive data (API keys, passwords, secrets)
+- Use environment variables for configuration
+- Validate and sanitize all user inputs
+- Use Django's authentication and authorization features
+- Implement CSRF protection
+
+## Testing
+- Write tests for critical functionality
+- Use Django's test framework for backend
+- Test API endpoints thoroughly
+- Include edge cases in tests
+
+## Performance
+- Use database queries efficiently (avoid N+1 queries)
+- Use select_related and prefetch_related when needed
+- Implement pagination for list endpoints
+- Optimize frontend bundle size
+
+## Git & Version Control
+- Write clear, descriptive commit messages
+- Keep commits focused and atomic
+- Don't commit sensitive files or credentials
+
+## Documentation
+- Update README when adding new features
+- Document API endpoints
+- Add comments for complex logic
+- Keep deployment guides updated
+
+## Error Handling
+- Handle errors gracefully
+- Provide meaningful error messages
+- Log errors appropriately
+- Use try-except blocks where necessary
+
+## Code Review Guidelines
+- Code should be readable and maintainable
+- Follow DRY (Don't Repeat Yourself) principle
+- Use meaningful variable and function names
+- Keep functions focused and single-purpose
+
+##deployment
+- i have a VPS with this IP 185.208.172.76
+- i use caprover https://captain.indexo.ir/
+- i use github action CI/CD
