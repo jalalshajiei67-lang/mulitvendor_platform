@@ -126,6 +126,27 @@ class UniversalProductScraper:
             self.platform = 'woocommerce'
             return
         
+        # Check for WordPress (including page builders)
+        wordpress_indicators = [
+            'wp-content' in html_text,
+            '/wp-includes/' in html_text,
+            '/wp-content/themes/' in html_text,
+            'wordpress' in html_text,
+            self.soup.find('meta', {'name': lambda x: x and 'generator' in x.lower()}) and 
+                'wordpress' in str(self.soup.find('meta', {'name': lambda x: x and 'generator' in x.lower()})).lower(),
+            # Page builder indicators
+            'elementor' in html_text,
+            'divi' in html_text,
+            'beaver-builder' in html_text,
+            'visual-composer' in html_text,
+            'siteorigin' in html_text,
+        ]
+        
+        if any(wordpress_indicators):
+            self.platform = 'wordpress'
+            logger.info("Platform detected as: wordpress (may use page builder)")
+            return
+        
         # Check for Shopify
         if 'shopify' in html_text or self.soup.find('meta', {'name': 'shopify'}):
             self.platform = 'shopify'
@@ -196,9 +217,36 @@ class UniversalProductScraper:
                     logger.info(f"Found product name from og:title: {title[:50]}")
                     return title
             
+            # Strategy 2.5: Title tag (especially useful for WordPress/page builders)
+            # Check this early for WordPress pages as it's often reliable
+            if self.platform == 'wordpress':
+                title_tag = self.soup.find('title')
+                if title_tag:
+                    title = title_tag.get_text(strip=True)
+                    # Clean up title (remove site name, separators)
+                    # Remove common separators and site names
+                    title = re.split(r'[|\-–—•]', title)[0].strip()
+                    # Remove common suffixes
+                    title = re.sub(r'\s*[-–—]\s*(دانا|کد|نگر|سایت|site|home).*$', '', title, flags=re.IGNORECASE)
+                    if title and len(title) > 3:
+                        logger.info(f"Found product name from title tag: {title[:50]}")
+                        return title
+            
             # Strategy 3: Platform-specific selectors
             if self.platform == 'woocommerce':
                 selectors = ['h1.product_title', 'h1.entry-title', '.product-title h1']
+            elif self.platform == 'wordpress':
+                # WordPress/page builder title selectors
+                selectors = [
+                    'h1.entry-title',
+                    'h1.page-title',
+                    'article h1',
+                    '.entry-header h1',
+                    '[class*="elementor"] h1',
+                    'h1[class*="title"]',
+                    'h1.product-title',
+                    'h1[class*="product"]',
+                ]
             elif self.platform == 'shopify':
                 selectors = ['h1.product-title', 'h1.product__title', '.product-single__title']
             elif self.platform == 'magento':
@@ -287,6 +335,21 @@ class UniversalProductScraper:
                         '.woocommerce-product-details__short-description',
                         'div[itemprop="description"]',
                     ]
+                elif self.platform == 'wordpress':
+                    # WordPress/page builder selectors
+                    selectors = [
+                        'article .entry-content',
+                        '.entry-content',
+                        '.post-content',
+                        '.content-area',
+                        '[class*="elementor"] [class*="text"]',
+                        '[class*="elementor"] [class*="content"]',
+                        '.et_pb_section',
+                        'div[class*="content"]',
+                        '[itemprop="description"]',
+                        '.product-description',
+                        '.description',
+                    ]
                 elif self.platform == 'shopify':
                     selectors = [
                         '.product-description',
@@ -314,16 +377,20 @@ class UniversalProductScraper:
                             # Check if it has meaningful content
                             text_content = element.get_text(strip=True)
                             if len(text_content) > 30:
-                                description_html = self._clean_description_html(element)
-                                logger.info(f"Found description using '{selector}' ({len(text_content)} chars)")
-                                break
+                                # Make sure it's not in header/footer/nav
+                                if not element.find_parent(['header', 'footer', 'nav']):
+                                    description_html = self._clean_description_html(element)
+                                    logger.info(f"Found description using '{selector}' ({len(text_content)} chars)")
+                                    break
                     except:
                         continue
             
-            # Strategy 4: Look for largest text block
-            if not description_html or len(description_html) < 100:
-                logger.info("Trying to find largest content block")
-                description_html = self._find_main_content()
+            # Strategy 4: For WordPress/page builder pages, try to find main content
+            if (not description_html or len(description_html) < 100) or self.platform == 'wordpress':
+                logger.info("Trying to find main content block (WordPress/page builder)")
+                main_content = self._find_main_content()
+                if main_content and len(main_content) > len(description_html or ""):
+                    description_html = main_content
             
             if description_html and len(description_html.strip()) > 20:
                 return description_html
@@ -342,30 +409,115 @@ class UniversalProductScraper:
     def _find_main_content(self):
         """
         Find the main content block (largest meaningful text section)
+        Excludes header, footer, navigation, sidebars
+        Works with WordPress page builders (Elementor, Divi, etc.)
         """
         try:
-            # Look for common content containers
-            content_containers = self.soup.find_all(
-                ['article', 'main', 'div'],
-                class_=lambda x: x and any(
-                    keyword in x.lower() 
-                    for keyword in ['content', 'product', 'detail', 'info', 'description']
-                )
-            )
+            # First, remove common unwanted sections
+            unwanted_selectors = [
+                'header', 'footer', 'nav',
+                '[class*="header"]', '[class*="footer"]', '[class*="nav"]',
+                '[class*="menu"]', '[class*="sidebar"]',
+                '[id*="header"]', '[id*="footer"]', '[id*="nav"]',
+                '[id*="menu"]', '[id*="sidebar"]',
+                '.header', '.footer', '.navigation', '.nav',
+                '.menu', '.sidebar', '.widget',
+            ]
+            
+            # Create a copy of soup to avoid modifying original
+            from bs4 import BeautifulSoup
+            soup_copy = BeautifulSoup(str(self.soup), 'html.parser')
+            
+            # Remove unwanted sections
+            for selector in unwanted_selectors:
+                try:
+                    for element in soup_copy.select(selector):
+                        element.decompose()
+                except:
+                    continue
+            
+            # Look for common WordPress/main content containers
+            content_selectors = [
+                # WordPress common
+                'article',
+                'main',
+                '[role="main"]',
+                '#main',
+                '.main-content',
+                '.site-main',
+                # Page builders
+                '.elementor-element',
+                '.elementor-widget',
+                '.et_pb_section',
+                '.vc_row',
+                '.fl-row',
+                # Generic
+                '[class*="content"]',
+                '[class*="product"]',
+                '[class*="entry"]',
+                '[id*="content"]',
+                '[id*="product"]',
+            ]
             
             best_content = None
             max_length = 0
             
-            for container in content_containers[:20]:  # Check first 20
-                text = container.get_text(strip=True)
-                # Must have decent length and not be navigation/menu
-                if len(text) > max_length and len(text) < 10000:
-                    # Check it's not navigation
-                    if not container.find_parent(['nav', 'header', 'footer']):
-                        max_length = len(text)
-                        best_content = container
+            # Try specific selectors first
+            for selector in content_selectors:
+                try:
+                    containers = soup_copy.select(selector)
+                    for container in containers:
+                        # Skip if it's in unwanted area
+                        if container.find_parent(['header', 'footer', 'nav']):
+                            continue
+                        
+                        text = container.get_text(strip=True)
+                        # Must have decent length and not be too long (likely not main content)
+                        if self.MIN_DESCRIPTION_LENGTH < len(text) < 50000:
+                            # Check it doesn't look like navigation/menu
+                            links = container.find_all('a')
+                            if len(links) < len(text) / 50:  # Not too many links (nav indicator)
+                                if len(text) > max_length:
+                                    max_length = len(text)
+                                    best_content = container
+                except:
+                    continue
             
-            if best_content:
+            # If no specific container found, look for largest div that's not in header/footer
+            if not best_content or max_length < 100:
+                all_divs = soup_copy.find_all('div')
+                for div in all_divs:
+                    # Skip if in unwanted areas
+                    if div.find_parent(['header', 'footer', 'nav', 'aside']):
+                        continue
+                    
+                    # Skip if has navigation-like classes
+                    div_classes = ' '.join(div.get('class', [])).lower()
+                    if any(word in div_classes for word in ['nav', 'menu', 'header', 'footer', 'sidebar', 'widget']):
+                        continue
+                    
+                    text = div.get_text(strip=True)
+                    if self.MIN_DESCRIPTION_LENGTH < len(text) < 50000:
+                        links = div.find_all('a')
+                        if len(links) < len(text) / 50:
+                            if len(text) > max_length:
+                                max_length = len(text)
+                                best_content = div
+            
+            # If still nothing, try body content minus header/footer
+            if not best_content or max_length < 100:
+                body = soup_copy.find('body')
+                if body:
+                    # Remove header/footer from body
+                    for unwanted in body.find_all(['header', 'footer', 'nav', 'aside']):
+                        unwanted.decompose()
+                    
+                    text = body.get_text(strip=True)
+                    if len(text) > max_length and len(text) < 50000:
+                        best_content = body
+                        max_length = len(text)
+            
+            if best_content and max_length >= self.MIN_DESCRIPTION_LENGTH:
                 cleaned = self._clean_description_html(best_content)
                 logger.info(f"Found main content block ({max_length} chars)")
                 return cleaned
@@ -445,24 +597,39 @@ class UniversalProductScraper:
                     pass
             
             # Strategy 3: Platform-specific and generic selectors
-            price_selectors = [
-                # WooCommerce
-                'p.price .woocommerce-Price-amount',
-                '.price .amount',
-                'span.price',
-                # Shopify
-                '.product-price',
-                '.price-item',
-                'span.money',
-                # Generic
-                '[itemprop="price"]',
-                'span[class*="price"]',
-                'div[class*="price"]',
-                '.product-price-value',
-                # Persian sites
-                '.price',
-                '[class*="قیمت"]',
-            ]
+            if self.platform == 'woocommerce':
+                price_selectors = [
+                    'p.price .woocommerce-Price-amount',
+                    '.price .amount',
+                    'span.price',
+                    '.woocommerce-Price-amount',
+                ]
+            elif self.platform == 'wordpress':
+                # WordPress/page builder price selectors
+                price_selectors = [
+                    '.price',
+                    'span.price',
+                    '.product-price',
+                    '[class*="price"]',
+                    '[itemprop="price"]',
+                    '.amount',
+                    # Persian sites
+                    '[class*="قیمت"]',
+                    '[class*="مبلغ"]',
+                ]
+            else:
+                price_selectors = [
+                    # Shopify
+                    '.product-price',
+                    '.price-item',
+                    'span.money',
+                    # Generic
+                    '[itemprop="price"]',
+                    'span[class*="price"]',
+                    'div[class*="price"]',
+                    '.product-price-value',
+                    '.price',
+                ]
             
             for selector in price_selectors:
                 elements = self.soup.select(selector)
@@ -560,17 +727,59 @@ class UniversalProductScraper:
                 if len(images) >= 5:  # If we found enough, stop searching
                     break
             
-            # Strategy 4: If still no images, get ANY images from main content
-            if len(images) < 2:
-                logger.info("Searching for any product images in page")
-                all_imgs = self.soup.find_all('img')
+            # Strategy 4: Extract ALL images from main content area (for WordPress/page builders)
+            if len(images) < 2 or self.platform == 'wordpress':
+                logger.info("Searching for images in main content area")
+                # Find main content area first
+                main_content = None
+                if self.platform == 'wordpress':
+                    # Look for WordPress main content
+                    for selector in ['article', 'main', '.entry-content', '.content-area', '[role="main"]']:
+                        main_content = self.soup.select_one(selector)
+                        if main_content:
+                            break
+                
+                # Search area to use
+                search_area = main_content if main_content else self.soup
+                
+                # Exclude images from header/footer/nav
+                all_imgs = search_area.find_all('img')
                 for img in all_imgs:
-                    img_url = img.get('src') or img.get('data-src')
-                    if img_url and 'product' in img_url.lower():
+                    # Skip if image is in header/footer/nav
+                    if img.find_parent(['header', 'footer', 'nav']):
+                        continue
+                    
+                    # Get image URL
+                    img_url = (
+                        img.get('data-large_image') or
+                        img.get('data-lazy-src') or
+                        img.get('data-src') or
+                        img.get('src')
+                    )
+                    
+                    if img_url:
+                        # Skip placeholders
+                        if 'placeholder' in img_url.lower() or 'data:image' in img_url or 'blank' in img_url.lower():
+                            continue
+                        
+                        # Make absolute URL
                         img_url = urljoin(self.url, img_url)
-                        if img_url not in seen_urls and 'placeholder' not in img_url.lower():
+                        
+                        # Skip duplicates and very small images (likely icons)
+                        if img_url not in seen_urls:
+                            # Skip icon-sized images
+                            width = img.get('width')
+                            height = img.get('height')
+                            if width and height:
+                                try:
+                                    if int(width) < 50 or int(height) < 50:
+                                        continue
+                                except:
+                                    pass
+                            
                             images.append(img_url)
                             seen_urls.add(img_url)
+                            
                             if len(images) >= self.MAX_PRODUCT_IMAGES:
                                 break
             
