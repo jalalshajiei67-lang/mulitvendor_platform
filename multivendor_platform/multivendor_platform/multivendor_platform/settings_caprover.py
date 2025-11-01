@@ -114,8 +114,10 @@ STATIC_URL = os.environ.get('STATIC_URL', '/static/')
 STATIC_ROOT = os.environ.get('STATIC_ROOT', '/app/staticfiles')  # Different from source directory
 
 # STATICFILES_DIRS - where Django looks for additional static files before collectstatic
-# Empty because we're only collecting from installed apps
-STATICFILES_DIRS = []
+# Include project-level static directory (for custom admin CSS/JS)
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 # Static files finders - tells Django where to look for static files
 STATICFILES_FINDERS = [
