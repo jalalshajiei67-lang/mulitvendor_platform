@@ -1,10 +1,20 @@
-/* Simple Always-Visible Action Button */
+/* Simple Always-Visible Action Button - Unfold Theme Compatible */
 
-/* Force button to always be visible */
+/* Force button to always be visible - Multiple selectors for Unfold */
 button[name="index"],
 button[type="submit"][name="index"],
-.actions button[name="index"] {
-    display: flex !important;
+.actions button[name="index"],
+button[title="Run the selected action"] {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Override Alpine.js x-show hiding in Unfold */
+button[name="index"][x-show],
+button[name="index"][style*="display: none"],
+button[name="index"][style*="display:none"] {
+    display: inline-flex !important;
     visibility: visible !important;
 }
 

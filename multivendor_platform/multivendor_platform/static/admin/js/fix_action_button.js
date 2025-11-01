@@ -20,28 +20,37 @@
 
         console.log('✅ Action select found');
 
-        // Find the action button (Go button)
+        // Find the action button (Go button) - Unfold uses different selectors
         const actionButton = document.querySelector('button[name="index"]') || 
                            document.querySelector('button[type="submit"][name="index"]') ||
-                           document.querySelector('.actions button[type="submit"]');
+                           document.querySelector('.actions button[type="submit"]') ||
+                           document.querySelector('button[title="Run the selected action"]');
 
         if (!actionButton) {
             console.warn('⚠️ Action button not found');
             return;
         }
 
-        console.log('✅ Action button found');
+        console.log('✅ Action button found:', actionButton);
 
         // Remove Alpine.js attributes that might hide the button
         actionButton.removeAttribute('x-show');
         actionButton.removeAttribute('x-cloak');
         actionButton.removeAttribute('x-bind:style');
 
-        // Force button to be visible
-        actionButton.style.display = 'inline-flex';
-        actionButton.style.visibility = 'visible';
+        // Force button to be visible - Use !important via setProperty for Unfold
+        actionButton.style.setProperty('display', 'inline-flex', 'important');
+        actionButton.style.setProperty('visibility', 'visible', 'important');
+        actionButton.style.setProperty('opacity', '1', 'important');
         
-        console.log('✅ Button set to visible');
+        // Also remove any inline display:none that Alpine.js might set
+        if (actionButton.hasAttribute('style')) {
+            const currentStyle = actionButton.getAttribute('style');
+            const newStyle = currentStyle.replace(/display\s*:\s*none\s*;?/gi, '');
+            actionButton.setAttribute('style', newStyle);
+        }
+        
+        console.log('✅ Button set to visible - Unfold theme');
 
         // Function to update button state based on selected action
         function updateButtonState() {
@@ -95,6 +104,32 @@
 
         // Initial state
         updateButtonState();
+
+        // Keep button visible even if Alpine.js tries to hide it (Unfold theme)
+        const forceButtonVisible = () => {
+            if (actionButton.style.display === 'none' || actionButton.style.display === '') {
+                actionButton.style.setProperty('display', 'inline-flex', 'important');
+                actionButton.style.setProperty('visibility', 'visible', 'important');
+                actionButton.style.setProperty('opacity', '1', 'important');
+                actionButton.removeAttribute('x-show');
+                console.log('🔄 Button re-shown (Alpine.js tried to hide it)');
+            }
+        };
+
+        // Watch for Alpine.js trying to hide the button
+        const observer = new MutationObserver(() => {
+            forceButtonVisible();
+        });
+
+        observer.observe(actionButton, {
+            attributes: true,
+            attributeFilter: ['style', 'x-show', 'class']
+        });
+
+        // Also check periodically (backup)
+        setInterval(forceButtonVisible, 500);
+
+        console.log('👁️ Button visibility watcher activated');
 
         // Allow the form to submit - Django will handle validation
         const actionForm = document.querySelector('#changelist-form');
