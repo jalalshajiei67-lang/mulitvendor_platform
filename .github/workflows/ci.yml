@@ -45,8 +45,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd multivendor_platform/multivendor_platform
-          pip install -r ../../requirements.txt
+          pip install -r multivendor_platform/requirements.txt
           pip install coverage
 
       - name: Run Django tests with coverage
