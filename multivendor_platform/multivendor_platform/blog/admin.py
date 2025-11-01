@@ -29,12 +29,6 @@ class BlogCategoryAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Explicitly allow delete permission"""
         return True
-    
-    class Media:
-        js = ('admin/js/fix_action_button.js',)
-        css = {
-            'all': ('admin/css/force_action_button.css',)
-        }
 
 class BlogPostAdminForm(forms.ModelForm):
     content = forms.CharField(
@@ -84,12 +78,6 @@ class BlogPostAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Explicitly allow delete permission"""
         return True
-    
-    class Media:
-        js = ('admin/js/fix_action_button.js',)
-        css = {
-            'all': ('admin/css/force_action_button.css',)
-        }
 
 @admin.register(BlogComment)
 class BlogCommentAdmin(admin.ModelAdmin):
@@ -114,9 +102,3 @@ class BlogCommentAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Explicitly allow delete permission"""
         return True
-    
-    class Media:
-        js = ('admin/js/fix_action_button.js',)
-        css = {
-            'all': ('admin/css/force_action_button.css',)
-        }

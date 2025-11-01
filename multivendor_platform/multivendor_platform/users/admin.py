@@ -18,24 +18,12 @@ class UserProfileAdmin(admin.ModelAdmin):
     def unblock_users(self, request, queryset):
         queryset.update(is_blocked=False)
     unblock_users.short_description = "Unblock selected users"
-    
-    class Media:
-        js = ('admin/js/fix_action_button.js',)
-        css = {
-            'all': ('admin/css/force_action_button.css',)
-        }
 
 class BuyerProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'created_at']
     search_fields = ['user__username', 'user__email']
     actions = ['delete_selected']  # Include delete action
-    
-    class Media:
-        js = ('admin/js/fix_action_button.js',)
-        css = {
-            'all': ('admin/css/force_action_button.css',)
-        }
-    
+
 class VendorProfileAdmin(admin.ModelAdmin):
     list_display = ['store_name', 'user', 'is_approved', 'contact_email', 'created_at']
     list_filter = ['is_approved']
@@ -45,12 +33,6 @@ class VendorProfileAdmin(admin.ModelAdmin):
     def approve_vendors(self, request, queryset):
         queryset.update(is_approved=True)
     approve_vendors.short_description = "Approve selected suppliers"
-    
-    class Media:
-        js = ('admin/js/fix_action_button.js',)
-        css = {
-            'all': ('admin/css/force_action_button.css',)
-        }
 
 class SupplierAdImageInline(admin.TabularInline):
     model = SellerAdImage
@@ -64,12 +46,6 @@ class SupplierAdAdmin(admin.ModelAdmin):
     search_fields = ['title', 'description', 'seller__username']
     inlines = [SupplierAdImageInline]
     actions = ['delete_selected']  # Include delete action
-    
-    class Media:
-        js = ('admin/js/fix_action_button.js',)
-        css = {
-            'all': ('admin/css/force_action_button.css',)
-        }
 
 class ProductReviewAdmin(admin.ModelAdmin):
     list_display = ['buyer', 'product', 'rating', 'is_verified_purchase', 'is_approved', 'created_at']
@@ -85,12 +61,6 @@ class ProductReviewAdmin(admin.ModelAdmin):
     def disapprove_reviews(self, request, queryset):
         queryset.update(is_approved=False)
     disapprove_reviews.short_description = "Disapprove selected reviews"
-    
-    class Media:
-        js = ('admin/js/fix_action_button.js',)
-        css = {
-            'all': ('admin/css/force_action_button.css',)
-        }
 
 class SupplierCommentAdmin(admin.ModelAdmin):
     list_display = ['user', 'supplier', 'rating', 'is_approved', 'created_at']
@@ -106,12 +76,6 @@ class SupplierCommentAdmin(admin.ModelAdmin):
     def disapprove_comments(self, request, queryset):
         queryset.update(is_approved=False)
     disapprove_comments.short_description = "Disapprove selected comments"
-    
-    class Media:
-        js = ('admin/js/fix_action_button.js',)
-        css = {
-            'all': ('admin/css/force_action_button.css',)
-        }
 
 class UserActivityAdmin(admin.ModelAdmin):
     list_display = ['user', 'action', 'ip_address', 'created_at']
@@ -119,12 +83,6 @@ class UserActivityAdmin(admin.ModelAdmin):
     search_fields = ['user__username', 'description']
     readonly_fields = ['user', 'action', 'description', 'ip_address', 'user_agent', 'content_type', 'object_id', 'created_at']
     actions = ['delete_selected']  # Include delete action
-    
-    class Media:
-        js = ('admin/js/fix_action_button.js',)
-        css = {
-            'all': ('admin/css/force_action_button.css',)
-        }
 
 @admin.register(Supplier)
 class SupplierAdmin(admin.ModelAdmin):
@@ -153,12 +111,6 @@ class SupplierAdmin(admin.ModelAdmin):
     def get_product_count(self, obj):
         return obj.get_product_count()
     get_product_count.short_description = 'Products'
-    
-    class Media:
-        js = ('admin/js/fix_action_button.js',)
-        css = {
-            'all': ('admin/css/force_action_button.css',)
-        }
 
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(BuyerProfile, BuyerProfileAdmin)
