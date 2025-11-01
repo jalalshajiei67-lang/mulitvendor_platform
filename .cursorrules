@@ -86,3 +86,5 @@ This is a Django REST API backend with Vue.js frontend for a multivendor e-comme
 - i have a VPS with this IP 185.208.172.76
 - i use caprover https://captain.indexo.ir/
 - i use github action CI/CD
+
+

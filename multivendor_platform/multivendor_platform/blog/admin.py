@@ -26,6 +26,10 @@ class BlogCategoryAdmin(admin.ModelAdmin):
         return obj.blog_posts.filter(status='published').count()
     post_count.short_description = 'Published Posts'
     
+    def has_delete_permission(self, request, obj=None):
+        """Explicitly allow delete permission"""
+        return True
+    
     class Media:
         js = ('admin/js/fix_action_button.js',)
         css = {
@@ -77,6 +81,10 @@ class BlogPostAdmin(admin.ModelAdmin):
             obj.author = request.user
         super().save_model(request, obj, form, change)
     
+    def has_delete_permission(self, request, obj=None):
+        """Explicitly allow delete permission"""
+        return True
+    
     class Media:
         js = ('admin/js/fix_action_button.js',)
         css = {
@@ -102,6 +110,10 @@ class BlogCommentAdmin(admin.ModelAdmin):
         updated = queryset.update(is_approved=False)
         self.message_user(request, f'{updated} comments were disapproved.')
     disapprove_comments.short_description = 'Disapprove selected comments'
+    
+    def has_delete_permission(self, request, obj=None):
+        """Explicitly allow delete permission"""
+        return True
     
     class Media:
         js = ('admin/js/fix_action_button.js',)

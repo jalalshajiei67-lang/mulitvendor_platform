@@ -19,9 +19,9 @@ button[name="index"]:disabled,
 button[name="index"].disabled {
     opacity: 0.5 !important;
     cursor: not-allowed !important;
-    pointer-events: none !important;
     background-color: rgb(107 114 128) !important;
     /* gray-500 */
+    /* Removed pointer-events: none to allow Django's default behavior */
 }
 
 /* Enabled state styling */

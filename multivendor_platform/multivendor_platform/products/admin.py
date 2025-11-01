@@ -151,6 +151,10 @@ class DepartmentAdmin(admin.ModelAdmin):
         }),
     )
     
+    def has_delete_permission(self, request, obj=None):
+        """Explicitly allow delete permission"""
+        return True
+    
     class Media:
         js = ('admin/js/fix_action_button.js',)
         css = {
@@ -193,6 +197,10 @@ class CategoryAdmin(admin.ModelAdmin):
         except Exception as e:
             return f'Error: {str(e)}'
     get_departments.short_description = 'Departments'
+    
+    def has_delete_permission(self, request, obj=None):
+        """Explicitly allow delete permission"""
+        return True
     
     class Media:
         js = ('admin/js/fix_action_button.js',)
@@ -247,6 +255,10 @@ class SubcategoryAdmin(admin.ModelAdmin):
         except Exception as e:
             return f'Error: {str(e)}'
     get_categories.short_description = 'Categories'
+    
+    def has_delete_permission(self, request, obj=None):
+        """Explicitly allow delete permission"""
+        return True
     
     class Media:
         js = ('admin/js/fix_action_button.js',)
@@ -389,6 +401,10 @@ class ProductAdmin(admin.ModelAdmin):
         updated = queryset.update(is_active=False)
         self.message_user(request, f'{updated} product(s) marked as inactive.')
     make_inactive.short_description = "❌ Mark as Inactive"
+    
+    def has_delete_permission(self, request, obj=None):
+        """Explicitly allow delete permission"""
+        return True
     
     def save_model(self, request, obj, form, change):
         """Override save_model to handle multiple images"""

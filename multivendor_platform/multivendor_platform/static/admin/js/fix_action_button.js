@@ -1,15 +1,15 @@
 /**
- * Simple Action Button Fix - Enable/Disable Approach
- * Makes button always visible and enables/disables based on action selection
- * No Alpine.js interaction = no race conditions
+ * Django Admin Action Button Fix
+ * Makes action button always visible and properly handles all actions including delete
+ * Compatible with Django's default admin and Unfold theme
  */
 (function () {
     'use strict';
 
-    console.log('🔧 Simple action button fix loaded');
+    console.log('🔧 Admin action button fix loaded');
 
     function initActionButton() {
-        // Find the action select
+        // Find the action select dropdown
         const actionSelect = document.querySelector('select[name="action"]');
 
         if (!actionSelect) {
@@ -20,68 +20,94 @@
 
         console.log('✅ Action select found');
 
-        // Find the button
-        const actionButton = document.querySelector('button[name="index"]');
+        // Find the action button (Go button)
+        const actionButton = document.querySelector('button[name="index"]') || 
+                           document.querySelector('button[type="submit"][name="index"]') ||
+                           document.querySelector('.actions button[type="submit"]');
 
         if (!actionButton) {
-            console.error('❌ Action button not found');
+            console.warn('⚠️ Action button not found');
             return;
         }
 
         console.log('✅ Action button found');
 
-        // STEP 1: Remove ALL Alpine.js attributes permanently
+        // Remove Alpine.js attributes that might hide the button
         actionButton.removeAttribute('x-show');
         actionButton.removeAttribute('x-cloak');
         actionButton.removeAttribute('x-bind:style');
 
-        console.log('✅ Alpine.js attributes removed');
-
-        // STEP 2: Make button always visible
-        actionButton.style.display = 'flex';
+        // Force button to be visible
+        actionButton.style.display = 'inline-flex';
         actionButton.style.visibility = 'visible';
+        
+        console.log('✅ Button set to visible');
 
-        console.log('✅ Button set to always visible');
-
-        // STEP 3: Function to enable/disable button based on selection
+        // Function to update button state based on selected action
         function updateButtonState() {
             const selectedAction = actionSelect.value;
+            const selectedRows = document.querySelectorAll('input[name="_selected_action"]:checked').length;
 
+            // Enable button if an action is selected
             if (selectedAction && selectedAction !== '' && selectedAction !== '---------') {
-                // Enable button
+                // Always enable the button - let Django handle validation on submit
                 actionButton.disabled = false;
                 actionButton.style.opacity = '1';
                 actionButton.style.cursor = 'pointer';
                 actionButton.style.pointerEvents = 'auto';
-                actionButton.classList.remove('disabled');
-
-                console.log('✅ Button enabled for action:', selectedAction);
+                
+                if (selectedAction === 'delete_selected' && selectedRows === 0) {
+                    console.log('ℹ️ Delete action selected but no items checked - Django will show error');
+                } else {
+                    console.log('✅ Button enabled for action:', selectedAction);
+                }
             } else {
-                // Disable button
+                // Only disable button if no action selected
                 actionButton.disabled = true;
                 actionButton.style.opacity = '0.5';
                 actionButton.style.cursor = 'not-allowed';
-                actionButton.style.pointerEvents = 'none';
-                actionButton.classList.add('disabled');
-
                 console.log('ℹ️ Button disabled (no action selected)');
             }
         }
 
-        // STEP 4: Listen for select changes
+        // Listen for action dropdown changes
         actionSelect.addEventListener('change', function () {
-            console.log('📢 Action changed');
+            console.log('📢 Action changed to:', this.value);
             updateButtonState();
         });
 
-        actionSelect.addEventListener('input', function () {
-            updateButtonState();
+        // Listen for checkbox changes (for delete action)
+        document.addEventListener('change', function (e) {
+            if (e.target && e.target.name === '_selected_action') {
+                console.log('📢 Selection changed');
+                updateButtonState();
+            }
         });
 
-        // STEP 5: Initial state
+        // Listen for "select all" checkbox
+        const selectAllCheckbox = document.querySelector('input#action-toggle');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function () {
+                console.log('📢 Select all toggled');
+                setTimeout(updateButtonState, 100); // Small delay to let checkboxes update
+            });
+        }
+
+        // Initial state
         updateButtonState();
 
-        console.log('✅ Simple action button fix initialized successfully');
+        // Allow the form to submit - Django will handle validation
+        const actionForm = document.querySelector('#changelist-form');
+        if (actionForm) {
+            actionForm.addEventListener('submit', function(e) {
+                const selectedAction = actionSelect.value;
+                console.log('📤 Form submitting with action:', selectedAction);
+                // Let Django handle the form submission and validation
+                // Don't prevent default - allow normal form submission
+            });
+        }
+
+        console.log('✅ Admin action button fix initialized successfully');
     }
 
     // Initialize when DOM is ready
@@ -91,8 +117,8 @@
         initActionButton();
     }
 
-    // Single retry for late-loading content
+    // Retry for late-loading content
     setTimeout(initActionButton, 1000);
 
-    console.log('🎯 Script loaded');
+    console.log('🎯 Admin action script loaded');
 })();
