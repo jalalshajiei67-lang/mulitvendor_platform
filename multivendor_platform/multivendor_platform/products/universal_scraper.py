@@ -3,6 +3,8 @@ Universal Product Scraper - Works with ANY e-commerce platform
 Supports: WooCommerce, Shopify, Magento, Custom sites, and more
 """
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 from django.core.files.base import ContentFile
 from django.utils.text import slugify
@@ -14,10 +16,53 @@ from .scraper_error_handler import (
     ErrorHandler, ErrorCategory, ErrorSeverity, ScraperError,
     handle_network_error, handle_parsing_error
 )
+import time
+import random
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from fake_useragent import UserAgent
+
+
 
 logger = logging.getLogger(__name__)
 
 
+
+
+
+class CircuitBreaker:
+    """Circuit breaker to prevent cascading failures"""
+    
+    def __init__(self, failure_threshold=5, recovery_timeout=60):
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self.failure_count = 0
+        self.last_failure_time = None
+        self.state = 'CLOSED'  # CLOSED, OPEN, HALF_OPEN
+    
+    def call(self, func, *args, **kwargs):
+        if self.state == 'OPEN':
+            if time.time() - self.last_failure_time > self.recovery_timeout:
+                self.state = 'HALF_OPEN'
+            else:
+                raise Exception("Circuit breaker is OPEN")
+        
+        try:
+            result = func(*args, **kwargs)
+            if self.state == 'HALF_OPEN':
+                self.state = 'CLOSED'
+                self.failure_count = 0
+            return result
+        except Exception as e:
+            self.failure_count += 1
+            self.last_failure_time = time.time()
+            
+            if self.failure_count >= self.failure_threshold:
+                self.state = 'OPEN'
+            
+            raise e
+
+
+# Now your existing UniversalProductScraper class
 class UniversalProductScraper:
     """
     Universal scraper that works with any e-commerce platform
@@ -30,19 +75,131 @@ class UniversalProductScraper:
     MAX_PRODUCT_IMAGES = 20
     IMAGE_DOWNLOAD_TIMEOUT = 30
     
-    def __init__(self, url, verify_ssl=True, use_proxy=False):
+    def __init__(self, url, verify_ssl=True, use_proxy=False, max_retries=3):
         self.url = url
         self.soup = None
         self.response = None
         self.verify_ssl = verify_ssl
         self.use_proxy = use_proxy
+        self.max_retries = max_retries
         self.error_handler = ErrorHandler()
         self.platform = None  # Will be detected: woocommerce, shopify, custom, etc.
         
+        # Initialize user agent rotator
+        self.ua = UserAgent()
+        
+        # Create a robust session
+        self.session = self._create_session()
+        
+        # Add circuit breaker
+        self.circuit_breaker = CircuitBreaker()
+
+    def _create_session(self):
+        """Create a robust session with retry strategy"""
+        session = requests.Session()
+        
+        # Configure retry strategy
+        retry_strategy = Retry(
+            total=self.max_retries,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["HEAD", "GET", "OPTIONS"]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        
+        return session
+
+    def _get_rotated_headers(self):
+        """Get headers with rotated user agent"""
+        try:
+            user_agent = self.ua.random
+        except:
+            user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        
+        return {
+            'User-Agent': user_agent,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,fa;q=0.8,ar;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Cache-Control': 'max-age=0',
+        }
+
+    def fetch_page_with_selenium(self):
+        """Fallback method using Selenium for JavaScript-heavy pages"""
+        try:
+            # Only try Selenium if selenium is available
+            try:
+                from selenium import webdriver
+                from selenium.webdriver.chrome.options import Options
+                from selenium.webdriver.common.by import By
+                from selenium.webdriver.support.ui import WebDriverWait
+                from selenium.webdriver.support import expected_conditions as EC
+            except ImportError:
+                logger.warning("Selenium not available, skipping Selenium fallback")
+                return False
+            
+            chrome_options = Options()
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+            chrome_options.add_argument(f'user-agent={self._get_rotated_headers()["User-Agent"]}')
+            
+            driver = None
+            try:
+                driver = webdriver.Chrome(options=chrome_options)
+                driver.set_page_load_timeout(30)
+                driver.get(self.url)
+                
+                # Wait for page to load
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "body"))
+                )
+                
+                # Get page source
+                html = driver.page_source
+                self.soup = BeautifulSoup(html, 'html.parser')
+                
+                # Detect platform
+                self._detect_platform()
+                
+                # Validate page
+                if not self._validate_page():
+                    return False
+                
+                logger.info(f"Successfully fetched page with Selenium: {self.url}")
+                return True
+            finally:
+                if driver:
+                    driver.quit()
+        except Exception as e:
+            logger.warning(f"Selenium fetch failed: {str(e)}")
+            return False
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((
+            requests.exceptions.RequestException,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+            requests.exceptions.HTTPError
+        ))
+    )
     def fetch_page(self):
         """
         Fetch the HTML content with robust error handling
         """
+        # Add random delay to avoid rate limiting
+        time.sleep(random.uniform(0.5, 2.0))
+        
         if not self.verify_ssl:
             # Log warning but don't suppress globally
             logger.warning(f"SSL verification disabled for {self.url}")
@@ -52,25 +209,11 @@ class UniversalProductScraper:
             )
         
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9,fa;q=0.8,ar;q=0.7',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Cache-Control': 'max-age=0',
-            }
-            
-            session = requests.Session()
-            session.trust_env = self.use_proxy
+            headers = self._get_rotated_headers()
             
             proxies = None if self.use_proxy else {'http': None, 'https': None}
             
-            self.response = session.get(
+            self.response = self.session.get(
                 self.url, 
                 headers=headers, 
                 timeout=30, 
@@ -114,6 +257,15 @@ class UniversalProductScraper:
             )
             self.error_handler.add_error(error)
             raise Exception(error.get_user_friendly_message())
+
+
+
+
+
+
+
+
+
     
     def _detect_platform(self):
         """
@@ -833,19 +985,139 @@ class UniversalProductScraper:
     
     def scrape(self):
         """
-        Main scraping method
+        Main scraping method with circuit breaker
         """
         try:
-            self.fetch_page()
+            return self.circuit_breaker.call(self._scrape_internal)
+        except Exception as e:
+            logger.error(f"Scraping failed: {str(e)}")
+            raise
+
+    def _scrape_internal(self):
+        """
+        Enhanced internal scraping method with better error handling and data validation
+        """
+        start_time = time.time()
+        
+        try:
+            # Step 1: Fetch the page with multiple fallback strategies
+            fetch_success = False
+            fetch_method = None
             
+            # Strategy 1: Try regular requests (fastest)
+            try:
+                logger.info(f"Attempting to fetch page with requests: {self.url}")
+                self.fetch_page()
+                fetch_success = True
+                fetch_method = "requests"
+            except Exception as e:
+                logger.warning(f"Regular fetch failed: {str(e)}")
+                self.error_handler.add_warning(
+                    "Requests fetch failed",
+                    f"Attempting fallback methods: {str(e)[:100]}"
+                )
+            
+            # Strategy 2: Try Selenium fallback if requests failed
+            if not fetch_success:
+                logger.info("Attempting fallback with Selenium for JavaScript-heavy pages")
+                try:
+                    if self.fetch_page_with_selenium():
+                        fetch_success = True
+                        fetch_method = "selenium"
+                    else:
+                        raise Exception("Selenium fetch returned False")
+                except Exception as e:
+                    logger.error(f"Selenium fallback also failed: {str(e)}")
+                    self.error_handler.add_error(ScraperError(
+                        category=ErrorCategory.NETWORK,
+                        severity=ErrorSeverity.HIGH,
+                        message="All fetch methods failed",
+                        details=f"Requests failed: {str(e)}",
+                        recoverable=True,
+                        retry_recommended=True,
+                        suggested_action="Check if URL is accessible, site may require authentication or blocking bots"
+                    ))
+                    raise Exception("All fetch methods failed. Unable to retrieve page content.")
+            
+            if not fetch_success:
+                raise Exception("Failed to fetch page with all available methods")
+            
+            logger.info(f"Successfully fetched page using {fetch_method} method")
+            
+            # Step 2: Extract product data with validation
+            extraction_start = time.time()
+            
+            # Extract name with quality check
+            name = self.extract_product_name()
+            if not name or name == "Untitled Product":
+                self.error_handler.add_warning(
+                    "Product name extraction",
+                    "Could not extract valid product name, using default"
+                )
+            
+            # Extract description with length validation
+            description = self.extract_description()
+            if not description or description == "No description available":
+                self.error_handler.add_warning(
+                    "Product description extraction",
+                    "Could not extract product description"
+                )
+            elif len(description) < self.MIN_DESCRIPTION_LENGTH:
+                self.error_handler.add_warning(
+                    "Description too short",
+                    f"Description is only {len(description)} characters, expected at least {self.MIN_DESCRIPTION_LENGTH}"
+                )
+            
+            # Extract price with validation
+            price = self.extract_price()
+            if price <= 0:
+                self.error_handler.add_warning(
+                    "Price extraction",
+                    "Could not extract valid price or price is zero"
+                )
+            elif price >= self.MAX_PRICE_VALUE:
+                self.error_handler.add_warning(
+                    "Price validation",
+                    f"Extracted price ({price}) seems unusually high, may be incorrect"
+                )
+            
+            # Extract images with count validation
+            images = self.extract_images()
+            if not images or len(images) == 0:
+                self.error_handler.add_warning(
+                    "Image extraction",
+                    "No product images found"
+                )
+            elif len(images) > self.MAX_PRODUCT_IMAGES:
+                images = images[:self.MAX_PRODUCT_IMAGES]
+                self.error_handler.add_warning(
+                    "Image limit",
+                    f"Found {len(images)} images, limiting to {self.MAX_PRODUCT_IMAGES}"
+                )
+            
+            # Extract categories (if available)
+            categories = []
+            try:
+                # Try to extract categories if method exists
+                if hasattr(self, 'extract_categories'):
+                    categories = self.extract_categories()
+            except Exception as e:
+                logger.debug(f"Could not extract categories: {str(e)}")
+            
+            extraction_time = time.time() - extraction_start
+            logger.info(f"Data extraction completed in {extraction_time:.2f}s")
+            
+            # Step 3: Build comprehensive data structure
             data = {
-                'name': self.extract_product_name(),
-                'description': self.extract_description(),
-                'price': self.extract_price(),
-                'images': self.extract_images(),
-                'categories': [],
+                'name': name,
+                'description': description,
+                'price': float(price) if price else 0.0,
+                'images': images,
+                'categories': categories if categories else [],
                 'source_url': self.url,
                 'platform': self.platform,
+                'fetch_method': fetch_method,
+                'extraction_time': round(extraction_time, 2),
                 'scraping_metadata': {
                     'errors': self.error_handler.get_error_report(),
                     'warnings_count': len(self.error_handler.warnings),
@@ -853,19 +1125,101 @@ class UniversalProductScraper:
                     'should_retry': self.error_handler.should_retry(),
                     'summary': self.error_handler.get_summary(),
                     'platform_detected': self.platform,
+                    'data_quality': self._assess_data_quality(name, description, price, images),
+                    'timestamp': time.time(),
                 }
             }
             
-            if self.error_handler.has_errors() or self.error_handler.warnings:
-                logger.warning(f"Scraping completed with issues:\n{self.error_handler.get_summary()}")
+            # Step 4: Validate and log results
+            total_time = time.time() - start_time
+            data['scraping_metadata']['total_time'] = round(total_time, 2)
+            
+            # Quality assessment
+            quality_score = data['scraping_metadata']['data_quality']['score']
+            
+            if quality_score >= 0.8:
+                logger.info(f"✅ High quality scrape completed in {total_time:.2f}s (Quality: {quality_score:.0%})")
+            elif quality_score >= 0.5:
+                logger.warning(f"⚠️ Medium quality scrape completed in {total_time:.2f}s (Quality: {quality_score:.0%})")
+                logger.warning(f"Issues detected:\n{self.error_handler.get_summary()}")
             else:
-                logger.info(f"Scraping completed successfully for {self.url}")
+                logger.error(f"❌ Low quality scrape completed in {total_time:.2f}s (Quality: {quality_score:.0%})")
+                logger.error(f"Multiple issues:\n{self.error_handler.get_summary()}")
             
             return data
             
         except Exception as e:
-            logger.error(f"Fatal error during scraping: {str(e)}")
+            total_time = time.time() - start_time
+            logger.error(f"Fatal error during scraping after {total_time:.2f}s: {str(e)}")
+            logger.error(f"Error traceback: {self.error_handler.get_summary()}")
             raise
+
+    def _assess_data_quality(self, name, description, price, images):
+        """
+        Assess the quality of scraped data
+        Returns a quality score (0.0 to 1.0) and details
+        """
+        score = 0.0
+        issues = []
+        
+        # Name quality (20% weight)
+        if name and name != "Untitled Product" and len(name) > 3:
+            score += 0.2
+        else:
+            issues.append("Missing or invalid product name")
+        
+        # Description quality (30% weight)
+        if description and description != "No description available":
+            desc_length = len(description.strip())
+            if desc_length >= 100:
+                score += 0.3
+            elif desc_length >= self.MIN_DESCRIPTION_LENGTH:
+                score += 0.2
+                issues.append("Description is short")
+            else:
+                issues.append("Description is very short or missing")
+        else:
+            issues.append("Missing description")
+        
+        # Price quality (20% weight)
+        if price and price > 0 and price < self.MAX_PRICE_VALUE:
+            score += 0.2
+        else:
+            issues.append("Missing or invalid price")
+        
+        # Images quality (20% weight)
+        if images and len(images) > 0:
+            if len(images) >= 3:
+                score += 0.2
+            elif len(images) >= 1:
+                score += 0.15
+                issues.append("Few images found")
+        else:
+            issues.append("No images found")
+        
+        # Platform detection (10% weight)
+        if self.platform and self.platform != 'custom':
+            score += 0.1
+        else:
+            score += 0.05
+            issues.append("Platform not clearly detected")
+        
+        return {
+            'score': round(score, 2),
+            'percentage': round(score * 100, 1),
+            'issues': issues,
+            'has_name': bool(name and name != "Untitled Product"),
+            'has_description': bool(description and description != "No description available"),
+            'has_price': bool(price and price > 0),
+            'image_count': len(images) if images else 0,
+            'platform_detected': bool(self.platform),
+        }
+
+
+
+
+
+
 
 
 # Keep the old download_image and create_product functions for compatibility
