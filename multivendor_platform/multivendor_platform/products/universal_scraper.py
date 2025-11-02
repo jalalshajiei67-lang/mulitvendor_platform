@@ -259,6 +259,42 @@ class UniversalProductScraper:
         except (requests.exceptions.SSLError, requests.exceptions.HTTPError,
                 requests.exceptions.ConnectionError, requests.exceptions.Timeout,
                 requests.exceptions.RequestException) as e:
+            response = getattr(e, 'response', None)
+            request = None
+            if response is not None and getattr(response, 'request', None):
+                request = response.request
+            elif getattr(e, 'request', None):
+                request = e.request
+            body_preview = None
+            if response is not None:
+                try:
+                    body_preview = response.text[:1000]
+                except Exception:
+                    body_preview = None
+
+            elapsed = None
+            if response is not None and getattr(response, 'elapsed', None):
+                try:
+                    elapsed = response.elapsed.total_seconds()
+                except Exception:
+                    elapsed = None
+
+            request_url = None
+            if request is not None and getattr(request, 'url', None):
+                request_url = request.url
+
+            self.error_handler.record_http_failure(
+                url=getattr(response, 'url', None) or request_url or self.url,
+                method=getattr(request, 'method', None),
+                status_code=getattr(response, 'status_code', None),
+                reason=getattr(response, 'reason', None) if response is not None else str(getattr(e, '__class__', type(e)).__name__),
+                request_headers=getattr(request, 'headers', None),
+                response_headers=getattr(response, 'headers', None) if response is not None else None,
+                response_body_preview=body_preview,
+                elapsed=elapsed,
+                error_message=str(e),
+            )
+
             error = handle_network_error(e, self.url)
             self.error_handler.add_error(error)
             raise Exception(error.get_user_friendly_message())
