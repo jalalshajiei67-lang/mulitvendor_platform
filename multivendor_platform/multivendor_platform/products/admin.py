@@ -799,6 +799,7 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
         """Add custom URLs for batch reporting"""
         from django.urls import path
         urls = super().get_urls()
+        # Custom URLs must come BEFORE default URLs to be matched first
         custom_urls = [
             path('<int:batch_id>/report/', self.admin_site.admin_view(self.batch_report_view), name='products_scrapejobatch_report'),
             path('<int:batch_id>/retry-failed/', self.admin_site.admin_view(self.retry_failed_view), name='products_scrapejobatch_retry_failed'),
@@ -807,18 +808,38 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
     
     def batch_report_view(self, request, batch_id):
         """View detailed batch report"""
-        batch = ScrapeJobBatch.objects.get(id=batch_id)
-        batch.update_statistics()
-        report = batch.generate_report()
+        from django.shortcuts import get_object_or_404
+        from django.core.exceptions import PermissionDenied
+        from django.http import Http404
+        import logging
         
-        context = {
-            'title': f'Batch Report: {batch.name or f"Batch #{batch.id}"}',
-            'batch': batch,
-            'report': report,
-            'opts': self.model._meta,
-            'has_permission': True,
-        }
-        return render(request, 'admin/products/batch_report.html', context)
+        logger = logging.getLogger(__name__)
+        
+        # Check permissions
+        if not request.user.is_staff:
+            raise PermissionDenied
+        
+        try:
+            batch = get_object_or_404(ScrapeJobBatch, id=batch_id)
+            batch.update_statistics()
+            report = batch.generate_report()
+            
+            context = {
+                'title': f'Batch Report: {batch.name or f"Batch #{batch_id}"}',
+                'batch': batch,
+                'report': report,
+                'opts': self.model._meta,
+                'has_permission': True,
+            }
+            return render(request, 'admin/products/batch_report.html', context)
+        except ScrapeJobBatch.DoesNotExist:
+            logger.error(f"Batch #{batch_id} not found")
+            messages.error(request, f"Batch #{batch_id} not found.")
+            return redirect('/admin/products/scrapejobatch/')
+        except Exception as e:
+            logger.error(f"Error generating batch report for batch {batch_id}: {str(e)}")
+            messages.error(request, f"Error generating report: {str(e)}")
+            return redirect('/admin/products/scrapejobatch/')
     
     def retry_failed_view(self, request, batch_id):
         """Retry only failed jobs in a specific batch"""
