@@ -180,11 +180,12 @@ class UniversalProductScraper:
 
                 # Validate page
                 is_valid, validation_issues = self._validate_page()
-                fatal_message = self._handle_validation_issues(validation_issues)
+                has_errors = self._handle_validation_issues(validation_issues)
                 if not is_valid:
-                    if fatal_message:
-                        raise Exception(fatal_message)
-                    return False
+                    logger.warning(
+                        "Page validation reported blocking issues during Selenium fetch; continuing despite %s",
+                        "errors" if has_errors else "warnings",
+                    )
 
                 logger.info(f"Successfully fetched page with Selenium: {self.url}")
                 return True
@@ -245,9 +246,12 @@ class UniversalProductScraper:
 
             # Basic validation
             is_valid, validation_issues = self._validate_page()
-            fatal_message = self._handle_validation_issues(validation_issues)
+            has_errors = self._handle_validation_issues(validation_issues)
             if not is_valid:
-                raise Exception(fatal_message or "Page does not appear to be a valid product page")
+                logger.warning(
+                    "Page validation reported blocking issues; continuing despite %s",
+                    "errors" if has_errors else "warnings",
+                )
 
             logger.info(f"Successfully fetched page: {self.url} (Platform: {self.platform})")
             return True
@@ -522,9 +526,9 @@ class UniversalProductScraper:
         self.platform = 'custom'
         logger.info(f"Platform detected as: {self.platform}")
 
-    def _handle_validation_issues(self, issues: List[Dict[str, str]]) -> str:
-        """Add validation warnings/errors to the handler and return fatal message if any."""
-        fatal_message = None
+    def _handle_validation_issues(self, issues: List[Dict[str, str]]) -> bool:
+        """Log validation issues and return whether any were classified as errors."""
+        has_errors = False
 
         for issue in issues:
             issue_type = issue.get('type', 'warning')
@@ -588,10 +592,9 @@ class UniversalProductScraper:
                 )
 
             self.error_handler.add_error(error)
-            if not fatal_message:
-                fatal_message = error.get_user_friendly_message()
+            has_errors = True
 
-        return fatal_message or ""
+        return has_errors
 
     def _enforce_required_fields(
         self,
