@@ -593,6 +593,52 @@ class UniversalProductScraper:
 
         return fatal_message or ""
 
+    def _enforce_required_fields(
+        self,
+        name: str,
+        description: str,
+        images: List[str],
+    ) -> None:
+        """Raise blocking errors when essential product fields are missing."""
+        missing_fields: List[Tuple[str, str]] = []
+
+        if not name or name == "Untitled Product":
+            missing_fields.append((
+                "Product name",
+                "Could not extract a valid product title from the page",
+            ))
+
+        if not description or description.strip() == "" or description == "No description available":
+            missing_fields.append((
+                "Product description",
+                "Could not extract a meaningful product description",
+            ))
+
+        if not images:
+            missing_fields.append((
+                "Product images",
+                "Could not extract any product images",
+            ))
+
+        if not missing_fields:
+            return
+
+        for field_name, details in missing_fields:
+            self.error_handler.add_error(
+                ScraperError(
+                    category=ErrorCategory.DATA_VALIDATION,
+                    severity=ErrorSeverity.HIGH,
+                    message=f"Missing required field: {field_name}",
+                    details=details,
+                    recoverable=False,
+                    retry_recommended=False,
+                    suggested_action="Review the page structure or update the scraper selectors for this field.",
+                )
+            )
+
+        summary = ", ".join(field for field, _ in missing_fields)
+        raise Exception(f"Missing required product data: {summary}")
+
     def _has_auth_wall(self, page_text: str) -> bool:
         """Heuristically determine if the page content is behind an auth wall."""
         normalized = re.sub(r"\s+", " ", page_text)
@@ -1203,7 +1249,7 @@ class UniversalProductScraper:
                     if price_text_clean:
                         try:
                             price = float(price_text_clean)
-                            if price > 0 and price < self.MAX_PRICE_VALUE:  # Sanity check
+                            if price > 0:
                                 logger.info(f"Found price: {price}")
                                 return price
                         except:
@@ -1505,7 +1551,9 @@ class UniversalProductScraper:
                     "Image limit",
                     f"Found {len(images)} images, limiting to {self.MAX_PRODUCT_IMAGES}"
                 )
-            
+
+            self._enforce_required_fields(name, description, images)
+
             # Extract categories (if available)
             categories = []
             try:
