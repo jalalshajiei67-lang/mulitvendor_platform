@@ -20,6 +20,7 @@ import time
 import random
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from fake_useragent import UserAgent
+import unicodedata
 
 
 
@@ -121,7 +122,7 @@ class UniversalProductScraper:
         return {
             'User-Agent': user_agent,
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9,fa;q=0.8,ar;q=0.7',
+            'Accept-Language': 'fa-IR,fa;q=0.9,en-US,en;q=0.8,ar;q=0.7',  # Persian first for Persian sites
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
@@ -150,7 +151,13 @@ class UniversalProductScraper:
             chrome_options.add_argument('--no-sandbox')
             chrome_options.add_argument('--disable-dev-shm-usage')
             chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-            chrome_options.add_argument(f'user-agent={self._get_rotated_headers()["User-Agent"]}')
+            headers = self._get_rotated_headers()
+            chrome_options.add_argument(f'user-agent={headers["User-Agent"]}')
+            # Set Persian language preference
+            chrome_options.add_argument('--lang=fa-IR')
+            chrome_options.add_experimental_option('prefs', {
+                'intl.accept_languages': 'fa-IR,fa,en-US,en'
+            })
             
             driver = None
             try:
@@ -223,9 +230,8 @@ class UniversalProductScraper:
             )
             self.response.raise_for_status()
             
-            # Handle encoding properly for Persian/Arabic sites
-            if self.response.apparent_encoding:
-                self.response.encoding = self.response.apparent_encoding
+            # Enhanced encoding handling for Persian/Arabic sites
+            self._handle_persian_encoding()
             
             self.soup = BeautifulSoup(self.response.text, 'html.parser')
             
@@ -258,7 +264,193 @@ class UniversalProductScraper:
             self.error_handler.add_error(error)
             raise Exception(error.get_user_friendly_message())
 
+    def _handle_persian_encoding(self):
+        """
+        Enhanced encoding handling for Persian/Arabic content
+        """
+        if not self.response:
+            return
+        
+        # Try to detect encoding from various sources
+        encodings_to_try = []
+        
+        # 1. Check Content-Type header
+        content_type = self.response.headers.get('Content-Type', '')
+        if 'charset=' in content_type:
+            charset = content_type.split('charset=')[1].split(';')[0].strip().lower()
+            if charset:
+                encodings_to_try.append(charset)
+        
+        # 2. Try apparent encoding
+        if self.response.apparent_encoding:
+            encodings_to_try.append(self.response.apparent_encoding.lower())
+        
+        # 3. Try common Persian/Arabic encodings
+        persian_encodings = ['utf-8', 'utf-8-sig', 'windows-1256', 'iso-8859-6', 'cp1256']
+        for enc in persian_encodings:
+            if enc not in encodings_to_try:
+                encodings_to_try.append(enc)
+        
+        # Try each encoding
+        for encoding in encodings_to_try:
+            try:
+                self.response.encoding = encoding
+                # Verify it works by checking if text contains valid characters
+                if self.response.text and len(self.response.text) > 0:
+                    # Check for Persian/Arabic characters
+                    sample = self.response.text[:500]
+                    if any('\u0600' <= char <= '\u06FF' for char in sample):  # Persian/Arabic range
+                        logger.info(f"Successfully decoded Persian content with {encoding}")
+                        return
+            except (UnicodeDecodeError, LookupError):
+                continue
+        
+        # Fallback to apparent encoding if nothing worked
+        if self.response.apparent_encoding:
+            self.response.encoding = self.response.apparent_encoding
+            logger.warning(f"Using fallback encoding: {self.response.apparent_encoding}")
 
+    def _convert_persian_numbers(self, text):
+        """
+        Convert Persian/Arabic numerals to English numerals
+        """
+        if not text:
+            return text
+        
+        # Persian/Arabic to English number mapping
+        persian_to_english = {
+            '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+            '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+            '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+            '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+        }
+        
+        result = str(text)
+        for persian_num, english_num in persian_to_english.items():
+            result = result.replace(persian_num, english_num)
+        
+        return result
+
+    def _clean_persian_text(self, text):
+        """
+        Clean Persian text - normalize, remove extra spaces, fix common issues
+        """
+        if not text:
+            return text
+        
+        # Convert to string
+        text = str(text)
+        
+        # Normalize Unicode (NFC normalization)
+        text = unicodedata.normalize('NFC', text)
+        
+        # Remove zero-width characters
+        text = text.replace('\u200c', ' ')  # Zero-width non-joiner
+        text = text.replace('\u200d', '')   # Zero-width joiner
+        text = text.replace('\u200e', '')    # Left-to-right mark
+        text = text.replace('\u200f', '')    # Right-to-left mark
+        
+        # Fix common Persian encoding issues
+        text = text.replace('ك', 'ک')  # Arabic kaf to Persian kaf
+        text = text.replace('ي', 'ی')  # Arabic yeh to Persian yeh
+        text = text.replace('ة', 'ه')  # Arabic teh marbuta to heh
+        
+        # Normalize whitespace
+        text = ' '.join(text.split())
+        
+        return text.strip()
+
+    def _is_persian_content(self, text):
+        """
+        Detect if text contains Persian/Arabic characters
+        """
+        if not text:
+            return False
+        
+        # Check for Persian/Arabic character ranges
+        persian_chars = sum(1 for char in str(text) if '\u0600' <= char <= '\u06FF')
+        total_chars = len([c for c in str(text) if c.isalpha()])
+        
+        if total_chars == 0:
+            return False
+        
+        # If more than 30% Persian/Arabic characters, consider it Persian
+        return (persian_chars / total_chars) > 0.3 if total_chars > 0 else False
+
+    def _extract_persian_price(self, price_text):
+        """
+        Extract price from Persian-formatted text
+        Handles: Persian numbers, currency symbols, commas
+        """
+        if not price_text:
+            return None
+        
+        # Convert Persian numbers to English
+        price_text = self._convert_persian_numbers(price_text)
+        
+        # Remove common Persian currency words and symbols
+        persian_currency = [
+            'تومان', 'ريال', 'ریال', 'هزار', 'میلیون', 'میلیارد',
+            'ت.', 'ر.', 'قیمت', 'مبلغ', 'قیمت:', 'مبلغ:'
+        ]
+        for currency in persian_currency:
+            price_text = price_text.replace(currency, '')
+        
+        # Remove currency symbols
+        currency_symbols = ['$', '€', '£', '¥', '₹', '₽', '₪', 'ریال']
+        for symbol in currency_symbols:
+            price_text = price_text.replace(symbol, '')
+        
+        # Remove all non-numeric except decimal point and comma
+        price_text = re.sub(r'[^\d.,]', '', price_text)
+        
+        # Handle comma as thousand separator (Persian format)
+        if ',' in price_text:
+            # Remove commas if they're thousand separators
+            parts = price_text.split(',')
+            if len(parts) == 2 and len(parts[1]) == 3:
+                # Likely thousand separator
+                price_text = price_text.replace(',', '')
+            elif len(parts) > 2:
+                # Multiple commas, likely thousand separators
+                price_text = price_text.replace(',', '')
+        
+        try:
+            price = float(price_text.replace(',', ''))
+            if price > 0 and price < self.MAX_PRICE_VALUE:
+                return price
+        except ValueError:
+            pass
+        
+        return None
+
+    def _clean_persian_title(self, title):
+        """
+        Clean Persian product title - remove site names, separators, etc.
+        """
+        if not title:
+            return title
+        
+        title = self._clean_persian_text(title)
+        
+        # Remove common Persian site name suffixes
+        persian_suffixes = [
+            r'\s*[-–—]\s*(دانا|کد|نگر|سایت|فروشگاه|خرید|آنلاین|محصول).*$',
+            r'\s*[-–—]\s*(site|shop|store|online).*$',
+            r'\s*\|\s*.*$',  # Remove everything after |
+            r'\s*-\s*(خانه|صفحه اصلی).*$',  # Remove "خانه" or "صفحه اصلی"
+        ]
+        
+        for pattern in persian_suffixes:
+            title = re.sub(pattern, '', title, flags=re.IGNORECASE)
+        
+        # Remove common separators and keep first part
+        title = re.split(r'[|\-–—•]', title)[0].strip()
+        
+        # Remove extra whitespace
+        title = ' '.join(title.split())
+        
+        return title.strip()
 
 
 
@@ -375,14 +567,11 @@ class UniversalProductScraper:
                 title_tag = self.soup.find('title')
                 if title_tag:
                     title = title_tag.get_text(strip=True)
-                    # Clean up title (remove site name, separators)
-                    # Remove common separators and site names
-                    title = re.split(r'[|\-–—•]', title)[0].strip()
-                    # Remove common suffixes
-                    title = re.sub(r'\s*[-–—]\s*(دانا|کد|نگر|سایت|site|home).*$', '', title, flags=re.IGNORECASE)
+                    # Use Persian-aware title cleaning
+                    title = self._clean_persian_title(title)
                     if title and len(title) > 3:
                         logger.info(f"Found product name from title tag: {title[:50]}")
-                        return title
+                        return self._clean_persian_text(title)
             
             # Strategy 3: Platform-specific selectors
             if self.platform == 'woocommerce':
@@ -420,6 +609,10 @@ class UniversalProductScraper:
                     if element:
                         title = element.get_text(strip=True)
                         if title and len(title) > 2:
+                            # Clean Persian text if detected
+                            if self._is_persian_content(title):
+                                title = self._clean_persian_text(title)
+                                title = self._clean_persian_title(title)
                             logger.info(f"Found product name using '{selector}': {title[:50]}")
                             return title
                 except:
@@ -430,6 +623,10 @@ class UniversalProductScraper:
             if h1:
                 title = h1.get_text(strip=True)
                 if title and len(title) > 2:
+                    # Clean Persian text if detected
+                    if self._is_persian_content(title):
+                        title = self._clean_persian_text(title)
+                        title = self._clean_persian_title(title)
                     logger.info(f"Found product name from h1: {title[:50]}")
                     return title
             
@@ -437,14 +634,14 @@ class UniversalProductScraper:
             title_tag = self.soup.find('title')
             if title_tag:
                 title = title_tag.get_text(strip=True)
-                # Clean up title (remove site name)
-                title = re.split(r'[|\-–—]', title)[0].strip()
+                # Use Persian-aware title cleaning
+                title = self._clean_persian_title(title)
                 if title and len(title) > 3:
                     self.error_handler.add_warning(
                         "Product name from page title",
                         "Using page title as product name"
                     )
-                    return title
+                    return self._clean_persian_text(title)
             
             # If nothing found
             self.error_handler.add_warning(
@@ -488,7 +685,7 @@ class UniversalProductScraper:
                         'div[itemprop="description"]',
                     ]
                 elif self.platform == 'wordpress':
-                    # WordPress/page builder selectors
+                    # WordPress/page builder selectors (including Persian-specific)
                     selectors = [
                         'article .entry-content',
                         '.entry-content',
@@ -501,6 +698,10 @@ class UniversalProductScraper:
                         '[itemprop="description"]',
                         '.product-description',
                         '.description',
+                        # Persian-specific selectors
+                        '[class*="توضیحات"]',
+                        '[class*="شرح"]',
+                        '[class*="محصول"]',
                     ]
                 elif self.platform == 'shopify':
                     selectors = [
@@ -509,7 +710,7 @@ class UniversalProductScraper:
                         '[itemprop="description"]',
                     ]
                 else:
-                    # Generic selectors
+                    # Generic selectors (including Persian-specific)
                     selectors = [
                         '[itemprop="description"]',
                         '.product-description',
@@ -520,6 +721,11 @@ class UniversalProductScraper:
                         'div[class*="description"]',
                         'div[class*="product-detail"]',
                         'div[class*="product-info"]',
+                        # Persian-specific selectors
+                        '[class*="توضیحات"]',
+                        '[class*="شرح"]',
+                        '[class*="محصول"]',
+                        '[id*="توضیحات"]',
                     ]
                 
                 for selector in selectors:
@@ -531,6 +737,10 @@ class UniversalProductScraper:
                             if len(text_content) > 30:
                                 # Make sure it's not in header/footer/nav
                                 if not element.find_parent(['header', 'footer', 'nav']):
+                                    # Clean Persian text if detected
+                                    if self._is_persian_content(text_content):
+                                        # Clean the text before processing
+                                        text_content = self._clean_persian_text(text_content)
                                     description_html = self._clean_description_html(element)
                                     logger.info(f"Found description using '{selector}' ({len(text_content)} chars)")
                                     break
@@ -787,6 +997,15 @@ class UniversalProductScraper:
                 elements = self.soup.select(selector)
                 for element in elements:
                     price_text = element.get_text(strip=True)
+                    
+                    # Try Persian price extraction first (handles Persian numbers)
+                    if self._is_persian_content(price_text):
+                        persian_price = self._extract_persian_price(price_text)
+                        if persian_price:
+                            logger.info(f"Found price (Persian format): {persian_price}")
+                            return persian_price
+                    
+                    # Fallback to standard extraction
                     # Extract numbers - remove all non-numeric except decimal point
                     price_text_clean = re.sub(r'[^\d.]', '', price_text)
                     if price_text_clean:
