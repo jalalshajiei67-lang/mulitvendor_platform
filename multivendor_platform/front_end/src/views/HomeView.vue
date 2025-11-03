@@ -17,17 +17,17 @@
         <h2>{{ t('home.whyChooseUs') }}</h2>
         <div class="features-grid">
           <div class="feature-card">
-            <v-icon size="64" color="primary" class="mb-4">mdi-store-multiple</v-icon>
+            <div class="feature-icon">🏪</div>
             <h3>{{ t('home.multipleVendors') }}</h3>
             <p>{{ t('home.multipleVendorsDesc') }}</p>
           </div>
           <div class="feature-card">
-            <v-icon size="64" color="primary" class="mb-4">mdi-cog</v-icon>
+            <div class="feature-icon">⚙️</div>
             <h3>{{ t('home.easyManagement') }}</h3>
             <p>{{ t('home.easyManagementDesc') }}</p>
           </div>
           <div class="feature-card">
-            <v-icon size="64" color="primary" class="mb-4">mdi-shield-check</v-icon>
+            <div class="feature-icon">🛡️</div>
             <h3>{{ t('home.securePlatform') }}</h3>
             <p>{{ t('home.securePlatformDesc') }}</p>
           </div>
@@ -44,12 +44,47 @@ import { useI18n } from 'vue-i18n'
 export default {
   name: 'HomeView',
   setup() {
-    const authStore = useAuthStore()
-    const { t } = useI18n()
+    let authStore
+    let i18n
+    
+    try {
+      authStore = useAuthStore()
+    } catch (error) {
+      console.error('Failed to initialize auth store:', error)
+      authStore = { isAuthenticated: false }
+    }
+    
+    try {
+      i18n = useI18n()
+    } catch (error) {
+      console.error('Failed to initialize i18n:', error)
+      i18n = null
+    }
+    
+    // Safe translation function with fallback
+    const safeTranslate = (key, fallback = '') => {
+      // If i18n is not available, return fallback or key
+      if (!i18n || !i18n.t) {
+        return fallback || key
+      }
+      
+      try {
+        const translated = i18n.t(key)
+        // If translation returns the key itself (meaning not found), use fallback
+        if (translated === key && fallback) {
+          return fallback
+        }
+        // Return translated value if it exists, otherwise fallback, otherwise key
+        return translated || fallback || key
+      } catch (error) {
+        console.warn(`Translation error for key: ${key}`, error)
+        return fallback || key
+      }
+    }
     
     return {
-      authStore,
-      t
+      authStore: authStore || { isAuthenticated: false },
+      t: safeTranslate
     }
   }
 }
@@ -166,6 +201,12 @@ export default {
 .feature-card p {
   color: #666;
   line-height: 1.6;
+}
+
+.feature-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  display: block;
 }
 
 @media (max-width: 768px) {
