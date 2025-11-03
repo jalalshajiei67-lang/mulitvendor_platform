@@ -562,11 +562,8 @@ class BulkScrapeForm(forms.Form):
 
 def process_scrape_job(job_id):
     """
-    Background function to process a scrape job with robust error handling
-    IMPORTANT: Continues processing even if one job fails (for batch processing)
+    Background function to process a scrape job
     """
-    import json
-    from .scraper_error_handler import ErrorHandler
     
     job = None
     try:
@@ -624,17 +621,6 @@ def process_scrape_job(job_id):
         
         # Store scraped data
         job.scraped_data = scraped_data
-        
-        # Check if there were warnings during scraping
-        has_warnings = False
-        if scraped_data and 'scraping_metadata' in scraped_data:
-            metadata = scraped_data['scraping_metadata']
-            has_warnings = metadata.get('warnings_count', 0) > 0
-            
-            # Store detailed error information
-            if metadata.get('errors'):
-                job.error_details = metadata['errors']
-        
         job.save()
         
         # Create product from scraped data
@@ -646,8 +632,7 @@ def process_scrape_job(job_id):
         
         if product:
             job.created_product = product
-            # Set status based on whether there were warnings
-            job.status = 'completed_with_warnings' if has_warnings else 'completed'
+            job.status = 'completed'
             job.processed_at = timezone.now()
             job.save()
         else:
@@ -661,11 +646,6 @@ def process_scrape_job(job_id):
                 job = ProductScrapeJob.objects.get(id=job_id)
             job.status = 'failed'
             job.error_message = str(e)
-            
-            # Try to get error details from scraper if available
-            if 'scraper' in locals() and scraper and hasattr(scraper, 'error_handler'):
-                job.error_details = scraper.error_handler.get_error_report()
-            
             job.save()
         except Exception as save_error:
             # Log the error but don't raise - continue processing other jobs
@@ -678,9 +658,6 @@ def process_scrape_job(job_id):
         try:
             if job and job.batch:
                 job.batch.update_statistics()
-                # Generate report if batch is complete
-                if job.batch.is_complete:
-                    job.batch.generate_report()
         except Exception as batch_error:
             import logging
             logger = logging.getLogger(__name__)
@@ -711,7 +688,7 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['generate_reports', 'retry_failed_in_batch', 'export_report_csv']
+    actions = ['retry_failed_in_batch']
     
     def batch_name_display(self, obj):
         name = obj.name or f"Batch #{obj.id}"
@@ -769,16 +746,6 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
         return "-"
     duration_display.short_description = 'Duration'
     
-    def generate_reports(self, request, queryset):
-        """Generate reports for selected batches"""
-        count = 0
-        for batch in queryset:
-            batch.update_statistics()
-            batch.generate_report()
-            count += 1
-        self.message_user(request, f'✅ Generated reports for {count} batch(es).', level=messages.SUCCESS)
-    generate_reports.short_description = '📊 Generate Reports'
-    
     def retry_failed_in_batch(self, request, queryset):
         """Retry only failed jobs in selected batches"""
         total_retried = 0
@@ -787,7 +754,6 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
             for job in failed_jobs:
                 job.status = 'pending'
                 job.error_message = None
-                job.error_details = None
                 job.retry_count += 1
                 job.last_retry_at = timezone.now()
                 job.save()
@@ -806,53 +772,19 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
         self.message_user(request, f'🔄 {total_retried} failed job(s) queued for retry.', level=messages.SUCCESS)
     retry_failed_in_batch.short_description = '🔄 Retry Failed Jobs Only'
     
-    def export_report_csv(self, request, queryset):
-        """Export batch reports as CSV"""
-        import csv
-        from django.http import HttpResponse
-        
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="scrape_reports_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
-        
-        writer = csv.writer(response)
-        writer.writerow(['Batch ID', 'Batch Name', 'Total URLs', 'Completed', 'Failed', 'Success Rate', 'Duration', 'Created At', 'Completed At'])
-        
-        for batch in queryset:
-            batch.update_statistics()
-            writer.writerow([
-                batch.id,
-                batch.name or f"Batch #{batch.id}",
-                batch.total_urls,
-                batch.completed_count,
-                batch.failed_count,
-                f"{batch.success_rate}%",
-                f"{batch.duration}s" if batch.duration else "N/A",
-                batch.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                batch.completed_at.strftime('%Y-%m-%d %H:%M:%S') if batch.completed_at else "N/A",
-            ])
-        
-        return response
-    export_report_csv.short_description = '📥 Export Reports as CSV'
     
     def get_urls(self):
-        """Add custom URLs for batch reporting"""
+        """Add custom URLs"""
         from django.urls import re_path
         urls = super().get_urls()
-        # Custom URLs must come BEFORE default URLs to be matched first
-        # Use re_path with regex to ensure exact matching before Django admin defaults
         custom_urls = [
-            re_path(r'^(?P<object_id>\d+)/report/$', self.admin_site.admin_view(self.batch_report_view), name='products_scrapejobatch_report'),
-            re_path(r'^(?P<object_id>\d+)/retry-failed/$', self.admin_site.admin_view(self.retry_failed_view), name='products_scrapejobatch_retry_failed'),
+            re_path(r'^(?P<object_id>\d+)/errors/$', self.admin_site.admin_view(self.errors_view), name='products_scrapejobatch_errors'),
         ]
         return custom_urls + urls
     
-    def batch_report_view(self, request, object_id):
-        """View detailed batch report"""
+    def errors_view(self, request, object_id):
+        """View HTTP errors for a batch"""
         from django.core.exceptions import PermissionDenied
-        from django.http import Http404
-        import logging
-        
-        logger = logging.getLogger(__name__)
         
         # Check permissions
         if not request.user.is_staff:
@@ -861,64 +793,46 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
         try:
             batch_id = int(object_id)
             batch = get_object_or_404(ScrapeJobBatch, id=batch_id)
-            batch.update_statistics()
-            report = batch.generate_report()
+            
+            # Get failed jobs with HTTP errors
+            failed_jobs = batch.jobs.filter(status='failed').exclude(error_message__isnull=True)
+            
+            # Extract HTTP status codes from error messages
+            http_errors = []
+            for job in failed_jobs:
+                error_msg = job.error_message or ''
+                # Try to extract HTTP status code
+                import re
+                status_match = re.search(r'(\d{3})', error_msg)
+                status_code = int(status_match.group(1)) if status_match else None
+                
+                if status_code and 400 <= status_code < 600:
+                    http_errors.append({
+                        'job_id': job.id,
+                        'url': job.url,
+                        'status_code': status_code,
+                        'error_message': error_msg,
+                        'created_at': job.created_at,
+                    })
             
             context = {
-                'title': f'Batch Report: {batch.name or f"Batch #{batch_id}"}',
+                'title': f'HTTP Errors - {batch.name or f"Batch #{batch_id}"}',
                 'batch': batch,
-                'report': report,
+                'http_errors': http_errors,
+                'total_errors': len(http_errors),
                 'opts': self.model._meta,
                 'has_permission': True,
             }
-            return render(request, 'admin/products/batch_report.html', context)
+            return render(request, 'admin/products/http_errors.html', context)
         except (ValueError, TypeError):
-            logger.error(f"Invalid batch ID: {object_id}")
             messages.error(request, f"Invalid batch ID: {object_id}")
             return redirect('/admin/products/scrapejobatch/')
         except ScrapeJobBatch.DoesNotExist:
-            logger.error(f"Batch #{object_id} not found")
             messages.error(request, f"Batch #{object_id} not found.")
             return redirect('/admin/products/scrapejobatch/')
         except Exception as e:
-            logger.error(f"Error generating batch report for batch {object_id}: {str(e)}")
-            messages.error(request, f"Error generating report: {str(e)}")
+            messages.error(request, f"Error: {str(e)}")
             return redirect('/admin/products/scrapejobatch/')
-    
-    def retry_failed_view(self, request, object_id):
-        """Retry only failed jobs in a specific batch"""
-        try:
-            batch_id = int(object_id)
-            batch = get_object_or_404(ScrapeJobBatch, id=batch_id)
-            failed_jobs = batch.jobs.filter(status='failed')
-            
-            count = 0
-            for job in failed_jobs:
-                job.status = 'pending'
-                job.error_message = None
-                job.error_details = None
-                job.retry_count += 1
-                job.last_retry_at = timezone.now()
-                job.save()
-                
-                # Process in background
-                thread = threading.Thread(target=process_scrape_job, args=(job.id,))
-                thread.daemon = True
-                thread.start()
-                count += 1
-            
-            batch.status = 'processing'
-            batch.save()
-            
-            messages.success(request, f'🔄 {count} failed job(s) queued for retry.')
-        except (ValueError, TypeError):
-            messages.error(request, f"Invalid batch ID: {object_id}")
-        except ScrapeJobBatch.DoesNotExist:
-            messages.error(request, f"Batch #{object_id} not found.")
-        except Exception as e:
-            messages.error(request, f"Error retrying failed jobs: {str(e)}")
-        
-        return redirect('/admin/products/scrapejobatch/')
 
 
 @admin.register(ProductScrapeJob)
@@ -926,7 +840,7 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
     list_display = ['id', 'batch_link', 'url_preview', 'vendor', 'supplier', 'status_display', 'retry_info', 'created_product_link', 'created_at', 'processed_at']
     list_filter = ['status', 'batch', 'created_at', 'supplier']
     search_fields = ['url', 'vendor__username', 'error_message']
-    readonly_fields = ['batch', 'scraped_data', 'created_product', 'processed_at', 'created_at', 'updated_at', 'display_errors_formatted', 'retry_count', 'last_retry_at']
+    readonly_fields = ['batch', 'scraped_data', 'created_product', 'processed_at', 'created_at', 'updated_at', 'retry_count', 'last_retry_at']
     
     fieldsets = (
         ('Job Information', {
@@ -934,11 +848,7 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
         }),
         ('Results', {
             'fields': ('created_product', 'error_message', 'processed_at'),
-            'description': 'Product creation results and primary error message'
-        }),
-        ('Error Details & Warnings', {
-            'fields': ('display_errors_formatted',),
-            'description': 'Detailed error and warning information from the scraper with suggestions'
+            'description': 'Product creation results and error message'
         }),
         ('Retry Information', {
             'fields': ('retry_count', 'last_retry_at'),
@@ -947,7 +857,7 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
         ('Scraped Data', {
             'fields': ('scraped_data',),
             'classes': ('collapse',),
-            'description': 'Raw scraped data in JSON format including metadata'
+            'description': 'Raw scraped data in JSON format'
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
@@ -960,7 +870,7 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
     def batch_link(self, obj):
         """Display link to batch if job belongs to one"""
         if obj.batch:
-            url = f'/admin/products/scrapejobatch/{obj.batch.id}/report/'
+            url = f'/admin/products/scrapejobatch/{obj.batch.id}/errors/'
             return format_html(
                 '<a href="{}" style="color: #667eea; font-weight: 500;">📊 Batch #{}</a>',
                 url, obj.batch.id
@@ -975,12 +885,11 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
     url_preview.short_description = 'URL'
     
     def status_display(self, obj):
-        """Display status with error message and warnings"""
+        """Display status with error message"""
         status_colors = {
             'pending': '#FFA500',
             'processing': '#0066CC',
             'completed': '#28a745',
-            'completed_with_warnings': '#FFC107',
             'failed': '#dc3545',
         }
         color = status_colors.get(obj.status, '#999')
@@ -995,13 +904,6 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
                 '<span style="color: {}; font-weight: bold;" title="{}">{}</span><br>'
                 '<small style="color: #dc3545; display: block; margin-top: 4px;">❌ {}</small>',
                 color, obj.error_message, status_text, error_preview
-            )
-        elif obj.status == 'completed_with_warnings':
-            warning_count = obj.warning_count
-            return format_html(
-                '<span style="color: {}; font-weight: bold;">{}</span><br>'
-                '<small style="color: #856404;">⚠️ {} warning(s)</small>',
-                color, status_text, warning_count
             )
         else:
             icon = {
@@ -1035,152 +937,6 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
         return format_html('<span style="color: gray;">-</span>')
     created_product_link.short_description = 'Created Product'
     
-    def display_errors_formatted(self, obj):
-        """Display errors and warnings in a nicely formatted HTML view"""
-        import json
-        
-        if not obj.error_details:
-            return format_html(
-                '<div style="padding: 15px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">'
-                '<strong style="color: #2e7d32;">✓ No errors recorded</strong>'
-                '</div>'
-            )
-        
-        try:
-            # Parse error_details - it could be from scraping_metadata or direct error list
-            if isinstance(obj.error_details, str):
-                error_data = json.loads(obj.error_details)
-            else:
-                error_data = obj.error_details
-            
-            # Extract errors and warnings
-            errors = []
-            warnings = []
-            summary = ""
-            platform = "Unknown"
-            should_retry = False
-            
-            # Handle different error_details structures
-            if isinstance(error_data, dict):
-                # From scraping_metadata structure
-                errors = error_data.get('errors', [])
-                warnings = error_data.get('warnings', [])
-                summary = error_data.get('summary', '')
-                should_retry = error_data.get('should_retry', False)
-                platform = error_data.get('platform_detected', 'Unknown')
-            elif isinstance(error_data, list):
-                # Direct error list
-                errors = error_data
-            
-            html_parts = []
-            
-            # Header with summary
-            html_parts.append(
-                '<div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin-bottom: 15px;">'
-                f'<strong>Platform Detected:</strong> <span style="color: #667eea;">{platform}</span><br>'
-                f'<strong>Should Retry:</strong> <span style="color: {"#28a745" if should_retry else "#dc3545"};">{"Yes" if should_retry else "No"}</span>'
-                '</div>'
-            )
-            
-            # Display errors
-            if errors:
-                html_parts.append('<h3 style="color: #dc3545; margin-top: 20px;">Errors ({0})</h3>'.format(len(errors)))
-                
-                severity_colors = {
-                    'critical': '#dc3545',
-                    'high': '#fd7e14',
-                    'medium': '#ffc107',
-                    'low': '#17a2b8'
-                }
-                
-                severity_icons = {
-                    'critical': '🔴',
-                    'high': '🟠',
-                    'medium': '🟡',
-                    'low': '🔵'
-                }
-                
-                for i, error in enumerate(errors):
-                    severity = error.get('severity', 'medium')
-                    color = severity_colors.get(severity, '#999')
-                    icon = severity_icons.get(severity, '⚠️')
-                    category = error.get('category', 'unknown')
-                    message = error.get('message', 'No message')
-                    details = error.get('details', '')
-                    suggested_action = error.get('suggested_action', '')
-                    
-                    html_parts.append(
-                        f'<div style="margin: 10px 0; padding: 12px; background: #fff; border-left: 4px solid {color}; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">'
-                        f'<div style="margin-bottom: 8px;">'
-                        f'<span style="background: {color}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: bold;">{icon} {severity.upper()}</span> '
-                        f'<span style="background: #e9ecef; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{category}</span>'
-                        f'</div>'
-                        f'<strong style="color: #333;">{message}</strong>'
-                    )
-                    
-                    if details:
-                        # Truncate very long details
-                        display_details = details[:300] + '...' if len(details) > 300 else details
-                        html_parts.append(
-                            f'<div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 3px; font-size: 12px; color: #666;">'
-                            f'{display_details}'
-                            f'</div>'
-                        )
-                    
-                    if suggested_action:
-                        html_parts.append(
-                            f'<div style="margin-top: 8px; padding: 8px; background: #d4edda; border-left: 3px solid #28a745; border-radius: 3px;">'
-                            f'<strong style="color: #155724;">💡 Suggestion:</strong> {suggested_action}'
-                            f'</div>'
-                        )
-                    
-                    html_parts.append('</div>')
-            
-            # Display warnings
-            if warnings:
-                html_parts.append('<h3 style="color: #856404; margin-top: 20px;">Warnings ({0})</h3>'.format(len(warnings)))
-                
-                for warning in warnings[:10]:  # Limit to 10 warnings
-                    message = warning.get('message', 'No message')
-                    details = warning.get('details', '')
-                    
-                    html_parts.append(
-                        '<div style="margin: 10px 0; padding: 12px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">'
-                        f'<strong style="color: #856404;">⚠️ {message}</strong>'
-                    )
-                    
-                    if details:
-                        html_parts.append(
-                            f'<div style="margin-top: 5px; font-size: 12px; color: #856404;">{details}</div>'
-                        )
-                    
-                    html_parts.append('</div>')
-                
-                if len(warnings) > 10:
-                    html_parts.append(
-                        f'<div style="padding: 8px; color: #856404; font-style: italic;">... and {len(warnings) - 10} more warnings</div>'
-                    )
-            
-            # If we have a summary, display it at the end
-            if summary and not errors and not warnings:
-                html_parts.append(
-                    f'<div style="padding: 12px; background: #f8f9fa; border-radius: 4px; margin-top: 15px;">'
-                    f'<strong>Summary:</strong><br>{summary}'
-                    f'</div>'
-                )
-            
-            return format_html(''.join(html_parts))
-            
-        except Exception as e:
-            return format_html(
-                '<div style="padding: 15px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 4px;">'
-                f'<strong style="color: #721c24;">Error parsing error details:</strong> {str(e)}<br><br>'
-                f'<pre style="background: #fff; padding: 10px; border-radius: 3px; overflow: auto;">{obj.error_details}</pre>'
-                '</div>'
-            )
-    
-    display_errors_formatted.short_description = 'Error Details & Warnings'
-    
     def retry_failed_jobs(self, request, queryset):
         """Retry failed scrape jobs with tracking"""
         jobs = queryset.filter(status='failed')
@@ -1188,7 +944,6 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
         for job in jobs:
             job.status = 'pending'
             job.error_message = None
-            job.error_details = None
             job.retry_count += 1
             job.last_retry_at = timezone.now()
             job.save()

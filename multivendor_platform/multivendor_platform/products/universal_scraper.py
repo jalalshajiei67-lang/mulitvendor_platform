@@ -12,10 +12,6 @@ import re
 import json
 from urllib.parse import urljoin, urlparse
 import logging
-from .scraper_error_handler import (
-    ErrorHandler, ErrorCategory, ErrorSeverity, ScraperError,
-    handle_network_error, handle_parsing_error
-)
 import time
 import random
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
@@ -83,7 +79,6 @@ class UniversalProductScraper:
         self.verify_ssl = verify_ssl
         self.use_proxy = use_proxy
         self.max_retries = max_retries
-        self.error_handler = ErrorHandler()
         self.platform = None  # Will be detected: woocommerce, shopify, custom, etc.
         
         # Initialize user agent rotator
@@ -208,12 +203,7 @@ class UniversalProductScraper:
         time.sleep(random.uniform(0.5, 2.0))
         
         if not self.verify_ssl:
-            # Log warning but don't suppress globally
             logger.warning(f"SSL verification disabled for {self.url}")
-            self.error_handler.add_warning(
-                "SSL verification disabled",
-                "Connecting without SSL verification"
-            )
         
         try:
             headers = self._get_rotated_headers()
@@ -248,21 +238,11 @@ class UniversalProductScraper:
         except (requests.exceptions.SSLError, requests.exceptions.HTTPError,
                 requests.exceptions.ConnectionError, requests.exceptions.Timeout,
                 requests.exceptions.RequestException) as e:
-            error = handle_network_error(e, self.url)
-            self.error_handler.add_error(error)
-            raise Exception(error.get_user_friendly_message())
+            logger.error(f"Error fetching page {self.url}: {str(e)}")
+            raise Exception(f"Failed to fetch page: {str(e)}")
         except Exception as e:
-            error = ScraperError(
-                category=ErrorCategory.UNKNOWN,
-                severity=ErrorSeverity.CRITICAL,
-                message="Unexpected error while fetching page",
-                details=str(e),
-                recoverable=True,
-                retry_recommended=True,
-                suggested_action="Try again. If it persists, check the URL."
-            )
-            self.error_handler.add_error(error)
-            raise Exception(error.get_user_friendly_message())
+            logger.error(f"Unexpected error while fetching page {self.url}: {str(e)}")
+            raise Exception(f"Unexpected error: {str(e)}")
 
     def _handle_persian_encoding(self):
         """
@@ -526,19 +506,11 @@ class UniversalProductScraper:
         page_text = self.soup.get_text().lower()
         
         if '404' in page_text and 'not found' in page_text:
-            self.error_handler.add_error(ScraperError(
-                category=ErrorCategory.HTTP_ERROR,
-                severity=ErrorSeverity.HIGH,
-                message="404 Page Not Found",
-                details="Page content indicates product doesn't exist",
-                recoverable=False,
-                retry_recommended=False,
-                suggested_action="Check if URL is correct or product still exists"
-            ))
+            logger.warning("Page appears to be 404")
             return False
         
         if len(page_text) < self.MIN_PAGE_LENGTH:
-            self.error_handler.add_warning("Page has very little content", "Might not be a valid product page")
+            logger.warning("Page has very little content")
         
         return True
     
@@ -637,22 +609,15 @@ class UniversalProductScraper:
                 # Use Persian-aware title cleaning
                 title = self._clean_persian_title(title)
                 if title and len(title) > 3:
-                    self.error_handler.add_warning(
-                        "Product name from page title",
-                        "Using page title as product name"
-                    )
+                    logger.info("Using page title as product name")
                     return self._clean_persian_text(title)
             
             # If nothing found
-            self.error_handler.add_warning(
-                "Product name not found",
-                "Using default name"
-            )
+            logger.warning("Product name not found, using default")
             return "Untitled Product"
             
         except Exception as e:
-            error = handle_parsing_error(e, "product name")
-            self.error_handler.add_error(error)
+            logger.error(f"Error extracting product name: {str(e)}")
             return "Untitled Product"
     
     def extract_description(self):
@@ -757,15 +722,11 @@ class UniversalProductScraper:
             if description_html and len(description_html.strip()) > 20:
                 return description_html
             else:
-                self.error_handler.add_warning(
-                    "No description found",
-                    "Could not extract product description"
-                )
+                logger.warning("No description found")
                 return "No description available"
                 
         except Exception as e:
-            error = handle_parsing_error(e, "description")
-            self.error_handler.add_error(error)
+            logger.warning(f"Error extracting description: {str(e)}")
             return "No description available"
     
     def _find_main_content(self):
@@ -1231,10 +1192,6 @@ class UniversalProductScraper:
                 fetch_method = "requests"
             except Exception as e:
                 logger.warning(f"Regular fetch failed: {str(e)}")
-                self.error_handler.add_warning(
-                    "Requests fetch failed",
-                    f"Attempting fallback methods: {str(e)[:100]}"
-                )
             
             # Strategy 2: Try Selenium fallback if requests failed
             if not fetch_success:
@@ -1247,15 +1204,6 @@ class UniversalProductScraper:
                         raise Exception("Selenium fetch returned False")
                 except Exception as e:
                     logger.error(f"Selenium fallback also failed: {str(e)}")
-                    self.error_handler.add_error(ScraperError(
-                        category=ErrorCategory.NETWORK,
-                        severity=ErrorSeverity.HIGH,
-                        message="All fetch methods failed",
-                        details=f"Requests failed: {str(e)}",
-                        recoverable=True,
-                        retry_recommended=True,
-                        suggested_action="Check if URL is accessible, site may require authentication or blocking bots"
-                    ))
                     raise Exception("All fetch methods failed. Unable to retrieve page content.")
             
             if not fetch_success:
@@ -1269,50 +1217,29 @@ class UniversalProductScraper:
             # Extract name with quality check
             name = self.extract_product_name()
             if not name or name == "Untitled Product":
-                self.error_handler.add_warning(
-                    "Product name extraction",
-                    "Could not extract valid product name, using default"
-                )
+                logger.warning("Could not extract valid product name, using default")
             
             # Extract description with length validation
             description = self.extract_description()
             if not description or description == "No description available":
-                self.error_handler.add_warning(
-                    "Product description extraction",
-                    "Could not extract product description"
-                )
+                logger.warning("Could not extract product description")
             elif len(description) < self.MIN_DESCRIPTION_LENGTH:
-                self.error_handler.add_warning(
-                    "Description too short",
-                    f"Description is only {len(description)} characters, expected at least {self.MIN_DESCRIPTION_LENGTH}"
-                )
+                logger.warning(f"Description is only {len(description)} characters")
             
             # Extract price with validation
             price = self.extract_price()
             if price <= 0:
-                self.error_handler.add_warning(
-                    "Price extraction",
-                    "Could not extract valid price or price is zero"
-                )
+                logger.warning("Could not extract valid price or price is zero")
             elif price >= self.MAX_PRICE_VALUE:
-                self.error_handler.add_warning(
-                    "Price validation",
-                    f"Extracted price ({price}) seems unusually high, may be incorrect"
-                )
+                logger.warning(f"Extracted price ({price}) seems unusually high")
             
             # Extract images with count validation
             images = self.extract_images()
             if not images or len(images) == 0:
-                self.error_handler.add_warning(
-                    "Image extraction",
-                    "No product images found"
-                )
+                logger.warning("No product images found")
             elif len(images) > self.MAX_PRODUCT_IMAGES:
                 images = images[:self.MAX_PRODUCT_IMAGES]
-                self.error_handler.add_warning(
-                    "Image limit",
-                    f"Found {len(images)} images, limiting to {self.MAX_PRODUCT_IMAGES}"
-                )
+                logger.warning(f"Found {len(images)} images, limiting to {self.MAX_PRODUCT_IMAGES}")
             
             # Extract categories (if available)
             categories = []
@@ -1337,40 +1264,19 @@ class UniversalProductScraper:
                 'platform': self.platform,
                 'fetch_method': fetch_method,
                 'extraction_time': round(extraction_time, 2),
-                'scraping_metadata': {
-                    'errors': self.error_handler.get_error_report(),
-                    'warnings_count': len(self.error_handler.warnings),
-                    'has_critical_errors': self.error_handler.has_critical_errors(),
-                    'should_retry': self.error_handler.should_retry(),
-                    'summary': self.error_handler.get_summary(),
-                    'platform_detected': self.platform,
-                    'data_quality': self._assess_data_quality(name, description, price, images),
-                    'timestamp': time.time(),
-                }
+                'platform_detected': self.platform,
+                'timestamp': time.time(),
             }
             
             # Step 4: Validate and log results
             total_time = time.time() - start_time
-            data['scraping_metadata']['total_time'] = round(total_time, 2)
-            
-            # Quality assessment
-            quality_score = data['scraping_metadata']['data_quality']['score']
-            
-            if quality_score >= 0.8:
-                logger.info(f"✅ High quality scrape completed in {total_time:.2f}s (Quality: {quality_score:.0%})")
-            elif quality_score >= 0.5:
-                logger.warning(f"⚠️ Medium quality scrape completed in {total_time:.2f}s (Quality: {quality_score:.0%})")
-                logger.warning(f"Issues detected:\n{self.error_handler.get_summary()}")
-            else:
-                logger.error(f"❌ Low quality scrape completed in {total_time:.2f}s (Quality: {quality_score:.0%})")
-                logger.error(f"Multiple issues:\n{self.error_handler.get_summary()}")
+            logger.info(f"Scraping completed in {total_time:.2f}s")
             
             return data
             
         except Exception as e:
             total_time = time.time() - start_time
             logger.error(f"Fatal error during scraping after {total_time:.2f}s: {str(e)}")
-            logger.error(f"Error traceback: {self.error_handler.get_summary()}")
             raise
 
     def _assess_data_quality(self, name, description, price, images):
