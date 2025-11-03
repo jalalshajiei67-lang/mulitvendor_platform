@@ -133,8 +133,20 @@ class ProductAdminForm(forms.ModelForm):
         
         return instance
 
+class DepartmentAdminForm(forms.ModelForm):
+    description = forms.CharField(
+        widget=TinyMCE(attrs={'cols': 80, 'rows': 30}),
+        help_text="Department description with rich text formatting (supports HTML, images, links, etc.)",
+        required=False
+    )
+    
+    class Meta:
+        model = Department
+        fields = '__all__'
+
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
+    form = DepartmentAdminForm
     list_display = ['name', 'slug', 'is_active', 'sort_order', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'description']
@@ -164,8 +176,20 @@ class DepartmentAdmin(admin.ModelAdmin):
             'all': ('admin/css/custom_admin.css', 'admin/css/force_action_button.css',)
         }
 
+class CategoryAdminForm(forms.ModelForm):
+    description = forms.CharField(
+        widget=TinyMCE(attrs={'cols': 80, 'rows': 30}),
+        help_text="Category description with rich text formatting (supports HTML, images, links, etc.)",
+        required=False
+    )
+    
+    class Meta:
+        model = Category
+        fields = '__all__'
+
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
+    form = CategoryAdminForm
     list_display = ['name', 'slug', 'get_departments', 'is_active', 'sort_order', 'created_at']
     list_filter = ['is_active', 'departments', 'created_at']
     search_fields = ['name', 'description']
@@ -211,8 +235,20 @@ class CategoryAdmin(admin.ModelAdmin):
             'all': ('admin/css/custom_admin.css', 'admin/css/force_action_button.css',)
         }
 
+class SubcategoryAdminForm(forms.ModelForm):
+    description = forms.CharField(
+        widget=TinyMCE(attrs={'cols': 80, 'rows': 30}),
+        help_text="Subcategory description with rich text formatting (supports HTML, images, links, etc.)",
+        required=False
+    )
+    
+    class Meta:
+        model = Subcategory
+        fields = '__all__'
+
 @admin.register(Subcategory)
 class SubcategoryAdmin(admin.ModelAdmin):
+    form = SubcategoryAdminForm
     list_display = ['name', 'slug', 'get_departments', 'get_categories', 'is_active', 'sort_order', 'created_at']
     list_filter = ['is_active', 'categories', 'created_at']
     search_fields = ['name', 'description']

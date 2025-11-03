@@ -102,7 +102,7 @@
       <div v-if="department.description" class="department-description-section">
         <div class="description-content">
           <h2>درباره این بخش</h2>
-          <p class="description">{{ department.description }}</p>
+          <div class="description rich-text-content" v-html="department.description"></div>
         </div>
       </div>
     </div>
@@ -344,6 +344,137 @@ export default {
   text-align: justify;
   max-width: 900px;
   margin: 0 auto;
+}
+
+/* Rich text content styling for HTML descriptions */
+.rich-text-content {
+  text-align: right;
+  direction: rtl;
+}
+
+.rich-text-content :deep(p) {
+  margin-bottom: 1.2em;
+  line-height: 1.8;
+  text-align: justify;
+}
+
+.rich-text-content :deep(h1),
+.rich-text-content :deep(h2),
+.rich-text-content :deep(h3),
+.rich-text-content :deep(h4),
+.rich-text-content :deep(h5),
+.rich-text-content :deep(h6) {
+  margin-top: 1.5em;
+  margin-bottom: 0.8em;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #333;
+}
+
+.rich-text-content :deep(h1) {
+  font-size: 2em;
+}
+
+.rich-text-content :deep(h2) {
+  font-size: 1.75em;
+}
+
+.rich-text-content :deep(h3) {
+  font-size: 1.5em;
+}
+
+.rich-text-content :deep(ul),
+.rich-text-content :deep(ol) {
+  margin: 1em 0;
+  padding-right: 2em;
+  line-height: 1.8;
+}
+
+.rich-text-content :deep(li) {
+  margin-bottom: 0.5em;
+}
+
+.rich-text-content :deep(a) {
+  color: #667eea;
+  text-decoration: underline;
+  transition: color 0.3s ease;
+}
+
+.rich-text-content :deep(a:hover) {
+  color: #764ba2;
+}
+
+.rich-text-content :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1.5em 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.rich-text-content :deep(blockquote) {
+  border-right: 4px solid #667eea;
+  padding-right: 1.5em;
+  margin: 1.5em 0;
+  font-style: italic;
+  color: #666;
+  background-color: #f8f9fa;
+  padding: 1em 1.5em;
+  border-radius: 4px;
+}
+
+.rich-text-content :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+}
+
+.rich-text-content :deep(table th),
+.rich-text-content :deep(table td) {
+  padding: 0.75em;
+  border: 1px solid #ddd;
+  text-align: right;
+}
+
+.rich-text-content :deep(table th) {
+  background-color: #f5f7fa;
+  font-weight: 700;
+  color: #333;
+}
+
+.rich-text-content :deep(strong),
+.rich-text-content :deep(b) {
+  font-weight: 700;
+  color: #333;
+}
+
+.rich-text-content :deep(em),
+.rich-text-content :deep(i) {
+  font-style: italic;
+}
+
+.rich-text-content :deep(code) {
+  background-color: #f5f7fa;
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #e83e8c;
+}
+
+.rich-text-content :deep(pre) {
+  background-color: #f5f7fa;
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  border: 1px solid #e0e0e0;
+}
+
+.rich-text-content :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
+  color: #333;
 }
 
 /* Categories Section */
