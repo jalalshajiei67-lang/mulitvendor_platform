@@ -369,13 +369,13 @@
     
     <div class="action-buttons">
         <div>
-            <a href="/admin/products/scrapejobatch/" class="btn btn-secondary">
+            <a href="{% url 'admin:products_scrapejobbatch_changelist' %}" class="btn btn-secondary">
                 ← Back to Batches
             </a>
         </div>
         <div style="display: flex; gap: 10px;">
             {% if report.failed_jobs %}
-            <a href="/admin/products/scrapejobatch/{{ batch.id }}/retry-failed/" class="btn btn-danger">
+            <a href="{% url 'admin:products_scrapejobatch_retry_failed' batch.id %}" class="btn btn-danger">
                 🔄 Retry {{ report.failed_jobs|length }} Failed Job(s)
             </a>
             {% endif %}

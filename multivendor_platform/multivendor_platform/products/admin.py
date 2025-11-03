@@ -4,7 +4,7 @@ from django.utils.html import format_html
 from django import forms
 from django.core.files.base import ContentFile
 from django.shortcuts import render, redirect
-from django.urls import path
+from django.urls import path, reverse
 from django.contrib import messages
 from django.utils import timezone
 from tinymce.widgets import TinyMCE
@@ -835,11 +835,11 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
         except ScrapeJobBatch.DoesNotExist:
             logger.error(f"Batch #{batch_id} not found")
             messages.error(request, f"Batch #{batch_id} not found.")
-            return redirect('/admin/products/scrapejobatch/')
+            return redirect(reverse('admin:products_scrapejobbatch_changelist'))
         except Exception as e:
             logger.error(f"Error generating batch report for batch {batch_id}: {str(e)}")
             messages.error(request, f"Error generating report: {str(e)}")
-            return redirect('/admin/products/scrapejobatch/')
+            return redirect(reverse('admin:products_scrapejobbatch_changelist'))
     
     def retry_failed_view(self, request, batch_id):
         """Retry only failed jobs in a specific batch"""
@@ -865,7 +865,7 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
         batch.save()
         
         messages.success(request, f'🔄 {count} failed job(s) queued for retry.')
-        return redirect('/admin/products/scrapejobatch/')
+        return redirect(reverse('admin:products_scrapejobbatch_changelist'))
 
 
 @admin.register(ProductScrapeJob)
@@ -907,7 +907,7 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
     def batch_link(self, obj):
         """Display link to batch if job belongs to one"""
         if obj.batch:
-            url = f'/admin/products/scrapejobatch/{obj.batch.id}/report/'
+            url = reverse('admin:products_scrapejobatch_report', args=[obj.batch.id])
             return format_html(
                 '<a href="{}" style="color: #667eea; font-weight: 500;">📊 Batch #{}</a>',
                 url, obj.batch.id
