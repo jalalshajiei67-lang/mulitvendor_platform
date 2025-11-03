@@ -13,7 +13,7 @@
     <template v-if="isMobile">
       <!-- Hamburger Menu Button -->
       <v-app-bar-nav-icon 
-        @click="drawer = !drawer"
+        @click.stop="drawer = !drawer"
         variant="text"
         color="white"
       ></v-app-bar-nav-icon>
@@ -236,8 +236,7 @@
   <!-- Mobile Navigation Drawer -->
   <v-navigation-drawer
     v-if="isMobile"
-    :model-value="drawer"
-    @update:model-value="drawer = $event"
+    v-model="drawer"
     temporary
     location="start"
     :width="280"
@@ -367,7 +366,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, nextTick, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
@@ -381,26 +380,8 @@ const authStore = useAuthStore()
 // Check if mobile/tablet (< 960px / md breakpoint)
 const isMobile = computed(() => mdAndDown.value)
 
-// Drawer state for mobile navigation - explicitly set to false
+// Drawer state for mobile navigation
 const drawer = ref(false)
-
-// Ensure drawer is closed on mount and stays closed
-onMounted(async () => {
-  drawer.value = false
-  await nextTick()
-  // Force close after component is fully mounted
-  if (drawer.value) {
-    drawer.value = false
-  }
-})
-
-// Watch for any unexpected changes and keep it closed if not explicitly opened
-watch(() => mdAndDown.value, (newValue) => {
-  if (!newValue) {
-    // If not mobile anymore, close drawer
-    drawer.value = false
-  }
-})
 
 const navigateTo = (route) => {
   router.push(route)
