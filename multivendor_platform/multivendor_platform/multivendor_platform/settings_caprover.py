@@ -225,7 +225,7 @@ UNFOLD = {
                     {
                         "title": "Scrape Batches",
                         "icon": "inventory_2",
-                        "link": lambda request: "/admin/products/scrapejobatch/",
+                        "link": lambda request: "/admin/products/scrapejobbatch/",
                     },
                 ],
             },

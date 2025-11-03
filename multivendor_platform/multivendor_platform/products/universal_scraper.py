@@ -21,6 +21,7 @@ import random
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from fake_useragent import UserAgent
 import unicodedata
+from typing import Dict, List, Tuple
 
 
 
@@ -176,11 +177,16 @@ class UniversalProductScraper:
                 
                 # Detect platform
                 self._detect_platform()
-                
+
                 # Validate page
-                if not self._validate_page():
-                    return False
-                
+                is_valid, validation_issues = self._validate_page()
+                has_errors = self._handle_validation_issues(validation_issues)
+                if not is_valid:
+                    logger.warning(
+                        "Page validation reported blocking issues during Selenium fetch; continuing despite %s",
+                        "errors" if has_errors else "warnings",
+                    )
+
                 logger.info(f"Successfully fetched page with Selenium: {self.url}")
                 return True
             finally:
@@ -234,20 +240,61 @@ class UniversalProductScraper:
             self._handle_persian_encoding()
             
             self.soup = BeautifulSoup(self.response.text, 'html.parser')
-            
+
             # Detect platform
             self._detect_platform()
-            
+
             # Basic validation
-            if not self._validate_page():
-                raise Exception("Page does not appear to be a valid product page")
-            
+            is_valid, validation_issues = self._validate_page()
+            has_errors = self._handle_validation_issues(validation_issues)
+            if not is_valid:
+                logger.warning(
+                    "Page validation reported blocking issues; continuing despite %s",
+                    "errors" if has_errors else "warnings",
+                )
+
             logger.info(f"Successfully fetched page: {self.url} (Platform: {self.platform})")
             return True
-            
+
         except (requests.exceptions.SSLError, requests.exceptions.HTTPError,
                 requests.exceptions.ConnectionError, requests.exceptions.Timeout,
                 requests.exceptions.RequestException) as e:
+            response = getattr(e, 'response', None)
+            request = None
+            if response is not None and getattr(response, 'request', None):
+                request = response.request
+            elif getattr(e, 'request', None):
+                request = e.request
+            body_preview = None
+            if response is not None:
+                try:
+                    body_preview = response.text[:1000]
+                except Exception:
+                    body_preview = None
+
+            elapsed = None
+            if response is not None and getattr(response, 'elapsed', None):
+                try:
+                    elapsed = response.elapsed.total_seconds()
+                except Exception:
+                    elapsed = None
+
+            request_url = None
+            if request is not None and getattr(request, 'url', None):
+                request_url = request.url
+
+            self.error_handler.record_http_failure(
+                url=getattr(response, 'url', None) or request_url or self.url,
+                method=getattr(request, 'method', None),
+                status_code=getattr(response, 'status_code', None),
+                reason=getattr(response, 'reason', None) if response is not None else str(getattr(e, '__class__', type(e)).__name__),
+                request_headers=getattr(request, 'headers', None),
+                response_headers=getattr(response, 'headers', None) if response is not None else None,
+                response_body_preview=body_preview,
+                elapsed=elapsed,
+                error_message=str(e),
+            )
+
             error = handle_network_error(e, self.url)
             self.error_handler.add_error(error)
             raise Exception(error.get_user_friendly_message())
@@ -514,33 +561,263 @@ class UniversalProductScraper:
         # Default to custom
         self.platform = 'custom'
         logger.info(f"Platform detected as: {self.platform}")
-    
-    def _validate_page(self):
-        """
-        Basic validation that this is a real page
-        """
-        if not self.soup.find('html'):
-            return False
-        
-        # Check for error pages
-        page_text = self.soup.get_text().lower()
-        
-        if '404' in page_text and 'not found' in page_text:
-            self.error_handler.add_error(ScraperError(
-                category=ErrorCategory.HTTP_ERROR,
-                severity=ErrorSeverity.HIGH,
-                message="404 Page Not Found",
-                details="Page content indicates product doesn't exist",
-                recoverable=False,
-                retry_recommended=False,
-                suggested_action="Check if URL is correct or product still exists"
+
+    def _handle_validation_issues(self, issues: List[Dict[str, str]]) -> bool:
+        """Log validation issues and return whether any were classified as errors."""
+        has_errors = False
+
+        for issue in issues:
+            issue_type = issue.get('type', 'warning')
+            message = issue.get('message', 'Page validation issue')
+            details = issue.get('details')
+            code = issue.get('code')
+
+            if issue_type == 'warning':
+                self.error_handler.add_warning(message, details)
+                continue
+
+            if code == 'not_found':
+                error = ScraperError(
+                    category=ErrorCategory.HTTP_ERROR,
+                    severity=ErrorSeverity.HIGH,
+                    message=message,
+                    details=details,
+                    recoverable=False,
+                    retry_recommended=False,
+                    suggested_action="Check if the product URL is correct or if it has been removed"
+                )
+            elif code == 'bot_blocked':
+                error = ScraperError(
+                    category=ErrorCategory.NETWORK,
+                    severity=ErrorSeverity.HIGH,
+                    message=message,
+                    details=details,
+                    recoverable=True,
+                    retry_recommended=True,
+                    suggested_action="Enable Selenium mode, rotate proxies, or try again later"
+                )
+            elif code == 'auth_required':
+                error = ScraperError(
+                    category=ErrorCategory.PERMISSION,
+                    severity=ErrorSeverity.HIGH,
+                    message=message,
+                    details=details,
+                    recoverable=False,
+                    retry_recommended=False,
+                    suggested_action="Log in to the storefront or provide authentication cookies"
+                )
+            elif code == 'missing_html':
+                error = ScraperError(
+                    category=ErrorCategory.UNKNOWN,
+                    severity=ErrorSeverity.HIGH,
+                    message=message,
+                    details=details,
+                    recoverable=True,
+                    retry_recommended=True,
+                    suggested_action="Verify the response body manually; the site may be serving a non-HTML payload"
+                )
+            else:
+                error = ScraperError(
+                    category=ErrorCategory.UNKNOWN,
+                    severity=ErrorSeverity.MEDIUM,
+                    message=message,
+                    details=details,
+                    recoverable=True,
+                    retry_recommended=True,
+                    suggested_action="Inspect the page content manually to verify it is a product page"
+                )
+
+            self.error_handler.add_error(error)
+            has_errors = True
+
+        return has_errors
+
+    def _enforce_required_fields(
+        self,
+        name: str,
+        description: str,
+        images: List[str],
+    ) -> None:
+        """Raise blocking errors when essential product fields are missing."""
+        missing_fields: List[Tuple[str, str]] = []
+
+        if not name or name == "Untitled Product":
+            missing_fields.append((
+                "Product name",
+                "Could not extract a valid product title from the page",
             ))
-            return False
-        
+
+        if not description or description.strip() == "" or description == "No description available":
+            missing_fields.append((
+                "Product description",
+                "Could not extract a meaningful product description",
+            ))
+
+        if not images:
+            missing_fields.append((
+                "Product images",
+                "Could not extract any product images",
+            ))
+
+        if not missing_fields:
+            return
+
+        for field_name, details in missing_fields:
+            self.error_handler.add_error(
+                ScraperError(
+                    category=ErrorCategory.DATA_VALIDATION,
+                    severity=ErrorSeverity.HIGH,
+                    message=f"Missing required field: {field_name}",
+                    details=details,
+                    recoverable=False,
+                    retry_recommended=False,
+                    suggested_action="Review the page structure or update the scraper selectors for this field.",
+                )
+            )
+
+        summary = ", ".join(field for field, _ in missing_fields)
+        raise Exception(f"Missing required product data: {summary}")
+
+    def _has_auth_wall(self, page_text: str) -> bool:
+        """Heuristically determine if the page content is behind an auth wall."""
+        normalized = re.sub(r"\s+", " ", page_text)
+
+        # Simple single phrases that explicitly state access restriction
+        explicit_phrases = [
+            'please log in to view this page',
+            'this content is for members only',
+            'برای مشاهده این بخش باید وارد شوید',
+            'برای مشاهده ابتدا وارد شوید',
+            'برای دسترسی باید وارد شوید',
+        ]
+        if any(phrase in normalized for phrase in explicit_phrases):
+            return True
+
+        # Combinations of phrases that together usually indicate a wall rather than a header link
+        auth_combinations = [
+            ('لطفا', 'وارد حساب کاربری خود شوید'),
+            ('برای ادامه', 'وارد حساب'),
+            ('برای ادامه', 'لاگین'),
+            ('برای خرید', 'ابتدا وارد شوید'),
+            ('برای مشاهده', 'حساب کاربری'),
+            ('please log in', 'to continue'),
+            ('log in', 'to continue'),
+            ('login', 'required to view'),
+        ]
+
+        for combo in auth_combinations:
+            if all(term in normalized for term in combo):
+                return True
+
+        return False
+
+    def _validate_page(self) -> Tuple[bool, List[Dict[str, str]]]:
+        """Validate that the fetched document looks like a product page."""
+        issues: List[Dict[str, str]] = []
+
+        if not self.soup or not self.soup.find('html'):
+            issues.append({
+                'type': 'error',
+                'code': 'missing_html',
+                'message': "Fetched content is not a valid HTML document",
+                'details': '',
+            })
+            return False, issues
+
+        page_text_raw = self.soup.get_text(separator=' ', strip=True)
+        page_text = page_text_raw.lower()
+
+        # Detect anti-bot or security blocks (English and Persian)
+        block_patterns = [
+            'checking your browser before accessing',
+            'access denied',
+            'temporarily blocked',
+            'forbidden',
+            'request has been blocked',
+            'ddos protection by',
+            'cf-chl-bypass',
+            'در حال بررسی مرورگر شما',
+            'دسترسی شما به این سایت توسط',
+            'مسدود شده است',
+            'برای ادامه لطفا کپچا را تکمیل کنید',
+        ]
+
+        for pattern in block_patterns:
+            if pattern in page_text:
+                issues.append({
+                    'type': 'error',
+                    'code': 'bot_blocked',
+                    'message': "Website returned a bot protection or access denied page",
+                    'details': pattern,
+                })
+                return False, issues
+
+        # Detect login walls
+        if self._has_auth_wall(page_text):
+            issues.append({
+                'type': 'error',
+                'code': 'auth_required',
+                'message': "Authentication is required to view this product",
+                'details': 'Detected authentication wall phrases',
+            })
+            return False, issues
+
+        # Detect 404/Not Found pages (English and Persian)
+        not_found_phrases = [
+            'page not found',
+            'product not found',
+            'موردی یافت نشد',
+            'یافت نشد',
+            'صفحه مورد نظر شما پیدا نشد',
+        ]
+        if (
+            ('404' in page_text and ('not found' in page_text or 'page not found' in page_text))
+            or any(phrase in page_text for phrase in not_found_phrases)
+        ):
+            issues.append({
+                'type': 'error',
+                'code': 'not_found',
+                'message': "Page content indicates the product could not be found",
+                'details': '',
+            })
+            return False, issues
+
+        # Warn if the page body looks unusually small
         if len(page_text) < self.MIN_PAGE_LENGTH:
-            self.error_handler.add_warning("Page has very little content", "Might not be a valid product page")
-        
-        return True
+            issues.append({
+                'type': 'warning',
+                'code': 'short_content',
+                'message': "Page has very little content",
+                'details': "Content length below expected threshold",
+            })
+
+        # Look for common product page indicators
+        product_indicators = [
+            self.soup.find(attrs={'itemtype': 'http://schema.org/Product'}),
+            self.soup.find(attrs={'itemtype': 'https://schema.org/Product'}),
+            self.soup.find('meta', {'property': 'og:type', 'content': lambda x: x and 'product' in x.lower()}),
+            self.soup.find(class_=lambda x: x and 'product' in x.lower()),
+            self.soup.find(id=lambda x: x and 'product' in x.lower()),
+        ]
+
+        if not any(product_indicators):
+            issues.append({
+                'type': 'warning',
+                'code': 'no_product_markers',
+                'message': "Could not confirm standard product markers",
+                'details': "No schema.org product data or product CSS classes detected",
+            })
+
+        price_terms = ['price', 'قیمت', 'amount', 'cost']
+        if not any(term in page_text for term in price_terms):
+            issues.append({
+                'type': 'warning',
+                'code': 'no_price_marker',
+                'message': "No obvious price information detected on the page",
+                'details': '',
+            })
+
+        return True, issues
     
     def extract_product_name(self):
         """
@@ -1011,7 +1288,7 @@ class UniversalProductScraper:
                     if price_text_clean:
                         try:
                             price = float(price_text_clean)
-                            if price > 0 and price < self.MAX_PRICE_VALUE:  # Sanity check
+                            if price > 0:
                                 logger.info(f"Found price: {price}")
                                 return price
                         except:
@@ -1313,7 +1590,9 @@ class UniversalProductScraper:
                     "Image limit",
                     f"Found {len(images)} images, limiting to {self.MAX_PRODUCT_IMAGES}"
                 )
-            
+
+            self._enforce_required_fields(name, description, images)
+
             # Extract categories (if available)
             categories = []
             try:

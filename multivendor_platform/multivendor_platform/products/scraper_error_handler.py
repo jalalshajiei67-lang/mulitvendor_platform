@@ -86,6 +86,7 @@ class ErrorHandler:
     def __init__(self):
         self.errors = []
         self.warnings = []
+        self.http_debug_info = []
     
     def add_error(self, error: ScraperError):
         """Add an error to the error log"""
@@ -176,8 +177,53 @@ class ErrorHandler:
             'should_retry': self.should_retry(),
             'summary': self.get_summary(),
             'errors': [error.to_dict() for error in self.errors],
-            'warnings': self.warnings
+            'warnings': self.warnings,
+            'http_debug': self.http_debug_info,
         }
+
+    def record_http_failure(
+        self,
+        *,
+        url: Optional[str],
+        method: Optional[str],
+        status_code: Optional[int],
+        reason: Optional[str],
+        request_headers: Optional[Dict[str, Any]],
+        response_headers: Optional[Dict[str, Any]],
+        response_body_preview: Optional[str],
+        elapsed: Optional[float],
+        error_message: Optional[str] = None,
+    ) -> None:
+        """Record detailed HTTP failure diagnostics for inclusion in error reports."""
+
+        def _normalize_headers(headers: Optional[Dict[str, Any]]) -> Optional[Dict[str, str]]:
+            if not headers:
+                return None
+            normalized = {}
+            for key, value in headers.items():
+                try:
+                    normalized[str(key)] = str(value)
+                except Exception:
+                    normalized[str(key)] = repr(value)
+            return normalized
+
+        debug_entry = {
+            'timestamp': datetime.now().isoformat(),
+            'url': url,
+            'method': method,
+            'status_code': status_code,
+            'reason': reason,
+            'elapsed': elapsed,
+            'error_message': error_message,
+            'request_headers': _normalize_headers(request_headers),
+            'response_headers': _normalize_headers(response_headers),
+            'response_body_preview': response_body_preview,
+        }
+
+        # Keep the debug log from growing without bounds
+        self.http_debug_info.append(debug_entry)
+        if len(self.http_debug_info) > 5:
+            self.http_debug_info = self.http_debug_info[-5:]
 
 
 def handle_network_error(exception: Exception, url: str) -> ScraperError:
