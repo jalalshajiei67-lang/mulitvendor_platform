@@ -199,8 +199,8 @@
     </template>
 
     <!-- Mobile: Large Search Bar (Below title row) -->
-    <template v-slot:extension>
-      <div v-if="isMobile" class="mobile-search-container pa-2">
+    <template v-if="isMobile" v-slot:extension>
+      <div class="mobile-search-container pa-2">
         <GlobalSearch />
       </div>
     </template>
