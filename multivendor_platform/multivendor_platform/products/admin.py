@@ -1,4 +1,7 @@
 # products/admin.py
+from django.contrib.admin import site
+
+
 from django.contrib import admin
 from django.utils.html import format_html
 from django import forms
@@ -1331,3 +1334,23 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
             
         except Exception as e:
             return JsonResponse({'error': str(e)})
+
+
+        ordered_models = [
+            (Product, ProductAdmin),
+            (Department, DepartmentAdmin),
+            (Category, CategoryAdmin),
+            (Subcategory, SubcategoryAdmin),
+            (ProductComment, ProductCommentAdmin),
+            (ProductScrapeJob, ProductScrapeJobAdmin),
+            (ScrapeJobBatch, ScrapeJobBatchAdmin),
+        ]
+
+        # Unregister each model if it's already registered.
+        for model, _ in ordered_models:
+            if site.is_registered(model):
+                site.unregister(model)
+
+       # Re-register all models in the new, defined order.
+        for model, admin_class in ordered_models:
+            site.register(model, admin_class)

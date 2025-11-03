@@ -32,7 +32,6 @@
         </div>
         <div class="department-info">
           <h1>{{ department.name }}</h1>
-          <p v-if="department.description" class="description">{{ department.description }}</p>
         </div>
       </div>
 
@@ -96,6 +95,14 @@
           >
             بعدی
           </button>
+        </div>
+      </div>
+
+      <!-- Department Description Section -->
+      <div v-if="department.description" class="department-description-section">
+        <div class="description-content">
+          <h2>درباره این بخش</h2>
+          <p class="description">{{ department.description }}</p>
         </div>
       </div>
     </div>
@@ -269,7 +276,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 30px;
-  margin-bottom: 50px;
+  margin-bottom: 40px;
   padding: 30px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 15px;
@@ -309,14 +316,32 @@ export default {
 
 .department-info h1 {
   font-size: 2.5rem;
-  margin: 0 0 15px 0;
+  margin: 0;
 }
 
-.department-info .description {
-  font-size: 1.2rem;
-  line-height: 1.6;
-  margin: 0;
-  opacity: 0.95;
+/* Department Description Section */
+.department-description-section {
+  margin-top: 60px;
+  padding: 40px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.description-content h2 {
+  font-size: 1.8rem;
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.description-content .description {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #555;
+  text-align: justify;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 /* Categories Section */
@@ -379,7 +404,7 @@ export default {
   height: 150px;
   border-radius: 50%;
   overflow: hidden;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease;
   background: #f5f5f5;
@@ -416,6 +441,8 @@ export default {
   margin: 0;
   font-weight: 600;
   transition: color 0.3s ease;
+  width: 100%;
+  padding: 8px 0;
 }
 
 .item-card:hover .item-title {
@@ -547,6 +574,18 @@ export default {
     width: 120px;
     height: 120px;
   }
+
+  .department-description-section {
+    padding: 30px 20px;
+    margin-top: 40px;
+  }
+
+  .description-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .description-content .description {
+    font-size: 1rem;
+  }
 }
 </style>
-
