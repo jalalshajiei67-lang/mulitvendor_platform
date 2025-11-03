@@ -21,7 +21,7 @@
       <v-toolbar-title class="font-weight-bold d-flex align-center">
         <router-link to="/" class="text-white text-decoration-none d-flex align-center">
           <v-img 
-            src="/logo.png" 
+            src="/indexo.jpg" 
             alt="Logo" 
             max-width="40" 
             max-height="40" 

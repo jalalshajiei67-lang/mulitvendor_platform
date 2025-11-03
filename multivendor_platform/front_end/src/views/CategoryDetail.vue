@@ -88,9 +88,11 @@
         </div>
 
         <!-- Description Section -->
-        <div class="description-section" v-if="category.description">
-          <h2>درباره این دسته‌بندی</h2>
-          <p>{{ category.description }}</p>
+        <div class="department-description-section" v-if="category.description">
+          <div class="description-content">
+            <h2>درباره این دسته‌بندی</h2>
+            <p class="description">{{ category.description }}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -319,26 +321,50 @@ export default {
 }
 
 /* Description Section */
-.description-section {
-  background: #f9f9f9;
-  padding: 30px;
-  border-radius: 10px;
-  margin: 40px 0;
+.department-description-section {
+  margin: 50px 0;
+  padding: 0;
+}
+
+.description-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  color: white;
   text-align: center;
+  position: relative;
+  overflow: hidden;
 }
 
-.description-section h2 {
-  font-size: 1.5rem;
-  color: #333;
-  margin-bottom: 15px;
+.description-content::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-.description-section p {
+.description-content h2 {
+  font-size: 1.8rem;
+  color: white;
+  margin-bottom: 20px;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+
+.description-content .description {
   font-size: 1.1rem;
-  color: #666;
-  line-height: 1.8;
-  max-width: 800px;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 2;
+  max-width: 900px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 /* Grid Layout */
@@ -536,6 +562,20 @@ export default {
   .category-image {
     width: 120px;
     height: 120px;
+  }
+
+  .description-content {
+    padding: 25px 20px;
+  }
+
+  .description-content h2 {
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+  }
+
+  .description-content .description {
+    font-size: 1rem;
+    line-height: 1.8;
   }
 }
 </style>
