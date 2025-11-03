@@ -72,8 +72,41 @@ export default {
   name: 'LoginView',
   setup() {
     const router = useRouter()
-    const authStore = useAuthStore()
-    const { t } = useI18n()
+    let authStore
+    let i18n
+    
+    try {
+      authStore = useAuthStore()
+    } catch (error) {
+      console.error('Failed to initialize auth store:', error)
+      authStore = { 
+        login: async () => { throw new Error('Auth store not available') },
+        error: null
+      }
+    }
+    
+    try {
+      i18n = useI18n()
+    } catch (error) {
+      console.error('Failed to initialize i18n:', error)
+      i18n = null
+    }
+    
+    // Safe translation function
+    const safeTranslate = (key, fallback = '') => {
+      if (!i18n || !i18n.t) {
+        return fallback || key
+      }
+      try {
+        const translated = i18n.t(key)
+        return translated === key && fallback ? fallback : (translated || fallback || key)
+      } catch (error) {
+        console.warn(`Translation error for key: ${key}`, error)
+        return fallback || key
+      }
+    }
+    
+    const t = safeTranslate
     
     const form = ref(null)
     const valid = ref(false)
@@ -84,39 +117,49 @@ export default {
     const loading = ref(false)
     
     const usernameRules = [
-      v => !!v || t('auth.usernameRequired'),
+      v => !!v || t('auth.usernameRequired', 'نام کاربری الزامی است'),
     ]
     
     const passwordRules = [
-      v => !!v || t('auth.passwordRequired'),
+      v => !!v || t('auth.passwordRequired', 'رمز عبور الزامی است'),
     ]
     
     const handleLogin = async () => {
       if (!form.value) return
       
-      const { valid: isValid } = await form.value.validate()
-      if (!isValid) return
+      try {
+        const { valid: isValid } = await form.value.validate()
+        if (!isValid) return
+      } catch (err) {
+        console.warn('Form validation error:', err)
+        return
+      }
       
       loading.value = true
       error.value = ''
       
       try {
+        if (!authStore || typeof authStore.login !== 'function') {
+          throw new Error('Authentication service is not available')
+        }
+        
         const response = await authStore.login({
           username: username.value,
           password: password.value
         })
         
         // Redirect based on user role
-        if (response.user.is_staff) {
+        if (response?.user?.is_staff) {
           // Redirect admins/superusers to Django admin panel
           window.location.href = config.djangoAdminUrl
-        } else if (response.user.role === 'seller' || response.user.role === 'both') {
+        } else if (response?.user?.role === 'seller' || response?.user?.role === 'both') {
           router.push('/seller/dashboard')
         } else {
           router.push('/buyer/dashboard')
         }
       } catch (err) {
-        error.value = authStore.error || t('auth.loginFailed')
+        console.error('Login error:', err)
+        error.value = (authStore?.error) || t('auth.loginFailed', 'خطا در ورود. لطفاً اطلاعات خود را بررسی کنید.')
       } finally {
         loading.value = false
       }
@@ -133,7 +176,8 @@ export default {
       usernameRules,
       passwordRules,
       handleLogin,
-      t
+      t: safeTranslate,
+      authStore: authStore || {}
     }
   }
 }

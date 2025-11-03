@@ -182,8 +182,41 @@ export default {
   name: 'RegisterView',
   setup() {
     const router = useRouter()
-    const authStore = useAuthStore()
-    const { t } = useI18n()
+    let authStore
+    let i18n
+    
+    try {
+      authStore = useAuthStore()
+    } catch (error) {
+      console.error('Failed to initialize auth store:', error)
+      authStore = { 
+        register: async () => { throw new Error('Auth store not available') },
+        error: null
+      }
+    }
+    
+    try {
+      i18n = useI18n()
+    } catch (error) {
+      console.error('Failed to initialize i18n:', error)
+      i18n = null
+    }
+    
+    // Safe translation function
+    const safeTranslate = (key, fallback = '') => {
+      if (!i18n || !i18n.t) {
+        return fallback || key
+      }
+      try {
+        const translated = i18n.t(key)
+        return translated === key && fallback ? fallback : (translated || fallback || key)
+      } catch (error) {
+        console.warn(`Translation error for key: ${key}`, error)
+        return fallback || key
+      }
+    }
+    
+    const t = safeTranslate
     
     const form = ref(null)
     const valid = ref(false)
@@ -206,29 +239,29 @@ export default {
     })
     
     const roleOptions = [
-      { text: t('auth.buyer'), value: 'buyer' },
-      { text: t('auth.seller'), value: 'seller' },
-      { text: t('auth.both'), value: 'both' }
+      { text: t('auth.buyer', 'خریدار'), value: 'buyer' },
+      { text: t('auth.seller', 'فروشنده'), value: 'seller' },
+      { text: t('auth.both', 'هر دو'), value: 'both' }
     ]
     
     const usernameRules = [
-      v => !!v || t('auth.usernameRequired'),
-      v => v.length >= 3 || 'نام کاربری باید حداقل 3 کاراکتر باشد'
+      v => !!v || t('auth.usernameRequired', 'نام کاربری الزامی است'),
+      v => !v || v.length >= 3 || 'نام کاربری باید حداقل 3 کاراکتر باشد'
     ]
     
     const emailRules = [
-      v => !!v || t('auth.emailRequired'),
-      v => /.+@.+\..+/.test(v) || t('auth.invalidEmail')
+      v => !!v || t('auth.emailRequired', 'ایمیل الزامی است'),
+      v => !v || /.+@.+\..+/.test(v) || t('auth.invalidEmail', 'فرمت ایمیل نامعتبر است')
     ]
     
     const passwordRules = [
-      v => !!v || t('auth.passwordRequired'),
-      v => v.length >= 6 || 'رمز عبور باید حداقل 6 کاراکتر باشد'
+      v => !!v || t('auth.passwordRequired', 'رمز عبور الزامی است'),
+      v => !v || v.length >= 6 || 'رمز عبور باید حداقل 6 کاراکتر باشد'
     ]
     
     const confirmPasswordRules = [
       v => !!v || 'لطفاً رمز عبور خود را تایید کنید',
-      v => v === formData.value.password || t('auth.passwordMismatch')
+      v => v === formData.value.password || t('auth.passwordMismatch', 'رمز عبور و تکرار آن یکسان نیستند')
     ]
     
     const roleRules = [
@@ -245,32 +278,42 @@ export default {
     const handleRegister = async () => {
       if (!form.value) return
       
-      const { valid: isValid } = await form.value.validate()
-      if (!isValid) return
+      try {
+        const { valid: isValid } = await form.value.validate()
+        if (!isValid) return
+      } catch (err) {
+        console.warn('Form validation error:', err)
+        return
+      }
       
       loading.value = true
       error.value = ''
       
       try {
+        if (!authStore || typeof authStore.register !== 'function') {
+          throw new Error('Authentication service is not available')
+        }
+        
         const response = await authStore.register(formData.value)
         
         // Redirect based on user role
-        if (response.user.role === 'seller' || response.user.role === 'both') {
+        if (response?.user?.role === 'seller' || response?.user?.role === 'both') {
           router.push('/seller/dashboard')
         } else {
           router.push('/buyer/dashboard')
         }
       } catch (err) {
+        console.error('Registration error:', err)
         if (err.response?.data) {
           // Handle validation errors
           const errors = err.response.data
           if (typeof errors === 'object') {
             error.value = Object.values(errors).flat().join(', ')
           } else {
-            error.value = authStore.error || t('auth.registerFailed')
+            error.value = (authStore?.error) || t('auth.registerFailed', 'خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.')
           }
         } else {
-          error.value = authStore.error || t('auth.registerFailed')
+          error.value = (authStore?.error) || t('auth.registerFailed', 'خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.')
         }
       } finally {
         loading.value = false
@@ -293,7 +336,8 @@ export default {
       roleRules,
       storeNameRules,
       handleRegister,
-      t
+      t: safeTranslate,
+      authStore: authStore || {}
     }
   }
 }
