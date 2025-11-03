@@ -28,7 +28,7 @@
             class="me-2"
             contain
           ></v-img>
-          <span class="d-none d-sm-inline">پلتفرم چند فروشنده</span>
+          <span class="d-none d-sm-inline">  ایندکسو</span>
         </router-link>
       </v-toolbar-title>
 

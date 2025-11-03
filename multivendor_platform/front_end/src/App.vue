@@ -19,7 +19,7 @@
         <v-row>
           <v-col cols="12" sm="6" md="4">
             <h3 class="text-subtitle-1 text-sm-h6 mb-2">درباره ما</h3>
-            <p class="text-caption text-sm-body-2">پلتفرم چند فروشنده برای محصولات و خدمات متنوع</p>
+            <p class="text-caption text-sm-body-2">ایندکسو</p>
           </v-col>
           <v-col cols="12" sm="6" md="4">
             <h3 class="text-subtitle-1 text-sm-h6 mb-2">لینک‌های سریع</h3>
@@ -33,7 +33,7 @@
           <v-col cols="12" md="4">
             <h3 class="text-subtitle-1 text-sm-h6 mb-2">تماس با ما</h3>
             <p class="text-caption text-sm-body-2 mb-1">ایمیل: info@example.com</p>
-            <p class="text-caption text-sm-body-2">تلفن: +۹۸ ۲۱ ۱۲۳۴ ۵۶۷۸</p>
+            <p class="text-caption text-sm-body-2">تلفن02188311001 </p>
           </v-col>
         </v-row>
         <v-divider class="my-3 my-sm-4"></v-divider>
