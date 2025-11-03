@@ -306,6 +306,29 @@ export default {
   direction: rtl;
 }
 
+/* Mobile-optimized search input */
+@media (max-width: 959px) {
+  .search-input {
+    padding: 1rem 3.5rem 1rem 1.25rem;
+    font-size: 1.125rem;
+    border-radius: 12px;
+    border-width: 2px;
+  }
+  
+  .search-icon {
+    right: 1.25rem;
+    width: 24px;
+    height: 24px;
+  }
+  
+  .clear-button {
+    left: 1.25rem;
+    width: 28px;
+    height: 28px;
+    font-size: 1.75rem;
+  }
+}
+
 .search-input:focus {
   outline: none;
   border-color: #2c3e50;

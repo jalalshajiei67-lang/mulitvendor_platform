@@ -1,4 +1,7 @@
 // src/router/index.js
+import { useRouter } from 'vue-router'
+
+
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import config from '@/config'
@@ -188,7 +191,7 @@ router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
   // Redirect authenticated users away from guest-only pages
-  if (to.meta.guestOnly && authStore.isAuthenticated) {
+  if ((to.meta.guestOnly && authStore.isAuthenticated)) {
     if (authStore.isAdmin) {
       // Redirect admins to Django admin panel
       window.location.href = config.djangoAdminUrl
