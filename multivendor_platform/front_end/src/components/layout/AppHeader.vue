@@ -363,7 +363,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
@@ -377,8 +377,13 @@ const authStore = useAuthStore()
 // Check if mobile/tablet (< 960px / md breakpoint)
 const isMobile = computed(() => mdAndDown.value)
 
-// Drawer state for mobile navigation
+// Drawer state for mobile navigation - explicitly set to false
 const drawer = ref(false)
+
+// Ensure drawer is closed on mount
+onMounted(() => {
+  drawer.value = false
+})
 
 const navigateTo = (route) => {
   router.push(route)
