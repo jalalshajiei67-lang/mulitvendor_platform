@@ -13,7 +13,7 @@
     <template v-if="isMobile">
       <!-- Hamburger Menu Button -->
       <v-app-bar-nav-icon 
-        @click.stop="drawer = !drawer"
+        @click.stop="toggleDrawer"
         variant="text"
         color="white"
       ></v-app-bar-nav-icon>
@@ -235,7 +235,7 @@
 
   <!-- Mobile Navigation Drawer -->
   <v-navigation-drawer
-    v-if="isMobile"
+    v-if="isMobile && drawer"
     v-model="drawer"
     temporary
     location="start"
@@ -366,7 +366,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
@@ -382,6 +382,16 @@ const isMobile = computed(() => mdAndDown.value)
 
 // Drawer state for mobile navigation
 const drawer = ref(false)
+
+const toggleDrawer = () => {
+  drawer.value = !drawer.value
+}
+
+watch(isMobile, (value) => {
+  if (!value) {
+    drawer.value = false
+  }
+})
 
 const navigateTo = (route) => {
   router.push(route)
