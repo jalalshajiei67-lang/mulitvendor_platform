@@ -232,12 +232,12 @@
   <!-- Mobile Navigation Drawer -->
   <v-navigation-drawer
     v-if="isMobile"
-    v-model="drawer"
+    :model-value="drawer"
+    @update:model-value="drawer = $event"
     temporary
     location="start"
     :width="280"
     dir="rtl"
-    overlay
   >
     <v-list nav dense>
       <!-- User Info -->
@@ -363,7 +363,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
@@ -380,9 +380,22 @@ const isMobile = computed(() => mdAndDown.value)
 // Drawer state for mobile navigation - explicitly set to false
 const drawer = ref(false)
 
-// Ensure drawer is closed on mount
-onMounted(() => {
+// Ensure drawer is closed on mount and stays closed
+onMounted(async () => {
   drawer.value = false
+  await nextTick()
+  // Force close after component is fully mounted
+  if (drawer.value) {
+    drawer.value = false
+  }
+})
+
+// Watch for any unexpected changes and keep it closed if not explicitly opened
+watch(() => mdAndDown.value, (newValue) => {
+  if (!newValue) {
+    // If not mobile anymore, close drawer
+    drawer.value = false
+  }
 })
 
 const navigateTo = (route) => {
