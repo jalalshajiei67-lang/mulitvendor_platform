@@ -11,6 +11,13 @@
   >
     <!-- Mobile Layout: Logo and User Menu on Top Row -->
     <template v-if="isMobile">
+      <!-- Hamburger Menu Button -->
+      <v-app-bar-nav-icon 
+        @click="drawer = !drawer"
+        variant="text"
+        color="white"
+      ></v-app-bar-nav-icon>
+
       <v-toolbar-title class="font-weight-bold d-flex align-center">
         <router-link to="/" class="text-white text-decoration-none">
           پلتفرم چند فروشنده
@@ -205,10 +212,141 @@
       </div>
     </template>
   </v-app-bar>
+
+  <!-- Mobile Navigation Drawer -->
+  <v-navigation-drawer
+    v-model="drawer"
+    temporary
+    location="end"
+    :width="280"
+    dir="rtl"
+    v-if="isMobile"
+  >
+    <v-list nav dense>
+      <!-- User Info -->
+      <v-list-item v-if="authStore.isAuthenticated" class="mb-4">
+        <template v-slot:prepend>
+          <v-avatar color="primary" size="40">
+            <span class="text-white">
+              {{ authStore.user?.username?.charAt(0)?.toUpperCase() }}
+            </span>
+          </v-avatar>
+        </template>
+        <v-list-item-title class="font-weight-bold">
+          {{ authStore.user?.username }}
+        </v-list-item-title>
+        <v-list-item-subtitle>
+          {{ authStore.user?.role }}
+        </v-list-item-subtitle>
+      </v-list-item>
+
+      <v-divider></v-divider>
+
+      <!-- Navigation Items -->
+      <v-list-item
+        prepend-icon="mdi-home"
+        title="خانه"
+        value="home"
+        @click="navigateAndClose('/')"
+      ></v-list-item>
+
+      <v-list-item
+        prepend-icon="mdi-package-variant"
+        title="محصولات"
+        value="products"
+        @click="navigateAndClose('/departments')"
+      ></v-list-item>
+
+      <v-list-item
+        prepend-icon="mdi-store"
+        title="تامین‌کنندگان"
+        value="suppliers"
+        @click="navigateAndClose('/suppliers')"
+      ></v-list-item>
+
+      <v-list-item
+        prepend-icon="mdi-post"
+        title="وبلاگ"
+        value="blog"
+        @click="navigateAndClose('/blog')"
+      ></v-list-item>
+
+      <!-- Authenticated User Menu Items -->
+      <template v-if="authStore.isAuthenticated">
+        <v-divider class="my-2"></v-divider>
+
+        <v-list-item
+          v-if="authStore.isAdmin"
+          prepend-icon="mdi-shield-crown"
+          title="پنل مدیریت جنگو"
+          value="admin"
+          @click="goToDjangoAdmin"
+        ></v-list-item>
+
+        <v-list-item
+          v-if="authStore.isSeller"
+          prepend-icon="mdi-package"
+          title="محصولات من"
+          value="my-products"
+          @click="navigateAndClose('/my-products')"
+        ></v-list-item>
+
+        <v-list-item
+          prepend-icon="mdi-post-outline"
+          title="داشبورد وبلاگ"
+          value="blog-dashboard"
+          @click="navigateAndClose('/blog/dashboard')"
+        ></v-list-item>
+
+        <v-list-item
+          v-if="authStore.isSeller"
+          prepend-icon="mdi-store"
+          title="داشبورد فروشنده"
+          value="seller"
+          @click="navigateAndClose('/seller/dashboard')"
+        ></v-list-item>
+
+        <v-list-item
+          v-if="authStore.isBuyer"
+          prepend-icon="mdi-view-dashboard"
+          title="داشبورد خریدار"
+          value="buyer"
+          @click="navigateAndClose('/buyer/dashboard')"
+        ></v-list-item>
+
+        <v-divider class="my-2"></v-divider>
+
+        <v-list-item
+          prepend-icon="mdi-logout"
+          title="خروج"
+          value="logout"
+          @click="handleLogout"
+        ></v-list-item>
+      </template>
+
+      <!-- Guest Actions -->
+      <template v-else>
+        <v-divider class="my-2"></v-divider>
+        
+        <v-list-item
+          prepend-icon="mdi-login"
+          title="ورود"
+          value="login"
+          @click="navigateAndClose('/login')"
+        ></v-list-item>
+        <v-list-item
+          prepend-icon="mdi-account-plus"
+          title="ثبت‌نام"
+          value="register"
+          @click="navigateAndClose('/register')"
+        ></v-list-item>
+      </template>
+    </v-list>
+  </v-navigation-drawer>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
@@ -222,16 +360,26 @@ const authStore = useAuthStore()
 // Check if mobile/tablet (< 960px / md breakpoint)
 const isMobile = computed(() => mdAndDown.value)
 
+// Drawer state for mobile navigation
+const drawer = ref(false)
+
 const navigateTo = (route) => {
   router.push(route)
 }
 
+const navigateAndClose = (route) => {
+  drawer.value = false
+  router.push(route)
+}
+
 const handleLogout = async () => {
+  drawer.value = false
   await authStore.logout()
   router.push('/')
 }
 
 const goToDjangoAdmin = () => {
+  drawer.value = false
   window.location.href = config.djangoAdminUrl
 }
 </script>
