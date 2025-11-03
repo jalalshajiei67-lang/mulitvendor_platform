@@ -70,17 +70,21 @@
 
     <!-- Desktop Layout -->
     <template v-else>
-      <!-- Desktop Layout: Logo/Brand Title -->
+      <!-- Desktop Layout: Logo on Left Side -->
+      <router-link to="/" class="logo-link d-flex align-center me-4">
+        <v-img 
+          src="/indexo.jpg" 
+          alt="Logo" 
+          max-width="50" 
+          max-height="50" 
+          contain
+          class="logo-image"
+        ></v-img>
+      </router-link>
+
+      <!-- Desktop Layout: Brand Title -->
       <v-toolbar-title class="font-weight-bold">
-        <router-link to="/" class="text-white text-decoration-none d-flex align-center">
-          <v-img 
-            src="/logo.png" 
-            alt="Logo" 
-            max-width="50" 
-            max-height="50" 
-            class="me-2"
-            contain
-          ></v-img>
+        <router-link to="/" class="text-white text-decoration-none">
           پلتفرم چند فروشنده
         </router-link>
       </v-toolbar-title>
@@ -444,6 +448,20 @@ const goToDjangoAdmin = () => {
 
 .text-decoration-none {
   text-decoration: none !important;
+}
+
+/* Logo Styles */
+.logo-link {
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+}
+
+.logo-link:hover {
+  opacity: 0.8;
+}
+
+.logo-image {
+  border-radius: 4px;
 }
 </style>
 

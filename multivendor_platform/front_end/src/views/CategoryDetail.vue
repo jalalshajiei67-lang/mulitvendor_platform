@@ -23,7 +23,7 @@
         <div class="category-image">
           <img 
             v-if="category.image" 
-            :src="category.image" 
+            :src="formatImageUrl(category.image)" 
             :alt="category.name"
           />
           <div v-else class="placeholder-image">
@@ -50,7 +50,7 @@
             <div class="circular-image">
               <img 
                 v-if="subcategory.image" 
-                :src="subcategory.image" 
+                :src="formatImageUrl(subcategory.image)" 
                 :alt="subcategory.name"
               />
               <div v-else class="placeholder-image">
@@ -104,6 +104,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import Breadcrumb from '@/components/Breadcrumb.vue'
+import { formatImageUrl } from '@/utils/imageUtils'
 
 export default {
   name: 'CategoryDetail',
@@ -240,7 +241,8 @@ export default {
       nextPage,
       previousPage,
       goToSubcategoryDetail,
-      fetchCategoryData
+      fetchCategoryData,
+      formatImageUrl
     }
   }
 }

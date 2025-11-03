@@ -23,7 +23,7 @@
         <div class="subcategory-image">
           <img 
             v-if="subcategory.image" 
-            :src="subcategory.image" 
+            :src="formatImageUrl(subcategory.image)" 
             :alt="subcategory.name"
           />
           <div v-else class="placeholder-image">
@@ -105,6 +105,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import Breadcrumb from '@/components/Breadcrumb.vue'
+import { formatImageUrl } from '@/utils/imageUtils'
 
 export default {
   name: 'SubcategoryDetail',
@@ -260,7 +261,8 @@ export default {
       previousPage,
       goToProductDetail,
       getProductImage,
-      fetchSubcategoryData
+      fetchSubcategoryData,
+      formatImageUrl
     }
   }
 }
