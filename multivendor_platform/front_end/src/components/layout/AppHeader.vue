@@ -129,8 +129,8 @@
 
       <!-- Desktop: Search Bar -->
       <div 
-        class="search-container desktop-search mx-4"
-        style="max-width: 400px; flex: 1;"
+        class="search-container desktop-search mx-auto"
+        style="max-width: 400px;"
       >
         <GlobalSearch />
       </div>
@@ -200,7 +200,7 @@
 
     <!-- Mobile: Large Search Bar (Below title row) -->
     <template v-if="isMobile" v-slot:extension>
-      <div class="mobile-search-container pa-2">
+      <div class="mobile-search-container pa-2 d-flex justify-center">
         <GlobalSearch />
       </div>
     </template>
@@ -244,11 +244,14 @@ const goToDjangoAdmin = () => {
 .mobile-search-container {
   width: 100%;
   padding: 0.5rem 0.75rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .desktop-search {
   max-width: 400px;
-  flex: 1;
+  margin: 0 auto;
 }
 
 /* RTL Support */

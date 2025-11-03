@@ -6,7 +6,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django import forms
 from django.core.files.base import ContentFile
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import path
 from django.contrib import messages
 from django.utils import timezone
@@ -800,18 +800,18 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
     
     def get_urls(self):
         """Add custom URLs for batch reporting"""
-        from django.urls import path
+        from django.urls import path, re_path
         urls = super().get_urls()
         # Custom URLs must come BEFORE default URLs to be matched first
+        # Use object_id pattern to match Django admin's URL structure
         custom_urls = [
-            path('<int:batch_id>/report/', self.admin_site.admin_view(self.batch_report_view), name='products_scrapejobatch_report'),
-            path('<int:batch_id>/retry-failed/', self.admin_site.admin_view(self.retry_failed_view), name='products_scrapejobatch_retry_failed'),
+            path('<path:object_id>/report/', self.admin_site.admin_view(self.batch_report_view), name='products_scrapejobatch_report'),
+            path('<path:object_id>/retry-failed/', self.admin_site.admin_view(self.retry_failed_view), name='products_scrapejobatch_retry_failed'),
         ]
         return custom_urls + urls
     
-    def batch_report_view(self, request, batch_id):
+    def batch_report_view(self, request, object_id):
         """View detailed batch report"""
-        from django.shortcuts import get_object_or_404
         from django.core.exceptions import PermissionDenied
         from django.http import Http404
         import logging
@@ -823,6 +823,7 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
             raise PermissionDenied
         
         try:
+            batch_id = int(object_id)
             batch = get_object_or_404(ScrapeJobBatch, id=batch_id)
             batch.update_statistics()
             report = batch.generate_report()
@@ -835,39 +836,52 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
                 'has_permission': True,
             }
             return render(request, 'admin/products/batch_report.html', context)
+        except (ValueError, TypeError):
+            logger.error(f"Invalid batch ID: {object_id}")
+            messages.error(request, f"Invalid batch ID: {object_id}")
+            return redirect('/admin/products/scrapejobatch/')
         except ScrapeJobBatch.DoesNotExist:
-            logger.error(f"Batch #{batch_id} not found")
-            messages.error(request, f"Batch #{batch_id} not found.")
+            logger.error(f"Batch #{object_id} not found")
+            messages.error(request, f"Batch #{object_id} not found.")
             return redirect('/admin/products/scrapejobatch/')
         except Exception as e:
-            logger.error(f"Error generating batch report for batch {batch_id}: {str(e)}")
+            logger.error(f"Error generating batch report for batch {object_id}: {str(e)}")
             messages.error(request, f"Error generating report: {str(e)}")
             return redirect('/admin/products/scrapejobatch/')
     
-    def retry_failed_view(self, request, batch_id):
+    def retry_failed_view(self, request, object_id):
         """Retry only failed jobs in a specific batch"""
-        batch = ScrapeJobBatch.objects.get(id=batch_id)
-        failed_jobs = batch.jobs.filter(status='failed')
-        
-        count = 0
-        for job in failed_jobs:
-            job.status = 'pending'
-            job.error_message = None
-            job.error_details = None
-            job.retry_count += 1
-            job.last_retry_at = timezone.now()
-            job.save()
+        try:
+            batch_id = int(object_id)
+            batch = get_object_or_404(ScrapeJobBatch, id=batch_id)
+            failed_jobs = batch.jobs.filter(status='failed')
             
-            # Process in background
-            thread = threading.Thread(target=process_scrape_job, args=(job.id,))
-            thread.daemon = True
-            thread.start()
-            count += 1
+            count = 0
+            for job in failed_jobs:
+                job.status = 'pending'
+                job.error_message = None
+                job.error_details = None
+                job.retry_count += 1
+                job.last_retry_at = timezone.now()
+                job.save()
+                
+                # Process in background
+                thread = threading.Thread(target=process_scrape_job, args=(job.id,))
+                thread.daemon = True
+                thread.start()
+                count += 1
+            
+            batch.status = 'processing'
+            batch.save()
+            
+            messages.success(request, f'🔄 {count} failed job(s) queued for retry.')
+        except (ValueError, TypeError):
+            messages.error(request, f"Invalid batch ID: {object_id}")
+        except ScrapeJobBatch.DoesNotExist:
+            messages.error(request, f"Batch #{object_id} not found.")
+        except Exception as e:
+            messages.error(request, f"Error retrying failed jobs: {str(e)}")
         
-        batch.status = 'processing'
-        batch.save()
-        
-        messages.success(request, f'🔄 {count} failed job(s) queued for retry.')
         return redirect('/admin/products/scrapejobatch/')
 
 
