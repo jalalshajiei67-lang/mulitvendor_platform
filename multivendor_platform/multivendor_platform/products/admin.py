@@ -800,13 +800,13 @@ class ScrapeJobBatchAdmin(admin.ModelAdmin):
     
     def get_urls(self):
         """Add custom URLs for batch reporting"""
-        from django.urls import path, re_path
+        from django.urls import re_path
         urls = super().get_urls()
         # Custom URLs must come BEFORE default URLs to be matched first
-        # Use object_id pattern to match Django admin's URL structure
+        # Use re_path with regex to ensure exact matching before Django admin defaults
         custom_urls = [
-            path('<path:object_id>/report/', self.admin_site.admin_view(self.batch_report_view), name='products_scrapejobatch_report'),
-            path('<path:object_id>/retry-failed/', self.admin_site.admin_view(self.retry_failed_view), name='products_scrapejobatch_retry_failed'),
+            re_path(r'^(?P<object_id>\d+)/report/$', self.admin_site.admin_view(self.batch_report_view), name='products_scrapejobatch_report'),
+            re_path(r'^(?P<object_id>\d+)/retry-failed/$', self.admin_site.admin_view(self.retry_failed_view), name='products_scrapejobatch_retry_failed'),
         ]
         return custom_urls + urls
     
