@@ -14,7 +14,6 @@
       color="primary" 
       class="text-center d-none d-md-block" 
       elevation="8"
-      app
     >
       <v-container>
         <v-row>

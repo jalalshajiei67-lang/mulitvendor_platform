@@ -4,8 +4,8 @@
     color="primary" 
     elevation="2"
     :prominent="isMobile"
+    :fixed="isMobile"
     class="px-2"
-    fixed
     app
     dir="rtl"
   >
