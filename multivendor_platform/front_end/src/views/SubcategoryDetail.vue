@@ -32,23 +32,12 @@
         </div>
         <div class="subcategory-info">
           <h1>{{ subcategory.name }}</h1>
-          <p v-if="subcategory.description" class="description">{{ subcategory.description }}</p>
         </div>
       </div>
 
       <!-- Products Section -->
       <div class="products-section">
         <h2>محصولات این زیردسته</h2>
-        
-        <!-- Search Box -->
-        <div class="search-box">
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="جستجوی محصول..."
-            @input="handleSearch"
-          />
-        </div>
 
         <!-- Products Grid -->
         <div v-if="paginatedProducts.length > 0" class="items-grid">
@@ -98,6 +87,12 @@
             بعدی
           </button>
         </div>
+
+        <!-- Description Section -->
+        <div class="description-section" v-if="subcategory.description">
+          <h2>درباره این زیردسته</h2>
+          <p>{{ subcategory.description }}</p>
+        </div>
       </div>
     </div>
   </div>
@@ -121,7 +116,6 @@ export default {
     const products = ref([])
     const loading = ref(false)
     const error = ref(null)
-    const searchQuery = ref('')
     const currentPage = ref(1)
     const itemsPerPage = 12
 
@@ -213,30 +207,15 @@ export default {
       return null
     }
 
-    const filteredProducts = computed(() => {
-      if (!searchQuery.value) {
-        return products.value
-      }
-      const query = searchQuery.value.toLowerCase()
-      return products.value.filter(prod => 
-        prod.name.toLowerCase().includes(query) ||
-        (prod.description && prod.description.toLowerCase().includes(query))
-      )
-    })
-
     const totalPages = computed(() => {
-      return Math.ceil(filteredProducts.value.length / itemsPerPage)
+      return Math.ceil(products.value.length / itemsPerPage)
     })
 
     const paginatedProducts = computed(() => {
       const start = (currentPage.value - 1) * itemsPerPage
       const end = start + itemsPerPage
-      return filteredProducts.value.slice(start, end)
+      return products.value.slice(start, end)
     })
-
-    const handleSearch = () => {
-      currentPage.value = 1
-    }
 
     const nextPage = () => {
       if (currentPage.value < totalPages.value) {
@@ -269,15 +248,12 @@ export default {
     return {
       subcategory,
       products,
-      filteredProducts,
       paginatedProducts,
       loading,
       error,
-      searchQuery,
       currentPage,
       totalPages,
       breadcrumbItems,
-      handleSearch,
       nextPage,
       previousPage,
       goToProductDetail,
@@ -362,24 +338,27 @@ export default {
   text-align: center;
 }
 
-.search-box {
-  max-width: 500px;
-  margin: 0 auto 40px;
+/* Description Section */
+.description-section {
+  background: #f9f9f9;
+  padding: 30px;
+  border-radius: 10px;
+  margin: 40px 0;
+  text-align: center;
 }
 
-.search-box input {
-  width: 100%;
-  padding: 12px 20px;
-  border: 2px solid #e0e0e0;
-  border-radius: 25px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+.description-section h2 {
+  font-size: 1.5rem;
+  color: #333;
+  margin-bottom: 15px;
 }
 
-.search-box input:focus {
-  outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+.description-section p {
+  font-size: 1.1rem;
+  color: #666;
+  line-height: 1.8;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 /* Grid Layout */

@@ -4,14 +4,6 @@
     <Breadcrumb :items="breadcrumbItems" />
     <div class="list-header">
       <h1>بخش‌ها</h1>
-      <div class="search-box">
-        <input
-          type="text"
-          v-model="searchQuery"
-          placeholder="جستجوی بخش..."
-          @input="handleSearch"
-        />
-      </div>
     </div>
 
     <!-- Loading State -->
@@ -28,7 +20,7 @@
     </div>
 
     <!-- Departments Grid -->
-    <div v-else-if="filteredDepartments.length > 0">
+    <div v-else-if="departments.length > 0">
       <div class="items-grid">
         <div 
           v-for="department in paginatedDepartments" 
@@ -101,7 +93,6 @@ export default {
     const departments = ref([])
     const loading = ref(false)
     const error = ref(null)
-    const searchQuery = ref('')
     const currentPage = ref(1)
     const itemsPerPage = 12
 
@@ -144,30 +135,15 @@ export default {
       }
     }
 
-    const filteredDepartments = computed(() => {
-      if (!searchQuery.value) {
-        return departments.value
-      }
-      const query = searchQuery.value.toLowerCase()
-      return departments.value.filter(dept => 
-        dept.name.toLowerCase().includes(query) ||
-        (dept.description && dept.description.toLowerCase().includes(query))
-      )
-    })
-
     const totalPages = computed(() => {
-      return Math.ceil(filteredDepartments.value.length / itemsPerPage)
+      return Math.ceil(departments.value.length / itemsPerPage)
     })
 
     const paginatedDepartments = computed(() => {
       const start = (currentPage.value - 1) * itemsPerPage
       const end = start + itemsPerPage
-      return filteredDepartments.value.slice(start, end)
+      return departments.value.slice(start, end)
     })
-
-    const handleSearch = () => {
-      currentPage.value = 1
-    }
 
     const nextPage = () => {
       if (currentPage.value < totalPages.value) {
@@ -193,16 +169,13 @@ export default {
 
     return {
       departments,
-      filteredDepartments,
       paginatedDepartments,
       loading,
       error,
-      searchQuery,
       currentPage,
       totalPages,
       breadcrumbItems,
       pageDescription,
-      handleSearch,
       nextPage,
       previousPage,
       goToDepartmentDetail,
@@ -220,38 +193,13 @@ export default {
 }
 
 .list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 30px;
-  flex-wrap: wrap;
-  gap: 20px;
 }
 
 .list-header h1 {
   font-size: 2rem;
   color: #333;
   margin: 0;
-}
-
-.search-box {
-  flex: 1;
-  max-width: 400px;
-}
-
-.search-box input {
-  width: 100%;
-  padding: 12px 20px;
-  border: 2px solid #e0e0e0;
-  border-radius: 25px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-.search-box input:focus {
-  outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
 /* Grid Layout */
@@ -460,14 +408,6 @@ export default {
     height: 120px;
   }
 
-  .list-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .search-box {
-    max-width: 100%;
-  }
 }
 </style>
 

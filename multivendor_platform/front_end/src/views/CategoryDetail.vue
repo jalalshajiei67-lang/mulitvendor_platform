@@ -32,23 +32,12 @@
         </div>
         <div class="category-info">
           <h1>{{ category.name }}</h1>
-          <p v-if="category.description" class="description">{{ category.description }}</p>
         </div>
       </div>
 
       <!-- Subcategories Section -->
       <div class="subcategories-section">
         <h2>زیردسته‌های این دسته‌بندی</h2>
-        
-        <!-- Search Box -->
-        <div class="search-box">
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="جستجوی زیردسته..."
-            @input="handleSearch"
-          />
-        </div>
 
         <!-- Subcategories Grid -->
         <div v-if="paginatedSubcategories.length > 0" class="items-grid">
@@ -97,6 +86,12 @@
             بعدی
           </button>
         </div>
+
+        <!-- Description Section -->
+        <div class="description-section" v-if="category.description">
+          <h2>درباره این دسته‌بندی</h2>
+          <p>{{ category.description }}</p>
+        </div>
       </div>
     </div>
   </div>
@@ -120,7 +115,6 @@ export default {
     const subcategories = ref([])
     const loading = ref(false)
     const error = ref(null)
-    const searchQuery = ref('')
     const currentPage = ref(1)
     const itemsPerPage = 12
 
@@ -194,30 +188,15 @@ export default {
       }
     }
 
-    const filteredSubcategories = computed(() => {
-      if (!searchQuery.value) {
-        return subcategories.value
-      }
-      const query = searchQuery.value.toLowerCase()
-      return subcategories.value.filter(sub => 
-        sub.name.toLowerCase().includes(query) ||
-        (sub.description && sub.description.toLowerCase().includes(query))
-      )
-    })
-
     const totalPages = computed(() => {
-      return Math.ceil(filteredSubcategories.value.length / itemsPerPage)
+      return Math.ceil(subcategories.value.length / itemsPerPage)
     })
 
     const paginatedSubcategories = computed(() => {
       const start = (currentPage.value - 1) * itemsPerPage
       const end = start + itemsPerPage
-      return filteredSubcategories.value.slice(start, end)
+      return subcategories.value.slice(start, end)
     })
-
-    const handleSearch = () => {
-      currentPage.value = 1
-    }
 
     const nextPage = () => {
       if (currentPage.value < totalPages.value) {
@@ -250,15 +229,12 @@ export default {
     return {
       category,
       subcategories,
-      filteredSubcategories,
       paginatedSubcategories,
       loading,
       error,
-      searchQuery,
       currentPage,
       totalPages,
       breadcrumbItems,
-      handleSearch,
       nextPage,
       previousPage,
       goToSubcategoryDetail,
@@ -342,24 +318,27 @@ export default {
   text-align: center;
 }
 
-.search-box {
-  max-width: 500px;
-  margin: 0 auto 40px;
+/* Description Section */
+.description-section {
+  background: #f9f9f9;
+  padding: 30px;
+  border-radius: 10px;
+  margin: 40px 0;
+  text-align: center;
 }
 
-.search-box input {
-  width: 100%;
-  padding: 12px 20px;
-  border: 2px solid #e0e0e0;
-  border-radius: 25px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+.description-section h2 {
+  font-size: 1.5rem;
+  color: #333;
+  margin-bottom: 15px;
 }
 
-.search-box input:focus {
-  outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+.description-section p {
+  font-size: 1.1rem;
+  color: #666;
+  line-height: 1.8;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 /* Grid Layout */
