@@ -19,8 +19,16 @@
       ></v-app-bar-nav-icon>
 
       <v-toolbar-title class="font-weight-bold d-flex align-center">
-        <router-link to="/" class="text-white text-decoration-none">
-          پلتفرم چند فروشنده
+        <router-link to="/" class="text-white text-decoration-none d-flex align-center">
+          <v-img 
+            src="/logo.png" 
+            alt="Logo" 
+            max-width="40" 
+            max-height="40" 
+            class="me-2"
+            contain
+          ></v-img>
+          <span class="d-none d-sm-inline">پلتفرم چند فروشنده</span>
         </router-link>
       </v-toolbar-title>
 
@@ -64,7 +72,15 @@
     <template v-else>
       <!-- Desktop Layout: Logo/Brand Title -->
       <v-toolbar-title class="font-weight-bold">
-        <router-link to="/" class="text-white text-decoration-none">
+        <router-link to="/" class="text-white text-decoration-none d-flex align-center">
+          <v-img 
+            src="/logo.png" 
+            alt="Logo" 
+            max-width="50" 
+            max-height="50" 
+            class="me-2"
+            contain
+          ></v-img>
           پلتفرم چند فروشنده
         </router-link>
       </v-toolbar-title>
@@ -215,12 +231,13 @@
 
   <!-- Mobile Navigation Drawer -->
   <v-navigation-drawer
+    v-if="isMobile"
     v-model="drawer"
     temporary
-    location="end"
+    location="start"
     :width="280"
     dir="rtl"
-    v-if="isMobile"
+    overlay
   >
     <v-list nav dense>
       <!-- User Info -->
