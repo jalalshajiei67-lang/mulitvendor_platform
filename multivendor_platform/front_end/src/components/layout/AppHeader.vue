@@ -9,8 +9,8 @@
     app
     dir="rtl"
   >
+    <!-- Mobile Layout: Logo and User Menu on Top Row -->
     <template v-if="isMobile">
-      <!-- Mobile Layout: Logo and User Menu on Top Row -->
       <v-toolbar-title class="font-weight-bold d-flex align-center">
         <router-link to="/" class="text-white text-decoration-none">
           پلتفرم چند فروشنده
@@ -20,48 +20,40 @@
       <v-spacer></v-spacer>
 
       <!-- User Menu on Mobile -->
-      <template v-if="authStore.isAuthenticated">
-        <v-menu location="bottom">
-          <template v-slot:activator="{ props }">
-            <v-btn 
-              icon="mdi-account-circle" 
-              v-bind="props"
-              variant="text"
-              color="white"
-              size="small"
-            ></v-btn>
-          </template>
-          <v-list dir="rtl">
-            <v-list-item>
-              <v-list-item-title class="font-weight-bold">{{ authStore.user?.username }}</v-list-item-title>
-              <v-list-item-subtitle>{{ authStore.user?.role }}</v-list-item-subtitle>
-            </v-list-item>
-            <v-divider></v-divider>
-            <v-list-item v-if="authStore.isAdmin" @click="goToDjangoAdmin" prepend-icon="mdi-shield-crown">
-              <v-list-item-title>پنل مدیریت جنگو</v-list-item-title>
-            </v-list-item>
-            <v-list-item v-if="authStore.isSeller" @click="navigateTo('/seller/dashboard')" prepend-icon="mdi-store">
-              <v-list-item-title>داشبورد فروشنده</v-list-item-title>
-            </v-list-item>
-            <v-list-item v-if="authStore.isBuyer" @click="navigateTo('/buyer/dashboard')" prepend-icon="mdi-view-dashboard">
-              <v-list-item-title>داشبورد خریدار</v-list-item-title>
-            </v-list-item>
-            <v-divider></v-divider>
-            <v-list-item @click="handleLogout" prepend-icon="mdi-logout">
-              <v-list-item-title>خروج</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-menu>
-      </template>
-
-      <!-- Mobile: Large Search Bar (Below title row) -->
-      <template v-slot:extension>
-        <div class="mobile-search-container pa-2">
-          <GlobalSearch />
-        </div>
-      </template>
+      <v-menu v-if="authStore.isAuthenticated" location="bottom">
+        <template v-slot:activator="{ props }">
+          <v-btn 
+            icon="mdi-account-circle" 
+            v-bind="props"
+            variant="text"
+            color="white"
+            size="small"
+          ></v-btn>
+        </template>
+        <v-list dir="rtl">
+          <v-list-item>
+            <v-list-item-title class="font-weight-bold">{{ authStore.user?.username }}</v-list-item-title>
+            <v-list-item-subtitle>{{ authStore.user?.role }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-divider></v-divider>
+          <v-list-item v-if="authStore.isAdmin" @click="goToDjangoAdmin" prepend-icon="mdi-shield-crown">
+            <v-list-item-title>پنل مدیریت جنگو</v-list-item-title>
+          </v-list-item>
+          <v-list-item v-if="authStore.isSeller" @click="navigateTo('/seller/dashboard')" prepend-icon="mdi-store">
+            <v-list-item-title>داشبورد فروشنده</v-list-item-title>
+          </v-list-item>
+          <v-list-item v-if="authStore.isBuyer" @click="navigateTo('/buyer/dashboard')" prepend-icon="mdi-view-dashboard">
+            <v-list-item-title>داشبورد خریدار</v-list-item-title>
+          </v-list-item>
+          <v-divider></v-divider>
+          <v-list-item @click="handleLogout" prepend-icon="mdi-logout">
+            <v-list-item-title>خروج</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </template>
 
+    <!-- Desktop Layout -->
     <template v-else>
       <!-- Desktop Layout: Logo/Brand Title -->
       <v-toolbar-title class="font-weight-bold">
@@ -204,6 +196,13 @@
           ثبت‌نام
         </v-btn>
       </template>
+    </template>
+
+    <!-- Mobile: Large Search Bar (Below title row) -->
+    <template v-slot:extension>
+      <div v-if="isMobile" class="mobile-search-container pa-2">
+        <GlobalSearch />
+      </div>
     </template>
   </v-app-bar>
 </template>
