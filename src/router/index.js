@@ -1,6 +1,7 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import pinia from '@/stores'
 import config from '@/config'
 import ProductList from '../views/ProductList.vue'
 import ProductDetail from '../views/ProductDetail.vue'
@@ -185,7 +186,7 @@ const router = createRouter({
 
 // Navigation guard to check authentication and roles
 router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore()
+  const authStore = useAuthStore(pinia)
 
   // Redirect authenticated users away from guest-only pages
   if (to.meta.guestOnly && authStore.isAuthenticated) {
