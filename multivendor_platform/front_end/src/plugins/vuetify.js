@@ -20,45 +20,42 @@ const vuetify = createVuetify({
             light: {
                 dark: false,
                 colors: {
-                    // Brand Colors
-                    primary: '#FFE512',        // Primary Brand - Yellow
-                    secondary: '#2A2A72',      // Secondary Color - Dark Blue
-                    accent: '#E53E3E',         // Accent Color - Red
-                    error: '#E53E3E',          // Error - Same as accent
-                    info: '#2A2A72',           // Info - Same as secondary
-                    success: '#38A169',        // Success Color - Green
-                    warning: '#FFE512',        // Warning - Same as primary
-                    background: '#F5F5F7',     // Light Neutral - Background
-                    surface: '#FFFFFF',        // White - Surface
-                    'on-primary': '#1A1A1A',   // Dark text on primary
+                    // Custom Brand Color Scheme
+                    primary: '#102E50',       // Custom Primary
+                    secondary: '#2A2A72',     // Custom Secondary
+                    accent: '#E53E3E',        // Custom Accent (used for error/warning)
+                    error: '#E53E3E',         // Custom Error (same as accent)
+                    info: '#2A2A72',          // Same as secondary
+                    success: '#38A169',       // Custom Success
+                    warning: '#E53E3E',       // Same as error
+                    background: '#F5F5F7',    // Custom Light Neutral
+                    surface: '#FFFFFF',       // White
+                    'on-primary': '#FFFFFF',   // White text on primary
                     'on-secondary': '#FFFFFF', // White text on secondary
-                    'on-accent': '#FFFFFF',    // White text on accent
                     'on-success': '#FFFFFF',   // White text on success
                     'on-error': '#FFFFFF',     // White text on error
-                    'on-background': '#1A1A1A', // Dark Neutral - Text on background
-                    'on-surface': '#1A1A1A',   // Dark Neutral - Text on surface
+                    'on-background': '#1A1A1A', // Dark text on light background
+                    'on-surface': '#1A1A1A',    // Dark text on light surface
                 },
             },
             dark: {
                 dark: true,
                 colors: {
-                    // Dark Theme Brand Colors
-                    primary: '#FFE512',        // Primary Brand - Yellow
-                    secondary: '#2A2A72',      // Secondary Color - Dark Blue
-                    accent: '#E53E3E',         // Accent Color - Red
-                    error: '#E53E3E',          // Error - Same as accent
-                    info: '#2A2A72',           // Info - Same as secondary
-                    success: '#38A169',        // Success Color - Green
-                    warning: '#FFE512',        // Warning - Same as primary
-                    background: '#1A1A1A',     // Dark Neutral - Background
-                    surface: '#2A2A2A',        // Slightly lighter dark for surface
-                    'on-primary': '#1A1A1A',   // Dark text on primary
+                    primary: '#102E50',       // Same primary for dark theme
+                    secondary: '#2A2A72',     // Same secondary for dark theme
+                    accent: '#E53E3E',        // Same accent for dark theme
+                    error: '#E53E3E',         // Same error for dark theme
+                    info: '#2A2A72',          // Same info for dark theme
+                    success: '#38A169',       // Same success for dark theme
+                    warning: '#E53E3E',       // Same warning for dark theme
+                    background: '#1A1A1A',    // Custom Dark Neutral
+                    surface: '#2A2A2A',       // Slightly lighter than background
+                    'on-primary': '#FFFFFF',   // White text on primary
                     'on-secondary': '#FFFFFF', // White text on secondary
-                    'on-accent': '#FFFFFF',    // White text on accent
                     'on-success': '#FFFFFF',   // White text on success
                     'on-error': '#FFFFFF',     // White text on error
-                    'on-background': '#F5F5F7', // Light Neutral - Text on dark background
-                    'on-surface': '#F5F5F7',   // Light Neutral - Text on dark surface
+                    'on-background': '#FFFFFF', // Light text on dark background
+                    'on-surface': '#FFFFFF',    // Light text on dark surface
                 },
             },
         },
