@@ -11,12 +11,18 @@ class DepartmentSerializer(serializers.ModelSerializer):
     
     def get_image_url(self, obj):
         """Return the full URL of the image"""
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
+        image_field = getattr(obj, 'image', None)
+        if not image_field:
+            return None
+        
+        storage = image_field.storage
+        if not storage.exists(image_field.name):
+            return None
+        
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(image_field.url)
+        return image_field.url
 
 class CategorySerializer(serializers.ModelSerializer):
     departments = DepartmentSerializer(many=True, read_only=True)
@@ -28,12 +34,18 @@ class CategorySerializer(serializers.ModelSerializer):
     
     def get_image_url(self, obj):
         """Return the full URL of the image"""
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
+        image_field = getattr(obj, 'image', None)
+        if not image_field:
+            return None
+        
+        storage = image_field.storage
+        if not storage.exists(image_field.name):
+            return None
+        
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(image_field.url)
+        return image_field.url
 
 class SubcategorySerializer(serializers.ModelSerializer):
     categories = CategorySerializer(many=True, read_only=True)
@@ -46,12 +58,18 @@ class SubcategorySerializer(serializers.ModelSerializer):
     
     def get_image_url(self, obj):
         """Return the full URL of the image"""
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
+        image_field = getattr(obj, 'image', None)
+        if not image_field:
+            return None
+        
+        storage = image_field.storage
+        if not storage.exists(image_field.name):
+            return None
+        
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(image_field.url)
+        return image_field.url
     
     def get_departments(self, obj):
         """Get departments through categories"""
@@ -68,12 +86,18 @@ class ProductImageSerializer(serializers.ModelSerializer):
     
     def get_image_url(self, obj):
         """Return the full URL of the image"""
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
+        image_field = getattr(obj, 'image', None)
+        if not image_field:
+            return None
+        
+        storage = image_field.storage
+        if not storage.exists(image_field.name):
+            return None
+        
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(image_field.url)
+        return image_field.url
 
 class ProductSerializer(serializers.ModelSerializer):
     vendor_name = serializers.CharField(source='vendor.username', read_only=True)
