@@ -17,7 +17,6 @@ const getBackendBaseUrl = () => {
     if (typeof window !== 'undefined') {
       // Check if we're on the production domain
       const hostname = window.location.hostname;
-      const protocol = window.location.protocol; // 'https:' or 'http:'
       if (hostname.includes('indexo.ir')) {
         // Use HTTPS for production
         return 'https://multivendor-backend.indexo.ir';
