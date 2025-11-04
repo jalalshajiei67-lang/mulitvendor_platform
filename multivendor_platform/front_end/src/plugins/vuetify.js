@@ -20,42 +20,42 @@ const vuetify = createVuetify({
             light: {
                 dark: false,
                 colors: {
-                    // Custom Brand Color Scheme
-                    primary: '#102E50',       // Custom Primary
-                    secondary: '#2A2A72',     // Custom Secondary
-                    accent: '#E53E3E',        // Custom Accent (used for error/warning)
-                    error: '#E53E3E',         // Custom Error (same as accent)
-                    info: '#2A2A72',          // Same as secondary
-                    success: '#38A169',       // Custom Success
-                    warning: '#E53E3E',       // Same as error
-                    background: '#F5F5F7',    // Custom Light Neutral
+                    // Material Design 3 Color Scheme
+                    primary: '#1976D2',       // Blue
+                    secondary: '#4CAF50',     // Green
+                    accent: '#FF9800',        // Orange
+                    error: '#F44336',         // Red
+                    info: '#2196F3',          // Light Blue
+                    success: '#4CAF50',       // Green
+                    warning: '#FFC107',       // Amber
+                    background: '#FAFAFA',    // Light Gray
                     surface: '#FFFFFF',       // White
-                    'on-primary': '#FFFFFF',   // White text on primary
-                    'on-secondary': '#FFFFFF', // White text on secondary
-                    'on-success': '#FFFFFF',   // White text on success
-                    'on-error': '#FFFFFF',     // White text on error
-                    'on-background': '#1A1A1A', // Dark text on light background
-                    'on-surface': '#1A1A1A',    // Dark text on light surface
+                    'on-primary': '#FFFFFF',
+                    'on-secondary': '#FFFFFF',
+                    'on-success': '#FFFFFF',
+                    'on-error': '#FFFFFF',
+                    'on-background': '#1C1B1F',
+                    'on-surface': '#1C1B1F',
                 },
             },
             dark: {
                 dark: true,
                 colors: {
-                    primary: '#102E50',       // Same primary for dark theme
-                    secondary: '#2A2A72',     // Same secondary for dark theme
-                    accent: '#E53E3E',        // Same accent for dark theme
-                    error: '#E53E3E',         // Same error for dark theme
-                    info: '#2A2A72',          // Same info for dark theme
-                    success: '#38A169',       // Same success for dark theme
-                    warning: '#E53E3E',       // Same warning for dark theme
-                    background: '#1A1A1A',    // Custom Dark Neutral
-                    surface: '#2A2A2A',       // Slightly lighter than background
-                    'on-primary': '#FFFFFF',   // White text on primary
-                    'on-secondary': '#FFFFFF', // White text on secondary
-                    'on-success': '#FFFFFF',   // White text on success
-                    'on-error': '#FFFFFF',     // White text on error
-                    'on-background': '#FFFFFF', // Light text on dark background
-                    'on-surface': '#FFFFFF',    // Light text on dark surface
+                    primary: '#2196F3',
+                    secondary: '#4CAF50',
+                    accent: '#FF9800',
+                    error: '#F44336',
+                    info: '#2196F3',
+                    success: '#4CAF50',
+                    warning: '#FB8C00',
+                    background: '#121212',
+                    surface: '#1E1E1E',
+                    'on-primary': '#FFFFFF',
+                    'on-secondary': '#FFFFFF',
+                    'on-success': '#FFFFFF',
+                    'on-error': '#FFFFFF',
+                    'on-background': '#E1E1E1',
+                    'on-surface': '#E1E1E1',
                 },
             },
         },
