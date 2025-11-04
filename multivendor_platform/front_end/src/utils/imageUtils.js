@@ -17,8 +17,10 @@ const getBackendBaseUrl = () => {
     if (typeof window !== 'undefined') {
       // Check if we're on the production domain
       const hostname = window.location.hostname;
+      const protocol = window.location.protocol; // 'https:' or 'http:'
       if (hostname.includes('indexo.ir')) {
-        return 'http://multivendor-backend.indexo.ir';
+        // Use HTTPS for production
+        return 'https://multivendor-backend.indexo.ir';
       }
     }
     // Default to local development
@@ -31,28 +33,47 @@ const getBackendBaseUrl = () => {
 
 /**
  * Format image URL to absolute URL
- * @param {string} imageUrl - The image URL (can be relative or absolute)
+ * @param {string|object} imageData - The image URL (string) or object with image_url/image fields
  * @returns {string} - Absolute image URL
  */
-export const formatImageUrl = (imageUrl) => {
-  if (!imageUrl) {
+export const formatImageUrl = (imageData) => {
+  if (!imageData) {
+    return null;
+  }
+  
+  // If imageData is an object (e.g., category/department object), prefer image_url
+  if (typeof imageData === 'object') {
+    // Prefer image_url if available (from backend serializer)
+    if (imageData.image_url) {
+      return imageData.image_url;
+    }
+    // Fall back to image field
+    if (imageData.image) {
+      imageData = imageData.image;
+    } else {
+      return null;
+    }
+  }
+  
+  // imageData is now a string (URL)
+  if (!imageData) {
     return null;
   }
   
   // If already absolute URL, return as is
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    return imageUrl;
+  if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+    return imageData;
   }
   
   // If relative URL (starts with /), prepend backend base URL
-  if (imageUrl.startsWith('/')) {
+  if (imageData.startsWith('/')) {
     const backendBaseUrl = getBackendBaseUrl();
-    return `${backendBaseUrl}${imageUrl}`;
+    return `${backendBaseUrl}${imageData}`;
   }
   
   // If relative URL without leading slash, add it
   const backendBaseUrl = getBackendBaseUrl();
-  return `${backendBaseUrl}/${imageUrl}`;
+  return `${backendBaseUrl}/${imageData}`;
 };
 
 export default formatImageUrl;

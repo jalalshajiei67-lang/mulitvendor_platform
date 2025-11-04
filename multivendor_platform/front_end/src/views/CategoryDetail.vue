@@ -22,8 +22,8 @@
       <div class="category-header">
         <div class="category-image">
           <img 
-            v-if="category.image" 
-            :src="formatImageUrl(category.image)" 
+            v-if="category.image || category.image_url" 
+            :src="formatImageUrl(category)" 
             :alt="category.name"
           />
           <div v-else class="placeholder-image">
@@ -49,8 +49,8 @@
           >
             <div class="circular-image">
               <img 
-                v-if="subcategory.image" 
-                :src="formatImageUrl(subcategory.image)" 
+                v-if="subcategory.image || subcategory.image_url" 
+                :src="formatImageUrl(subcategory)" 
                 :alt="subcategory.name"
               />
               <div v-else class="placeholder-image">

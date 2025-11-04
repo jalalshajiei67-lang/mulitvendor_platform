@@ -22,8 +22,8 @@
       <div class="subcategory-header">
         <div class="subcategory-image">
           <img 
-            v-if="subcategory.image" 
-            :src="formatImageUrl(subcategory.image)" 
+            v-if="subcategory.image || subcategory.image_url" 
+            :src="formatImageUrl(subcategory)" 
             :alt="subcategory.name"
           />
           <div v-else class="placeholder-image">

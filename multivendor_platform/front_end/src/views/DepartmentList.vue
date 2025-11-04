@@ -30,8 +30,8 @@
         >
           <div class="circular-image">
             <img 
-              v-if="department.image" 
-              :src="department.image" 
+              v-if="department.image || department.image_url" 
+              :src="formatImageUrl(department)" 
               :alt="department.name"
             />
             <div v-else class="placeholder-image">
@@ -84,6 +84,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import Breadcrumb from '@/components/Breadcrumb.vue'
+import { formatImageUrl } from '@/utils/imageUtils'
 
 export default {
   name: 'DepartmentList',
@@ -181,7 +182,8 @@ export default {
       nextPage,
       previousPage,
       goToDepartmentDetail,
-      fetchDepartments
+      fetchDepartments,
+      formatImageUrl
     }
   }
 }

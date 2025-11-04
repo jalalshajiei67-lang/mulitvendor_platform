@@ -3,24 +3,55 @@ from rest_framework import serializers
 from .models import Product, Category, Subcategory, Department, ProductImage, ProductComment
 
 class DepartmentSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField(read_only=True)
+    
     class Meta:
         model = Department
-        fields = ['id', 'name', 'slug', 'description', 'image', 'meta_title', 'meta_description', 'is_active', 'sort_order', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'image', 'image_url', 'meta_title', 'meta_description', 'is_active', 'sort_order', 'created_at', 'updated_at']
+    
+    def get_image_url(self, obj):
+        """Return the full URL of the image"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
 class CategorySerializer(serializers.ModelSerializer):
     departments = DepartmentSerializer(many=True, read_only=True)
+    image_url = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug', 'description', 'image', 'meta_title', 'meta_description', 'departments', 'is_active', 'sort_order', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'image', 'image_url', 'meta_title', 'meta_description', 'departments', 'is_active', 'sort_order', 'created_at', 'updated_at']
+    
+    def get_image_url(self, obj):
+        """Return the full URL of the image"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
 class SubcategorySerializer(serializers.ModelSerializer):
     categories = CategorySerializer(many=True, read_only=True)
     departments = serializers.SerializerMethodField(read_only=True)  # Computed from categories
+    image_url = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Subcategory
-        fields = ['id', 'name', 'slug', 'description', 'image', 'meta_title', 'meta_description', 'departments', 'categories', 'is_active', 'sort_order', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'image', 'image_url', 'meta_title', 'meta_description', 'departments', 'categories', 'is_active', 'sort_order', 'created_at', 'updated_at']
+    
+    def get_image_url(self, obj):
+        """Return the full URL of the image"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
     
     def get_departments(self, obj):
         """Get departments through categories"""

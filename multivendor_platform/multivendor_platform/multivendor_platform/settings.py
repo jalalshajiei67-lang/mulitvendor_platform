@@ -179,6 +179,15 @@ CORS_ALLOW_METHODS = [
     'PUT',
 ]
 
+# Security settings for production behind reverse proxy (nginx/CapRover)
+# This ensures Django correctly builds HTTPS URLs when behind a proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_TLS = os.environ.get('USE_TLS', 'False') == 'True'
+if USE_TLS:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 # Configure DRF
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
