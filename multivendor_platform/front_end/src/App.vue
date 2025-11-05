@@ -27,6 +27,7 @@
               <router-link to="/departments" class="text-white text-decoration-none mb-1 hover-link">محصولات</router-link>
               <router-link to="/suppliers" class="text-white text-decoration-none mb-1 hover-link">تامین‌کنندگان</router-link>
               <router-link to="/blog" class="text-white text-decoration-none mb-1 hover-link">وبلاگ</router-link>
+              <router-link to="/contact-us" class="text-white text-decoration-none mb-1 hover-link">تماس با ما</router-link>
               <router-link to="/sitemap" class="text-white text-decoration-none mb-1 hover-link">نقشه سایت</router-link>
             </div>
           </v-col>

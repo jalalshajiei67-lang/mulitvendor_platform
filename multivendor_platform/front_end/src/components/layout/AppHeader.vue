@@ -129,6 +129,15 @@
         وبلاگ
       </v-btn>
       
+      <v-btn 
+        color="white" 
+        variant="text" 
+        to="/contact-us"
+        prepend-icon="mdi-email"
+      >
+        تماس با ما
+      </v-btn>
+      
       <!-- Desktop: My Products for Sellers -->
       <v-btn 
         v-if="authStore.isAuthenticated && authStore.isSeller"
@@ -289,6 +298,13 @@
         title="وبلاگ"
         value="blog"
         @click="navigateAndClose('/blog')"
+      ></v-list-item>
+
+      <v-list-item
+        prepend-icon="mdi-email"
+        title="تماس با ما"
+        value="contact"
+        @click="navigateAndClose('/contact-us')"
       ></v-list-item>
 
       <!-- Authenticated User Menu Items -->

@@ -7,6 +7,7 @@ import ProductDetail from '../views/ProductDetail.vue'
 import ProductForm from '../views/ProductForm.vue'
 import HomeView from '../views/HomeView.vue'
 import AboutView from '../views/AboutView.vue'
+import ContactUs from '../views/ContactUs.vue'
 import SiteMap from '../views/SiteMap.vue'
 import ApiTest from '../views/ApiTest.vue'
 import BlogList from '../views/BlogList.vue'
@@ -37,6 +38,11 @@ const router = createRouter({
       path: '/about',
       name: 'about',
       component: AboutView
+    },
+    {
+      path: '/contact-us',
+      name: 'ContactUs',
+      component: ContactUs
     },
     {
       path: '/sitemap',
