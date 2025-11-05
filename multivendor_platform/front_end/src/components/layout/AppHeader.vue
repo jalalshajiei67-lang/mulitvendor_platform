@@ -20,14 +20,12 @@
 
       <v-toolbar-title class="font-weight-bold d-flex align-center">
         <router-link to="/" class="text-white text-decoration-none d-flex align-center">
-          <v-img 
-            src="/indexo.jpg" 
+          <img 
+            :src="logoPath" 
             alt="Logo" 
-            max-width="40" 
-            max-height="40" 
-            class="me-2"
-            contain
-          ></v-img>
+            class="me-2 logo-img-mobile"
+            style="width: 40px; height: 40px; object-fit: contain; display: block;"
+          />
           <span class="d-none d-sm-inline">  ایندکسو</span>
         </router-link>
       </v-toolbar-title>
@@ -72,14 +70,12 @@
     <template v-else>
       <!-- Desktop Layout: Logo on Left Side -->
       <router-link to="/" class="logo-link d-flex align-center me-4">
-        <v-img 
-          src="/indexo.jpg" 
+        <img 
+          :src="logoPath" 
           alt="Logo" 
-          max-width="50" 
-          max-height="50" 
-          contain
           class="logo-image"
-        ></v-img>
+          style="width: 50px; height: 50px; object-fit: contain; display: block;"
+        />
       </router-link>
 
       <!-- Desktop Layout: Brand Title -->
@@ -379,6 +375,12 @@ const route = useRoute()
 const { mdAndDown } = useDisplay()
 const authStore = useAuthStore()
 
+// Logo path - ensure it works in both dev and production
+const logoPath = computed(() => {
+  // Use public folder path (Vite serves files from public folder at root)
+  return '/indexo.jpg'
+})
+
 // Check if mobile/tablet (< 960px / md breakpoint)
 const isMobile = computed(() => mdAndDown.value)
 
@@ -458,6 +460,24 @@ const goToDjangoAdmin = () => {
 
 .logo-image {
   border-radius: 4px;
+  display: block !important;
+  object-fit: contain;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex-shrink: 0;
+}
+
+/* Mobile logo */
+.logo-img-mobile {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px;
 }
 </style>
 
