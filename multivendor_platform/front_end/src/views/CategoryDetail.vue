@@ -262,7 +262,7 @@ export default {
   gap: 30px;
   margin-bottom: 50px;
   padding: 30px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #1565C0 0%, #0277BD 100%);
   border-radius: 15px;
   color: white;
 }
@@ -317,7 +317,7 @@ export default {
 
 .subcategories-section h2 {
   font-size: 2rem;
-  color: #333;
+  color: #212121;
   margin-bottom: 30px;
   text-align: center;
 }
@@ -329,7 +329,7 @@ export default {
 }
 
 .description-content {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1565C0 0%, #0277BD 100%);
   padding: 40px;
   border-radius: 15px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -545,14 +545,14 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #FF6F00 0%, #FF8F00 100%);
   color: white;
   font-size: 3rem;
 }
 
 .item-title {
   font-size: 1.1rem;
-  color: #333;
+  color: #212121;
   text-align: center;
   margin: 0;
   font-weight: 600;
@@ -560,7 +560,7 @@ export default {
 }
 
 .item-card:hover .item-title {
-  color: #4CAF50;
+  color: #1565C0;
 }
 
 /* Loading State */
@@ -571,7 +571,7 @@ export default {
 
 .spinner {
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #4CAF50;
+  border-top: 4px solid #1565C0;
   border-radius: 50%;
   width: 50px;
   height: 50px;
@@ -599,7 +599,7 @@ export default {
 .retry-btn {
   margin-top: 20px;
   padding: 10px 30px;
-  background: #4CAF50;
+  background: #1565C0;
   color: white;
   border: none;
   border-radius: 5px;
@@ -608,7 +608,7 @@ export default {
 }
 
 .retry-btn:hover {
-  background: #45a049;
+  background: #0D47A1;
 }
 
 /* Empty State */
@@ -627,7 +627,7 @@ export default {
 .empty-state h3 {
   font-size: 1.5rem;
   margin-bottom: 10px;
-  color: #333;
+  color: #212121;
 }
 
 /* Pagination */
@@ -641,7 +641,7 @@ export default {
 
 .pagination button {
   padding: 10px 20px;
-  background: #4CAF50;
+  background: #1565C0;
   color: white;
   border: none;
   border-radius: 5px;
@@ -650,7 +650,7 @@ export default {
 }
 
 .pagination button:hover:not(:disabled) {
-  background: #45a049;
+  background: #0D47A1;
 }
 
 .pagination button:disabled {

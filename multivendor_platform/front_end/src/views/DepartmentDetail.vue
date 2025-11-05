@@ -268,7 +268,7 @@ export default {
   gap: 30px;
   margin-bottom: 40px;
   padding: 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1565C0 0%, #0277BD 100%);
   border-radius: 15px;
   color: white;
 }
@@ -320,7 +320,7 @@ export default {
 
 .description-content h2 {
   font-size: 1.8rem;
-  color: #333;
+  color: #212121;
   margin-bottom: 20px;
   text-align: center;
 }
@@ -356,7 +356,7 @@ export default {
   margin-bottom: 0.8em;
   font-weight: 700;
   line-height: 1.4;
-  color: #333;
+  color: #212121;
 }
 
 .rich-text-content :deep(h1) {
@@ -383,13 +383,13 @@ export default {
 }
 
 .rich-text-content :deep(a) {
-  color: #667eea;
+  color: #1565C0;
   text-decoration: underline;
   transition: color 0.3s ease;
 }
 
 .rich-text-content :deep(a:hover) {
-  color: #764ba2;
+  color: #0D47A1;
 }
 
 .rich-text-content :deep(img) {
@@ -401,7 +401,7 @@ export default {
 }
 
 .rich-text-content :deep(blockquote) {
-  border-right: 4px solid #667eea;
+  border-right: 4px solid #1565C0;
   padding-right: 1.5em;
   margin: 1.5em 0;
   font-style: italic;
@@ -433,7 +433,7 @@ export default {
 .rich-text-content :deep(strong),
 .rich-text-content :deep(b) {
   font-weight: 700;
-  color: #333;
+  color: #212121;
 }
 
 .rich-text-content :deep(em),
@@ -462,7 +462,7 @@ export default {
 .rich-text-content :deep(pre code) {
   background-color: transparent;
   padding: 0;
-  color: #333;
+  color: #212121;
 }
 
 /* Categories Section */
@@ -472,7 +472,7 @@ export default {
 
 .categories-section h2 {
   font-size: 2rem;
-  color: #333;
+  color: #212121;
   margin-bottom: 30px;
   text-align: center;
 }
@@ -530,14 +530,14 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #FF6F00 0%, #FF8F00 100%);
   color: white;
   font-size: 3rem;
 }
 
 .item-title {
   font-size: 1.1rem;
-  color: #333;
+  color: #212121;
   text-align: center;
   margin: 0;
   font-weight: 600;
@@ -547,7 +547,7 @@ export default {
 }
 
 .item-card:hover .item-title {
-  color: #4CAF50;
+  color: #1565C0;
 }
 
 /* Loading State */
@@ -558,7 +558,7 @@ export default {
 
 .spinner {
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #4CAF50;
+  border-top: 4px solid #1565C0;
   border-radius: 50%;
   width: 50px;
   height: 50px;
@@ -586,7 +586,7 @@ export default {
 .retry-btn {
   margin-top: 20px;
   padding: 10px 30px;
-  background: #4CAF50;
+  background: #1565C0;
   color: white;
   border: none;
   border-radius: 5px;
@@ -595,7 +595,7 @@ export default {
 }
 
 .retry-btn:hover {
-  background: #45a049;
+  background: #0D47A1;
 }
 
 /* Empty State */
@@ -614,7 +614,7 @@ export default {
 .empty-state h3 {
   font-size: 1.5rem;
   margin-bottom: 10px;
-  color: #333;
+  color: #212121;
 }
 
 /* Pagination */
@@ -628,7 +628,7 @@ export default {
 
 .pagination button {
   padding: 10px 20px;
-  background: #4CAF50;
+  background: #1565C0;
   color: white;
   border: none;
   border-radius: 5px;
@@ -637,7 +637,7 @@ export default {
 }
 
 .pagination button:hover:not(:disabled) {
-  background: #45a049;
+  background: #0D47A1;
 }
 
 .pagination button:disabled {
