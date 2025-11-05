@@ -135,6 +135,8 @@ input[type="week"],
 .vIPAddressField,
 .vGenericIPAddressField,
 .vCommaSeparatedIntegerField {
+    width: 100% !important;
+    max-width: 100% !important;
     border: 2px solid #cbd5e0 !important;
     border-radius: 6px !important;
     padding: 8px 12px !important;
@@ -149,6 +151,8 @@ input[type="week"],
 /* Textarea fields */
 textarea,
 .vLargeTextField {
+    width: 100% !important;
+    max-width: 100% !important;
     border: 2px solid #cbd5e0 !important;
     border-radius: 6px !important;
     padding: 8px 12px !important;
@@ -162,6 +166,8 @@ textarea,
 /* Select dropdowns */
 select,
 .vSelectMultipleField {
+    width: 100% !important;
+    max-width: 100% !important;
     border: 2px solid #cbd5e0 !important;
     border-radius: 6px !important;
     padding: 8px 12px !important;
@@ -242,6 +248,8 @@ select.errorlist {
     .vIntegerField,
     .vDecimalField,
     .vLargeTextField {
+        width: 100% !important;
+        max-width: 100% !important;
         border-color: #4a5568 !important;
         background-color: #2d3748 !important;
         color: #e2e8f0 !important;
@@ -295,6 +303,8 @@ select.errorlist {
 .unfold-admin .vIntegerField,
 .unfold-admin .vDecimalField,
 .unfold-admin .vLargeTextField {
+    width: 100% !important;
+    max-width: 100% !important;
     border: 2px solid #cbd5e0 !important;
     background-color: #ffffff !important;
 }
@@ -302,6 +312,11 @@ select.errorlist {
 /* Ensure form rows have proper spacing */
 .form-row {
     margin-bottom: 15px;
+    width: 100% !important;
+}
+
+.form-row > div {
+    width: 100% !important;
 }
 
 .form-row label {
@@ -311,17 +326,55 @@ select.errorlist {
     color: #2d3748;
 }
 
+/* Make sure input containers take full width */
+.aligned .form-row input,
+.aligned .form-row textarea,
+.aligned .form-row select {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Fix for Django admin's aligned form layout */
+.aligned .form-row > div {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
 /* Make sure fieldsets are visible */
 fieldset {
+    width: 100% !important;
+    max-width: 100% !important;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
     padding: 15px;
     margin-bottom: 20px;
     background-color: #ffffff;
+    box-sizing: border-box !important;
 }
 
 fieldset legend {
     font-weight: 600;
     padding: 0 10px;
     color: #2d3748;
+}
+
+/* Ensure form container takes full width */
+#content {
+    max-width: 100% !important;
+}
+
+.module {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Fix for Django admin form wrapper */
+.form-row {
+    max-width: 100% !important;
+}
+
+/* Ensure input wrapper divs take full width */
+.form-row > div:not([class*="help"]) {
+    width: 100% !important;
+    max-width: 100% !important;
 }
