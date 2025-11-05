@@ -1,0 +1,19 @@
+# Nginx Static Server with Caching for CapRover
+FROM nginx:alpine
+
+# Copy custom nginx configuration
+COPY nginx/static-server.conf /etc/nginx/nginx.conf
+
+# Create mount points (volumes will be mounted from CapRover)
+RUN mkdir -p /captain/data/backend-static /captain/data/backend-media && \
+    chown -R nginx:nginx /captain/data
+
+# Expose port
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
+

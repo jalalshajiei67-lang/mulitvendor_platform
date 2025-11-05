@@ -19,12 +19,24 @@
   - `DJANGO_SETTINGS_MODULE=multivendor_platform.settings_caprover`
   - Database credentials (if not using secrets)
   - `SECRET_KEY`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`
+- [ ] Persistent Directories:
+  - `/app/staticfiles` → `/captain/data/backend-static` (Label: `static-files`)
+  - `/app/media` → `/captain/data/backend-media` (Label: `media-files`)
 
 ### Frontend App:
 - [ ] App Name: `multivendor-frontend`
 - [ ] Domain: `indexo.ir`
 - [ ] Environment Variables:
   - `VITE_API_BASE_URL=https://multivendor-backend.indexo.ir/api`
+
+### Nginx Static Server App (Optional - for caching):
+- [ ] App Name: `nginx-static-server`
+- [ ] Build Method: Dockerfile
+- [ ] Dockerfile Path: `./Dockerfile.nginx-static`
+- [ ] Persistent Directories:
+  - `/captain/data/backend-static` → `/captain/data/backend-static` (Label: `static`)
+  - `/captain/data/backend-media` → `/captain/data/backend-media` (Label: `media`)
+- [ ] HTTP Settings: Custom Nginx config for routing (see `NGINX_STATIC_SETUP.md`)
 
 ---
 
@@ -47,11 +59,14 @@
 - [ ] `.github/workflows/deploy-caprover.yml`
 - [ ] `Dockerfile.backend`
 - [ ] `Dockerfile.frontend`
+- [ ] `Dockerfile.nginx-static` (if using Nginx static server)
 - [ ] `captain-definition-backend`
 - [ ] `captain-definition-frontend`
+- [ ] `captain-definition-nginx-static` (if using Nginx static server)
 - [ ] `multivendor_platform/multivendor_platform/settings_caprover.py`
 - [ ] `requirements.txt`
 - [ ] `nginx/frontend.conf`
+- [ ] `nginx/static-server.conf` (if using Nginx static server)
 
 ---
 
@@ -102,6 +117,7 @@ caprover deploy \
 
 ## 📚 Full Documentation
 See `REQUIREMENTS_CI_CD_CAPROVER.md` for detailed requirements and troubleshooting.
+
 
 
 
