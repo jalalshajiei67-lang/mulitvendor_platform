@@ -14,40 +14,41 @@ const vuetify = createVuetify({
     rtl: true,
 
     // Enable Material Design 3
+    // Color scheme extracted from indexo.ir/departments/machinery
     theme: {
         defaultTheme: 'light',
         themes: {
             light: {
                 dark: false,
                 colors: {
-                    // Material Design 3 Color Scheme
-                    primary: '#1976D2',       // Blue
-                    secondary: '#4CAF50',     // Green
-                    accent: '#FF9800',        // Orange
-                    error: '#F44336',         // Red
-                    info: '#2196F3',          // Light Blue
-                    success: '#4CAF50',       // Green
-                    warning: '#FFC107',       // Amber
-                    background: '#FAFAFA',    // Light Gray
-                    surface: '#FFFFFF',       // White
+                    // Industrial/Machinery Color Scheme (from indexo.ir)
+                    primary: '#1565C0',       // Deep Blue - Primary brand color
+                    secondary: '#FF6F00',     // Orange - Accent/CTA color
+                    accent: '#FF6F00',        // Orange accent
+                    error: '#D32F2F',         // Red
+                    info: '#0277BD',          // Info blue
+                    success: '#2E7D32',       // Green
+                    warning: '#F57C00',       // Amber/Orange warning
+                    background: '#F5F5F5',    // Light Gray background
+                    surface: '#FFFFFF',       // White surface
                     'on-primary': '#FFFFFF',
                     'on-secondary': '#FFFFFF',
                     'on-success': '#FFFFFF',
                     'on-error': '#FFFFFF',
-                    'on-background': '#1C1B1F',
-                    'on-surface': '#1C1B1F',
+                    'on-background': '#212121',
+                    'on-surface': '#212121',
                 },
             },
             dark: {
                 dark: true,
                 colors: {
-                    primary: '#2196F3',
-                    secondary: '#4CAF50',
+                    primary: '#42A5F5',
+                    secondary: '#FF9800',
                     accent: '#FF9800',
-                    error: '#F44336',
-                    info: '#2196F3',
-                    success: '#4CAF50',
-                    warning: '#FB8C00',
+                    error: '#EF5350',
+                    info: '#42A5F5',
+                    success: '#66BB6A',
+                    warning: '#FFA726',
                     background: '#121212',
                     surface: '#1E1E1E',
                     'on-primary': '#FFFFFF',

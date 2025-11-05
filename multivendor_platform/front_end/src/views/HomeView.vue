@@ -279,12 +279,12 @@ const handleSellerCTA = () => {
 .home {
   min-height: 100vh;
   direction: rtl;
-  background-color: #FAFAFA;
+  background-color: #F5F5F5;
 }
 
 /* Hero Section */
 .hero-section {
-  background: linear-gradient(135deg, #1976D2 0%, #2196F3 100%);
+  background: linear-gradient(135deg, #1565C0 0%, #0277BD 100%);
   min-height: 400px;
   display: flex;
   align-items: center;
@@ -353,14 +353,16 @@ const handleSellerCTA = () => {
 
 .buyers-card {
   background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+  border-left: 4px solid #1565C0;
 }
 
 .sellers-card {
-  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+  border-left: 4px solid #FF6F00;
 }
 
 .section-title {
-  color: #1C1B1F;
+  color: #212121;
   font-weight: 700;
   display: flex;
   align-items: center;
