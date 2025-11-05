@@ -4,17 +4,17 @@
 // Get backend base URL (remove /api suffix if present)
 const getBackendBaseUrl = () => {
   let apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
-  
+
   // Replace Docker hostname with localhost for local development
   if (apiBaseUrl && apiBaseUrl.includes('backend:8000')) {
     apiBaseUrl = apiBaseUrl.replace('backend:8000', '127.0.0.1:8000');
   }
-  
+
   // If API_BASE_URL ends with /api, remove it to get base URL
   if (apiBaseUrl.endsWith('/api')) {
     return apiBaseUrl.replace('/api', '');
   }
-  
+
   // If API_BASE_URL is empty (production with relative URLs), 
   // we need to determine the backend URL from the current origin or use a default
   if (!apiBaseUrl || apiBaseUrl === '') {
@@ -30,7 +30,7 @@ const getBackendBaseUrl = () => {
     // Default to local development
     return 'http://127.0.0.1:8000';
   }
-  
+
   // Return as is (might already be the base URL)
   return apiBaseUrl;
 };
@@ -44,7 +44,7 @@ export const formatImageUrl = (imageData) => {
   if (!imageData) {
     return null;
   }
-  
+
   // If imageData is an object (e.g., category/department object), prefer image_url
   if (typeof imageData === 'object') {
     // Prefer image_url if available (from backend serializer)
@@ -58,23 +58,23 @@ export const formatImageUrl = (imageData) => {
       return null;
     }
   }
-  
+
   // imageData is now a string (URL)
   if (!imageData) {
     return null;
   }
-  
+
   // If already absolute URL, return as is
   if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
     return imageData;
   }
-  
+
   // If relative URL (starts with /), prepend backend base URL
   if (imageData.startsWith('/')) {
     const backendBaseUrl = getBackendBaseUrl();
     return `${backendBaseUrl}${imageData}`;
   }
-  
+
   // If relative URL without leading slash, add it
   const backendBaseUrl = getBackendBaseUrl();
   return `${backendBaseUrl}/${imageData}`;

@@ -76,3 +76,30 @@
         width: 100%;
     }
 }
+
+/* Handle broken images gracefully in admin */
+img[src*="imgi_"],
+img[src*="static/imgi_"],
+img[src*="/static/imgi_"] {
+    display: none !important;
+}
+
+/* Hide broken images in TinyMCE editor and admin */
+.mce-content-body img[src=""],
+.mce-content-body img:not([src]),
+.mce-content-body img[src*="404"],
+iframe img[src*="imgi_"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Error handling for broken images */
+img::before {
+    content: '';
+    display: block;
+}
+
+img[src=""],
+img:not([src]) {
+    display: none;
+}
