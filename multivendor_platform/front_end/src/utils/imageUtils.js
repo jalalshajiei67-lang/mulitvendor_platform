@@ -3,7 +3,12 @@
 
 // Get backend base URL (remove /api suffix if present)
 const getBackendBaseUrl = () => {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  let apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  
+  // Replace Docker hostname with localhost for local development
+  if (apiBaseUrl && apiBaseUrl.includes('backend:8000')) {
+    apiBaseUrl = apiBaseUrl.replace('backend:8000', '127.0.0.1:8000');
+  }
   
   // If API_BASE_URL ends with /api, remove it to get base URL
   if (apiBaseUrl.endsWith('/api')) {
