@@ -105,7 +105,7 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220, unique=True, blank=True)
     description = models.TextField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.PositiveIntegerField(help_text="Price in smallest currency unit (no decimals)")
     stock = models.PositiveIntegerField(default=0)
     image = models.ImageField(upload_to='product_images/', blank=True, null=True)  # Keep for backward compatibility
     image_alt_text = models.CharField(max_length=125, blank=True, null=True, help_text="Alt text for the main image (for SEO and accessibility)")
