@@ -2,3 +2,29 @@
   "schemaVersion": 2,
   "dockerfilePath": "./Dockerfile.backend"
 }
+
+/*
+ * PERSISTENT DATA CONFIGURATION
+ * =============================
+ * 
+ * ⚠️ IMPORTANT: Persistent directories cannot be configured in this file.
+ * They must be configured through the CapRover Dashboard UI.
+ * 
+ * Required Setup Steps:
+ * 1. Go to CapRover Dashboard: https://captain.indexo.ir/
+ * 2. Select your backend app
+ * 3. Go to App Configs → Persistent Directories
+ * 4. Enable "Has Persistent Data"
+ * 5. Add directory: /app/media
+ * 6. Save & Update
+ * 
+ * See CAPROVER_PERSISTENT_SETUP.md for detailed instructions.
+ * 
+ * What gets persisted:
+ * - /app/media/category_images/
+ * - /app/media/subcategory_images/
+ * - /app/media/product_images/
+ * - /app/media/department_images/
+ * - /app/media/blog_images/
+ * - /app/media/user_images/
+ */
