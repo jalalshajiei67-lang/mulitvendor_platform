@@ -196,8 +196,8 @@ router.beforeEach((to, from, next) => {
   // Redirect authenticated users away from guest-only pages
   if ((to.meta.guestOnly && authStore.isAuthenticated)) {
     if (authStore.isAdmin) {
-      // Redirect admins to Django admin panel
-      window.location.href = config.djangoAdminUrl
+      // Redirect admins to Vue.js admin dashboard
+      next('/admin/dashboard')
       return
     } else if (authStore.isSeller) {
       next('/seller/dashboard')

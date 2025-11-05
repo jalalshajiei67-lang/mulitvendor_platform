@@ -151,9 +151,9 @@ export default {
         })
         
         // Redirect based on user role
-        if (response?.user?.is_staff) {
-          // Redirect admins/superusers to Django admin panel
-          window.location.href = config.djangoAdminUrl
+        if (response?.user?.is_staff || response?.user?.is_superuser) {
+          // Redirect admins/superusers to Vue.js admin dashboard
+          router.push('/admin/dashboard')
         } else if (response?.user?.role === 'seller' || response?.user?.role === 'both') {
           router.push('/seller/dashboard')
         } else {
