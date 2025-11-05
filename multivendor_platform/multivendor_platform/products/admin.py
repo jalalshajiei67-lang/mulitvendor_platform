@@ -58,6 +58,11 @@ class ProductAdminForm(forms.ModelForm):
         fields = '__all__'
         widgets = {
             'description': TinyMCE(attrs={'cols': 80, 'rows': 30}),
+            'price': forms.NumberInput(attrs={
+                'type': 'text',  # Use text type to allow formatting
+                'class': 'vTextField',
+                'placeholder': 'Enter price (e.g., 1,234,567)',
+            }),
         }
     
     def __init__(self, *args, **kwargs):
@@ -66,6 +71,23 @@ class ProductAdminForm(forms.ModelForm):
             # Show existing images count
             existing_count = self.instance.images.count()
             self.fields['multiple_images'].help_text = f"Select additional images to upload (current: {existing_count}/20)"
+    
+    def clean_price(self):
+        """Remove thousand separators before saving"""
+        price = self.cleaned_data.get('price')
+        if price:
+            # If price is a string with commas, remove them
+            if isinstance(price, str):
+                price = price.replace(',', '').strip()
+                if price:
+                    try:
+                        return int(price)
+                    except ValueError:
+                        raise forms.ValidationError("Price must be a valid number.")
+            # If price is already a number (int/float), convert to int
+            elif isinstance(price, (int, float)):
+                return int(price)
+        return price
     
     def clean_multiple_images(self):
         # Get files from both cleaned_data and request.FILES
@@ -471,7 +493,7 @@ class ProductAdmin(admin.ModelAdmin):
                         product_image.save()
     
     class Media:
-        js = ('admin/js/fix_action_button.js',)
+        js = ('admin/js/fix_action_button.js', 'admin/js/price_formatter.js',)
         css = {
             'all': ('admin/css/custom_admin.css', 'admin/css/force_action_button.css',)
         }

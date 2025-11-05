@@ -38,16 +38,6 @@
       <!-- Categories Section -->
       <div class="categories-section">
         <h2>دسته‌بندی‌های این بخش</h2>
-        
-        <!-- Search Box -->
-        <div class="search-box">
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="جستجوی دسته‌بندی..."
-            @input="handleSearch"
-          />
-        </div>
 
         <!-- Categories Grid -->
         <div v-if="paginatedCategories.length > 0" class="items-grid">
@@ -251,11 +241,9 @@ export default {
       paginatedCategories,
       loading,
       error,
-      searchQuery,
       currentPage,
       totalPages,
       breadcrumbItems,
-      handleSearch,
       nextPage,
       previousPage,
       goToCategoryDetail,
@@ -487,26 +475,6 @@ export default {
   color: #333;
   margin-bottom: 30px;
   text-align: center;
-}
-
-.search-box {
-  max-width: 500px;
-  margin: 0 auto 40px;
-}
-
-.search-box input {
-  width: 100%;
-  padding: 12px 20px;
-  border: 2px solid #e0e0e0;
-  border-radius: 25px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-.search-box input:focus {
-  outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
 /* Grid Layout */

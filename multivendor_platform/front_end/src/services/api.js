@@ -4,11 +4,31 @@ import axios from 'axios';
 // Use VITE_API_BASE_URL environment variable, or default based on mode
 // In production, VITE_API_BASE_URL should include /api suffix
 // In development, use local Django server
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (
+let apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+// If VITE_API_BASE_URL is set but contains Docker hostname 'backend:8000', 
+// replace it with localhost for local development
+if (apiBaseUrl && apiBaseUrl.includes('backend:8000')) {
+  console.warn('⚠️ Detected Docker hostname "backend:8000" in VITE_API_BASE_URL. Using localhost instead for local development.');
+  apiBaseUrl = apiBaseUrl.replace('backend:8000', '127.0.0.1:8000');
+}
+
+// Ensure /api suffix is present for local development
+if (apiBaseUrl && !apiBaseUrl.endsWith('/api') && !apiBaseUrl.endsWith('/api/')) {
+  // Only add /api if it's a full URL (not empty/relative)
+  if (apiBaseUrl.startsWith('http')) {
+    apiBaseUrl = apiBaseUrl.endsWith('/') ? apiBaseUrl + 'api' : apiBaseUrl + '/api';
+  }
+}
+
+const API_BASE_URL = apiBaseUrl || (
   import.meta.env.MODE === 'production'
     ? ''  // Empty for relative URLs in production (Nginx handles routing)
     : 'http://127.0.0.1:8000/api'
 );
+
+// Log the final API base URL for debugging
+console.log('🔧 API Client initialized with baseURL:', API_BASE_URL);
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

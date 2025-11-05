@@ -323,10 +323,10 @@ TINYMCE_DEFAULT_CONFIG = {
     'selector': 'textarea',
     'theme': 'silver',
     'plugins': '''
-            textcolor save link image media preview codesample contextmenu
+            save link image media preview codesample contextmenu
             table code lists fullscreen insertdatetime nonbreaking
-            contextmenu directionality searchreplace wordcount visualblocks
-            visualchars code fullscreen autolink lists charmap print hr
+            directionality searchreplace wordcount visualblocks
+            visualchars autolink charmap print hr
             anchor pagebreak
             ''',
     'toolbar1': '''

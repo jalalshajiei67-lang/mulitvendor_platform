@@ -1,0 +1,35 @@
+╔══════════════════════════════════════════════════════════════╗
+║     QUICK GUIDE: Download Online Database to Local          ║
+╚══════════════════════════════════════════════════════════════╝
+
+🎯 FASTEST METHOD (Windows with Docker):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Start Docker Desktop
+2. Run: .\download-database-docker.ps1
+3. Type 'yes' when asked to restore
+4. Done! ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 OTHER METHODS:
+
+Method 2: SSH Method (Most Reliable)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. SSH: ssh root@185.208.172.76
+2. Run: docker exec srv-captain--postgres-db pg_dump -U postgres multivendor_db > backup.sql
+3. Download: scp root@185.208.172.76:/root/backup.sql ./
+4. Restore: cat backup.sql | docker exec -i multivendor_db psql -U postgres -d multivendor_db
+
+Method 3: CapRover Dashboard
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Open: https://captain.indexo.ir
+2. Go to: Apps → postgres-db → Terminal
+3. Run: pg_dump -U postgres multivendor_db > /captain/data/backup.sql
+4. Download via file manager or SCP
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📁 Backup Location: ./database_backups/
+
+📖 Full Guide: See DOWNLOAD_DATABASE_GUIDE.md
+

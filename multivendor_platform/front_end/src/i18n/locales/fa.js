@@ -97,7 +97,16 @@ export default {
         passwordRequired: 'رمز عبور الزامی است',
         passwordMismatch: 'رمز عبور و تکرار آن یکسان نیستند',
         invalidEmail: 'فرمت ایمیل نامعتبر است',
-        passwordTooShort: 'رمز عبور باید حداقل 8 کاراکتر باشد'
+        passwordTooShort: 'رمز عبور باید حداقل 8 کاراکتر باشد',
+        address: 'آدرس',
+        storeInformation: 'اطلاعات فروشگاه',
+        storeName: 'نام فروشگاه',
+        storeDescription: 'توضیحات فروشگاه',
+        storeNameRequired: 'نام فروشگاه برای فروشندگان الزامی است',
+        usernameMinLength: 'نام کاربری باید حداقل 3 کاراکتر باشد',
+        passwordMinLength: 'رمز عبور باید حداقل 6 کاراکتر باشد',
+        confirmPasswordRequired: 'لطفاً رمز عبور خود را تایید کنید',
+        roleRequired: 'لطفاً یک نقش انتخاب کنید'
     },
 
     // Products

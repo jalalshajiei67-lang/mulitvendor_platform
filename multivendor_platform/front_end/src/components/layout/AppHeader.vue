@@ -5,32 +5,19 @@
     elevation="2"
     :prominent="isMobile"
     :fixed="isMobile"
-    class="px-2"
+    class="px-2 header-container"
     app
     dir="rtl"
   >
-    <!-- Mobile Layout: Logo and User Menu on Top Row -->
+    <!-- Mobile/Tablet Layout: Logo on Left, Menu on Right -->
     <template v-if="isMobile">
-      <!-- Hamburger Menu Button -->
+      <!-- Hamburger Menu Button on Right End (first in DOM = right side in RTL) -->
       <v-app-bar-nav-icon 
         @click.stop="toggleDrawer"
         variant="text"
         color="white"
+        class="hamburger-menu"
       ></v-app-bar-nav-icon>
-
-      <v-toolbar-title class="font-weight-bold d-flex align-center">
-        <router-link to="/" class="text-white text-decoration-none d-flex align-center">
-          <v-img 
-            src="/indexo.jpg" 
-            alt="Logo" 
-            max-width="40" 
-            max-height="40" 
-            class="me-2"
-            contain
-          ></v-img>
-          <span class="d-none d-sm-inline">  ایندکسو</span>
-        </router-link>
-      </v-toolbar-title>
 
       <v-spacer></v-spacer>
 
@@ -66,27 +53,98 @@
           </v-list-item>
         </v-list>
       </v-menu>
+
+      <v-spacer></v-spacer>
+
+      <!-- Logo on Left End (last in DOM = left side in RTL) -->
+      <router-link to="/" class="logo-link-mobile d-flex align-center">
+        <img 
+          :src="logoPath" 
+          alt="Logo" 
+          class="logo-img-mobile"
+        />
+        <span class="ms-2 d-none d-sm-inline text-white font-weight-bold">ایندکسو</span>
+      </router-link>
     </template>
 
     <!-- Desktop Layout -->
     <template v-else>
-      <!-- Desktop Layout: Logo on Left Side -->
-      <router-link to="/" class="logo-link d-flex align-center me-4">
-        <v-img 
-          src="/indexo.jpg" 
-          alt="Logo" 
-          max-width="50" 
-          max-height="50" 
-          contain
-          class="logo-image"
-        ></v-img>
-      </router-link>
+      <!-- Desktop: User Menu (first = right side in RTL) -->
+      <template v-if="authStore.isAuthenticated">
+        <v-btn 
+          icon="mdi-bell" 
+          variant="text"
+          color="white"
+          class="d-none d-sm-flex"
+        ></v-btn>
+        
+        <v-menu location="bottom">
+          <template v-slot:activator="{ props }">
+            <v-btn 
+              icon="mdi-account-circle" 
+              v-bind="props"
+              variant="text"
+              color="white"
+            ></v-btn>
+          </template>
+          <v-list dir="rtl">
+            <v-list-item>
+              <v-list-item-title class="font-weight-bold">{{ authStore.user?.username }}</v-list-item-title>
+              <v-list-item-subtitle>{{ authStore.user?.role }}</v-list-item-subtitle>
+            </v-list-item>
+            <v-divider></v-divider>
+            <v-list-item v-if="authStore.isAdmin" @click="goToDjangoAdmin" prepend-icon="mdi-shield-crown">
+              <v-list-item-title>پنل مدیریت جنگو</v-list-item-title>
+            </v-list-item>
+            <v-list-item v-if="authStore.isSeller" @click="navigateTo('/seller/dashboard')" prepend-icon="mdi-store">
+              <v-list-item-title>داشبورد فروشنده</v-list-item-title>
+            </v-list-item>
+            <v-list-item v-if="authStore.isBuyer" @click="navigateTo('/buyer/dashboard')" prepend-icon="mdi-view-dashboard">
+              <v-list-item-title>داشبورد خریدار</v-list-item-title>
+            </v-list-item>
+            <v-divider></v-divider>
+            <v-list-item @click="handleLogout" prepend-icon="mdi-logout">
+              <v-list-item-title>خروج</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+      </template>
+      <template v-else>
+        <v-btn 
+          color="white" 
+          variant="text" 
+          @click="navigateTo('/login')" 
+          class="mx-1" 
+          size="small"
+        >
+          ورود
+        </v-btn>
+        <v-btn 
+          color="white" 
+          variant="outlined" 
+          @click="navigateTo('/register')" 
+          size="small"
+        >
+          ثبت‌نام
+        </v-btn>
+      </template>
 
-      <!-- Desktop Layout: Brand Title -->
-      <v-toolbar-title class="font-weight-bold">
-        <router-link to="/" class="text-white text-decoration-none">
-          پلتفرم چند فروشنده
-        </router-link>
+      <v-spacer v-if="!isHomePage" class="d-none d-xl-flex"></v-spacer>
+
+      <!-- Desktop: Search Bar (hidden on home page) -->
+      <div 
+        v-if="!isHomePage"
+        class="search-container desktop-search mx-auto d-none d-xl-flex"
+        style="max-width: 400px;"
+      >
+        <GlobalSearch />
+      </div>
+
+      <v-spacer></v-spacer>
+
+      <!-- Desktop: Platform Title -->
+      <v-toolbar-title class="font-weight-bold d-none d-lg-flex">
+        <span class="text-white">ایندکسو</span>
       </v-toolbar-title>
 
       <v-spacer></v-spacer>
@@ -163,79 +221,18 @@
 
       <v-spacer></v-spacer>
 
-      <!-- Desktop: Search Bar -->
-      <div 
-        class="search-container desktop-search mx-auto"
-        style="max-width: 400px;"
-      >
-        <GlobalSearch />
-      </div>
-
-      <v-spacer></v-spacer>
-
-      <!-- Desktop: User Menu -->
-      <template v-if="authStore.isAuthenticated">
-        <v-btn 
-          icon="mdi-bell" 
-          variant="text"
-          color="white"
-          class="d-none d-sm-flex"
-        ></v-btn>
-        
-        <v-menu location="bottom">
-          <template v-slot:activator="{ props }">
-            <v-btn 
-              icon="mdi-account-circle" 
-              v-bind="props"
-              variant="text"
-              color="white"
-            ></v-btn>
-          </template>
-          <v-list dir="rtl">
-            <v-list-item>
-              <v-list-item-title class="font-weight-bold">{{ authStore.user?.username }}</v-list-item-title>
-              <v-list-item-subtitle>{{ authStore.user?.role }}</v-list-item-subtitle>
-            </v-list-item>
-            <v-divider></v-divider>
-            <v-list-item v-if="authStore.isAdmin" @click="goToDjangoAdmin" prepend-icon="mdi-shield-crown">
-              <v-list-item-title>پنل مدیریت جنگو</v-list-item-title>
-            </v-list-item>
-            <v-list-item v-if="authStore.isSeller" @click="navigateTo('/seller/dashboard')" prepend-icon="mdi-store">
-              <v-list-item-title>داشبورد فروشنده</v-list-item-title>
-            </v-list-item>
-            <v-list-item v-if="authStore.isBuyer" @click="navigateTo('/buyer/dashboard')" prepend-icon="mdi-view-dashboard">
-              <v-list-item-title>داشبورد خریدار</v-list-item-title>
-            </v-list-item>
-            <v-divider></v-divider>
-            <v-list-item @click="handleLogout" prepend-icon="mdi-logout">
-              <v-list-item-title>خروج</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-menu>
-      </template>
-      <template v-else>
-        <v-btn 
-          color="white" 
-          variant="text" 
-          @click="navigateTo('/login')" 
-          class="mx-1" 
-          size="small"
-        >
-          ورود
-        </v-btn>
-        <v-btn 
-          color="white" 
-          variant="outlined" 
-          @click="navigateTo('/register')" 
-          size="small"
-        >
-          ثبت‌نام
-        </v-btn>
-      </template>
+      <!-- Logo on Left End (last in DOM = left side in RTL) -->
+      <router-link to="/" class="logo-link d-flex align-center">
+        <img 
+          :src="logoPath" 
+          alt="Logo" 
+          class="logo-image"
+        />
+      </router-link>
     </template>
 
-    <!-- Mobile: Large Search Bar (Below title row) -->
-    <template v-if="isMobile" v-slot:extension>
+    <!-- Mobile: Large Search Bar (Below title row, hidden on home page) -->
+    <template v-if="isMobile && !isHomePage" v-slot:extension>
       <div class="mobile-search-container pa-2 d-flex justify-center">
         <GlobalSearch />
       </div>
@@ -383,18 +380,28 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
 import GlobalSearch from '@/components/GlobalSearch.vue'
 import config from '@/config'
 
 const router = useRouter()
+const route = useRoute()
 const { mdAndDown } = useDisplay()
 const authStore = useAuthStore()
 
+// Logo path - ensure it works in both dev and production
+const logoPath = computed(() => {
+  // Use public folder path (Vite serves files from public folder at root)
+  return '/indexo.jpg'
+})
+
 // Check if mobile/tablet (< 960px / md breakpoint)
 const isMobile = computed(() => mdAndDown.value)
+
+// Check if current route is home page
+const isHomePage = computed(() => route.name === 'home')
 
 // Drawer state for mobile navigation
 const drawer = ref(false)
@@ -441,6 +448,7 @@ const goToDjangoAdmin = () => {
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-top: 10px; /* 5px distance from logo bottom to search box top */
 }
 
 .desktop-search {
@@ -457,18 +465,69 @@ const goToDjangoAdmin = () => {
   text-decoration: none !important;
 }
 
-/* Logo Styles */
-.logo-link {
-  text-decoration: none;
-  transition: opacity 0.3s ease;
+/* Header Container - Logo positioning in RTL */
+.header-container {
+  position: relative;
 }
 
-.logo-link:hover {
+/* Logo Styles - Position at left end (last in DOM = left in RTL) */
+.logo-link,
+.logo-link-mobile {
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+  flex-shrink: 0;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.logo-link:hover,
+.logo-link-mobile:hover {
   opacity: 0.8;
 }
 
 .logo-image {
   border-radius: 4px;
+  display: block !important;
+  object-fit: contain;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex-shrink: 0;
+  /* Logo height: 5px smaller than header height, width auto to maintain aspect ratio */
+  /* Vuetify default toolbar height is 64px */
+  height: calc(64px - 5px);
+  width: auto;
+  max-height: calc(64px - 5px);
+}
+
+/* Mobile logo - Use prominent height for mobile when applicable */
+.logo-img-mobile {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px;
+  /* Logo height: 5px smaller than header height, width auto to maintain aspect ratio */
+  /* Default mobile toolbar height */
+  height: calc(64px - 5px);
+  width: auto;
+  object-fit: contain;
+  max-height: calc(64px - 5px);
+}
+
+/* Adjust for prominent toolbar on mobile - Vuetify prominent height is 128px */
+.header-container :deep(.v-toolbar--prominent) .logo-img-mobile {
+  height: calc(128px - 5px);
+  max-height: calc(128px - 5px);
+}
+
+/* Ensure proper spacing for logo links */
+.logo-link-mobile {
+  margin-left: 0;
+  margin-right: 0;
 }
 </style>
 
