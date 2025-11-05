@@ -1,8 +1,8 @@
 <template>
-  <v-container fluid class="fill-height">
+  <v-container fluid class="fill-height auth-container">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="8" md="4">
-        <v-card class="elevation-12" rounded="lg">
+        <v-card class="elevation-12" rounded="lg" dir="rtl">
           <v-toolbar color="primary" dark prominent>
             <v-toolbar-title class="text-h5">{{ t('auth.loginToAccount') }}</v-toolbar-title>
           </v-toolbar>
@@ -16,6 +16,7 @@
                 rounded="lg"
                 :rules="usernameRules"
                 required
+                dir="rtl"
               ></v-text-field>
 
               <v-text-field
@@ -29,9 +30,10 @@
                 @click:append-inner="showPassword = !showPassword"
                 :rules="passwordRules"
                 required
+                dir="rtl"
               ></v-text-field>
 
-              <v-alert v-if="error" type="error" variant="tonal" class="mt-3">
+              <v-alert v-if="error" type="error" variant="tonal" class="mt-3" dir="rtl">
                 {{ error }}
               </v-alert>
             </v-form>
@@ -51,7 +53,7 @@
             </v-btn>
           </v-card-actions>
           <v-divider></v-divider>
-          <v-card-text class="text-center pa-4">
+          <v-card-text class="text-center pa-4" dir="rtl">
             {{ t('auth.dontHaveAccount') }}
             <router-link to="/register" class="text-primary font-weight-bold">{{ t('auth.registerHere') }}</router-link>
           </v-card-text>
@@ -186,6 +188,37 @@ export default {
 <style scoped>
 .fill-height {
   min-height: 100vh;
+}
+
+.auth-container {
+  direction: rtl;
+  text-align: right;
+}
+
+/* RTL adjustments for form fields */
+:deep(.v-field__input) {
+  text-align: right;
+  direction: rtl;
+}
+
+:deep(.v-field__prepend-inner) {
+  padding-right: 0;
+  padding-left: 12px;
+}
+
+:deep(.v-field__append-inner) {
+  padding-left: 0;
+  padding-right: 12px;
+}
+
+:deep(.v-label) {
+  right: 0;
+  left: auto;
+}
+
+/* RTL for card actions */
+:deep(.v-card-actions) {
+  flex-direction: row-reverse;
 }
 </style>
 

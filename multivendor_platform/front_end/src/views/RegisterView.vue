@@ -1,8 +1,8 @@
 <template>
-  <v-container fluid class="fill-height">
+  <v-container fluid class="fill-height auth-container">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="10" md="6">
-        <v-card class="elevation-12" rounded="lg">
+        <v-card class="elevation-12" rounded="lg" dir="rtl">
           <v-toolbar color="primary" dark prominent>
             <v-toolbar-title class="text-h5">{{ t('auth.createAccount') }}</v-toolbar-title>
           </v-toolbar>
@@ -10,15 +10,16 @@
             <v-form ref="form" v-model="valid" @submit.prevent="handleRegister">
               <v-row>
                 <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="formData.username"
-                    :label="t('auth.username') + ' *'"
-                    prepend-inner-icon="mdi-account"
-                    variant="outlined"
-                    rounded="lg"
-                    :rules="usernameRules"
-                    required
-                  ></v-text-field>
+              <v-text-field
+                v-model="formData.username"
+                :label="t('auth.username') + ' *'"
+                prepend-inner-icon="mdi-account"
+                variant="outlined"
+                rounded="lg"
+                :rules="usernameRules"
+                required
+                dir="rtl"
+              ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
                   <v-text-field
@@ -30,6 +31,7 @@
                     type="email"
                     :rules="emailRules"
                     required
+                    dir="rtl"
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -42,6 +44,7 @@
                     prepend-inner-icon="mdi-account-outline"
                     variant="outlined"
                     rounded="lg"
+                    dir="rtl"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
@@ -51,6 +54,7 @@
                     prepend-inner-icon="mdi-account-outline"
                     variant="outlined"
                     rounded="lg"
+                    dir="rtl"
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -68,6 +72,7 @@
                     @click:append-inner="showPassword = !showPassword"
                     :rules="passwordRules"
                     required
+                    dir="rtl"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
@@ -80,6 +85,7 @@
                     :type="showPassword ? 'text' : 'password'"
                     :rules="confirmPasswordRules"
                     required
+                    dir="rtl"
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -92,6 +98,7 @@
                     prepend-inner-icon="mdi-phone"
                     variant="outlined"
                     rounded="lg"
+                    dir="rtl"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
@@ -106,43 +113,47 @@
                     item-value="value"
                     :rules="roleRules"
                     required
+                    dir="rtl"
                   ></v-select>
                 </v-col>
               </v-row>
 
               <v-text-field
                 v-model="formData.address"
-                label="آدرس"
+                :label="t('auth.address')"
                 prepend-inner-icon="mdi-map-marker"
                 variant="outlined"
                 rounded="lg"
+                dir="rtl"
               ></v-text-field>
 
               <!-- Seller-specific fields -->
               <v-expand-transition>
-                <div v-if="formData.role === 'seller' || formData.role === 'both'">
+                <div v-if="formData.role === 'seller' || formData.role === 'both'" dir="rtl">
                   <v-divider class="my-4"></v-divider>
-                  <h3 class="text-h6 mb-3">اطلاعات فروشگاه</h3>
+                  <h3 class="text-h6 mb-3">{{ t('auth.storeInformation') }}</h3>
                   <v-text-field
                     v-model="formData.store_name"
-                    label="نام فروشگاه *"
+                    :label="t('auth.storeName') + ' *'"
                     prepend-inner-icon="mdi-store"
                     variant="outlined"
                     rounded="lg"
                     :rules="storeNameRules"
+                    dir="rtl"
                   ></v-text-field>
                   <v-textarea
                     v-model="formData.store_description"
-                    label="توضیحات فروشگاه"
+                    :label="t('auth.storeDescription')"
                     prepend-inner-icon="mdi-text"
                     variant="outlined"
                     rounded="lg"
                     rows="3"
+                    dir="rtl"
                   ></v-textarea>
                 </div>
               </v-expand-transition>
 
-              <v-alert v-if="error" type="error" variant="tonal" class="mt-3">
+              <v-alert v-if="error" type="error" variant="tonal" class="mt-3" dir="rtl">
                 {{ error }}
               </v-alert>
             </v-form>
@@ -162,7 +173,7 @@
             </v-btn>
           </v-card-actions>
           <v-divider></v-divider>
-          <v-card-text class="text-center pa-4">
+          <v-card-text class="text-center pa-4" dir="rtl">
             {{ t('auth.alreadyHaveAccount') }}
             <router-link to="/login" class="text-primary font-weight-bold">{{ t('auth.loginHere') }}</router-link>
           </v-card-text>
@@ -246,7 +257,7 @@ export default {
     
     const usernameRules = [
       v => !!v || t('auth.usernameRequired', 'نام کاربری الزامی است'),
-      v => !v || v.length >= 3 || 'نام کاربری باید حداقل 3 کاراکتر باشد'
+      v => !v || v.length >= 3 || t('auth.usernameMinLength', 'نام کاربری باید حداقل 3 کاراکتر باشد')
     ]
     
     const emailRules = [
@@ -256,21 +267,21 @@ export default {
     
     const passwordRules = [
       v => !!v || t('auth.passwordRequired', 'رمز عبور الزامی است'),
-      v => !v || v.length >= 6 || 'رمز عبور باید حداقل 6 کاراکتر باشد'
+      v => !v || v.length >= 6 || t('auth.passwordMinLength', 'رمز عبور باید حداقل 6 کاراکتر باشد')
     ]
     
     const confirmPasswordRules = [
-      v => !!v || 'لطفاً رمز عبور خود را تایید کنید',
+      v => !!v || t('auth.confirmPasswordRequired', 'لطفاً رمز عبور خود را تایید کنید'),
       v => v === formData.value.password || t('auth.passwordMismatch', 'رمز عبور و تکرار آن یکسان نیستند')
     ]
     
     const roleRules = [
-      v => !!v || 'لطفاً یک نقش انتخاب کنید'
+      v => !!v || t('auth.roleRequired', 'لطفاً یک نقش انتخاب کنید')
     ]
     
     const storeNameRules = computed(() => {
       if (formData.value.role === 'seller' || formData.value.role === 'both') {
-        return [v => !!v || 'نام فروشگاه برای فروشندگان الزامی است']
+        return [v => !!v || t('auth.storeNameRequired', 'نام فروشگاه برای فروشندگان الزامی است')]
       }
       return []
     })
@@ -346,6 +357,49 @@ export default {
 <style scoped>
 .fill-height {
   min-height: 100vh;
+}
+
+.auth-container {
+  direction: rtl;
+  text-align: right;
+}
+
+/* RTL adjustments for form fields */
+:deep(.v-field__input) {
+  text-align: right;
+  direction: rtl;
+}
+
+:deep(.v-field__prepend-inner) {
+  padding-right: 0;
+  padding-left: 12px;
+}
+
+:deep(.v-field__append-inner) {
+  padding-left: 0;
+  padding-right: 12px;
+}
+
+:deep(.v-label) {
+  right: 0;
+  left: auto;
+}
+
+/* RTL for card actions */
+:deep(.v-card-actions) {
+  flex-direction: row-reverse;
+}
+
+/* RTL for select dropdown */
+:deep(.v-select__selection) {
+  text-align: right;
+  direction: rtl;
+}
+
+/* RTL for textarea */
+:deep(.v-textarea .v-field__input) {
+  text-align: right;
+  direction: rtl;
 }
 </style>
 

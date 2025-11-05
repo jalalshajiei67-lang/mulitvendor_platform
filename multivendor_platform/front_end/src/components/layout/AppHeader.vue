@@ -154,8 +154,9 @@
 
       <v-spacer></v-spacer>
 
-      <!-- Desktop: Search Bar -->
+      <!-- Desktop: Search Bar (hidden on home page) -->
       <div 
+        v-if="!isHomePage"
         class="search-container desktop-search mx-auto"
         style="max-width: 400px;"
       >
@@ -225,8 +226,8 @@
       </template>
     </template>
 
-    <!-- Mobile: Large Search Bar (Below title row) -->
-    <template v-if="isMobile" v-slot:extension>
+    <!-- Mobile: Large Search Bar (Below title row, hidden on home page) -->
+    <template v-if="isMobile && !isHomePage" v-slot:extension>
       <div class="mobile-search-container pa-2 d-flex justify-center">
         <GlobalSearch />
       </div>
@@ -367,18 +368,22 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
 import GlobalSearch from '@/components/GlobalSearch.vue'
 import config from '@/config'
 
 const router = useRouter()
+const route = useRoute()
 const { mdAndDown } = useDisplay()
 const authStore = useAuthStore()
 
 // Check if mobile/tablet (< 960px / md breakpoint)
 const isMobile = computed(() => mdAndDown.value)
+
+// Check if current route is home page
+const isHomePage = computed(() => route.name === 'home')
 
 // Drawer state for mobile navigation
 const drawer = ref(false)

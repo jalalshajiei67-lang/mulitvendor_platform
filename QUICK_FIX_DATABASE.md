@@ -107,3 +107,5 @@ docker exec -it srv-captain--multivendor-backend python manage.py migrate
 
 
 
+
+
