@@ -30,8 +30,15 @@ def favicon_view(request):
     """Simple favicon handler to prevent 404 errors"""
     return HttpResponse(status=204)  # No content response
 
+def health_check(request):
+    """Health check endpoint for monitoring and debugging"""
+    return HttpResponse("OK", content_type="text/plain", status=200)
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # Health check endpoint
+    path('health/', health_check, name='health'),
     
     # Home page
     path('', HomeView.as_view(), name='home'),
