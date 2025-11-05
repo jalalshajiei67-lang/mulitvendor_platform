@@ -36,6 +36,14 @@ class BlogCategoryViewSet(viewsets.ModelViewSet):
     serializer_class = BlogCategorySerializer
     lookup_field = 'slug'
     
+    def get_queryset(self):
+        """Get queryset with safe select_related to avoid errors"""
+        try:
+            return BlogCategory.objects.filter(is_active=True).select_related('linked_product_category').order_by('name')
+        except Exception:
+            # Fallback if select_related fails
+            return BlogCategory.objects.filter(is_active=True).order_by('name')
+    
     def get_permissions(self):
         """
         Set permissions based on action

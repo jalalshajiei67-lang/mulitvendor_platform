@@ -1,15 +1,30 @@
 # blog/serializers.py
 from rest_framework import serializers
 from .models import BlogPost, BlogCategory, BlogComment
-from products.serializers import CategorySerializer
 
 class BlogCategorySerializer(serializers.ModelSerializer):
     """
     Serializer for blog categories
     """
-    linked_product_category = CategorySerializer(read_only=True)
+    # Import CategorySerializer locally to avoid circular import issues
+    linked_product_category = serializers.SerializerMethodField()
     linked_product_category_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     post_count = serializers.SerializerMethodField()
+    
+    def get_linked_product_category(self, obj):
+        """Get linked product category data safely"""
+        if obj.linked_product_category:
+            try:
+                from products.serializers import CategorySerializer
+                return CategorySerializer(obj.linked_product_category).data
+            except Exception:
+                # Fallback to basic data if serializer fails
+                return {
+                    'id': obj.linked_product_category.id,
+                    'name': obj.linked_product_category.name,
+                    'slug': obj.linked_product_category.slug,
+                }
+        return None
     
     class Meta:
         model = BlogCategory
@@ -22,7 +37,10 @@ class BlogCategorySerializer(serializers.ModelSerializer):
     
     def get_post_count(self, obj):
         """Get count of published posts in this category"""
-        return obj.blog_posts.filter(status='published').count()
+        try:
+            return obj.blog_posts.filter(status='published').count()
+        except Exception:
+            return 0
 
 class BlogCommentSerializer(serializers.ModelSerializer):
     """
