@@ -19,22 +19,15 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy Django project
 COPY multivendor_platform/multivendor_platform/ /app/
 
+# Copy startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Create directories
 RUN mkdir -p /app/staticfiles /app/media /app/logs
 
 EXPOSE 80
 
-# FIXED: Includes collectstatic to serve CSS/JS files properly
-# Also creates media subdirectories and sets proper permissions
-# Improved error handling with better logging
-CMD echo "Starting backend application..." && \
-    echo "Creating media directories..." && \
-    mkdir -p /app/media/category_images /app/media/subcategory_images /app/media/product_images /app/media/department_images /app/media/blog_images /app/media/user_images && \
-    chmod -R 755 /app/media && \
-    echo "Running database migrations..." && \
-    python manage.py migrate --noinput || (echo "Migration failed!" && exit 1) && \
-    echo "Collecting static files..." && \
-    python manage.py collectstatic --noinput --clear || (echo "Collectstatic failed!" && exit 1) && \
-    echo "Starting Gunicorn server..." && \
-    gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:80 --workers 4 --timeout 120 --access-logfile - --error-logfile - --log-level info
+# Use startup script for better error handling and logging
+CMD ["/app/start.sh"]
 
