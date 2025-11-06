@@ -391,100 +391,114 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
-import { Mark } from '@tiptap/core'
+import { Extension, Mark, mergeAttributes } from '@tiptap/core'
 import { ref, watch, onBeforeUnmount, nextTick } from 'vue'
 
-// Custom FontSize Mark Extension
-const FontSize = Mark.create({
-  name: 'fontSize',
+const TextStyle = Mark.create({
+  name: 'textStyle',
   addOptions() {
     return {
       HTMLAttributes: {}
     }
   },
-  inclusive: true,
-  addAttributes() {
-    return {
-      fontSize: {
-        default: null,
-        parseHTML: element => {
-          const fontSize = element.style.fontSize?.replace('px', '')
-          return fontSize ? parseInt(fontSize) : null
-        },
-        renderHTML: attributes => {
-          if (!attributes.fontSize) {
-            return {}
-          }
-          return {
-            style: `font-size: ${attributes.fontSize}px`
-          }
-        }
-      }
-    }
-  },
+  excludes: '_',
   parseHTML() {
     return [
       {
-        tag: 'span[style*="font-size"]',
-        getAttrs: (node) => {
-          const element = node
-          const fontSize = element.style.fontSize?.replace('px', '')
-          return fontSize ? { fontSize: parseInt(fontSize) } : false
+        tag: 'span',
+        getAttrs: (element) => {
+          const hasInlineStyle = element.hasAttribute('style')
+          const hasFontData = element.hasAttribute('data-font-size')
+          return hasInlineStyle || hasFontData ? {} : false
         }
       }
     ]
   },
   renderHTML({ HTMLAttributes }) {
-    if (!HTMLAttributes || !HTMLAttributes.fontSize) {
-      return false
+    const attributes = mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)
+
+    if (!attributes.style && !attributes['data-font-size']) {
+      return ['span', this.options.HTMLAttributes, 0]
     }
+
+    return ['span', attributes, 0]
+  }
+})
+
+// Custom FontSize Extension leveraging TextStyle for consistent inline styling
+const FontSize = Extension.create({
+  name: 'fontSize',
+  addOptions() {
+    return {
+      types: ['textStyle']
+    }
+  },
+  addGlobalAttributes() {
     return [
-      'span',
       {
-        ...this.options.HTMLAttributes,
-        style: `font-size: ${HTMLAttributes.fontSize}px`
-      },
-      0
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: (element) => {
+              const raw = element.style.fontSize || element.getAttribute('data-font-size')
+              if (!raw) {
+                return null
+              }
+              const numeric = parseInt(raw.replace('px', ''), 10)
+              return Number.isFinite(numeric) ? `${numeric}px` : null
+            },
+            renderHTML: (attributes) => {
+              if (!attributes.fontSize) {
+                return {}
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+                'data-font-size': attributes.fontSize
+              }
+            }
+          }
+        }
+      }
     ]
   },
   addCommands() {
     return {
-      setFontSize: (fontSize) => ({ state, tr, dispatch, commands }) => {
+      setFontSize: (fontSize) => ({ state, dispatch }) => {
+        const textStyleType = state.schema.marks.textStyle
+        if (!textStyleType) {
+          return false
+        }
+
         if (!fontSize) {
-          return commands.unsetMark(this.name)
-        }
-
-        const { from, to, empty } = state.selection
-
-        if (empty) {
           if (dispatch) {
-            tr.removeStoredMark(this.type)
-            dispatch(tr.addStoredMark(this.type.create({ fontSize })))
-          }
-          return true
-        }
-
-        tr.removeMark(from, to, this.type)
-        tr.addMark(from, to, this.type.create({ fontSize }))
-
-        if (dispatch) {
-          dispatch(tr)
-        }
-
-        return true
-      },
-      unsetFontSize: () => ({ state, tr, dispatch, commands }) => {
-        const { empty, from, to } = state.selection
-
-        if (empty) {
-          if (dispatch) {
-            tr.removeStoredMark(this.type)
+            const tr = state.tr
+            const { empty, from, to } = state.selection
+            if (empty) {
+              tr.removeStoredMark(textStyleType)
+            } else {
+              tr.removeMark(from, to, textStyleType)
+            }
             dispatch(tr)
           }
           return true
         }
 
-        tr.removeMark(from, to, this.type)
+        const value = typeof fontSize === 'number' ? `${fontSize}px` : `${parseInt(fontSize, 10)}px`
+        if (!value || value === 'NaNpx') {
+          return false
+        }
+
+        const { empty, from, to } = state.selection
+        const tr = state.tr
+
+        if (empty) {
+          tr.removeStoredMark(textStyleType)
+          tr.addStoredMark(textStyleType.create({ fontSize: value }))
+        } else {
+          tr.removeMark(from, to, textStyleType)
+          tr.addMark(from, to, textStyleType.create({ fontSize: value }))
+        }
 
         if (dispatch) {
           dispatch(tr)
@@ -532,6 +546,7 @@ export default {
             levels: [1, 2, 3]
           }
         }),
+        TextStyle,
         FontSize,
         Image.configure({
           inline: true,
@@ -671,18 +686,29 @@ export default {
       }
     }
 
+    const extractNumericFontSize = (value) => {
+      if (!value) {
+        return null
+      }
+
+      const numeric = parseInt(String(value).replace('px', ''), 10)
+      return Number.isFinite(numeric) ? numeric : null
+    }
+
     const updateCurrentFontSize = (editorInstance) => {
-      const attrs = editorInstance.getAttributes('fontSize')
-      if (attrs && attrs.fontSize) {
-        currentFontSize.value = attrs.fontSize
+      const attrs = editorInstance.getAttributes('textStyle')
+      const activeFontSize = extractNumericFontSize(attrs?.fontSize)
+      if (activeFontSize) {
+        currentFontSize.value = activeFontSize
         return
       }
 
       const storedMarks = editorInstance.view?.state?.storedMarks
-      const activeMark = storedMarks?.find?.((mark) => mark.type.name === 'fontSize')
+      const textStyleMark = storedMarks?.find?.((mark) => mark.type.name === 'textStyle')
+      const storedFontSize = extractNumericFontSize(textStyleMark?.attrs?.fontSize)
 
-      if (activeMark && activeMark.attrs?.fontSize) {
-        currentFontSize.value = activeMark.attrs.fontSize
+      if (storedFontSize) {
+        currentFontSize.value = storedFontSize
         return
       }
 
@@ -771,14 +797,15 @@ export default {
 <style scoped>
 .tiptap-editor {
   --toolbar-height: 64px;
+  --editor-max-height: 75vh;
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 4px;
   background-color: rgb(var(--v-theme-surface));
   position: relative;
   display: flex;
   flex-direction: column;
-  max-height: 100%;
-  /* Overflow handled by editor-content-wrapper for sticky to work */
+  max-height: var(--editor-max-height);
+  overflow: hidden;
 }
 
 .editor-toolbar-wrapper {
@@ -852,16 +879,17 @@ export default {
   overflow-x: hidden;
   position: relative;
   -webkit-overflow-scrolling: touch;
-  /* Ensure scrolling works properly */
   min-height: 0;
   display: flex;
   flex-direction: column;
+  max-height: calc(var(--editor-max-height) - var(--toolbar-height));
 }
 
 .editor-content {
   min-height: 200px;
   position: relative;
   padding-bottom: calc(var(--toolbar-height) + 16px);
+  flex: 1;
 }
 
 .table-controls-menu {
