@@ -15,40 +15,51 @@ def create_rfq_view(request):
     Allows anonymous submissions
     Supports multipart/form-data for image uploads
     """
-    # Handle both JSON and multipart/form-data
-    data = request.data.copy()
-    
-    # Extract images from request.FILES
-    images = []
-    for key in request.FILES:
-        if 'images' in key.lower() or 'image' in key.lower():
-            file_obj = request.FILES[key]
-            if hasattr(file_obj, 'content_type') and file_obj.content_type.startswith('image/'):
-                images.append(file_obj)
-    
-    # Validate image count
-    if len(images) > 10:
-        return Response(
-            {'error': 'Maximum 10 images allowed'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    serializer = CreateRFQSerializer(data=data, context={'request': request})
-    
-    if serializer.is_valid():
-        order = serializer.save()
+    try:
+        # Handle both JSON and multipart/form-data
+        data = request.data.copy()
         
-        # Create order images
-        for image_file in images:
-            OrderImage.objects.create(
-                order=order,
-                image=image_file
+        # Extract images from request.FILES
+        images = []
+        for key in request.FILES:
+            if 'images' in key.lower() or 'image' in key.lower():
+                file_obj = request.FILES[key]
+                if hasattr(file_obj, 'content_type') and file_obj.content_type.startswith('image/'):
+                    images.append(file_obj)
+        
+        # Validate image count
+        if len(images) > 10:
+            return Response(
+                {'error': 'Maximum 10 images allowed'}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
         
-        response_serializer = OrderSerializer(order, context={'request': request})
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = CreateRFQSerializer(data=data, context={'request': request})
+        
+        if serializer.is_valid():
+            order = serializer.save()
+            
+            # Create order images
+            for image_file in images:
+                OrderImage.objects.create(
+                    order=order,
+                    image=image_file
+                )
+            
+            response_serializer = OrderSerializer(order, context={'request': request})
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        import traceback
+        error_detail = str(e)
+        traceback_str = traceback.format_exc()
+        print(f"RFQ Creation Error: {error_detail}")
+        print(f"Traceback: {traceback_str}")
+        return Response(
+            {'error': f'Server error: {error_detail}', 'detail': traceback_str},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
