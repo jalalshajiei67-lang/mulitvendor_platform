@@ -1,7 +1,7 @@
 <template>
   <div class="tiptap-editor" dir="rtl">
     <div class="editor-content-wrapper">
-      <div class="editor-toolbar-wrapper">
+      <div class="editor-toolbar-wrapper" :class="{ 'toolbar-sticky': isStickyToolbar }">
         <div class="editor-toolbar" v-if="editor">
         <div class="toolbar-groups">
           <!-- Text Formatting Group -->
@@ -199,6 +199,29 @@
                 size="small"
               >
                 <v-icon>mdi-table</v-icon>
+              </v-btn>
+            </v-btn-toggle>
+          </div>
+
+          <v-divider vertical class="toolbar-divider"></v-divider>
+
+          <!-- Sticky Toggle Group -->
+          <div class="toolbar-group">
+            <v-btn-toggle
+              v-model="toolbarState"
+              variant="outlined"
+              density="compact"
+              divided
+              class="toolbar-buttons"
+            >
+              <v-btn
+                @click="toggleStickyToolbar"
+                :class="{ 'v-btn--active': isStickyToolbar }"
+                icon
+                size="small"
+                :title="isStickyToolbar ? 'غیرفعال کردن نوار ابزار ثابت' : 'فعال کردن نوار ابزار ثابت'"
+              >
+                <v-icon>{{ isStickyToolbar ? 'mdi-pin' : 'mdi-pin-off' }}</v-icon>
               </v-btn>
             </v-btn-toggle>
           </div>
@@ -444,21 +467,12 @@ const FontSize = Mark.create({
   },
   addCommands() {
     return {
-      setFontSize: (fontSize) => ({ commands, state, tr, dispatch }) => {
+      setFontSize: (fontSize) => ({ commands }) => {
         if (!fontSize) {
           return commands.unsetMark(this.name)
         }
         
-        const { selection } = state
-        const { from, to } = selection
-        
-        if (dispatch && tr) {
-          // Remove existing fontSize marks in the selection
-          tr.removeMark(from, to, this.type)
-          // Add the new fontSize mark
-          tr.addMark(from, to, this.type.create({ fontSize }))
-        }
-        
+        // Use the standard setMark command which handles everything properly
         return commands.setMark(this.name, { fontSize })
       },
       unsetFontSize: () => ({ commands }) => {
@@ -477,9 +491,13 @@ export default {
     modelValue: {
       type: String,
       default: ''
+    },
+    stickyToolbar: {
+      type: Boolean,
+      default: true
     }
   },
-  emits: ['update:modelValue'],
+  emits: ['update:modelValue', 'update:stickyToolbar'],
   setup(props, { emit }) {
     const showLinkDialog = ref(false)
     const showImageDialog = ref(false)
@@ -494,6 +512,17 @@ export default {
     const fontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72]
     const customFontSize = ref(null)
     const currentFontSize = ref(null)
+    const isStickyToolbar = ref(props.stickyToolbar)
+
+    // Watch prop changes
+    watch(() => props.stickyToolbar, (newValue) => {
+      isStickyToolbar.value = newValue
+    })
+
+    const toggleStickyToolbar = () => {
+      isStickyToolbar.value = !isStickyToolbar.value
+      emit('update:stickyToolbar', isStickyToolbar.value)
+    }
 
     const editor = useEditor({
       content: props.modelValue,
@@ -653,12 +682,13 @@ export default {
         try {
           // Focus first, then apply the mark
           editor.value.chain().focus().setFontSize(size).run()
-          // Update the current font size display
-          setTimeout(() => {
+          // Update the current font size display immediately
+          // Use requestAnimationFrame to ensure the editor has processed the change
+          requestAnimationFrame(() => {
             if (editor.value) {
               updateCurrentFontSize(editor.value)
             }
-          }, 100)
+          })
         } catch (error) {
           console.error('Error setting font size:', error)
         }
@@ -699,6 +729,7 @@ export default {
       fontSizes,
       customFontSize,
       currentFontSize,
+      isStickyToolbar,
       setLink,
       insertLink,
       addImage,
@@ -714,7 +745,8 @@ export default {
       deleteColumn,
       deleteTable,
       setFontSize,
-      setCustomFontSize
+      setCustomFontSize,
+      toggleStickyToolbar
     }
   }
 }
@@ -733,15 +765,18 @@ export default {
 }
 
 .editor-toolbar-wrapper {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
   z-index: 10;
   background-color: rgb(var(--v-theme-surface));
   border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
   width: 100%;
+}
+
+.editor-toolbar-wrapper.toolbar-sticky {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
 }
 
 .editor-toolbar {
@@ -839,6 +874,10 @@ export default {
   direction: rtl;
   text-align: right;
   font-family: 'Vazir', 'Tahoma', sans-serif;
+}
+
+:deep(.ProseMirror span[style*="font-size"]) {
+  display: inline;
 }
 
 :deep(.ProseMirror p) {
