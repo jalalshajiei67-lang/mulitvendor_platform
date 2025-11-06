@@ -77,7 +77,7 @@
             title="مدیریت دپارتمان‌ها"
             value="departments"
             :active="activeView === 'departments'"
-            @click="setActiveView('departments')"
+            @click.stop="setActiveView('departments')"
           ></v-list-item>
 
           <v-list-item
@@ -85,7 +85,7 @@
             title="مدیریت دسته‌بندی‌ها"
             value="categories"
             :active="activeView === 'categories'"
-            @click="setActiveView('categories')"
+            @click.stop="setActiveView('categories')"
           ></v-list-item>
 
           <v-list-item
@@ -93,7 +93,7 @@
             title="مدیریت زیردسته‌ها"
             value="subcategories"
             :active="activeView === 'subcategories'"
-            @click="setActiveView('subcategories')"
+            @click.stop="setActiveView('subcategories')"
           ></v-list-item>
         </v-list-group>
 
@@ -1514,10 +1514,13 @@ export default {
     }
     
     const setActiveView = (view) => {
+      console.log('Setting active view to:', view)
       activeView.value = view
       if (isMobile.value) {
         drawer.value = false
       }
+      // Scroll to top when changing views
+      scrollToTop()
     }
     
     const scrollToTop = () => {
