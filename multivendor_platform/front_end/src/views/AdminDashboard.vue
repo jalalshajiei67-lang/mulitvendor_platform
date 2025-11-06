@@ -1273,6 +1273,7 @@ export default {
     const rail = ref(false)
     const isMobile = computed(() => mdAndDown.value)
     const activeView = ref('dashboard')
+    const isNavigatingFromForm = ref(false)
     
     // Check if we're on a product or blog form route (admin routes)
     const isProductFormRoute = computed(() => {
@@ -1516,12 +1517,40 @@ export default {
     
     const setActiveView = (view) => {
       console.log('Setting active view to:', view)
-      activeView.value = view
-      if (isMobile.value) {
-        drawer.value = false
+      
+      // If we're on a nested route (form route), navigate back to dashboard first
+      if (isFormRoute.value) {
+        // Set flag to prevent route watcher from overriding
+        isNavigatingFromForm.value = true
+        // Navigate to dashboard and set view
+        router.push('/admin/dashboard').then(() => {
+          // Set the view immediately
+          activeView.value = view
+          if (isMobile.value) {
+            drawer.value = false
+          }
+          scrollToTop()
+          // Clear flag after a short delay
+          setTimeout(() => {
+            isNavigatingFromForm.value = false
+          }, 200)
+        }).catch(err => {
+          console.error('Navigation error:', err)
+          // Fallback: just set the view
+          activeView.value = view
+          if (isMobile.value) {
+            drawer.value = false
+          }
+          isNavigatingFromForm.value = false
+        })
+      } else {
+        // If already on dashboard, just update the view
+        activeView.value = view
+        if (isMobile.value) {
+          drawer.value = false
+        }
+        scrollToTop()
       }
-      // Scroll to top when changing views
-      scrollToTop()
     }
     
     const scrollToTop = () => {
@@ -2015,15 +2044,18 @@ export default {
     
     // Watch for route changes to update activeView
     watch(() => route.path, (newPath) => {
+      // Don't override if we're navigating from a form route (user clicked menu item)
+      if (isNavigatingFromForm.value) {
+        return
+      }
+      
       if (isProductFormRoute.value) {
         activeView.value = 'products'
       } else if (isBlogFormRoute.value) {
         activeView.value = 'blog'
-      } else if (newPath === '/admin/dashboard' || newPath.startsWith('/admin/dashboard/')) {
-        // If it's a nested route but not a form route, keep current view or set to dashboard
-        if (!isProductFormRoute.value && !isBlogFormRoute.value) {
-          activeView.value = 'dashboard'
-        }
+      } else if (newPath === '/admin/dashboard') {
+        // Only reset to dashboard if not navigating from form
+        activeView.value = 'dashboard'
       }
     }, { immediate: true })
     
