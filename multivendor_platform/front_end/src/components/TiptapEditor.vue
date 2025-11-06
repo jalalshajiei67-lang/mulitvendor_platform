@@ -1,7 +1,8 @@
 <template>
   <div class="tiptap-editor" dir="rtl">
-    <div class="editor-toolbar-wrapper">
-      <div class="editor-toolbar" v-if="editor">
+    <div class="editor-content-wrapper">
+      <div class="editor-toolbar-wrapper">
+        <div class="editor-toolbar" v-if="editor">
         <div class="toolbar-groups">
           <!-- Text Formatting Group -->
           <div class="toolbar-group">
@@ -203,8 +204,7 @@
           </div>
         </div>
       </div>
-    </div>
-    <div class="editor-content-wrapper">
+      </div>
       <div class="editor-content">
         <editor-content :editor="editor" />
       
@@ -444,11 +444,21 @@ const FontSize = Mark.create({
   },
   addCommands() {
     return {
-      setFontSize: (fontSize) => ({ commands, chain }) => {
+      setFontSize: (fontSize) => ({ commands, state, tr, dispatch }) => {
         if (!fontSize) {
           return commands.unsetMark(this.name)
         }
-        // Use commands directly to avoid double-chaining
+        
+        const { selection } = state
+        const { from, to } = selection
+        
+        if (dispatch && tr) {
+          // Remove existing fontSize marks in the selection
+          tr.removeMark(from, to, this.type)
+          // Add the new fontSize mark
+          tr.addMark(from, to, this.type.create({ fontSize }))
+        }
+        
         return commands.setMark(this.name, { fontSize })
       },
       unsetFontSize: () => ({ commands }) => {
@@ -719,10 +729,11 @@ export default {
   display: flex;
   flex-direction: column;
   max-height: 100%;
-  overflow: hidden;
+  /* Overflow handled by editor-content-wrapper for sticky to work */
 }
 
 .editor-toolbar-wrapper {
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -790,6 +801,8 @@ export default {
   overflow-x: hidden;
   position: relative;
   -webkit-overflow-scrolling: touch;
+  /* Ensure scrolling works properly */
+  min-height: 0;
 }
 
 .editor-content {
