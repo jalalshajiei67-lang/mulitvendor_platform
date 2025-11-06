@@ -328,5 +328,22 @@ export default {
   },
   adminUpdateOrderStatus(orderId, status) {
     return apiClient.put(`/auth/admin/orders/${orderId}/status/`, { status });
+  },
+  
+  // Admin Product Management
+  getAdminProducts(params = {}) {
+    return apiClient.get('/auth/admin/products/', { params });
+  },
+  getAdminProductDetail(productId) {
+    return apiClient.get(`/auth/admin/products/${productId}/`);
+  },
+  adminProductBulkAction(action, productIds) {
+    return apiClient.post('/auth/admin/products/bulk-action/', {
+      action: action,
+      product_ids: productIds
+    });
+  },
+  adminDeleteProduct(productId) {
+    return apiClient.delete(`/auth/admin/products/${productId}/delete/`);
   }
 }

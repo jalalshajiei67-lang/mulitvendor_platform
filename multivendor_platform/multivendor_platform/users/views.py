@@ -553,6 +553,112 @@ def admin_update_order_status_view(request, order_id):
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
 
+# Admin Product Management APIs
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_products_view(request):
+    """Get all products with filtering for admin"""
+    from products.models import Product
+    from products.serializers import ProductSerializer
+    
+    products = Product.objects.all()
+    
+    # Filter by category
+    category = request.query_params.get('category')
+    if category:
+        products = products.filter(primary_category_id=category)
+    
+    # Filter by supplier/vendor
+    supplier = request.query_params.get('supplier')
+    if supplier:
+        products = products.filter(vendor_id=supplier)
+    
+    # Filter by status
+    is_active = request.query_params.get('is_active')
+    if is_active is not None:
+        products = products.filter(is_active=is_active.lower() == 'true')
+    
+    # Filter by price range
+    min_price = request.query_params.get('min_price')
+    max_price = request.query_params.get('max_price')
+    if min_price:
+        products = products.filter(price__gte=min_price)
+    if max_price:
+        products = products.filter(price__lte=max_price)
+    
+    # Search by name/description
+    search = request.query_params.get('search')
+    if search:
+        products = products.filter(
+            Q(name__icontains=search) | 
+            Q(description__icontains=search)
+        )
+    
+    serializer = ProductSerializer(products, many=True, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_product_detail_view(request, product_id):
+    """Get product detail for admin"""
+    from products.models import Product
+    from products.serializers import ProductDetailSerializer
+    
+    try:
+        product = Product.objects.get(id=product_id)
+        serializer = ProductDetailSerializer(product, context={'request': request})
+        return Response(serializer.data)
+    except Product.DoesNotExist:
+        return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_product_bulk_action_view(request):
+    """Bulk actions on products (activate/deactivate/delete)"""
+    from products.models import Product
+    
+    action = request.data.get('action')
+    product_ids = request.data.get('product_ids', [])
+    
+    if not action or not product_ids:
+        return Response({'error': 'Action and product_ids are required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    products = Product.objects.filter(id__in=product_ids)
+    
+    if action == 'activate':
+        products.update(is_active=True)
+        log_activity(request.user, 'other', f'Admin activated {products.count()} products', request)
+        return Response({'message': f'{products.count()} products activated'})
+    elif action == 'deactivate':
+        products.update(is_active=False)
+        log_activity(request.user, 'other', f'Admin deactivated {products.count()} products', request)
+        return Response({'message': f'{products.count()} products deactivated'})
+    elif action == 'delete':
+        count = products.count()
+        products.delete()
+        log_activity(request.user, 'other', f'Admin deleted {count} products', request)
+        return Response({'message': f'{count} products deleted'})
+    else:
+        return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_delete_product_view(request, product_id):
+    """Admin can delete any product"""
+    from products.models import Product
+    
+    try:
+        product = Product.objects.get(id=product_id)
+        product_name = product.name
+        product.delete()
+        
+        # Log activity
+        log_activity(request.user, 'delete_product', f'Admin deleted product {product_name}', request)
+        
+        return Response({'message': 'Product deleted successfully'})
+    except Product.DoesNotExist:
+        return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 # ===== SUPPLIER / VENDOR VIEWSETS =====
 

@@ -48,6 +48,31 @@
           @click="setActiveView('users')"
         ></v-list-item>
 
+        <v-list-group value="products">
+          <template v-slot:activator="{ props }">
+            <v-list-item
+              v-bind="props"
+              prepend-icon="mdi-package-variant"
+              title="مدیریت محصولات"
+            ></v-list-item>
+          </template>
+
+          <v-list-item
+            prepend-icon="mdi-format-list-bulleted"
+            title="لیست محصولات"
+            value="products-list"
+            :active="activeView === 'products'"
+            @click="setActiveView('products')"
+          ></v-list-item>
+
+          <v-list-item
+            prepend-icon="mdi-plus-circle"
+            title="افزودن محصول"
+            value="products-create"
+            @click="createNewProduct"
+          ></v-list-item>
+        </v-list-group>
+
         <v-list-item
           prepend-icon="mdi-history"
           title="گزارش فعالیت‌ها"
@@ -516,6 +541,239 @@
             </v-data-table>
           </v-card>
         </div>
+
+        <!-- Products Management View -->
+        <div v-if="activeView === 'products'" class="products-view">
+          <!-- Summary Cards -->
+          <v-row class="mb-4">
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold mb-1">{{ products.length }}</div>
+                  <div class="text-caption text-grey">کل محصولات</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold text-success mb-1">
+                    {{ products.filter(p => p.is_active).length }}
+                  </div>
+                  <div class="text-caption text-grey">محصولات فعال</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold text-warning mb-1">
+                    {{ products.filter(p => !p.is_active).length }}
+                  </div>
+                  <div class="text-caption text-grey">محصولات غیرفعال</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold text-info mb-1">
+                    {{ selectedProducts.length }}
+                  </div>
+                  <div class="text-caption text-grey">انتخاب شده</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <!-- Filters and Actions -->
+          <v-card class="mb-4" elevation="0" variant="outlined">
+            <v-card-text class="pa-4">
+              <v-row>
+                <v-col cols="12" md="3">
+                  <v-text-field
+                    v-model="productFilters.search"
+                    label="جستجو"
+                    prepend-inner-icon="mdi-magnify"
+                    density="compact"
+                    variant="outlined"
+                    clearable
+                    @update:model-value="loadProducts"
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" md="2">
+                  <v-select
+                    v-model="productFilters.is_active"
+                    label="وضعیت"
+                    :items="productStatusFilterOptions"
+                    clearable
+                    density="compact"
+                    variant="outlined"
+                    @update:model-value="loadProducts"
+                  ></v-select>
+                </v-col>
+                <v-col cols="12" md="2">
+                  <v-text-field
+                    v-model="productFilters.min_price"
+                    label="حداقل قیمت"
+                    type="number"
+                    density="compact"
+                    variant="outlined"
+                    clearable
+                    @update:model-value="loadProducts"
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" md="2">
+                  <v-text-field
+                    v-model="productFilters.max_price"
+                    label="حداکثر قیمت"
+                    type="number"
+                    density="compact"
+                    variant="outlined"
+                    clearable
+                    @update:model-value="loadProducts"
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <div class="d-flex" style="gap: 8px;">
+                    <v-btn
+                      color="primary"
+                      @click="createNewProduct"
+                      prepend-icon="mdi-plus"
+                    >
+                      افزودن محصول
+                    </v-btn>
+                    <v-menu v-if="selectedProducts.length > 0">
+                      <template v-slot:activator="{ props }">
+                        <v-btn
+                          color="secondary"
+                          v-bind="props"
+                          prepend-icon="mdi-dots-vertical"
+                        >
+                          عملیات گروهی
+                        </v-btn>
+                      </template>
+                      <v-list>
+                        <v-list-item @click="bulkAction('activate')">
+                          <template v-slot:prepend>
+                            <v-icon>mdi-check-circle</v-icon>
+                          </template>
+                          <v-list-item-title>فعال‌سازی</v-list-item-title>
+                        </v-list-item>
+                        <v-list-item @click="bulkAction('deactivate')">
+                          <template v-slot:prepend>
+                            <v-icon>mdi-close-circle</v-icon>
+                          </template>
+                          <v-list-item-title>غیرفعال‌سازی</v-list-item-title>
+                        </v-list-item>
+                        <v-list-item @click="bulkAction('delete')">
+                          <template v-slot:prepend>
+                            <v-icon color="error">mdi-delete</v-icon>
+                          </template>
+                          <v-list-item-title>حذف</v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </v-menu>
+                  </div>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+
+          <!-- Products Table -->
+          <v-card elevation="0" variant="outlined">
+            <v-card-title class="pa-4">لیست محصولات</v-card-title>
+            <v-divider></v-divider>
+            <v-data-table
+              v-model="selectedProducts"
+              :headers="productHeaders"
+              :items="products"
+              :loading="loadingProducts"
+              item-value="id"
+              show-select
+              class="products-table"
+            >
+              <template v-slot:item.name="{ item }">
+                <div class="d-flex align-center">
+                  <v-avatar size="40" class="mr-2" rounded>
+                    <v-img
+                      v-if="item.primary_image || item.image"
+                      :src="item.primary_image || item.image"
+                      cover
+                    ></v-img>
+                    <v-icon v-else>mdi-package-variant</v-icon>
+                  </v-avatar>
+                  <div>
+                    <strong>{{ item.name }}</strong>
+                    <div class="text-caption text-grey">{{ item.vendor_name }}</div>
+                  </div>
+                </div>
+              </template>
+              <template v-slot:item.category_name="{ item }">
+                <v-chip size="small">{{ item.category_name || 'بدون دسته‌بندی' }}</v-chip>
+              </template>
+              <template v-slot:item.price="{ item }">
+                {{ formatPrice(item.price) }}
+              </template>
+              <template v-slot:item.stock="{ item }">
+                <v-chip
+                  size="small"
+                  :color="item.stock > 0 ? 'success' : 'error'"
+                >
+                  {{ item.stock }}
+                </v-chip>
+              </template>
+              <template v-slot:item.created_at="{ item }">
+                {{ formatDate(item.created_at) }}
+              </template>
+              <template v-slot:item.is_active="{ item }">
+                <v-chip
+                  size="small"
+                  :color="item.is_active ? 'success' : 'warning'"
+                >
+                  {{ item.is_active ? 'فعال' : 'غیرفعال' }}
+                </v-chip>
+              </template>
+              <template v-slot:item.actions="{ item }">
+                <v-menu>
+                  <template v-slot:activator="{ props }">
+                    <v-btn icon size="small" variant="text" v-bind="props">
+                      <v-icon>mdi-dots-vertical</v-icon>
+                    </v-btn>
+                  </template>
+                  <v-list>
+                    <v-list-item @click="viewProduct(item.id)">
+                      <template v-slot:prepend>
+                        <v-icon>mdi-eye</v-icon>
+                      </template>
+                      <v-list-item-title>مشاهده</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="editProduct(item.id)">
+                      <template v-slot:prepend>
+                        <v-icon>mdi-pencil</v-icon>
+                      </template>
+                      <v-list-item-title>ویرایش</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="toggleProductStatus(item)">
+                      <template v-slot:prepend>
+                        <v-icon>{{ item.is_active ? 'mdi-close-circle' : 'mdi-check-circle' }}</v-icon>
+                      </template>
+                      <v-list-item-title>
+                        {{ item.is_active ? 'غیرفعال کردن' : 'فعال کردن' }}
+                      </v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="deleteProduct(item)">
+                      <template v-slot:prepend>
+                        <v-icon color="error">mdi-delete</v-icon>
+                      </template>
+                      <v-list-item-title>حذف</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </template>
+            </v-data-table>
+          </v-card>
+        </div>
       </v-container>
     </div>
 
@@ -626,6 +884,19 @@ export default {
       action: null
     })
     
+    // Products state
+    const products = ref([])
+    const selectedProducts = ref([])
+    const loadingProducts = ref(false)
+    const productFilters = ref({
+      search: null,
+      category: null,
+      supplier: null,
+      is_active: null,
+      min_price: null,
+      max_price: null
+    })
+    
     // Watch for mobile changes
     watch(isMobile, (newVal) => {
       drawer.value = !newVal
@@ -640,6 +911,11 @@ export default {
     const statusFilterOptions = [
       { title: 'مسدود شده', value: 'true' },
       { title: 'فعال', value: 'false' }
+    ]
+    
+    const productStatusFilterOptions = [
+      { title: 'فعال', value: 'true' },
+      { title: 'غیرفعال', value: 'false' }
     ]
     
     const verificationFilterOptions = [
@@ -673,6 +949,16 @@ export default {
       { title: 'توضیحات', key: 'description', align: 'start' },
       { title: 'آدرس IP', key: 'ip_address', align: 'start' },
       { title: 'تاریخ', key: 'created_at', align: 'start' }
+    ]
+    
+    const productHeaders = [
+      { title: 'نام محصول', key: 'name', align: 'start' },
+      { title: 'دسته‌بندی', key: 'category_name', align: 'start' },
+      { title: 'قیمت', key: 'price', align: 'start' },
+      { title: 'موجودی', key: 'stock', align: 'center' },
+      { title: 'وضعیت', key: 'is_active', align: 'center' },
+      { title: 'تاریخ ایجاد', key: 'created_at', align: 'start' },
+      { title: 'عملیات', key: 'actions', sortable: false, align: 'center' }
     ]
     
     // Notifications
@@ -912,6 +1198,110 @@ export default {
       }
     }
     
+    // Product Management Methods
+    const loadProducts = async () => {
+      loadingProducts.value = true
+      try {
+        const params = {}
+        if (productFilters.value.search) params.search = productFilters.value.search
+        if (productFilters.value.category) params.category = productFilters.value.category
+        if (productFilters.value.supplier) params.supplier = productFilters.value.supplier
+        if (productFilters.value.is_active !== null) params.is_active = productFilters.value.is_active
+        if (productFilters.value.min_price) params.min_price = productFilters.value.min_price
+        if (productFilters.value.max_price) params.max_price = productFilters.value.max_price
+        
+        const response = await api.getAdminProducts(params)
+        products.value = response.data
+      } catch (error) {
+        console.error('Failed to load products:', error)
+        showSnackbar('خطا در بارگذاری محصولات', 'error')
+      } finally {
+        loadingProducts.value = false
+      }
+    }
+    
+    const createNewProduct = () => {
+      router.push('/products/new')
+    }
+    
+    const viewProduct = (productId) => {
+      router.push(`/products/${productId}`)
+    }
+    
+    const editProduct = (productId) => {
+      router.push(`/products/${productId}/edit`)
+    }
+    
+    const toggleProductStatus = async (product) => {
+      const action = product.is_active ? 'deactivate' : 'activate'
+      const actionText = product.is_active ? 'غیرفعال' : 'فعال'
+      
+      try {
+        await api.adminProductBulkAction(action, [product.id])
+        showSnackbar(`محصول با موفقیت ${actionText} شد`, 'success')
+        await loadProducts()
+      } catch (error) {
+        console.error(`Failed to ${action} product:`, error)
+        showSnackbar(`خطا در ${actionText} محصول`, 'error')
+      }
+    }
+    
+    const deleteProduct = async (product) => {
+      if (confirm(`آیا مطمئن هستید که می‌خواهید محصول "${product.name}" را حذف کنید؟`)) {
+        try {
+          await api.adminDeleteProduct(product.id)
+          showSnackbar('محصول با موفقیت حذف شد', 'success')
+          await loadProducts()
+        } catch (error) {
+          console.error('Failed to delete product:', error)
+          showSnackbar('خطا در حذف محصول', 'error')
+        }
+      }
+    }
+    
+    const bulkAction = async (action) => {
+      if (selectedProducts.value.length === 0) {
+        showSnackbar('لطفاً حداقل یک محصول را انتخاب کنید', 'warning')
+        return
+      }
+      
+      const actionText = {
+        activate: 'فعال‌سازی',
+        deactivate: 'غیرفعال‌سازی',
+        delete: 'حذف'
+      }[action]
+      
+      if (action === 'delete') {
+        if (!confirm(`آیا مطمئن هستید که می‌خواهید ${selectedProducts.value.length} محصول را حذف کنید؟`)) {
+          return
+        }
+      }
+      
+      try {
+        const productIds = selectedProducts.value.map(p => typeof p === 'object' ? p.id : p)
+        await api.adminProductBulkAction(action, productIds)
+        showSnackbar(`${selectedProducts.value.length} محصول با موفقیت ${actionText} شد`, 'success')
+        selectedProducts.value = []
+        await loadProducts()
+      } catch (error) {
+        console.error(`Failed to ${action} products:`, error)
+        showSnackbar(`خطا در ${actionText} محصولات`, 'error')
+      }
+    }
+    
+    const formatPrice = (price) => {
+      // Price is in smallest currency unit (no decimals)
+      // Convert to formatted string with thousand separators
+      return new Intl.NumberFormat('fa-IR').format(price) + ' تومان'
+    }
+    
+    // Watch for activeView changes to load products when needed
+    watch(activeView, (newView) => {
+      if (newView === 'products') {
+        loadProducts()
+      }
+    })
+    
     onMounted(() => {
       loadDashboardData()
       loadUsers()
@@ -931,18 +1321,24 @@ export default {
       dashboardData,
       users,
       activities,
+      products,
+      selectedProducts,
       loading,
       loadingUsers,
       loadingActivities,
+      loadingProducts,
       changingPassword,
       userFilters,
       activityFilters,
+      productFilters,
       roleFilterOptions,
       statusFilterOptions,
+      productStatusFilterOptions,
       verificationFilterOptions,
       actionFilterOptions,
       userHeaders,
       activityHeaders,
+      productHeaders,
       notifications,
       notificationCount,
       snackbar,
@@ -953,6 +1349,13 @@ export default {
       handleNotificationClick,
       loadUsers,
       loadActivities,
+      loadProducts,
+      createNewProduct,
+      viewProduct,
+      editProduct,
+      toggleProductStatus,
+      deleteProduct,
+      bulkAction,
       toggleBlockUser,
       toggleVerifyUser,
       openPasswordDialog,
@@ -961,6 +1364,7 @@ export default {
       getRoleColor,
       getActionColor,
       formatDate,
+      formatPrice,
       handleLogout
     }
   }
@@ -1032,7 +1436,8 @@ export default {
 
 .dashboard-view,
 .users-view,
-.activities-view {
+.activities-view,
+.products-view {
   animation: fadeIn 0.3s ease-in;
 }
 
@@ -1091,7 +1496,8 @@ export default {
 }
 
 .users-table,
-.activities-table {
+.activities-table,
+.products-table {
   direction: rtl;
 }
 

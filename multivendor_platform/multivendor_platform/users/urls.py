@@ -8,6 +8,8 @@ from .views import (
     admin_dashboard_view, admin_users_view, admin_block_user_view, 
     admin_verify_user_view, admin_change_password_view, admin_activities_view,
     admin_update_order_status_view,
+    admin_products_view, admin_product_detail_view, admin_product_bulk_action_view,
+    admin_delete_product_view,
     SupplierViewSet, SupplierCommentViewSet
 )
 
@@ -42,6 +44,12 @@ urlpatterns = [
     path('admin/change-password/', admin_change_password_view, name='admin-change-password'),
     path('admin/activities/', admin_activities_view, name='admin-activities'),
     path('admin/orders/<int:order_id>/status/', admin_update_order_status_view, name='admin-update-order-status'),
+    
+    # Admin Product Management
+    path('admin/products/', admin_products_view, name='admin-products'),
+    path('admin/products/<int:product_id>/', admin_product_detail_view, name='admin-product-detail'),
+    path('admin/products/bulk-action/', admin_product_bulk_action_view, name='admin-product-bulk-action'),
+    path('admin/products/<int:product_id>/delete/', admin_delete_product_view, name='admin-delete-product'),
     
     # Seller Ads (ViewSet routes)
     path('', include(router.urls)),
