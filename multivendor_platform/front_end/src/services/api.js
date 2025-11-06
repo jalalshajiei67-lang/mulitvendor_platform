@@ -420,5 +420,34 @@ export default {
   },
   adminDeleteSubcategory(subcategoryId) {
     return apiClient.delete(`/auth/admin/subcategories/${subcategoryId}/delete/`);
+  },
+  
+  // Admin Blog Management
+  getAdminBlogPosts(params = {}) {
+    return apiClient.get('/auth/admin/blog/posts/', { params });
+  },
+  getAdminBlogPostDetail(slug) {
+    return apiClient.get(`/auth/admin/blog/posts/${slug}/`);
+  },
+  adminBlogPostBulkAction(action, postSlugs) {
+    return apiClient.post('/auth/admin/blog/posts/bulk-action/', {
+      action: action,
+      post_slugs: postSlugs
+    });
+  },
+  adminDeleteBlogPost(slug) {
+    return apiClient.delete(`/auth/admin/blog/posts/${slug}/delete/`);
+  },
+  getAdminBlogCategories(params = {}) {
+    return apiClient.get('/auth/admin/blog/categories/', { params });
+  },
+  adminCreateBlogCategory(data) {
+    return apiClient.post('/auth/admin/blog/categories/create/', data);
+  },
+  adminUpdateBlogCategory(slug, data) {
+    return apiClient.put(`/auth/admin/blog/categories/${slug}/update/`, data);
+  },
+  adminDeleteBlogCategory(slug) {
+    return apiClient.delete(`/auth/admin/blog/categories/${slug}/delete/`);
   }
 }

@@ -104,6 +104,39 @@
           :active="activeView === 'activities'"
           @click="setActiveView('activities')"
         ></v-list-item>
+
+        <v-list-group value="blog">
+          <template v-slot:activator="{ props }">
+            <v-list-item
+              v-bind="props"
+              prepend-icon="mdi-newspaper"
+              title="مدیریت وبلاگ"
+            ></v-list-item>
+          </template>
+
+          <v-list-item
+            prepend-icon="mdi-format-list-bulleted"
+            title="لیست پست‌ها"
+            value="blog-posts"
+            :active="activeView === 'blog'"
+            @click="setActiveView('blog')"
+          ></v-list-item>
+
+          <v-list-item
+            prepend-icon="mdi-plus-circle"
+            title="افزودن پست"
+            value="blog-create"
+            @click="createNewBlogPost"
+          ></v-list-item>
+
+          <v-list-item
+            prepend-icon="mdi-tag"
+            title="مدیریت دسته‌بندی‌ها"
+            value="blog-categories"
+            :active="activeView === 'blog-categories'"
+            @click="setActiveView('blog-categories')"
+          ></v-list-item>
+        </v-list-group>
       </v-list>
     </v-navigation-drawer>
 
@@ -813,6 +846,294 @@
         <div v-if="activeView === 'subcategories'" class="subcategories-view">
           <SubcategoryManagement />
         </div>
+
+        <!-- Blog Management View -->
+        <div v-if="activeView === 'blog'" class="blog-view">
+          <!-- Summary Cards -->
+          <v-row class="mb-4">
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold mb-1">{{ blogPosts.length }}</div>
+                  <div class="text-caption text-grey">کل پست‌ها</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold text-success mb-1">
+                    {{ blogPosts.filter(p => p.status === 'published').length }}
+                  </div>
+                  <div class="text-caption text-grey">منتشر شده</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold text-warning mb-1">
+                    {{ blogPosts.filter(p => p.status === 'draft').length }}
+                  </div>
+                  <div class="text-caption text-grey">پیش‌نویس</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold text-info mb-1">
+                    {{ selectedBlogPosts.length }}
+                  </div>
+                  <div class="text-caption text-grey">انتخاب شده</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <!-- Filters and Actions -->
+          <v-card class="mb-4" elevation="0" variant="outlined">
+            <v-card-text class="pa-4">
+              <v-row>
+                <v-col cols="12" md="3">
+                  <v-text-field
+                    v-model="blogFilters.search"
+                    label="جستجو"
+                    prepend-inner-icon="mdi-magnify"
+                    density="compact"
+                    variant="outlined"
+                    clearable
+                    @update:model-value="loadBlogPosts"
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" md="2">
+                  <v-select
+                    v-model="blogFilters.status"
+                    label="وضعیت"
+                    :items="blogStatusFilterOptions"
+                    clearable
+                    density="compact"
+                    variant="outlined"
+                    @update:model-value="loadBlogPosts"
+                  ></v-select>
+                </v-col>
+                <v-col cols="12" md="2">
+                  <v-select
+                    v-model="blogFilters.category"
+                    label="دسته‌بندی"
+                    :items="blogCategoryFilterOptions"
+                    clearable
+                    density="compact"
+                    variant="outlined"
+                    @update:model-value="loadBlogPosts"
+                  ></v-select>
+                </v-col>
+                <v-col cols="12" md="5">
+                  <div class="d-flex" style="gap: 8px;">
+                    <v-btn
+                      color="primary"
+                      @click="createNewBlogPost"
+                      prepend-icon="mdi-plus"
+                    >
+                      افزودن پست
+                    </v-btn>
+                    <v-menu v-if="selectedBlogPosts.length > 0">
+                      <template v-slot:activator="{ props }">
+                        <v-btn
+                          color="secondary"
+                          v-bind="props"
+                          prepend-icon="mdi-dots-vertical"
+                        >
+                          عملیات گروهی
+                        </v-btn>
+                      </template>
+                      <v-list>
+                        <v-list-item @click="bulkBlogAction('publish')">
+                          <template v-slot:prepend>
+                            <v-icon>mdi-publish</v-icon>
+                          </template>
+                          <v-list-item-title>انتشار</v-list-item-title>
+                        </v-list-item>
+                        <v-list-item @click="bulkBlogAction('draft')">
+                          <template v-slot:prepend>
+                            <v-icon>mdi-file-document-edit</v-icon>
+                          </template>
+                          <v-list-item-title>پیش‌نویس</v-list-item-title>
+                        </v-list-item>
+                        <v-list-item @click="bulkBlogAction('archive')">
+                          <template v-slot:prepend>
+                            <v-icon>mdi-archive</v-icon>
+                          </template>
+                          <v-list-item-title>بایگانی</v-list-item-title>
+                        </v-list-item>
+                        <v-list-item @click="bulkBlogAction('delete')">
+                          <template v-slot:prepend>
+                            <v-icon color="error">mdi-delete</v-icon>
+                          </template>
+                          <v-list-item-title>حذف</v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </v-menu>
+                  </div>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+
+          <!-- Blog Posts Table -->
+          <v-card elevation="0" variant="outlined">
+            <v-card-title class="pa-4">لیست پست‌های وبلاگ</v-card-title>
+            <v-divider></v-divider>
+            <v-data-table
+              v-model="selectedBlogPosts"
+              :headers="blogHeaders"
+              :items="blogPosts"
+              :loading="loadingBlogPosts"
+              item-value="slug"
+              show-select
+              class="blog-table"
+            >
+              <template v-slot:item.title="{ item }">
+                <div class="d-flex align-center">
+                  <v-avatar size="40" class="mr-2" rounded>
+                    <v-img
+                      v-if="item.featured_image"
+                      :src="item.featured_image"
+                      cover
+                    ></v-img>
+                    <v-icon v-else>mdi-newspaper</v-icon>
+                  </v-avatar>
+                  <div>
+                    <strong>{{ item.title }}</strong>
+                    <div class="text-caption text-grey">{{ item.author_username || 'نامشخص' }}</div>
+                  </div>
+                </div>
+              </template>
+              <template v-slot:item.category_name="{ item }">
+                <v-chip size="small">{{ item.category_name || 'بدون دسته‌بندی' }}</v-chip>
+              </template>
+              <template v-slot:item.status="{ item }">
+                <v-chip
+                  size="small"
+                  :color="getBlogStatusColor(item.status)"
+                >
+                  {{ getBlogStatusText(item.status) }}
+                </v-chip>
+              </template>
+              <template v-slot:item.views="{ item }">
+                <div class="d-flex align-center">
+                  <v-icon size="small" class="mr-1">mdi-eye</v-icon>
+                  {{ item.views || 0 }}
+                </div>
+              </template>
+              <template v-slot:item.comments_count="{ item }">
+                <div class="d-flex align-center">
+                  <v-icon size="small" class="mr-1">mdi-comment</v-icon>
+                  {{ item.comments_count || 0 }}
+                </div>
+              </template>
+              <template v-slot:item.created_at="{ item }">
+                {{ formatDate(item.created_at) }}
+              </template>
+              <template v-slot:item.actions="{ item }">
+                <v-menu>
+                  <template v-slot:activator="{ props }">
+                    <v-btn icon size="small" variant="text" v-bind="props">
+                      <v-icon>mdi-dots-vertical</v-icon>
+                    </v-btn>
+                  </template>
+                  <v-list>
+                    <v-list-item @click="viewBlogPost(item.slug)">
+                      <template v-slot:prepend>
+                        <v-icon>mdi-eye</v-icon>
+                      </template>
+                      <v-list-item-title>مشاهده</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="editBlogPost(item.slug)">
+                      <template v-slot:prepend>
+                        <v-icon>mdi-pencil</v-icon>
+                      </template>
+                      <v-list-item-title>ویرایش</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="toggleBlogPostStatus(item)">
+                      <template v-slot:prepend>
+                        <v-icon>{{ item.status === 'published' ? 'mdi-file-document-edit' : 'mdi-publish' }}</v-icon>
+                      </template>
+                      <v-list-item-title>
+                        {{ item.status === 'published' ? 'تبدیل به پیش‌نویس' : 'انتشار' }}
+                      </v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="deleteBlogPost(item)">
+                      <template v-slot:prepend>
+                        <v-icon color="error">mdi-delete</v-icon>
+                      </template>
+                      <v-list-item-title>حذف</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </template>
+            </v-data-table>
+          </v-card>
+        </div>
+
+        <!-- Blog Categories Management View -->
+        <div v-if="activeView === 'blog-categories'" class="blog-categories-view">
+          <v-card elevation="0" variant="outlined">
+            <v-card-title class="pa-4 d-flex justify-space-between align-center">
+              <span>مدیریت دسته‌بندی‌های وبلاگ</span>
+              <v-btn
+                color="primary"
+                @click="openBlogCategoryDialog()"
+                prepend-icon="mdi-plus"
+              >
+                افزودن دسته‌بندی
+              </v-btn>
+            </v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-4">
+              <v-data-table
+                :headers="blogCategoryHeaders"
+                :items="blogCategories"
+                :loading="loadingBlogCategories"
+                item-value="slug"
+                class="blog-categories-table"
+              >
+                <template v-slot:item.name="{ item }">
+                  <div class="d-flex align-center">
+                    <v-icon class="mr-2">mdi-tag</v-icon>
+                    <strong>{{ item.name }}</strong>
+                  </div>
+                </template>
+                <template v-slot:item.posts_count="{ item }">
+                  {{ item.posts_count || 0 }} پست
+                </template>
+                <template v-slot:item.actions="{ item }">
+                  <v-menu>
+                    <template v-slot:activator="{ props }">
+                      <v-btn icon size="small" variant="text" v-bind="props">
+                        <v-icon>mdi-dots-vertical</v-icon>
+                      </v-btn>
+                    </template>
+                    <v-list>
+                      <v-list-item @click="editBlogCategory(item)">
+                        <template v-slot:prepend>
+                          <v-icon>mdi-pencil</v-icon>
+                        </template>
+                        <v-list-item-title>ویرایش</v-list-item-title>
+                      </v-list-item>
+                      <v-list-item @click="deleteBlogCategory(item)">
+                        <template v-slot:prepend>
+                          <v-icon color="error">mdi-delete</v-icon>
+                        </template>
+                        <v-list-item-title>حذف</v-list-item-title>
+                      </v-list-item>
+                    </v-list>
+                  </v-menu>
+                </template>
+              </v-data-table>
+            </v-card-text>
+          </v-card>
+        </div>
       </v-container>
     </div>
 
@@ -835,6 +1156,10 @@
       <v-btn value="activities">
         <v-icon>mdi-history</v-icon>
         <span>فعالیت‌ها</span>
+      </v-btn>
+      <v-btn value="blog">
+        <v-icon>mdi-newspaper</v-icon>
+        <span>وبلاگ</span>
       </v-btn>
       <v-btn @click="showNotificationsMenu = true">
         <v-badge
@@ -868,6 +1193,38 @@
           <v-spacer></v-spacer>
           <v-btn @click="closePasswordDialog">انصراف</v-btn>
           <v-btn color="primary" @click="changeUserPassword" :loading="changingPassword">تغییر رمز</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Create/Edit Blog Category Dialog -->
+    <v-dialog v-model="showCreateBlogCategoryDialog" max-width="500px">
+      <v-card>
+        <v-card-title>
+          {{ editingBlogCategory ? 'ویرایش دسته‌بندی' : 'افزودن دسته‌بندی جدید' }}
+        </v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="blogCategoryForm.name"
+            label="نام دسته‌بندی"
+            variant="outlined"
+            density="compact"
+            :rules="[v => !!v || 'نام دسته‌بندی الزامی است']"
+          ></v-text-field>
+          <v-textarea
+            v-model="blogCategoryForm.description"
+            label="توضیحات"
+            variant="outlined"
+            density="compact"
+            rows="3"
+          ></v-textarea>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn @click="closeBlogCategoryDialog">انصراف</v-btn>
+          <v-btn color="primary" @click="saveBlogCategory" :loading="savingBlogCategory">
+            {{ editingBlogCategory ? 'ذخیره' : 'افزودن' }}
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -944,6 +1301,25 @@ export default {
       max_price: null
     })
     
+    // Blog state
+    const blogPosts = ref([])
+    const selectedBlogPosts = ref([])
+    const loadingBlogPosts = ref(false)
+    const blogFilters = ref({
+      search: null,
+      status: null,
+      category: null
+    })
+    const blogCategories = ref([])
+    const loadingBlogCategories = ref(false)
+    const showCreateBlogCategoryDialog = ref(false)
+    const editingBlogCategory = ref(null)
+    const savingBlogCategory = ref(false)
+    const blogCategoryForm = ref({
+      name: '',
+      description: ''
+    })
+    
     // Watch for mobile changes
     watch(isMobile, (newVal) => {
       drawer.value = !newVal
@@ -964,6 +1340,19 @@ export default {
       { title: 'فعال', value: 'true' },
       { title: 'غیرفعال', value: 'false' }
     ]
+    
+    const blogStatusFilterOptions = [
+      { title: 'منتشر شده', value: 'published' },
+      { title: 'پیش‌نویس', value: 'draft' },
+      { title: 'بایگانی', value: 'archived' }
+    ]
+    
+    const blogCategoryFilterOptions = computed(() => {
+      return blogCategories.value.map(cat => ({
+        title: cat.name,
+        value: cat.slug
+      }))
+    })
     
     const verificationFilterOptions = [
       { title: 'تأیید شده', value: 'true' },
@@ -1005,6 +1394,22 @@ export default {
       { title: 'موجودی', key: 'stock', align: 'center' },
       { title: 'وضعیت', key: 'is_active', align: 'center' },
       { title: 'تاریخ ایجاد', key: 'created_at', align: 'start' },
+      { title: 'عملیات', key: 'actions', sortable: false, align: 'center' }
+    ]
+    
+    const blogHeaders = [
+      { title: 'عنوان', key: 'title', align: 'start' },
+      { title: 'دسته‌بندی', key: 'category_name', align: 'start' },
+      { title: 'وضعیت', key: 'status', align: 'center' },
+      { title: 'بازدید', key: 'views', align: 'center' },
+      { title: 'نظرات', key: 'comments_count', align: 'center' },
+      { title: 'تاریخ ایجاد', key: 'created_at', align: 'start' },
+      { title: 'عملیات', key: 'actions', sortable: false, align: 'center' }
+    ]
+    
+    const blogCategoryHeaders = [
+      { title: 'نام', key: 'name', align: 'start' },
+      { title: 'تعداد پست‌ها', key: 'posts_count', align: 'center' },
       { title: 'عملیات', key: 'actions', sortable: false, align: 'center' }
     ]
     
@@ -1342,10 +1747,250 @@ export default {
       return new Intl.NumberFormat('fa-IR').format(price) + ' تومان'
     }
     
-    // Watch for activeView changes to load products when needed
+    // Blog Management Methods
+    const loadBlogPosts = async () => {
+      loadingBlogPosts.value = true
+      try {
+        const params = {}
+        if (blogFilters.value.search) params.search = blogFilters.value.search
+        if (blogFilters.value.status) params.status = blogFilters.value.status
+        if (blogFilters.value.category) params.category = blogFilters.value.category
+        
+        // Try admin endpoint first, fallback to regular endpoint
+        let response
+        try {
+          response = await api.getAdminBlogPosts(params)
+        } catch (error) {
+          // Fallback to regular blog posts endpoint if admin endpoint doesn't exist
+          response = await api.getBlogPosts(params)
+        }
+        blogPosts.value = response.data.results || response.data || []
+      } catch (error) {
+        console.error('Failed to load blog posts:', error)
+        showSnackbar('خطا در بارگذاری پست‌های وبلاگ', 'error')
+      } finally {
+        loadingBlogPosts.value = false
+      }
+    }
+    
+    const loadBlogCategories = async () => {
+      loadingBlogCategories.value = true
+      try {
+        // Try admin endpoint first, fallback to regular endpoint
+        let response
+        try {
+          response = await api.getAdminBlogCategories()
+        } catch (error) {
+          // Fallback to regular blog categories endpoint
+          response = await api.getBlogCategories()
+        }
+        blogCategories.value = response.data.results || response.data || []
+      } catch (error) {
+        console.error('Failed to load blog categories:', error)
+        showSnackbar('خطا در بارگذاری دسته‌بندی‌های وبلاگ', 'error')
+      } finally {
+        loadingBlogCategories.value = false
+      }
+    }
+    
+    const createNewBlogPost = () => {
+      router.push('/blog/new')
+    }
+    
+    const viewBlogPost = (slug) => {
+      router.push(`/blog/${slug}`)
+    }
+    
+    const editBlogPost = (slug) => {
+      router.push(`/blog/${slug}/edit`)
+    }
+    
+    const toggleBlogPostStatus = async (post) => {
+      const newStatus = post.status === 'published' ? 'draft' : 'published'
+      const actionText = newStatus === 'published' ? 'انتشار' : 'پیش‌نویس'
+      
+      try {
+        await api.updateBlogPost(post.slug, { status: newStatus })
+        showSnackbar(`پست با موفقیت ${actionText} شد`, 'success')
+        await loadBlogPosts()
+      } catch (error) {
+        console.error('Failed to toggle blog post status:', error)
+        showSnackbar(`خطا در ${actionText} پست`, 'error')
+      }
+    }
+    
+    const deleteBlogPost = async (post) => {
+      if (confirm(`آیا مطمئن هستید که می‌خواهید پست "${post.title}" را حذف کنید؟`)) {
+        try {
+          // Try admin endpoint first, fallback to regular endpoint
+          try {
+            await api.adminDeleteBlogPost(post.slug)
+          } catch (error) {
+            await api.deleteBlogPost(post.slug)
+          }
+          showSnackbar('پست با موفقیت حذف شد', 'success')
+          await loadBlogPosts()
+        } catch (error) {
+          console.error('Failed to delete blog post:', error)
+          showSnackbar('خطا در حذف پست', 'error')
+        }
+      }
+    }
+    
+    const bulkBlogAction = async (action) => {
+      if (selectedBlogPosts.value.length === 0) {
+        showSnackbar('لطفاً حداقل یک پست را انتخاب کنید', 'warning')
+        return
+      }
+      
+      const actionText = {
+        publish: 'انتشار',
+        draft: 'پیش‌نویس',
+        archive: 'بایگانی',
+        delete: 'حذف'
+      }[action]
+      
+      if (action === 'delete') {
+        if (!confirm(`آیا مطمئن هستید که می‌خواهید ${selectedBlogPosts.value.length} پست را حذف کنید؟`)) {
+          return
+        }
+      }
+      
+      try {
+        const postSlugs = selectedBlogPosts.value.map(p => typeof p === 'object' ? p.slug : p)
+        
+        // Try admin endpoint first, fallback to individual updates
+        try {
+          await api.adminBlogPostBulkAction(action, postSlugs)
+        } catch (error) {
+          // Fallback to individual updates
+          for (const slug of postSlugs) {
+            if (action === 'delete') {
+              await api.deleteBlogPost(slug)
+            } else {
+              await api.updateBlogPost(slug, { status: action })
+            }
+          }
+        }
+        
+        showSnackbar(`${selectedBlogPosts.value.length} پست با موفقیت ${actionText} شد`, 'success')
+        selectedBlogPosts.value = []
+        await loadBlogPosts()
+      } catch (error) {
+        console.error(`Failed to ${action} blog posts:`, error)
+        showSnackbar(`خطا در ${actionText} پست‌ها`, 'error')
+      }
+    }
+    
+    const getBlogStatusColor = (status) => {
+      const colors = {
+        published: 'success',
+        draft: 'warning',
+        archived: 'grey'
+      }
+      return colors[status] || 'grey'
+    }
+    
+    const getBlogStatusText = (status) => {
+      const texts = {
+        published: 'منتشر شده',
+        draft: 'پیش‌نویس',
+        archived: 'بایگانی'
+      }
+      return texts[status] || status
+    }
+    
+    const openBlogCategoryDialog = (category = null) => {
+      editingBlogCategory.value = category
+      if (category) {
+        blogCategoryForm.value = {
+          name: category.name,
+          description: category.description || ''
+        }
+      } else {
+        blogCategoryForm.value = {
+          name: '',
+          description: ''
+        }
+      }
+      showCreateBlogCategoryDialog.value = true
+    }
+    
+    const closeBlogCategoryDialog = () => {
+      showCreateBlogCategoryDialog.value = false
+      editingBlogCategory.value = null
+      blogCategoryForm.value = {
+        name: '',
+        description: ''
+      }
+    }
+    
+    const saveBlogCategory = async () => {
+      if (!blogCategoryForm.value.name) {
+        showSnackbar('نام دسته‌بندی الزامی است', 'error')
+        return
+      }
+      
+      savingBlogCategory.value = true
+      try {
+        if (editingBlogCategory.value) {
+          // Try admin endpoint first, fallback to regular endpoint
+          try {
+            await api.adminUpdateBlogCategory(editingBlogCategory.value.slug, blogCategoryForm.value)
+          } catch (error) {
+            await api.updateBlogCategory(editingBlogCategory.value.slug, blogCategoryForm.value)
+          }
+          showSnackbar('دسته‌بندی با موفقیت به‌روزرسانی شد', 'success')
+        } else {
+          // Try admin endpoint first, fallback to regular endpoint
+          try {
+            await api.adminCreateBlogCategory(blogCategoryForm.value)
+          } catch (error) {
+            await api.createBlogCategory(blogCategoryForm.value)
+          }
+          showSnackbar('دسته‌بندی با موفقیت ایجاد شد', 'success')
+        }
+        closeBlogCategoryDialog()
+        await loadBlogCategories()
+      } catch (error) {
+        console.error('Failed to save blog category:', error)
+        showSnackbar('خطا در ذخیره دسته‌بندی', 'error')
+      } finally {
+        savingBlogCategory.value = false
+      }
+    }
+    
+    const editBlogCategory = (category) => {
+      openBlogCategoryDialog(category)
+    }
+    
+    const deleteBlogCategory = async (category) => {
+      if (confirm(`آیا مطمئن هستید که می‌خواهید دسته‌بندی "${category.name}" را حذف کنید؟`)) {
+        try {
+          // Try admin endpoint first, fallback to regular endpoint
+          try {
+            await api.adminDeleteBlogCategory(category.slug)
+          } catch (error) {
+            await api.deleteBlogCategory(category.slug)
+          }
+          showSnackbar('دسته‌بندی با موفقیت حذف شد', 'success')
+          await loadBlogCategories()
+        } catch (error) {
+          console.error('Failed to delete blog category:', error)
+          showSnackbar('خطا در حذف دسته‌بندی', 'error')
+        }
+      }
+    }
+    
+    // Watch for activeView changes to load data when needed
     watch(activeView, (newView) => {
       if (newView === 'products') {
         loadProducts()
+      } else if (newView === 'blog') {
+        loadBlogPosts()
+        loadBlogCategories()
+      } else if (newView === 'blog-categories') {
+        loadBlogCategories()
       }
     })
     
@@ -1381,11 +2026,15 @@ export default {
       roleFilterOptions,
       statusFilterOptions,
       productStatusFilterOptions,
+      blogStatusFilterOptions,
+      blogCategoryFilterOptions,
       verificationFilterOptions,
       actionFilterOptions,
       userHeaders,
       activityHeaders,
       productHeaders,
+      blogHeaders,
+      blogCategoryHeaders,
       notifications,
       notificationCount,
       snackbar,
@@ -1412,7 +2061,33 @@ export default {
       getActionColor,
       formatDate,
       formatPrice,
-      handleLogout
+      handleLogout,
+      // Blog management
+      blogPosts,
+      selectedBlogPosts,
+      loadingBlogPosts,
+      blogFilters,
+      blogCategories,
+      loadingBlogCategories,
+      showCreateBlogCategoryDialog,
+      editingBlogCategory,
+      savingBlogCategory,
+      blogCategoryForm,
+      loadBlogPosts,
+      loadBlogCategories,
+      createNewBlogPost,
+      viewBlogPost,
+      editBlogPost,
+      toggleBlogPostStatus,
+      deleteBlogPost,
+      bulkBlogAction,
+      getBlogStatusColor,
+      getBlogStatusText,
+      openBlogCategoryDialog,
+      closeBlogCategoryDialog,
+      saveBlogCategory,
+      editBlogCategory,
+      deleteBlogCategory
     }
   }
 }
@@ -1487,7 +2162,9 @@ export default {
 .products-view,
 .departments-view,
 .categories-view,
-.subcategories-view {
+.subcategories-view,
+.blog-view,
+.blog-categories-view {
   animation: fadeIn 0.3s ease-in;
 }
 
@@ -1547,7 +2224,9 @@ export default {
 
 .users-table,
 .activities-table,
-.products-table {
+.products-table,
+.blog-table,
+.blog-categories-table {
   direction: rtl;
 }
 
