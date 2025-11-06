@@ -175,15 +175,14 @@ class CreateRFQSerializer(serializers.Serializer):
         )
         
         # Create order item for the product
-        # Convert price to Decimal if it's an integer (from PositiveBigIntegerField)
+        # For RFQ, we don't need to store the actual price (it's a quotation request)
+        # Set price to 0 to avoid numeric overflow issues with large product prices
         from decimal import Decimal
-        product_price = Decimal(str(product.price)) if product.price else Decimal('0')
-        
         OrderItem.objects.create(
             order=order,
             product=product,
             quantity=1,  # RFQ doesn't have quantity
-            price=product_price
+            price=Decimal('0')  # RFQ doesn't need actual price
         )
         
         # Images will be handled in the view
