@@ -391,9 +391,31 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
-import { Extension } from '@tiptap/core'
-import TextStyle from '@tiptap/extension-text-style'
+import { Extension, Mark, mergeAttributes } from '@tiptap/core'
 import { ref, watch, onBeforeUnmount, nextTick } from 'vue'
+
+const TextStyle = Mark.create({
+  name: 'textStyle',
+
+  addOptions() {
+    return {
+      HTMLAttributes: {},
+    }
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'span',
+        getAttrs: (element) => element.hasAttribute('style') ? {} : false,
+      },
+    ]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
+  },
+})
 
 const normalizeFontSizeValue = (fontSize) => {
   if (fontSize === null || fontSize === undefined || fontSize === '') {
