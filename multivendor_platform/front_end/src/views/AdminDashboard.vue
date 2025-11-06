@@ -259,7 +259,18 @@
         paddingLeft: !isMobile && drawer ? (rail ? '64px' : '256px') : '0'
       }"
     >
-      <v-container fluid class="pa-4">
+      <!-- Product Form (when on product routes) -->
+      <div v-if="isProductFormRoute" class="admin-form-wrapper">
+        <ProductForm />
+      </div>
+      
+      <!-- Blog Form (when on blog routes) -->
+      <div v-else-if="isBlogFormRoute" class="admin-form-wrapper">
+        <BlogForm />
+      </div>
+      
+      <!-- Regular Dashboard Views -->
+      <v-container v-else fluid class="pa-4">
         <!-- Dashboard View -->
         <div v-if="activeView === 'dashboard'" class="dashboard-view">
           <!-- Stats Cards -->
@@ -1240,21 +1251,26 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 import DepartmentManagement from '@/components/admin/DepartmentManagement.vue'
 import CategoryManagement from '@/components/admin/CategoryManagement.vue'
 import SubcategoryManagement from '@/components/admin/SubcategoryManagement.vue'
+import ProductForm from '@/views/ProductForm.vue'
+import BlogForm from '@/views/BlogForm.vue'
 
 export default {
   name: 'AdminDashboard',
   components: {
     DepartmentManagement,
     CategoryManagement,
-    SubcategoryManagement
+    SubcategoryManagement,
+    ProductForm,
+    BlogForm
   },
   setup() {
     const router = useRouter()
+    const route = useRoute()
     const authStore = useAuthStore()
     const { mdAndDown } = useDisplay()
     
@@ -1262,6 +1278,17 @@ export default {
     const rail = ref(false)
     const isMobile = computed(() => mdAndDown.value)
     const activeView = ref('dashboard')
+    
+    // Check if we're on a product or blog form route
+    const isProductFormRoute = computed(() => {
+      return route.path === '/products/new' || route.path.match(/^\/products\/\d+\/edit$/)
+    })
+    
+    const isBlogFormRoute = computed(() => {
+      return route.path === '/blog/new' || route.path.match(/^\/blog\/[^/]+\/edit$/)
+    })
+    
+    const isFormRoute = computed(() => isProductFormRoute.value || isBlogFormRoute.value)
     const showPasswordDialog = ref(false)
     const selectedUser = ref(null)
     const newPassword = ref('')
@@ -1982,6 +2009,17 @@ export default {
       }
     }
     
+    // Watch for route changes to update activeView
+    watch(() => route.path, (newPath) => {
+      if (isProductFormRoute.value) {
+        activeView.value = 'products'
+      } else if (isBlogFormRoute.value) {
+        activeView.value = 'blog'
+      } else if (newPath === '/admin/dashboard') {
+        activeView.value = 'dashboard'
+      }
+    }, { immediate: true })
+    
     // Watch for activeView changes to load data when needed
     watch(activeView, (newView) => {
       if (newView === 'products') {
@@ -2006,6 +2044,9 @@ export default {
       rail,
       isMobile,
       activeView,
+      isProductFormRoute,
+      isBlogFormRoute,
+      isFormRoute,
       showPasswordDialog,
       selectedUser,
       newPassword,
@@ -2228,6 +2269,23 @@ export default {
 .blog-table,
 .blog-categories-table {
   direction: rtl;
+}
+
+/* Form wrapper styling when forms are shown in admin layout */
+.admin-form-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.admin-form-wrapper :deep(.product-form-container),
+.admin-form-wrapper :deep(.blog-form) {
+  padding-top: 0;
+}
+
+.admin-form-wrapper :deep(.container) {
+  max-width: 100%;
+  padding: 16px;
 }
 
 /* Mobile adjustments */

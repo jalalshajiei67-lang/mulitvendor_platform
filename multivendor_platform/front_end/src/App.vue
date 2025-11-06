@@ -6,7 +6,9 @@
 
     <!-- Main Content -->
     <v-main class="bg-background" :class="{ 'mobile-main': isMobile && !isAdminDashboard }">
-      <router-view />
+      <!-- Render AdminDashboard for admin routes, otherwise use router-view -->
+      <AdminDashboard v-if="isAdminRoute && route.path !== '/admin/dashboard'" />
+      <router-view v-else />
     </v-main>
 
     <!-- Footer with Material Design 3 (Desktop Only) -->
@@ -56,6 +58,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import BottomNavigation from '@/components/layout/BottomNavigation.vue'
+import AdminDashboard from '@/views/AdminDashboard.vue'
 
 const { mdAndDown } = useDisplay()
 const route = useRoute()
@@ -65,8 +68,30 @@ const { t } = useI18n()
 // Check if mobile/tablet (< 960px / md breakpoint)
 const isMobile = computed(() => mdAndDown.value)
 
-// Hide header and bottom nav on admin dashboard
-const isAdminDashboard = computed(() => route.path === '/admin/dashboard')
+// Admin-related routes that should use admin layout
+const adminRoutes = [
+  '/admin/dashboard',
+  '/products/new',
+  '/blog/new'
+]
+
+// Check if current route is an admin route (exact match or pattern match for edit routes)
+const isAdminRoute = computed(() => {
+  const path = route.path
+  // Exact matches
+  if (adminRoutes.includes(path)) {
+    return authStore.isAdmin
+  }
+  // Pattern matches for edit routes
+  if (authStore.isAdmin) {
+    if (path.match(/^\/products\/\d+\/edit$/)) return true
+    if (path.match(/^\/blog\/[^/]+\/edit$/)) return true
+  }
+  return false
+})
+
+// Hide header and bottom nav on admin dashboard and admin-managed routes
+const isAdminDashboard = computed(() => isAdminRoute.value)
 
 onMounted(() => {
   authStore.initializeAuth()
