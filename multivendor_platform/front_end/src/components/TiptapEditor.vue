@@ -204,8 +204,9 @@
         </div>
       </div>
     </div>
-    <div class="editor-content">
-      <editor-content :editor="editor" />
+    <div class="editor-content-wrapper">
+      <div class="editor-content">
+        <editor-content :editor="editor" />
       
       <!-- Table Controls Menu (shown when table is active) -->
       <div v-if="isTableActive" class="table-controls-menu">
@@ -283,6 +284,7 @@
             </div>
           </v-card-text>
         </v-card>
+      </div>
       </div>
     </div>
     
@@ -395,38 +397,7 @@ const FontSize = Mark.create({
       HTMLAttributes: {}
     }
   },
-  parseHTML() {
-    return [
-      {
-        tag: 'span[style*="font-size"]',
-        getAttrs: (node) => {
-          const element = node
-          const fontSize = element.style.fontSize?.replace('px', '')
-          return fontSize ? { fontSize: parseInt(fontSize) } : false
-        }
-      }
-    ]
-  },
-  renderHTML({ HTMLAttributes }) {
-    return [
-      'span',
-      {
-        ...this.options.HTMLAttributes,
-        style: `font-size: ${HTMLAttributes.fontSize}px`
-      },
-      0
-    ]
-  },
-  addCommands() {
-    return {
-      setFontSize: (fontSize) => ({ commands }) => {
-        return commands.setMark(this.name, { fontSize })
-      },
-      unsetFontSize: () => ({ commands }) => {
-        return commands.unsetMark(this.name)
-      }
-    }
-  },
+  inclusive: true,
   addAttributes() {
     return {
       fontSize: {
@@ -443,6 +414,45 @@ const FontSize = Mark.create({
             style: `font-size: ${attributes.fontSize}px`
           }
         }
+      }
+    }
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'span[style*="font-size"]',
+        getAttrs: (node) => {
+          const element = node
+          const fontSize = element.style.fontSize?.replace('px', '')
+          return fontSize ? { fontSize: parseInt(fontSize) } : false
+        }
+      }
+    ]
+  },
+  renderHTML({ HTMLAttributes }) {
+    if (!HTMLAttributes || !HTMLAttributes.fontSize) {
+      return false
+    }
+    return [
+      'span',
+      {
+        ...this.options.HTMLAttributes,
+        style: `font-size: ${HTMLAttributes.fontSize}px`
+      },
+      0
+    ]
+  },
+  addCommands() {
+    return {
+      setFontSize: (fontSize) => ({ commands, chain }) => {
+        if (!fontSize) {
+          return commands.unsetMark(this.name)
+        }
+        // Use commands directly to avoid double-chaining
+        return commands.setMark(this.name, { fontSize })
+      },
+      unsetFontSize: () => ({ commands }) => {
+        return commands.unsetMark(this.name)
       }
     }
   }
@@ -629,9 +639,19 @@ export default {
     }
 
     const setFontSize = (size) => {
-      if (editor.value) {
-        editor.value.chain().focus().setFontSize(size).run()
-        currentFontSize.value = size
+      if (editor.value && size) {
+        try {
+          // Focus first, then apply the mark
+          editor.value.chain().focus().setFontSize(size).run()
+          // Update the current font size display
+          setTimeout(() => {
+            if (editor.value) {
+              updateCurrentFontSize(editor.value)
+            }
+          }, 100)
+        } catch (error) {
+          console.error('Error setting font size:', error)
+        }
       }
     }
 
@@ -698,6 +718,7 @@ export default {
   position: relative;
   display: flex;
   flex-direction: column;
+  max-height: 100%;
   overflow: hidden;
 }
 
@@ -708,6 +729,8 @@ export default {
   background-color: rgb(var(--v-theme-surface));
   border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+  width: 100%;
 }
 
 .editor-toolbar {
@@ -761,10 +784,16 @@ export default {
   color: rgb(var(--v-theme-primary));
 }
 
+.editor-content-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+}
+
 .editor-content {
   min-height: 200px;
-  overflow-y: auto;
-  flex: 1;
   position: relative;
 }
 
