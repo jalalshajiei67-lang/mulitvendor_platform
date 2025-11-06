@@ -71,6 +71,30 @@
             value="products-create"
             @click="createNewProduct"
           ></v-list-item>
+
+          <v-list-item
+            prepend-icon="mdi-domain"
+            title="مدیریت دپارتمان‌ها"
+            value="departments"
+            :active="activeView === 'departments'"
+            @click="setActiveView('departments')"
+          ></v-list-item>
+
+          <v-list-item
+            prepend-icon="mdi-folder"
+            title="مدیریت دسته‌بندی‌ها"
+            value="categories"
+            :active="activeView === 'categories'"
+            @click="setActiveView('categories')"
+          ></v-list-item>
+
+          <v-list-item
+            prepend-icon="mdi-folder-multiple"
+            title="مدیریت زیردسته‌ها"
+            value="subcategories"
+            :active="activeView === 'subcategories'"
+            @click="setActiveView('subcategories')"
+          ></v-list-item>
         </v-list-group>
 
         <v-list-item
@@ -774,6 +798,21 @@
             </v-data-table>
           </v-card>
         </div>
+
+        <!-- Departments Management View -->
+        <div v-if="activeView === 'departments'" class="departments-view">
+          <DepartmentManagement />
+        </div>
+
+        <!-- Categories Management View -->
+        <div v-if="activeView === 'categories'" class="categories-view">
+          <CategoryManagement />
+        </div>
+
+        <!-- Subcategories Management View -->
+        <div v-if="activeView === 'subcategories'" class="subcategories-view">
+          <SubcategoryManagement />
+        </div>
       </v-container>
     </div>
 
@@ -846,9 +885,17 @@ import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
+import DepartmentManagement from '@/components/admin/DepartmentManagement.vue'
+import CategoryManagement from '@/components/admin/CategoryManagement.vue'
+import SubcategoryManagement from '@/components/admin/SubcategoryManagement.vue'
 
 export default {
   name: 'AdminDashboard',
+  components: {
+    DepartmentManagement,
+    CategoryManagement,
+    SubcategoryManagement
+  },
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
@@ -1437,7 +1484,10 @@ export default {
 .dashboard-view,
 .users-view,
 .activities-view,
-.products-view {
+.products-view,
+.departments-view,
+.categories-view,
+.subcategories-view {
   animation: fadeIn 0.3s ease-in;
 }
 

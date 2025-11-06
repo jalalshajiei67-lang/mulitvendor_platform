@@ -659,6 +659,291 @@ def admin_delete_product_view(request, product_id):
     except Product.DoesNotExist:
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
+# Admin Department Management APIs
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_departments_view(request):
+    """Get all departments with filtering for admin"""
+    from products.models import Department
+    from products.serializers import DepartmentSerializer
+    
+    departments = Department.objects.all()
+    
+    # Filter by status
+    is_active = request.query_params.get('is_active')
+    if is_active is not None:
+        departments = departments.filter(is_active=is_active.lower() == 'true')
+    
+    # Search by name/description
+    search = request.query_params.get('search')
+    if search:
+        departments = departments.filter(
+            Q(name__icontains=search) | 
+            Q(description__icontains=search)
+        )
+    
+    serializer = DepartmentSerializer(departments, many=True, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_department_detail_view(request, department_id):
+    """Get department detail for admin"""
+    from products.models import Department
+    from products.serializers import DepartmentSerializer
+    
+    try:
+        department = Department.objects.get(id=department_id)
+        serializer = DepartmentSerializer(department, context={'request': request})
+        return Response(serializer.data)
+    except Department.DoesNotExist:
+        return Response({'error': 'Department not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_create_department_view(request):
+    """Admin can create a department"""
+    from products.models import Department
+    from products.serializers import DepartmentSerializer
+    
+    serializer = DepartmentSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        department = serializer.save()
+        log_activity(request.user, 'other', f'Admin created department {department.name}', request, department)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAdminUser])
+def admin_update_department_view(request, department_id):
+    """Admin can update a department"""
+    from products.models import Department
+    from products.serializers import DepartmentSerializer
+    
+    try:
+        department = Department.objects.get(id=department_id)
+        serializer = DepartmentSerializer(department, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            log_activity(request.user, 'other', f'Admin updated department {department.name}', request, department)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Department.DoesNotExist:
+        return Response({'error': 'Department not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_delete_department_view(request, department_id):
+    """Admin can delete a department"""
+    from products.models import Department
+    
+    try:
+        department = Department.objects.get(id=department_id)
+        department_name = department.name
+        department.delete()
+        log_activity(request.user, 'other', f'Admin deleted department {department_name}', request)
+        return Response({'message': 'Department deleted successfully'})
+    except Department.DoesNotExist:
+        return Response({'error': 'Department not found'}, status=status.HTTP_404_NOT_FOUND)
+
+# Admin Category Management APIs
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_categories_view(request):
+    """Get all categories with filtering for admin"""
+    from products.models import Category
+    from products.serializers import CategorySerializer
+    
+    categories = Category.objects.all()
+    
+    # Filter by department
+    department = request.query_params.get('department')
+    if department:
+        categories = categories.filter(departments__id=department)
+    
+    # Filter by status
+    is_active = request.query_params.get('is_active')
+    if is_active is not None:
+        categories = categories.filter(is_active=is_active.lower() == 'true')
+    
+    # Search by name/description
+    search = request.query_params.get('search')
+    if search:
+        categories = categories.filter(
+            Q(name__icontains=search) | 
+            Q(description__icontains=search)
+        )
+    
+    serializer = CategorySerializer(categories, many=True, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_category_detail_view(request, category_id):
+    """Get category detail for admin"""
+    from products.models import Category
+    from products.serializers import CategorySerializer
+    
+    try:
+        category = Category.objects.get(id=category_id)
+        serializer = CategorySerializer(category, context={'request': request})
+        return Response(serializer.data)
+    except Category.DoesNotExist:
+        return Response({'error': 'Category not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_create_category_view(request):
+    """Admin can create a category"""
+    from products.models import Category
+    from products.serializers import CategorySerializer
+    
+    serializer = CategorySerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        category = serializer.save()
+        # Handle departments M2M relationship
+        departments = request.data.get('departments', [])
+        if departments:
+            category.departments.set(departments)
+        log_activity(request.user, 'other', f'Admin created category {category.name}', request, category)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAdminUser])
+def admin_update_category_view(request, category_id):
+    """Admin can update a category"""
+    from products.models import Category
+    from products.serializers import CategorySerializer
+    
+    try:
+        category = Category.objects.get(id=category_id)
+        serializer = CategorySerializer(category, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            # Handle departments M2M relationship
+            if 'departments' in request.data:
+                category.departments.set(request.data.get('departments', []))
+            log_activity(request.user, 'other', f'Admin updated category {category.name}', request, category)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Category.DoesNotExist:
+        return Response({'error': 'Category not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_delete_category_view(request, category_id):
+    """Admin can delete a category"""
+    from products.models import Category
+    
+    try:
+        category = Category.objects.get(id=category_id)
+        category_name = category.name
+        category.delete()
+        log_activity(request.user, 'other', f'Admin deleted category {category_name}', request)
+        return Response({'message': 'Category deleted successfully'})
+    except Category.DoesNotExist:
+        return Response({'error': 'Category not found'}, status=status.HTTP_404_NOT_FOUND)
+
+# Admin Subcategory Management APIs
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_subcategories_view(request):
+    """Get all subcategories with filtering for admin"""
+    from products.models import Subcategory
+    from products.serializers import SubcategorySerializer
+    
+    subcategories = Subcategory.objects.all()
+    
+    # Filter by category
+    category = request.query_params.get('category')
+    if category:
+        subcategories = subcategories.filter(categories__id=category)
+    
+    # Filter by status
+    is_active = request.query_params.get('is_active')
+    if is_active is not None:
+        subcategories = subcategories.filter(is_active=is_active.lower() == 'true')
+    
+    # Search by name/description
+    search = request.query_params.get('search')
+    if search:
+        subcategories = subcategories.filter(
+            Q(name__icontains=search) | 
+            Q(description__icontains=search)
+        )
+    
+    serializer = SubcategorySerializer(subcategories, many=True, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_subcategory_detail_view(request, subcategory_id):
+    """Get subcategory detail for admin"""
+    from products.models import Subcategory
+    from products.serializers import SubcategorySerializer
+    
+    try:
+        subcategory = Subcategory.objects.get(id=subcategory_id)
+        serializer = SubcategorySerializer(subcategory, context={'request': request})
+        return Response(serializer.data)
+    except Subcategory.DoesNotExist:
+        return Response({'error': 'Subcategory not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_create_subcategory_view(request):
+    """Admin can create a subcategory"""
+    from products.models import Subcategory
+    from products.serializers import SubcategorySerializer
+    
+    serializer = SubcategorySerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        subcategory = serializer.save()
+        # Handle categories M2M relationship
+        categories = request.data.get('categories', [])
+        if categories:
+            subcategory.categories.set(categories)
+        log_activity(request.user, 'other', f'Admin created subcategory {subcategory.name}', request, subcategory)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAdminUser])
+def admin_update_subcategory_view(request, subcategory_id):
+    """Admin can update a subcategory"""
+    from products.models import Subcategory
+    from products.serializers import SubcategorySerializer
+    
+    try:
+        subcategory = Subcategory.objects.get(id=subcategory_id)
+        serializer = SubcategorySerializer(subcategory, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            # Handle categories M2M relationship
+            if 'categories' in request.data:
+                subcategory.categories.set(request.data.get('categories', []))
+            log_activity(request.user, 'other', f'Admin updated subcategory {subcategory.name}', request, subcategory)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Subcategory.DoesNotExist:
+        return Response({'error': 'Subcategory not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_delete_subcategory_view(request, subcategory_id):
+    """Admin can delete a subcategory"""
+    from products.models import Subcategory
+    
+    try:
+        subcategory = Subcategory.objects.get(id=subcategory_id)
+        subcategory_name = subcategory.name
+        subcategory.delete()
+        log_activity(request.user, 'other', f'Admin deleted subcategory {subcategory_name}', request)
+        return Response({'message': 'Subcategory deleted successfully'})
+    except Subcategory.DoesNotExist:
+        return Response({'error': 'Subcategory not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 # ===== SUPPLIER / VENDOR VIEWSETS =====
 

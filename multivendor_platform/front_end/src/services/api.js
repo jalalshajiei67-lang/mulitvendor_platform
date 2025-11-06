@@ -345,5 +345,80 @@ export default {
   },
   adminDeleteProduct(productId) {
     return apiClient.delete(`/auth/admin/products/${productId}/delete/`);
+  },
+  
+  // Admin Department Management
+  getAdminDepartments(params = {}) {
+    return apiClient.get('/auth/admin/departments/', { params });
+  },
+  getAdminDepartmentDetail(departmentId) {
+    return apiClient.get(`/auth/admin/departments/${departmentId}/`);
+  },
+  adminCreateDepartment(data) {
+    const config = {};
+    if (data instanceof FormData) {
+      config.headers = { 'Content-Type': 'multipart/form-data' };
+    }
+    return apiClient.post('/auth/admin/departments/create/', data, config);
+  },
+  adminUpdateDepartment(departmentId, data) {
+    const config = {};
+    if (data instanceof FormData) {
+      config.headers = { 'Content-Type': 'multipart/form-data' };
+    }
+    return apiClient.put(`/auth/admin/departments/${departmentId}/update/`, data, config);
+  },
+  adminDeleteDepartment(departmentId) {
+    return apiClient.delete(`/auth/admin/departments/${departmentId}/delete/`);
+  },
+  
+  // Admin Category Management
+  getAdminCategories(params = {}) {
+    return apiClient.get('/auth/admin/categories/', { params });
+  },
+  getAdminCategoryDetail(categoryId) {
+    return apiClient.get(`/auth/admin/categories/${categoryId}/`);
+  },
+  adminCreateCategory(data) {
+    const config = {};
+    if (data instanceof FormData) {
+      config.headers = { 'Content-Type': 'multipart/form-data' };
+    }
+    return apiClient.post('/auth/admin/categories/create/', data, config);
+  },
+  adminUpdateCategory(categoryId, data) {
+    const config = {};
+    if (data instanceof FormData) {
+      config.headers = { 'Content-Type': 'multipart/form-data' };
+    }
+    return apiClient.put(`/auth/admin/categories/${categoryId}/update/`, data, config);
+  },
+  adminDeleteCategory(categoryId) {
+    return apiClient.delete(`/auth/admin/categories/${categoryId}/delete/`);
+  },
+  
+  // Admin Subcategory Management
+  getAdminSubcategories(params = {}) {
+    return apiClient.get('/auth/admin/subcategories/', { params });
+  },
+  getAdminSubcategoryDetail(subcategoryId) {
+    return apiClient.get(`/auth/admin/subcategories/${subcategoryId}/`);
+  },
+  adminCreateSubcategory(data) {
+    const config = {};
+    if (data instanceof FormData) {
+      config.headers = { 'Content-Type': 'multipart/form-data' };
+    }
+    return apiClient.post('/auth/admin/subcategories/create/', data, config);
+  },
+  adminUpdateSubcategory(subcategoryId, data) {
+    const config = {};
+    if (data instanceof FormData) {
+      config.headers = { 'Content-Type': 'multipart/form-data' };
+    }
+    return apiClient.put(`/auth/admin/subcategories/${subcategoryId}/update/`, data, config);
+  },
+  adminDeleteSubcategory(subcategoryId) {
+    return apiClient.delete(`/auth/admin/subcategories/${subcategoryId}/delete/`);
   }
 }

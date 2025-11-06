@@ -58,3 +58,4 @@ exec gunicorn multivendor_platform.wsgi:application \
     --log-level info \
     --capture-output
 
+

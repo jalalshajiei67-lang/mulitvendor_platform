@@ -85,3 +85,4 @@ Should return JSON data instead of 500 error.
 - Ensure `postgres` user has access to the database
 - Or use a different user that has proper permissions
 
+

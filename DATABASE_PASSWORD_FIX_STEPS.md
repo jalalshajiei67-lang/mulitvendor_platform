@@ -96,3 +96,4 @@ DB_PORT=5432
 3. Check network connectivity between apps (usually automatic in CapRover)
 4. Try resetting the password completely (Option A above)
 
+

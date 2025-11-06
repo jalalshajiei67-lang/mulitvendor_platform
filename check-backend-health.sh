@@ -34,3 +34,4 @@ echo "   - Verify app status is 'Running' (green)"
 echo "   - Check environment variables are set correctly"
 echo "   - Verify database is running and accessible"
 
+

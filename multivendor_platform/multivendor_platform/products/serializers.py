@@ -4,10 +4,13 @@ from .models import Product, Category, Subcategory, Department, ProductImage, Pr
 
 class DepartmentSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField(read_only=True)
+    og_image_url = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Department
-        fields = ['id', 'name', 'slug', 'description', 'image', 'image_url', 'meta_title', 'meta_description', 'is_active', 'sort_order', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'image', 'image_url', 'image_alt_text', 
+                  'og_image', 'og_image_url', 'meta_title', 'meta_description', 'canonical_url', 
+                  'schema_markup', 'is_active', 'sort_order', 'created_at', 'updated_at']
     
     def get_image_url(self, obj):
         """Return the full URL of the image"""
@@ -23,14 +26,32 @@ class DepartmentSerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(image_field.url)
         return image_field.url
+    
+    def get_og_image_url(self, obj):
+        """Return the full URL of the Open Graph image"""
+        og_image_field = getattr(obj, 'og_image', None)
+        if not og_image_field:
+            return None
+        
+        storage = og_image_field.storage
+        if not storage.exists(og_image_field.name):
+            return None
+        
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(og_image_field.url)
+        return og_image_field.url
 
 class CategorySerializer(serializers.ModelSerializer):
     departments = DepartmentSerializer(many=True, read_only=True)
     image_url = serializers.SerializerMethodField(read_only=True)
+    og_image_url = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug', 'description', 'image', 'image_url', 'meta_title', 'meta_description', 'departments', 'is_active', 'sort_order', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'image', 'image_url', 'image_alt_text',
+                  'og_image', 'og_image_url', 'meta_title', 'meta_description', 'canonical_url',
+                  'schema_markup', 'departments', 'is_active', 'sort_order', 'created_at', 'updated_at']
     
     def get_image_url(self, obj):
         """Return the full URL of the image"""
@@ -46,15 +67,33 @@ class CategorySerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(image_field.url)
         return image_field.url
+    
+    def get_og_image_url(self, obj):
+        """Return the full URL of the Open Graph image"""
+        og_image_field = getattr(obj, 'og_image', None)
+        if not og_image_field:
+            return None
+        
+        storage = og_image_field.storage
+        if not storage.exists(og_image_field.name):
+            return None
+        
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(og_image_field.url)
+        return og_image_field.url
 
 class SubcategorySerializer(serializers.ModelSerializer):
     categories = CategorySerializer(many=True, read_only=True)
     departments = serializers.SerializerMethodField(read_only=True)  # Computed from categories
     image_url = serializers.SerializerMethodField(read_only=True)
+    og_image_url = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Subcategory
-        fields = ['id', 'name', 'slug', 'description', 'image', 'image_url', 'meta_title', 'meta_description', 'departments', 'categories', 'is_active', 'sort_order', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'image', 'image_url', 'image_alt_text',
+                  'og_image', 'og_image_url', 'meta_title', 'meta_description', 'canonical_url',
+                  'schema_markup', 'departments', 'categories', 'is_active', 'sort_order', 'created_at', 'updated_at']
     
     def get_image_url(self, obj):
         """Return the full URL of the image"""
@@ -70,6 +109,21 @@ class SubcategorySerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(image_field.url)
         return image_field.url
+    
+    def get_og_image_url(self, obj):
+        """Return the full URL of the Open Graph image"""
+        og_image_field = getattr(obj, 'og_image', None)
+        if not og_image_field:
+            return None
+        
+        storage = og_image_field.storage
+        if not storage.exists(og_image_field.name):
+            return None
+        
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(og_image_field.url)
+        return og_image_field.url
     
     def get_departments(self, obj):
         """Get departments through categories"""

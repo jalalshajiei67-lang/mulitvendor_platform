@@ -10,6 +10,12 @@ from .views import (
     admin_update_order_status_view,
     admin_products_view, admin_product_detail_view, admin_product_bulk_action_view,
     admin_delete_product_view,
+    admin_departments_view, admin_department_detail_view, admin_create_department_view,
+    admin_update_department_view, admin_delete_department_view,
+    admin_categories_view, admin_category_detail_view, admin_create_category_view,
+    admin_update_category_view, admin_delete_category_view,
+    admin_subcategories_view, admin_subcategory_detail_view, admin_create_subcategory_view,
+    admin_update_subcategory_view, admin_delete_subcategory_view,
     SupplierViewSet, SupplierCommentViewSet
 )
 
@@ -50,6 +56,27 @@ urlpatterns = [
     path('admin/products/<int:product_id>/', admin_product_detail_view, name='admin-product-detail'),
     path('admin/products/bulk-action/', admin_product_bulk_action_view, name='admin-product-bulk-action'),
     path('admin/products/<int:product_id>/delete/', admin_delete_product_view, name='admin-delete-product'),
+    
+    # Admin Department Management
+    path('admin/departments/', admin_departments_view, name='admin-departments'),
+    path('admin/departments/<int:department_id>/', admin_department_detail_view, name='admin-department-detail'),
+    path('admin/departments/create/', admin_create_department_view, name='admin-create-department'),
+    path('admin/departments/<int:department_id>/update/', admin_update_department_view, name='admin-update-department'),
+    path('admin/departments/<int:department_id>/delete/', admin_delete_department_view, name='admin-delete-department'),
+    
+    # Admin Category Management
+    path('admin/categories/', admin_categories_view, name='admin-categories'),
+    path('admin/categories/<int:category_id>/', admin_category_detail_view, name='admin-category-detail'),
+    path('admin/categories/create/', admin_create_category_view, name='admin-create-category'),
+    path('admin/categories/<int:category_id>/update/', admin_update_category_view, name='admin-update-category'),
+    path('admin/categories/<int:category_id>/delete/', admin_delete_category_view, name='admin-delete-category'),
+    
+    # Admin Subcategory Management
+    path('admin/subcategories/', admin_subcategories_view, name='admin-subcategories'),
+    path('admin/subcategories/<int:subcategory_id>/', admin_subcategory_detail_view, name='admin-subcategory-detail'),
+    path('admin/subcategories/create/', admin_create_subcategory_view, name='admin-create-subcategory'),
+    path('admin/subcategories/<int:subcategory_id>/update/', admin_update_subcategory_view, name='admin-update-subcategory'),
+    path('admin/subcategories/<int:subcategory_id>/delete/', admin_delete_subcategory_view, name='admin-delete-subcategory'),
     
     # Seller Ads (ViewSet routes)
     path('', include(router.urls)),
