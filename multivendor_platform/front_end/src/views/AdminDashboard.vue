@@ -9,6 +9,7 @@
       location="right"
       class="admin-sidebar"
       fixed
+      dir="rtl"
     >
       <div class="sidebar-header">
         <v-list-item
@@ -24,7 +25,7 @@
           @click="rail = !rail"
           class="rail-toggle"
         >
-          <v-icon>{{ rail ? 'mdi-chevron-left' : 'mdi-chevron-right' }}</v-icon>
+          <v-icon>{{ rail ? 'mdi-chevron-right' : 'mdi-chevron-left' }}</v-icon>
         </v-btn>
       </div>
 
@@ -63,6 +64,7 @@
       color="primary"
       class="admin-header"
       fixed
+      dir="rtl"
     >
       <!-- Mobile Hamburger Button -->
       <v-app-bar-nav-icon
@@ -173,7 +175,7 @@
     <div 
       class="admin-main"
       :style="{
-        paddingRight: !isMobile && drawer ? (rail ? '64px' : '256px') : '0'
+        paddingLeft: !isMobile && drawer ? (rail ? '64px' : '256px') : '0'
       }"
     >
       <v-container fluid class="pa-4">
@@ -969,6 +971,8 @@ export default {
 <style scoped>
 .admin-sidebar {
   direction: rtl;
+  right: 0 !important;
+  left: auto !important;
 }
 
 .sidebar-header {
@@ -978,7 +982,7 @@ export default {
 
 .rail-toggle {
   position: absolute;
-  left: 8px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
 }
