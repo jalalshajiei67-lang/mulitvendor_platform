@@ -64,9 +64,8 @@
       color="primary"
       class="admin-header"
       fixed
-      dir="rtl"
     >
-      <!-- Logo (Visual Left) -->
+      <!-- Logo (Far Left) -->
       <router-link to="/" class="logo-link">
         <v-img
           src="/indexo.jpg"
@@ -80,7 +79,7 @@
 
       <v-spacer></v-spacer>
 
-      <!-- Mobile Hamburger Button (Visual Right) -->
+      <!-- Mobile Hamburger Button (Far Right) -->
       <v-app-bar-nav-icon
         v-if="isMobile"
         @click="drawer = !drawer"
@@ -997,15 +996,14 @@ export default {
 }
 
 .admin-header {
-  direction: rtl;
+  direction: ltr;
 }
 
 .logo-link {
   display: flex;
   align-items: center;
   text-decoration: none;
-  margin-left: 16px;
-  order: -1;
+  margin-right: 16px;
 }
 
 .logo-img {
@@ -1013,8 +1011,7 @@ export default {
 }
 
 .hamburger-btn {
-  margin-right: 8px;
-  order: 1;
+  margin-left: 8px;
 }
 
 .notification-btn {
