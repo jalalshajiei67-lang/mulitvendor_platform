@@ -453,14 +453,18 @@ const FontSize = Mark.create({
     ]
   },
   renderHTML({ HTMLAttributes }) {
-    if (!HTMLAttributes || !HTMLAttributes.fontSize) {
+    if (!HTMLAttributes || !HTMLAttributes.fontSize || typeof HTMLAttributes.fontSize !== 'number') {
+      return false
+    }
+    const fontSize = parseInt(HTMLAttributes.fontSize)
+    if (isNaN(fontSize) || fontSize <= 0) {
       return false
     }
     return [
       'span',
       {
         ...this.options.HTMLAttributes,
-        style: `font-size: ${HTMLAttributes.fontSize}px`
+        style: `font-size: ${fontSize}px;`
       },
       0
     ]
@@ -472,8 +476,14 @@ const FontSize = Mark.create({
           return commands.unsetMark(this.name)
         }
         
+        // Validate fontSize is a valid number
+        const size = parseInt(fontSize)
+        if (isNaN(size) || size <= 0) {
+          return false
+        }
+        
         // Use the standard setMark command which handles everything properly
-        return commands.setMark(this.name, { fontSize })
+        return commands.setMark(this.name, { fontSize: size })
       },
       unsetFontSize: () => ({ commands }) => {
         return commands.unsetMark(this.name)
@@ -530,7 +540,8 @@ export default {
         StarterKit.configure({
           heading: {
             levels: [1, 2, 3]
-          }
+          },
+          link: false // Disable Link from StarterKit since we're adding it separately
         }),
         FontSize,
         Image.configure({
