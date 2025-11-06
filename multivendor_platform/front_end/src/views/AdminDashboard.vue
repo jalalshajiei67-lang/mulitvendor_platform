@@ -1251,17 +1251,13 @@ import api from '@/services/api'
 import DepartmentManagement from '@/components/admin/DepartmentManagement.vue'
 import CategoryManagement from '@/components/admin/CategoryManagement.vue'
 import SubcategoryManagement from '@/components/admin/SubcategoryManagement.vue'
-import ProductForm from '@/views/ProductForm.vue'
-import BlogForm from '@/views/BlogForm.vue'
 
 export default {
   name: 'AdminDashboard',
   components: {
     DepartmentManagement,
     CategoryManagement,
-    SubcategoryManagement,
-    ProductForm,
-    BlogForm
+    SubcategoryManagement
   },
   setup() {
     const router = useRouter()
@@ -1820,7 +1816,7 @@ export default {
         let response
         try {
           response = await api.getAdminBlogPosts(params)
-        } catch (error) {
+        } catch {
           // Fallback to regular blog posts endpoint if admin endpoint doesn't exist
           response = await api.getBlogPosts(params)
         }
@@ -1840,7 +1836,7 @@ export default {
         let response
         try {
           response = await api.getAdminBlogCategories()
-        } catch (error) {
+        } catch {
           // Fallback to regular blog categories endpoint
           response = await api.getBlogCategories()
         }
@@ -1885,7 +1881,7 @@ export default {
           // Try admin endpoint first, fallback to regular endpoint
           try {
             await api.adminDeleteBlogPost(post.slug)
-          } catch (error) {
+          } catch {
             await api.deleteBlogPost(post.slug)
           }
           showSnackbar('پست با موفقیت حذف شد', 'success')
@@ -1922,7 +1918,7 @@ export default {
         // Try admin endpoint first, fallback to individual updates
         try {
           await api.adminBlogPostBulkAction(action, postSlugs)
-        } catch (error) {
+        } catch {
           // Fallback to individual updates
           for (const slug of postSlugs) {
             if (action === 'delete') {
@@ -1997,7 +1993,7 @@ export default {
           // Try admin endpoint first, fallback to regular endpoint
           try {
             await api.adminUpdateBlogCategory(editingBlogCategory.value.slug, blogCategoryForm.value)
-          } catch (error) {
+          } catch {
             await api.updateBlogCategory(editingBlogCategory.value.slug, blogCategoryForm.value)
           }
           showSnackbar('دسته‌بندی با موفقیت به‌روزرسانی شد', 'success')
@@ -2005,7 +2001,7 @@ export default {
           // Try admin endpoint first, fallback to regular endpoint
           try {
             await api.adminCreateBlogCategory(blogCategoryForm.value)
-          } catch (error) {
+          } catch {
             await api.createBlogCategory(blogCategoryForm.value)
           }
           showSnackbar('دسته‌بندی با موفقیت ایجاد شد', 'success')
@@ -2030,7 +2026,7 @@ export default {
           // Try admin endpoint first, fallback to regular endpoint
           try {
             await api.adminDeleteBlogCategory(category.slug)
-          } catch (error) {
+          } catch {
             await api.deleteBlogCategory(category.slug)
           }
           showSnackbar('دسته‌بندی با موفقیت حذف شد', 'success')

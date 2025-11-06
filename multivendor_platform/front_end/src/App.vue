@@ -53,14 +53,12 @@ import { computed, onMounted } from 'vue'
 import { useDisplay } from 'vuetify'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useI18n } from 'vue-i18n'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 
 const { mdAndDown } = useDisplay()
 const route = useRoute()
 const authStore = useAuthStore()
-const { t } = useI18n()
 
 // Check if mobile/tablet (< 960px / md breakpoint)
 const isMobile = computed(() => mdAndDown.value)
