@@ -1,88 +1,90 @@
 <template>
   <div class="tiptap-editor" dir="rtl">
     <div class="editor-content-wrapper">
-      <div class="editor-toolbar-wrapper">
-        <div class="editor-toolbar" v-if="editor">
-        <div class="toolbar-groups">
-          <!-- Text Formatting Group -->
-          <div class="toolbar-group">
-            <v-btn-toggle
-              v-model="toolbarState"
-              variant="outlined"
-              density="compact"
-              divided
-              class="toolbar-buttons"
-            >
-              <v-btn
-                @click="editor.chain().focus().toggleBold().run()"
-                :class="{ 'v-btn--active': editor.isActive('bold') }"
-                icon
-                size="small"
+      <div v-if="editor" class="editor-toolbar-wrapper">
+        <div class="editor-toolbar">
+          <div class="toolbar-groups">
+            <!-- Text Formatting Group -->
+            <div class="toolbar-group">
+              <v-btn-toggle
+                v-model="toolbarState"
+                variant="outlined"
+                density="compact"
+                divided
+                class="toolbar-buttons"
               >
-                <v-icon>mdi-format-bold</v-icon>
-              </v-btn>
-              <v-btn
-                @click="editor.chain().focus().toggleItalic().run()"
-                :class="{ 'v-btn--active': editor.isActive('italic') }"
-                icon
-                size="small"
-              >
-                <v-icon>mdi-format-italic</v-icon>
-              </v-btn>
-            </v-btn-toggle>
-            <v-menu location="bottom">
-              <template v-slot:activator="{ props }">
                 <v-btn
-                  v-bind="props"
-                  variant="outlined"
-                  density="compact"
+                  @click="editor.chain().focus().toggleBold().run()"
+                  :class="{ 'v-btn--active': editor.isActive('bold') }"
+                  icon
                   size="small"
-                  class="font-size-btn"
                 >
-                  <span class="font-size-label">{{ currentFontSize || 'اندازه فونت' }}</span>
-                  <v-icon size="small" class="mr-1">mdi-chevron-down</v-icon>
+                  <v-icon>mdi-format-bold</v-icon>
                 </v-btn>
-              </template>
-              <v-card min-width="200">
-                <v-card-text class="pa-2">
-                  <div class="font-size-presets">
-                    <v-btn
-                      v-for="size in fontSizes"
-                      :key="size"
-                      variant="text"
-                      density="compact"
-                      size="small"
-                      block
-                      class="justify-start"
-                      :class="{ 'font-size-active': currentFontSize === size }"
-                      @click="setFontSize(size)"
-                    >
-                      {{ size }}px
-                    </v-btn>
-                  </div>
-                  <v-divider class="my-2"></v-divider>
-                  <v-text-field
-                    v-model.number="customFontSize"
-                    label="اندازه سفارشی (px)"
-                    type="number"
+                <v-btn
+                  @click="editor.chain().focus().toggleItalic().run()"
+                  :class="{ 'v-btn--active': editor.isActive('italic') }"
+                  icon
+                  size="small"
+                >
+                  <v-icon>mdi-format-italic</v-icon>
+                </v-btn>
+              </v-btn-toggle>
+              <v-menu v-model="isFontSizeMenuOpen" location="bottom">
+                <template v-slot:activator="{ props }">
+                  <v-btn
+                    v-bind="props"
                     variant="outlined"
                     density="compact"
-                    :min="1"
-                    :max="200"
-                    @keyup.enter="setCustomFontSize"
-                  ></v-text-field>
-                  <v-btn
-                    color="primary"
                     size="small"
-                    block
-                    @click="setCustomFontSize"
+                    class="font-size-btn"
                   >
-                    اعمال
+                    <span class="font-size-label">
+                      {{ currentFontSize ? `${currentFontSize}px` : 'اندازه فونت' }}
+                    </span>
+                    <v-icon size="small" class="mr-1">mdi-chevron-down</v-icon>
                   </v-btn>
-                </v-card-text>
-              </v-card>
-            </v-menu>
-          </div>
+                </template>
+                <v-card min-width="200">
+                  <v-card-text class="pa-2">
+                    <div class="font-size-presets">
+                      <v-btn
+                        v-for="size in fontSizes"
+                        :key="size"
+                        variant="text"
+                        density="compact"
+                        size="small"
+                        block
+                        class="justify-start"
+                        :class="{ 'font-size-active': currentFontSize === size }"
+                        @click="setFontSize(size)"
+                      >
+                        {{ size }}px
+                      </v-btn>
+                    </div>
+                    <v-divider class="my-2"></v-divider>
+                    <v-text-field
+                      v-model.number="customFontSize"
+                      label="اندازه سفارشی (px)"
+                      type="number"
+                      variant="outlined"
+                      density="compact"
+                      :min="1"
+                      :max="200"
+                      @keyup.enter="setCustomFontSize"
+                    ></v-text-field>
+                    <v-btn
+                      color="primary"
+                      size="small"
+                      block
+                      @click="setCustomFontSize"
+                    >
+                      اعمال
+                    </v-btn>
+                  </v-card-text>
+                </v-card>
+              </v-menu>
+            </div>
 
           <v-divider vertical class="toolbar-divider"></v-divider>
 
@@ -204,10 +206,11 @@
           </div>
         </div>
       </div>
-      </div>
+
       <div class="editor-content">
         <editor-content :editor="editor" />
-      
+      </div>
+
       <!-- Table Controls Menu (shown when table is active) -->
       <div v-if="isTableActive" class="table-controls-menu">
         <v-card elevation="4" class="table-controls-card">
@@ -287,7 +290,7 @@
       </div>
       </div>
     </div>
-    
+
     <!-- Table Dialog -->
     <v-dialog v-model="showTableDialog" max-width="400px">
       <v-card dir="rtl">
@@ -484,6 +487,7 @@ export default {
     const showLinkDialog = ref(false)
     const showImageDialog = ref(false)
     const showTableDialog = ref(false)
+    const isFontSizeMenuOpen = ref(false)
     const linkUrl = ref('')
     const imageUrl = ref('')
     const toolbarState = ref(null)
@@ -552,6 +556,9 @@ export default {
     })
 
     watch(() => props.modelValue, (value) => {
+      if (!editor.value) {
+        return
+      }
       const isSame = editor.value.getHTML() === value
       if (isSame) {
         return
@@ -653,12 +660,14 @@ export default {
         try {
           // Focus first, then apply the mark
           editor.value.chain().focus().setFontSize(size).run()
+          currentFontSize.value = size
           // Update the current font size display
           setTimeout(() => {
             if (editor.value) {
               updateCurrentFontSize(editor.value)
             }
           }, 100)
+          isFontSizeMenuOpen.value = false
         } catch (error) {
           console.error('Error setting font size:', error)
         }
@@ -669,11 +678,14 @@ export default {
       if (customFontSize.value && customFontSize.value >= 1 && customFontSize.value <= 200) {
         setFontSize(customFontSize.value)
         customFontSize.value = null
+        isFontSizeMenuOpen.value = false
       }
     }
 
     onBeforeUnmount(() => {
-      editor.value.destroy()
+      if (editor.value) {
+        editor.value.destroy()
+      }
     })
 
     // Initialize states
@@ -713,6 +725,7 @@ export default {
       addColumnAfter,
       deleteColumn,
       deleteTable,
+      isFontSizeMenuOpen,
       setFontSize,
       setCustomFontSize
     }
