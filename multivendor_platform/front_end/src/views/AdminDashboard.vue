@@ -105,6 +105,14 @@
           @click="setActiveView('activities')"
         ></v-list-item>
 
+        <v-list-item
+          prepend-icon="mdi-file-document-edit-outline"
+          title="درخواست‌های استعلام قیمت"
+          value="rfqs"
+          :active="activeView === 'rfqs'"
+          @click="setActiveView('rfqs')"
+        ></v-list-item>
+
         <v-list-group value="blog">
           <template v-slot:activator="{ props }">
             <v-list-item
@@ -310,6 +318,21 @@
                   <div class="text-body-2 text-grey">کل سفارشات</div>
                   <div class="text-caption text-grey mt-2">
                     در انتظار: {{ dashboardData.orders?.pending || 0 }}
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="stat-card" elevation="0" variant="outlined">
+                <v-card-text class="pa-4">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <v-icon color="purple" size="32">mdi-file-document-edit-outline</v-icon>
+                  </div>
+                  <div class="text-h4 font-weight-bold mb-1">{{ dashboardData.rfqs?.total || 0 }}</div>
+                  <div class="text-body-2 text-grey">درخواست‌های استعلام قیمت</div>
+                  <div class="text-caption text-grey mt-2">
+                    در انتظار: {{ dashboardData.rfqs?.pending || 0 }}
                   </div>
                 </v-card-text>
               </v-card>
@@ -1082,6 +1105,160 @@
           </v-card>
         </div>
 
+        <!-- RFQs Management View -->
+        <div v-if="activeView === 'rfqs'" class="rfqs-view">
+          <!-- Summary Cards -->
+          <v-row class="mb-4">
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold mb-1">{{ rfqs.length }}</div>
+                  <div class="text-caption text-grey">کل درخواست‌ها</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold text-warning mb-1">
+                    {{ rfqs.filter(r => r.status === 'pending').length }}
+                  </div>
+                  <div class="text-caption text-grey">در انتظار بررسی</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold text-success mb-1">
+                    {{ rfqs.filter(r => r.status === 'confirmed').length }}
+                  </div>
+                  <div class="text-caption text-grey">تأیید شده</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="summary-card" elevation="0" variant="outlined">
+                <v-card-text class="text-center pa-4">
+                  <div class="text-h5 font-weight-bold text-info mb-1">
+                    {{ rfqs.filter(r => r.images && r.images.length > 0).length }}
+                  </div>
+                  <div class="text-caption text-grey">با تصویر</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <!-- Filters -->
+          <v-card class="mb-4" elevation="0" variant="outlined">
+            <v-card-text class="pa-4">
+              <v-row>
+                <v-col cols="12" md="3">
+                  <v-select
+                    v-model="rfqFilters.status"
+                    label="فیلتر بر اساس وضعیت"
+                    :items="rfqStatusFilterOptions"
+                    clearable
+                    density="compact"
+                    variant="outlined"
+                    @update:model-value="loadRFQs"
+                  ></v-select>
+                </v-col>
+                <v-col cols="12" md="9">
+                  <v-text-field
+                    v-model="rfqFilters.search"
+                    label="جستجو (نام، شرکت، محصول)"
+                    prepend-inner-icon="mdi-magnify"
+                    density="compact"
+                    variant="outlined"
+                    clearable
+                    @update:model-value="loadRFQs"
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+
+          <!-- RFQs Table -->
+          <v-card elevation="0" variant="outlined">
+            <v-card-title class="pa-4">لیست درخواست‌های استعلام قیمت</v-card-title>
+            <v-divider></v-divider>
+            <v-data-table
+              :headers="rfqHeaders"
+              :items="rfqs"
+              :loading="loadingRFQs"
+              item-value="id"
+              class="rfqs-table"
+            >
+              <template v-slot:item.order_number="{ item }">
+                <strong>{{ item.order_number }}</strong>
+              </template>
+              <template v-slot:item.buyer_info="{ item }">
+                <div>
+                  <div class="font-weight-bold">{{ item.first_name }} {{ item.last_name }}</div>
+                  <div class="text-caption text-grey">{{ item.company_name }}</div>
+                  <div class="text-caption text-grey">{{ item.phone_number }}</div>
+                </div>
+              </template>
+              <template v-slot:item.product_name="{ item }">
+                <div>
+                  <div class="font-weight-bold">{{ item.product_name || 'نامشخص' }}</div>
+                  <div v-if="item.category_name" class="text-caption text-grey">
+                    دسته‌بندی: {{ item.category_name }}
+                  </div>
+                </div>
+              </template>
+              <template v-slot:item.status="{ item }">
+                <v-chip
+                  size="small"
+                  :color="getRFQStatusColor(item.status)"
+                >
+                  {{ getRFQStatusText(item.status) }}
+                </v-chip>
+              </template>
+              <template v-slot:item.images="{ item }">
+                <div v-if="item.images && item.images.length > 0" class="d-flex align-center">
+                  <v-icon size="small" class="mr-1">mdi-image</v-icon>
+                  {{ item.images.length }} تصویر
+                </div>
+                <span v-else class="text-grey">بدون تصویر</span>
+              </template>
+              <template v-slot:item.created_at="{ item }">
+                {{ formatDate(item.created_at) }}
+              </template>
+              <template v-slot:item.actions="{ item }">
+                <v-menu>
+                  <template v-slot:activator="{ props }">
+                    <v-btn icon size="small" variant="text" v-bind="props">
+                      <v-icon>mdi-dots-vertical</v-icon>
+                    </v-btn>
+                  </template>
+                  <v-list>
+                    <v-list-item @click="viewRFQDetail(item)">
+                      <template v-slot:prepend>
+                        <v-icon>mdi-eye</v-icon>
+                      </template>
+                      <v-list-item-title>مشاهده جزئیات</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="updateRFQStatus(item, 'confirmed')" v-if="item.status === 'pending'">
+                      <template v-slot:prepend>
+                        <v-icon color="success">mdi-check-circle</v-icon>
+                      </template>
+                      <v-list-item-title>تأیید</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="updateRFQStatus(item, 'rejected')" v-if="item.status === 'pending'">
+                      <template v-slot:prepend>
+                        <v-icon color="error">mdi-close-circle</v-icon>
+                      </template>
+                      <v-list-item-title>رد کردن</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </template>
+            </v-data-table>
+          </v-card>
+        </div>
+
         <!-- Blog Categories Management View -->
         <div v-if="activeView === 'blog-categories'" class="blog-categories-view">
           <v-card elevation="0" variant="outlined">
@@ -1438,9 +1615,47 @@ export default {
       { title: 'عملیات', key: 'actions', sortable: false, align: 'center' }
     ]
     
+    const rfqHeaders = [
+      { title: 'شماره درخواست', key: 'order_number', align: 'start' },
+      { title: 'اطلاعات خریدار', key: 'buyer_info', align: 'start' },
+      { title: 'محصول', key: 'product_name', align: 'start' },
+      { title: 'وضعیت', key: 'status', align: 'center' },
+      { title: 'تصاویر', key: 'images', align: 'center' },
+      { title: 'تاریخ ایجاد', key: 'created_at', align: 'start' },
+      { title: 'عملیات', key: 'actions', sortable: false, align: 'center' }
+    ]
+    
+    const rfqStatusFilterOptions = [
+      { title: 'در انتظار', value: 'pending' },
+      { title: 'تأیید شده', value: 'confirmed' },
+      { title: 'رد شده', value: 'rejected' },
+      { title: 'در حال پردازش', value: 'processing' }
+    ]
+    
+    // RFQ state
+    const rfqs = ref([])
+    const loadingRFQs = ref(false)
+    const rfqFilters = ref({
+      status: null,
+      search: null
+    })
+    
     // Notifications
     const notifications = computed(() => {
       const notifs = []
+      
+      // Pending RFQs
+      const pendingRFQs = dashboardData.value.rfqs?.pending || 0
+      if (pendingRFQs > 0) {
+        notifs.push({
+          id: 'pending_rfqs',
+          title: `${pendingRFQs} درخواست استعلام قیمت در انتظار`,
+          subtitle: 'نیاز به بررسی دارند',
+          icon: 'mdi-file-document-edit-outline',
+          color: 'purple',
+          type: 'rfqs'
+        })
+      }
       
       // Pending orders
       const pendingOrders = dashboardData.value.orders?.pending || 0
@@ -1494,7 +1709,12 @@ export default {
     const handleNotificationClick = (notification) => {
       showNotificationsMenu.value = false
       
-      if (notification.type === 'orders') {
+      if (notification.type === 'rfqs') {
+        setActiveView('rfqs')
+        rfqFilters.value.status = 'pending'
+        loadRFQs()
+        scrollToTop()
+      } else if (notification.type === 'orders') {
         setActiveView('activities')
         activityFilters.value.action = 'create_order'
         loadActivities()
@@ -2055,6 +2275,72 @@ export default {
       }
     }, { immediate: true })
     
+    // RFQ Management Methods
+    const loadRFQs = async () => {
+      loadingRFQs.value = true
+      try {
+        const params = {}
+        if (rfqFilters.value.status) params.status = rfqFilters.value.status
+        if (rfqFilters.value.search) params.search = rfqFilters.value.search
+        
+        const response = await api.getAdminRFQs(params)
+        rfqs.value = response.data
+      } catch (error) {
+        console.error('Failed to load RFQs:', error)
+        showSnackbar('خطا در بارگذاری درخواست‌های استعلام قیمت', 'error')
+      } finally {
+        loadingRFQs.value = false
+      }
+    }
+    
+    const viewRFQDetail = (rfq) => {
+      // Open a dialog or navigate to detail page
+      // For now, just show an alert with details
+      const detailText = `
+        شماره درخواست: ${rfq.order_number}
+        نام: ${rfq.first_name} ${rfq.last_name}
+        شرکت: ${rfq.company_name}
+        تلفن: ${rfq.phone_number}
+        محصول: ${rfq.product_name || 'نامشخص'}
+        دسته‌بندی: ${rfq.category_name || 'نامشخص'}
+        نیازهای خاص: ${rfq.unique_needs || 'ندارد'}
+        تصاویر: ${rfq.images?.length || 0} تصویر
+      `
+      alert(detailText)
+    }
+    
+    const updateRFQStatus = async (rfq, newStatus) => {
+      try {
+        await api.updateRFQStatus(rfq.id, newStatus)
+        showSnackbar('وضعیت درخواست با موفقیت به‌روزرسانی شد', 'success')
+        await loadRFQs()
+        await loadDashboardData()
+      } catch (error) {
+        console.error('Failed to update RFQ status:', error)
+        showSnackbar('خطا در به‌روزرسانی وضعیت', 'error')
+      }
+    }
+    
+    const getRFQStatusColor = (status) => {
+      const colors = {
+        pending: 'warning',
+        confirmed: 'success',
+        rejected: 'error',
+        processing: 'info'
+      }
+      return colors[status] || 'grey'
+    }
+    
+    const getRFQStatusText = (status) => {
+      const texts = {
+        pending: 'در انتظار',
+        confirmed: 'تأیید شده',
+        rejected: 'رد شده',
+        processing: 'در حال پردازش'
+      }
+      return texts[status] || status
+    }
+    
     // Watch for activeView changes to load data when needed
     watch(activeView, (newView) => {
       if (newView === 'products') {
@@ -2064,6 +2350,8 @@ export default {
         loadBlogCategories()
       } else if (newView === 'blog-categories') {
         loadBlogCategories()
+      } else if (newView === 'rfqs') {
+        loadRFQs()
       }
     })
     
@@ -2163,7 +2451,18 @@ export default {
       closeBlogCategoryDialog,
       saveBlogCategory,
       editBlogCategory,
-      deleteBlogCategory
+      deleteBlogCategory,
+      // RFQ management
+      rfqs,
+      loadingRFQs,
+      rfqFilters,
+      rfqHeaders,
+      rfqStatusFilterOptions,
+      loadRFQs,
+      viewRFQDetail,
+      updateRFQStatus,
+      getRFQStatusColor,
+      getRFQStatusText
     }
   }
 }
@@ -2240,7 +2539,8 @@ export default {
 .categories-view,
 .subcategories-view,
 .blog-view,
-.blog-categories-view {
+.blog-categories-view,
+.rfqs-view {
   animation: fadeIn 0.3s ease-in;
 }
 
@@ -2302,7 +2602,8 @@ export default {
 .activities-table,
 .products-table,
 .blog-table,
-.blog-categories-table {
+.blog-categories-table,
+.rfqs-table {
   direction: rtl;
 }
 

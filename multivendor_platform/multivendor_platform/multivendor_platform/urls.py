@@ -57,6 +57,7 @@ urlpatterns = [
     path('api/blog/', include('blog.urls')),
     path('api/auth/', include('users.urls')),
     path('api/users/', include('users.urls')),  # For suppliers and user-related endpoints
+    path('api/orders/', include('orders.urls')),  # For orders and RFQ endpoints
     
     # --- DASHBOARD URLS ---
     path('dashboard/', VendorDashboardView.as_view(), name='vendor-dashboard'),

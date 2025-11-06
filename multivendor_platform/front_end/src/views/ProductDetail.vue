@@ -182,6 +182,19 @@
                 </v-btn>
 
                 <v-btn
+                  color="info"
+                  :size="display.xs.value ? 'large' : 'x-large'"
+                  prepend-icon="mdi-file-document-edit-outline"
+                  variant="elevated"
+                  rounded="lg"
+                  :block="display.xs.value"
+                  class="flex-sm-grow-1"
+                  @click="showRFQDialog = true"
+                >
+                  درخواست استعلام قیمت
+                </v-btn>
+
+                <v-btn
                   v-if="isOwner"
                   color="warning"
                   :size="display.xs.value ? 'large' : 'x-large'"
@@ -482,6 +495,34 @@
         </div>
       </v-card>
     </v-dialog>
+
+    <!-- RFQ Form Dialog -->
+    <RFQForm
+      v-model="showRFQDialog"
+      :product-id="product?.id"
+      :category-id="product?.primary_category"
+      @submitted="handleRFQSubmitted"
+      @error="handleRFQError"
+    />
+
+    <!-- RFQ Success/Error Snackbar -->
+    <v-snackbar
+      v-model="rfqSuccess"
+      color="success"
+      :timeout="3000"
+      location="top"
+    >
+      درخواست استعلام قیمت با موفقیت ارسال شد
+    </v-snackbar>
+
+    <v-snackbar
+      v-model="rfqError"
+      color="error"
+      :timeout="5000"
+      location="top"
+    >
+      {{ rfqError }}
+    </v-snackbar>
   </v-container>
 </template>
 
@@ -491,9 +532,13 @@ import { useAuthStore } from '@/stores/auth'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
+import RFQForm from '@/components/RFQForm.vue'
 
 export default {
   name: 'ProductDetail',
+  components: {
+    RFQForm
+  },
   setup() {
     const productStore = useProductStore()
     const authStore = useAuthStore()
@@ -513,6 +558,9 @@ export default {
       parent: null
     })
     const submittingComment = ref(false)
+    const showRFQDialog = ref(false)
+    const rfqError = ref(null)
+    const rfqSuccess = ref(false)
 
     const product = computed(() => productStore.currentProduct)
     const loading = computed(() => productStore.loading)
@@ -671,6 +719,15 @@ export default {
       }
     }
 
+    const handleRFQSubmitted = (data) => {
+      rfqSuccess.value = true
+      showRFQDialog.value = false
+    }
+
+    const handleRFQError = (errorMessage) => {
+      rfqError.value = errorMessage
+    }
+
     const submitComment = async () => {
       if (!commentForm.value.content) return
 
@@ -748,6 +805,11 @@ export default {
       commentForm,
       submittingComment,
       topLevelComments,
+      showRFQDialog,
+      rfqError,
+      rfqSuccess,
+      handleRFQSubmitted,
+      handleRFQError,
       display,
       setCurrentImage,
       openImageModal,

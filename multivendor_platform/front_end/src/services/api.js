@@ -449,5 +449,27 @@ export default {
   },
   adminDeleteBlogCategory(slug) {
     return apiClient.delete(`/auth/admin/blog/categories/${slug}/delete/`);
+  },
+  
+  // RFQ (Request for Quotation)
+  createRFQ(formData) {
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    };
+    return apiClient.post('/orders/rfq/create/', formData, config);
+  },
+  getAdminRFQs(params = {}) {
+    return apiClient.get('/orders/admin/rfq/', { params });
+  },
+  getAdminRFQDetail(rfqId) {
+    return apiClient.get(`/orders/admin/rfq/${rfqId}/`);
+  },
+  updateRFQStatus(rfqId, status) {
+    return apiClient.patch(`/orders/admin/rfq/${rfqId}/status/`, { status });
+  },
+  getVendorRFQs(params = {}) {
+    return apiClient.get('/orders/vendor/rfq/', { params });
   }
 }

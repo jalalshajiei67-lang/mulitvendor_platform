@@ -406,6 +406,10 @@ def admin_dashboard_view(request):
     pending_orders = Order.objects.filter(status='pending').count()
     completed_orders = Order.objects.filter(status='delivered').count()
     
+    # Get RFQ statistics
+    total_rfqs = Order.objects.filter(is_rfq=True).count()
+    pending_rfqs = Order.objects.filter(is_rfq=True, status='pending').count()
+    
     # Get recent activities
     recent_activities = UserActivity.objects.all()[:20]
     
@@ -426,6 +430,10 @@ def admin_dashboard_view(request):
             'total': total_orders,
             'pending': pending_orders,
             'completed': completed_orders
+        },
+        'rfqs': {
+            'total': total_rfqs,
+            'pending': pending_rfqs
         },
         'recent_activities': UserActivitySerializer(recent_activities, many=True).data
     }
