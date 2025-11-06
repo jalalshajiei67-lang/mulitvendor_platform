@@ -391,39 +391,25 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
-import { Extension, Mark, mergeAttributes } from '@tiptap/core'
+import { Extension } from '@tiptap/core'
+import TextStyle from '@tiptap/extension-text-style'
 import { ref, watch, onBeforeUnmount, nextTick } from 'vue'
 
-const TextStyle = Mark.create({
-  name: 'textStyle',
-  addOptions() {
-    return {
-      HTMLAttributes: {}
-    }
-  },
-  excludes: '_',
-  parseHTML() {
-    return [
-      {
-        tag: 'span',
-        getAttrs: (element) => {
-          const hasInlineStyle = element.hasAttribute('style')
-          const hasFontData = element.hasAttribute('data-font-size')
-          return hasInlineStyle || hasFontData ? {} : false
-        }
-      }
-    ]
-  },
-  renderHTML({ HTMLAttributes }) {
-    const attributes = mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)
-
-    if (!attributes.style && !attributes['data-font-size']) {
-      return ['span', this.options.HTMLAttributes, 0]
-    }
-
-    return ['span', attributes, 0]
+const normalizeFontSizeValue = (fontSize) => {
+  if (fontSize === null || fontSize === undefined || fontSize === '') {
+    return null
   }
-})
+
+  const numeric = typeof fontSize === 'number'
+    ? fontSize
+    : parseFloat(String(fontSize).replace(/[^0-9.]/g, ''))
+
+  if (!Number.isFinite(numeric)) {
+    return null
+  }
+
+  return `${Math.max(1, Math.min(200, numeric))}px`
+}
 
 // Custom FontSize Extension leveraging TextStyle for consistent inline styling
 const FontSize = Extension.create({
@@ -442,11 +428,7 @@ const FontSize = Extension.create({
             default: null,
             parseHTML: (element) => {
               const raw = element.style.fontSize || element.getAttribute('data-font-size')
-              if (!raw) {
-                return null
-              }
-              const numeric = parseInt(raw.replace('px', ''), 10)
-              return Number.isFinite(numeric) ? `${numeric}px` : null
+              return normalizeFontSizeValue(raw)
             },
             renderHTML: (attributes) => {
               if (!attributes.fontSize) {
@@ -464,47 +446,22 @@ const FontSize = Extension.create({
   },
   addCommands() {
     return {
-      setFontSize: (fontSize) => ({ state, dispatch }) => {
-        const textStyleType = state.schema.marks.textStyle
-        if (!textStyleType) {
+      setFontSize: (fontSize) => ({ chain }) => {
+        const normalized = normalizeFontSizeValue(fontSize)
+        if (!normalized) {
           return false
         }
 
-        if (!fontSize) {
-          if (dispatch) {
-            const tr = state.tr
-            const { empty, from, to } = state.selection
-            if (empty) {
-              tr.removeStoredMark(textStyleType)
-            } else {
-              tr.removeMark(from, to, textStyleType)
-            }
-            dispatch(tr)
-          }
-          return true
-        }
-
-        const value = typeof fontSize === 'number' ? `${fontSize}px` : `${parseInt(fontSize, 10)}px`
-        if (!value || value === 'NaNpx') {
-          return false
-        }
-
-        const { empty, from, to } = state.selection
-        const tr = state.tr
-
-        if (empty) {
-          tr.removeStoredMark(textStyleType)
-          tr.addStoredMark(textStyleType.create({ fontSize: value }))
-        } else {
-          tr.removeMark(from, to, textStyleType)
-          tr.addMark(from, to, textStyleType.create({ fontSize: value }))
-        }
-
-        if (dispatch) {
-          dispatch(tr)
-        }
-
-        return true
+        return chain()
+          .setMark('textStyle', { fontSize: normalized })
+          .run()
+      },
+      unsetFontSize: () => ({ chain }) => {
+        const chainable = chain().updateAttributes('textStyle', { fontSize: null })
+        const maybeCleaned = typeof chainable.removeEmptyTextStyle === 'function'
+          ? chainable.removeEmptyTextStyle()
+          : chainable
+        return maybeCleaned.run()
       }
     }
   }
@@ -575,6 +532,7 @@ export default {
       },
       onUpdate: ({ editor }) => {
         emit('update:modelValue', editor.getHTML())
+        updateCurrentFontSize(editor)
       },
       onSelectionUpdate: ({ editor }) => {
         isTableActive.value = editor.isActive('table')
@@ -687,12 +645,12 @@ export default {
     }
 
     const extractNumericFontSize = (value) => {
-      if (!value) {
+      if (!value && value !== 0) {
         return null
       }
 
-      const numeric = parseInt(String(value).replace('px', ''), 10)
-      return Number.isFinite(numeric) ? numeric : null
+      const numeric = parseFloat(String(value).replace('px', ''))
+      return Number.isFinite(numeric) ? Math.round(numeric) : null
     }
 
     const updateCurrentFontSize = (editorInstance) => {
@@ -720,7 +678,7 @@ export default {
         try {
           const applied = editor.value.chain().focus().setFontSize(size).run()
           if (applied) {
-            currentFontSize.value = size
+            currentFontSize.value = extractNumericFontSize(size)
             nextTick(() => {
               if (editor.value) {
                 updateCurrentFontSize(editor.value)
@@ -737,7 +695,7 @@ export default {
     const setCustomFontSize = () => {
       const value = customFontSize.value
       if (Number.isFinite(value) && value >= 1 && value <= 200) {
-        setFontSize(customFontSize.value)
+        setFontSize(Math.round(customFontSize.value))
         customFontSize.value = null
         isFontSizeMenuOpen.value = false
       }
@@ -805,7 +763,8 @@ export default {
   display: flex;
   flex-direction: column;
   max-height: var(--editor-max-height);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .editor-toolbar-wrapper {
@@ -820,6 +779,7 @@ export default {
   flex-shrink: 0;
   width: 100%;
   margin-top: auto;
+  border-radius: 0 0 4px 4px;
 }
 
 .editor-toolbar {
@@ -883,6 +843,7 @@ export default {
   display: flex;
   flex-direction: column;
   max-height: calc(var(--editor-max-height) - var(--toolbar-height));
+  border-radius: 4px 4px 0 0;
 }
 
 .editor-content {
