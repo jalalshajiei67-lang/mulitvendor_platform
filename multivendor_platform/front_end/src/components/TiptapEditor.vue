@@ -1,6 +1,88 @@
 <template>
   <div class="tiptap-editor" dir="rtl">
     <div class="editor-content-wrapper">
+      <div class="editor-content">
+        <editor-content v-if="editor" :editor="editor" />
+      </div>
+
+      <!-- Table Controls Menu (shown when table is active) -->
+      <div v-if="isTableActive" class="table-controls-menu">
+        <v-card elevation="4" class="table-controls-card">
+          <v-card-text class="pa-2">
+            <div class="d-flex align-center" style="gap: 4px; flex-wrap: wrap;">
+              <v-btn
+                @click="addRowBefore"
+                icon
+                size="small"
+                variant="text"
+                title="افزودن سطر قبل"
+              >
+                <v-icon size="small">mdi-table-row-plus-before</v-icon>
+              </v-btn>
+              <v-btn
+                @click="addRowAfter"
+                icon
+                size="small"
+                variant="text"
+                title="افزودن سطر بعد"
+              >
+                <v-icon size="small">mdi-table-row-plus-after</v-icon>
+              </v-btn>
+              <v-btn
+                @click="deleteRow"
+                icon
+                size="small"
+                variant="text"
+                color="error"
+                title="حذف سطر"
+              >
+                <v-icon size="small">mdi-table-row-remove</v-icon>
+              </v-btn>
+              <v-divider vertical class="mx-1"></v-divider>
+              <v-btn
+                @click="addColumnBefore"
+                icon
+                size="small"
+                variant="text"
+                title="افزودن ستون قبل"
+              >
+                <v-icon size="small">mdi-table-column-plus-before</v-icon>
+              </v-btn>
+              <v-btn
+                @click="addColumnAfter"
+                icon
+                size="small"
+                variant="text"
+                title="افزودن ستون بعد"
+              >
+                <v-icon size="small">mdi-table-column-plus-after</v-icon>
+              </v-btn>
+              <v-btn
+                @click="deleteColumn"
+                icon
+                size="small"
+                variant="text"
+                color="error"
+                title="حذف ستون"
+              >
+                <v-icon size="small">mdi-table-column-remove</v-icon>
+              </v-btn>
+              <v-divider vertical class="mx-1"></v-divider>
+              <v-btn
+                @click="deleteTable"
+                icon
+                size="small"
+                variant="text"
+                color="error"
+                title="حذف جدول"
+              >
+                <v-icon size="small">mdi-table-remove</v-icon>
+              </v-btn>
+            </div>
+          </v-card-text>
+        </v-card>
+      </div>
+
       <div v-if="editor" class="editor-toolbar-wrapper">
         <div class="editor-toolbar">
           <div class="toolbar-groups">
@@ -30,7 +112,7 @@
                   <v-icon>mdi-format-italic</v-icon>
                 </v-btn>
               </v-btn-toggle>
-              <v-menu v-model="isFontSizeMenuOpen" location="bottom">
+              <v-menu v-model="isFontSizeMenuOpen" location="top">
                 <template v-slot:activator="{ props }">
                   <v-btn
                     v-bind="props"
@@ -207,88 +289,8 @@
         </div>
       </div>
 
-      <div class="editor-content">
-        <editor-content :editor="editor" />
       </div>
 
-      <!-- Table Controls Menu (shown when table is active) -->
-      <div v-if="isTableActive" class="table-controls-menu">
-        <v-card elevation="4" class="table-controls-card">
-          <v-card-text class="pa-2">
-            <div class="d-flex align-center" style="gap: 4px; flex-wrap: wrap;">
-              <v-btn
-                @click="addRowBefore"
-                icon
-                size="small"
-                variant="text"
-                title="افزودن سطر قبل"
-              >
-                <v-icon size="small">mdi-table-row-plus-before</v-icon>
-              </v-btn>
-              <v-btn
-                @click="addRowAfter"
-                icon
-                size="small"
-                variant="text"
-                title="افزودن سطر بعد"
-              >
-                <v-icon size="small">mdi-table-row-plus-after</v-icon>
-              </v-btn>
-              <v-btn
-                @click="deleteRow"
-                icon
-                size="small"
-                variant="text"
-                color="error"
-                title="حذف سطر"
-              >
-                <v-icon size="small">mdi-table-row-remove</v-icon>
-              </v-btn>
-              <v-divider vertical class="mx-1"></v-divider>
-              <v-btn
-                @click="addColumnBefore"
-                icon
-                size="small"
-                variant="text"
-                title="افزودن ستون قبل"
-              >
-                <v-icon size="small">mdi-table-column-plus-before</v-icon>
-              </v-btn>
-              <v-btn
-                @click="addColumnAfter"
-                icon
-                size="small"
-                variant="text"
-                title="افزودن ستون بعد"
-              >
-                <v-icon size="small">mdi-table-column-plus-after</v-icon>
-              </v-btn>
-              <v-btn
-                @click="deleteColumn"
-                icon
-                size="small"
-                variant="text"
-                color="error"
-                title="حذف ستون"
-              >
-                <v-icon size="small">mdi-table-column-remove</v-icon>
-              </v-btn>
-              <v-divider vertical class="mx-1"></v-divider>
-              <v-btn
-                @click="deleteTable"
-                icon
-                size="small"
-                variant="text"
-                color="error"
-                title="حذف جدول"
-              >
-                <v-icon size="small">mdi-table-remove</v-icon>
-              </v-btn>
-            </div>
-          </v-card-text>
-        </v-card>
-      </div>
-      </div>
     </div>
 
     <!-- Table Dialog -->
@@ -390,7 +392,7 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { Mark } from '@tiptap/core'
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { ref, watch, onBeforeUnmount, nextTick } from 'vue'
 
 // Custom FontSize Mark Extension
 const FontSize = Mark.create({
@@ -447,25 +449,48 @@ const FontSize = Mark.create({
   },
   addCommands() {
     return {
-      setFontSize: (fontSize) => ({ commands, state, tr, dispatch }) => {
+      setFontSize: (fontSize) => ({ state, tr, dispatch, commands }) => {
         if (!fontSize) {
           return commands.unsetMark(this.name)
         }
-        
-        const { selection } = state
-        const { from, to } = selection
-        
-        if (dispatch && tr) {
-          // Remove existing fontSize marks in the selection
-          tr.removeMark(from, to, this.type)
-          // Add the new fontSize mark
-          tr.addMark(from, to, this.type.create({ fontSize }))
+
+        const { from, to, empty } = state.selection
+
+        if (empty) {
+          if (dispatch) {
+            tr.removeStoredMark(this.type)
+            dispatch(tr.addStoredMark(this.type.create({ fontSize })))
+          }
+          return true
         }
-        
-        return commands.setMark(this.name, { fontSize })
+
+        tr.removeMark(from, to, this.type)
+        tr.addMark(from, to, this.type.create({ fontSize }))
+
+        if (dispatch) {
+          dispatch(tr)
+        }
+
+        return true
       },
-      unsetFontSize: () => ({ commands }) => {
-        return commands.unsetMark(this.name)
+      unsetFontSize: () => ({ state, tr, dispatch, commands }) => {
+        const { empty, from, to } = state.selection
+
+        if (empty) {
+          if (dispatch) {
+            tr.removeStoredMark(this.type)
+            dispatch(tr)
+          }
+          return true
+        }
+
+        tr.removeMark(from, to, this.type)
+
+        if (dispatch) {
+          dispatch(tr)
+        }
+
+        return true
       }
     }
   }
@@ -530,7 +555,7 @@ export default {
         attributes: {
           class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
           dir: 'rtl',
-          style: 'min-height: 200px; padding: 16px;'
+          style: 'min-height: 200px; padding: 16px; padding-bottom: calc(16px + var(--toolbar-height));'
         }
       },
       onUpdate: ({ editor }) => {
@@ -650,24 +675,33 @@ export default {
       const attrs = editorInstance.getAttributes('fontSize')
       if (attrs && attrs.fontSize) {
         currentFontSize.value = attrs.fontSize
-      } else {
-        currentFontSize.value = null
+        return
       }
+
+      const storedMarks = editorInstance.view?.state?.storedMarks
+      const activeMark = storedMarks?.find?.((mark) => mark.type.name === 'fontSize')
+
+      if (activeMark && activeMark.attrs?.fontSize) {
+        currentFontSize.value = activeMark.attrs.fontSize
+        return
+      }
+
+      currentFontSize.value = null
     }
 
     const setFontSize = (size) => {
       if (editor.value && size) {
         try {
-          // Focus first, then apply the mark
-          editor.value.chain().focus().setFontSize(size).run()
-          currentFontSize.value = size
-          // Update the current font size display
-          setTimeout(() => {
-            if (editor.value) {
-              updateCurrentFontSize(editor.value)
-            }
-          }, 100)
-          isFontSizeMenuOpen.value = false
+          const applied = editor.value.chain().focus().setFontSize(size).run()
+          if (applied) {
+            currentFontSize.value = size
+            nextTick(() => {
+              if (editor.value) {
+                updateCurrentFontSize(editor.value)
+              }
+            })
+            isFontSizeMenuOpen.value = false
+          }
         } catch (error) {
           console.error('Error setting font size:', error)
         }
@@ -675,7 +709,8 @@ export default {
     }
 
     const setCustomFontSize = () => {
-      if (customFontSize.value && customFontSize.value >= 1 && customFontSize.value <= 200) {
+      const value = customFontSize.value
+      if (Number.isFinite(value) && value >= 1 && value <= 200) {
         setFontSize(customFontSize.value)
         customFontSize.value = null
         isFontSizeMenuOpen.value = false
@@ -735,6 +770,7 @@ export default {
 
 <style scoped>
 .tiptap-editor {
+  --toolbar-height: 64px;
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 4px;
   background-color: rgb(var(--v-theme-surface));
@@ -748,13 +784,15 @@ export default {
 .editor-toolbar-wrapper {
   position: -webkit-sticky;
   position: sticky;
-  top: 0;
+  bottom: 0;
+  top: auto;
   z-index: 10;
   background-color: rgb(var(--v-theme-surface));
-  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
   width: 100%;
+  margin-top: auto;
 }
 
 .editor-toolbar {
@@ -816,16 +854,19 @@ export default {
   -webkit-overflow-scrolling: touch;
   /* Ensure scrolling works properly */
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .editor-content {
   min-height: 200px;
   position: relative;
+  padding-bottom: calc(var(--toolbar-height) + 16px);
 }
 
 .table-controls-menu {
   position: absolute;
-  bottom: 16px;
+  bottom: calc(16px + var(--toolbar-height));
   right: 16px;
   z-index: 20;
   animation: slideUp 0.2s ease-out;
