@@ -84,7 +84,35 @@ const router = createRouter({
       path: '/admin/dashboard',
       name: 'AdminDashboard',
       component: AdminDashboard,
-      meta: { requiresAuth: true, requiresAdmin: true }
+      meta: { requiresAuth: true, requiresAdmin: true },
+      children: [
+        {
+          path: 'products/new',
+          name: 'AdminCreateProduct',
+          component: ProductForm,
+          meta: { requiresAuth: true, requiresAdmin: true }
+        },
+        {
+          path: 'products/:id/edit',
+          name: 'AdminEditProduct',
+          component: ProductForm,
+          props: true,
+          meta: { requiresAuth: true, requiresAdmin: true }
+        },
+        {
+          path: 'blog/new',
+          name: 'AdminCreateBlogPost',
+          component: BlogForm,
+          meta: { requiresAuth: true, requiresAdmin: true }
+        },
+        {
+          path: 'blog/:slug/edit',
+          name: 'AdminEditBlogPost',
+          component: BlogForm,
+          props: true,
+          meta: { requiresAuth: true, requiresAdmin: true }
+        }
+      ]
     },
     // Department Routes
     {

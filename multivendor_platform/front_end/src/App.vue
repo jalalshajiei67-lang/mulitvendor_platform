@@ -6,9 +6,7 @@
 
     <!-- Main Content -->
     <v-main class="bg-background" :class="{ 'mobile-main': isMobile && !isAdminDashboard }">
-      <!-- Render AdminDashboard for admin routes, otherwise use router-view -->
-      <AdminDashboard v-if="isAdminRoute && route.path !== '/admin/dashboard'" />
-      <router-view v-else />
+      <router-view />
     </v-main>
 
     <!-- Footer with Material Design 3 (Desktop Only) -->
@@ -58,7 +56,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import BottomNavigation from '@/components/layout/BottomNavigation.vue'
-import AdminDashboard from '@/views/AdminDashboard.vue'
 
 const { mdAndDown } = useDisplay()
 const route = useRoute()
@@ -71,6 +68,8 @@ const isMobile = computed(() => mdAndDown.value)
 // Admin-related routes that should use admin layout
 const adminRoutes = [
   '/admin/dashboard',
+  '/admin/dashboard/products/new',
+  '/admin/dashboard/blog/new',
   '/products/new',
   '/blog/new'
 ]
@@ -82,8 +81,10 @@ const isAdminRoute = computed(() => {
   if (adminRoutes.includes(path)) {
     return authStore.isAdmin
   }
-  // Pattern matches for edit routes
+  // Pattern matches for edit routes (both admin nested and regular routes)
   if (authStore.isAdmin) {
+    if (path.match(/^\/admin\/dashboard\/products\/\d+\/edit$/)) return true
+    if (path.match(/^\/admin\/dashboard\/blog\/[^/]+\/edit$/)) return true
     if (path.match(/^\/products\/\d+\/edit$/)) return true
     if (path.match(/^\/blog\/[^/]+\/edit$/)) return true
   }

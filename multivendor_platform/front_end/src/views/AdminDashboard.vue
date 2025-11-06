@@ -259,14 +259,9 @@
         paddingLeft: !isMobile && drawer ? (rail ? '64px' : '256px') : '0'
       }"
     >
-      <!-- Product Form (when on product routes) -->
-      <div v-if="isProductFormRoute" class="admin-form-wrapper">
-        <ProductForm />
-      </div>
-      
-      <!-- Blog Form (when on blog routes) -->
-      <div v-else-if="isBlogFormRoute" class="admin-form-wrapper">
-        <BlogForm />
+      <!-- Nested Routes (Product/Blog Forms) -->
+      <div v-if="isFormRoute" class="admin-form-wrapper">
+        <router-view />
       </div>
       
       <!-- Regular Dashboard Views -->
@@ -1279,13 +1274,19 @@ export default {
     const isMobile = computed(() => mdAndDown.value)
     const activeView = ref('dashboard')
     
-    // Check if we're on a product or blog form route
+    // Check if we're on a product or blog form route (admin routes)
     const isProductFormRoute = computed(() => {
-      return route.path === '/products/new' || route.path.match(/^\/products\/\d+\/edit$/)
+      return route.path === '/admin/dashboard/products/new' || 
+             route.path.match(/^\/admin\/dashboard\/products\/\d+\/edit$/) ||
+             route.path === '/products/new' || 
+             route.path.match(/^\/products\/\d+\/edit$/)
     })
     
     const isBlogFormRoute = computed(() => {
-      return route.path === '/blog/new' || route.path.match(/^\/blog\/[^/]+\/edit$/)
+      return route.path === '/admin/dashboard/blog/new' || 
+             route.path.match(/^\/admin\/dashboard\/blog\/[^/]+\/edit$/) ||
+             route.path === '/blog/new' || 
+             route.path.match(/^\/blog\/[^/]+\/edit$/)
     })
     
     const isFormRoute = computed(() => isProductFormRoute.value || isBlogFormRoute.value)
@@ -1703,7 +1704,7 @@ export default {
     }
     
     const createNewProduct = () => {
-      router.push('/products/new')
+      router.push('/admin/dashboard/products/new')
     }
     
     const viewProduct = (productId) => {
@@ -1711,7 +1712,7 @@ export default {
     }
     
     const editProduct = (productId) => {
-      router.push(`/products/${productId}/edit`)
+      router.push(`/admin/dashboard/products/${productId}/edit`)
     }
     
     const toggleProductStatus = async (product) => {
@@ -1824,7 +1825,7 @@ export default {
     }
     
     const createNewBlogPost = () => {
-      router.push('/blog/new')
+      router.push('/admin/dashboard/blog/new')
     }
     
     const viewBlogPost = (slug) => {
@@ -1832,7 +1833,7 @@ export default {
     }
     
     const editBlogPost = (slug) => {
-      router.push(`/blog/${slug}/edit`)
+      router.push(`/admin/dashboard/blog/${slug}/edit`)
     }
     
     const toggleBlogPostStatus = async (post) => {
@@ -2018,8 +2019,11 @@ export default {
         activeView.value = 'products'
       } else if (isBlogFormRoute.value) {
         activeView.value = 'blog'
-      } else if (newPath === '/admin/dashboard') {
-        activeView.value = 'dashboard'
+      } else if (newPath === '/admin/dashboard' || newPath.startsWith('/admin/dashboard/')) {
+        // If it's a nested route but not a form route, keep current view or set to dashboard
+        if (!isProductFormRoute.value && !isBlogFormRoute.value) {
+          activeView.value = 'dashboard'
+        }
       }
     }, { immediate: true })
     
