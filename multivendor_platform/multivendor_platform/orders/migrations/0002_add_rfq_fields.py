@@ -1,4 +1,5 @@
 # Generated migration for RFQ fields
+from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
 
@@ -21,7 +22,7 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='orders',
-                to='auth.user'
+                to=settings.AUTH_USER_MODEL,
             ),
         ),
         # Make total_amount nullable for RFQ
