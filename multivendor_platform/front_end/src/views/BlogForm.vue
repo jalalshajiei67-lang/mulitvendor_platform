@@ -167,19 +167,19 @@
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Form Actions -->
-        <div class="form-actions">
-          <button type="button" @click="saveDraft" class="btn btn-secondary" :disabled="submitting">
-            <i class="fas fa-save"></i>
-            {{ t('savingDraft') }}
-          </button>
-          <button type="submit" class="btn btn-primary" :disabled="submitting">
-            <i v-if="submitting" class="fas fa-spinner fa-spin"></i>
-            <i v-else class="fas fa-paper-plane"></i>
-            {{ isEditing ? t('updatePost') : t('publishPost') }}
-          </button>
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button type="button" @click="saveDraft" class="btn btn-secondary" :disabled="submitting">
+              <i class="fas fa-save"></i>
+              {{ t('savingDraft') }}
+            </button>
+            <button type="submit" class="btn btn-primary" :disabled="submitting">
+              <i v-if="submitting" class="fas fa-spinner fa-spin"></i>
+              <i v-else class="fas fa-paper-plane"></i>
+              {{ isEditing ? t('updatePost') : t('publishPost') }}
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -497,19 +497,21 @@ export default {
 }
 
 .form-grid {
-  display: grid;
-  grid-template-columns: 350px 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 0;
 }
 
 .main-form {
   padding: 2rem;
-  border-left: 1px solid #e9ecef;
+  width: 100%;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .form-sidebar {
   padding: 2rem;
   background-color: #f8f9fa;
+  width: 100%;
 }
 
 .form-section {
@@ -716,6 +718,8 @@ export default {
   justify-content: flex-start;
   gap: 1rem;
   flex-direction: row-reverse;
+  width: 100%;
+  background-color: white;
 }
 
 .btn {
@@ -812,15 +816,6 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .form-sidebar {
-    border-top: 1px solid #e9ecef;
-    border-left: none;
-  }
-  
   .form-actions {
     flex-direction: column;
   }
@@ -833,6 +828,11 @@ export default {
   
   .modal-footer {
     flex-direction: column;
+  }
+  
+  .main-form,
+  .form-sidebar {
+    padding: 1.5rem;
   }
 }
 </style>
