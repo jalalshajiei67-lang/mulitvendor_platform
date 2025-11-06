@@ -1,7 +1,7 @@
 <template>
   <div class="tiptap-editor" dir="rtl">
     <div class="editor-content-wrapper">
-      <div class="editor-toolbar-wrapper" :class="{ 'toolbar-sticky': isStickyToolbar }">
+      <div class="editor-toolbar-wrapper">
         <div class="editor-toolbar" v-if="editor">
         <div class="toolbar-groups">
           <!-- Text Formatting Group -->
@@ -202,29 +202,6 @@
               </v-btn>
             </v-btn-toggle>
           </div>
-
-          <v-divider vertical class="toolbar-divider"></v-divider>
-
-          <!-- Sticky Toggle Group -->
-          <div class="toolbar-group">
-            <v-btn-toggle
-              v-model="toolbarState"
-              variant="outlined"
-              density="compact"
-              divided
-              class="toolbar-buttons"
-            >
-              <v-btn
-                @click="toggleStickyToolbar"
-                :class="{ 'v-btn--active': isStickyToolbar }"
-                icon
-                size="small"
-                :title="isStickyToolbar ? 'غیرفعال کردن نوار ابزار ثابت' : 'فعال کردن نوار ابزار ثابت'"
-              >
-                <v-icon>{{ isStickyToolbar ? 'mdi-pin' : 'mdi-pin-off' }}</v-icon>
-              </v-btn>
-            </v-btn-toggle>
-          </div>
         </div>
       </div>
       </div>
@@ -409,65 +386,53 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
+import { TextStyle } from '@tiptap/extension-text-style'
 import { Mark } from '@tiptap/core'
 import { ref, watch, onBeforeUnmount } from 'vue'
 
-// Custom FontSize Mark Extension
+// Corrected FontSize Mark Extension
 const FontSize = Mark.create({
   name: 'fontSize',
   addOptions() {
     return {
-      HTMLAttributes: {}
+      types: ['textStyle'],
     }
   },
-  inclusive: true,
   addAttributes() {
     return {
       fontSize: {
         default: null,
         parseHTML: element => {
-          const fontSize = element.style.fontSize?.replace('px', '')
-          return fontSize ? parseInt(fontSize) : null
+          const fontSize = element.style.fontSize
+          if (!fontSize) {
+            return null
+          }
+          const value = fontSize.replace(/['"]+/g, '')
+          return value || null
         },
         renderHTML: attributes => {
           if (!attributes.fontSize) {
             return {}
           }
           return {
-            style: `font-size: ${attributes.fontSize}px`
+            style: `font-size: ${attributes.fontSize}`,
           }
-        }
-      }
+        },
+      },
     }
   },
   parseHTML() {
     return [
       {
         tag: 'span[style*="font-size"]',
-        getAttrs: (node) => {
-          const element = node
-          const fontSize = element.style.fontSize?.replace('px', '')
-          return fontSize ? { fontSize: parseInt(fontSize) } : false
-        }
-      }
+      },
     ]
   },
   renderHTML({ HTMLAttributes }) {
-    if (!HTMLAttributes || !HTMLAttributes.fontSize || typeof HTMLAttributes.fontSize !== 'number') {
-      return false
-    }
-    const fontSize = parseInt(HTMLAttributes.fontSize)
-    if (isNaN(fontSize) || fontSize <= 0) {
-      return false
-    }
-    return [
-      'span',
-      {
-        ...this.options.HTMLAttributes,
-        style: `font-size: ${fontSize}px;`
-      },
-      0
-    ]
+    // The HTMLAttributes object is automatically created by the
+    // `addAttributes().renderHTML` function above.
+    // We just need to apply it to a span tag.
+    return ['span', HTMLAttributes, 0]
   },
   addCommands() {
     return {
@@ -475,15 +440,7 @@ const FontSize = Mark.create({
         if (!fontSize) {
           return commands.unsetMark(this.name)
         }
-        
-        // Validate fontSize is a valid number
-        const size = parseInt(fontSize)
-        if (isNaN(size) || size <= 0) {
-          return false
-        }
-        
-        // Use the standard setMark command which handles everything properly
-        return commands.setMark(this.name, { fontSize: size })
+        return commands.setMark(this.name, { fontSize })
       },
       unsetFontSize: () => ({ commands }) => {
         return commands.unsetMark(this.name)
@@ -501,13 +458,9 @@ export default {
     modelValue: {
       type: String,
       default: ''
-    },
-    stickyToolbar: {
-      type: Boolean,
-      default: true
     }
   },
-  emits: ['update:modelValue', 'update:stickyToolbar'],
+  emits: ['update:modelValue'],
   setup(props, { emit }) {
     const showLinkDialog = ref(false)
     const showImageDialog = ref(false)
@@ -522,17 +475,6 @@ export default {
     const fontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72]
     const customFontSize = ref(null)
     const currentFontSize = ref(null)
-    const isStickyToolbar = ref(props.stickyToolbar)
-
-    // Watch prop changes
-    watch(() => props.stickyToolbar, (newValue) => {
-      isStickyToolbar.value = newValue
-    })
-
-    const toggleStickyToolbar = () => {
-      isStickyToolbar.value = !isStickyToolbar.value
-      emit('update:stickyToolbar', isStickyToolbar.value)
-    }
 
     const editor = useEditor({
       content: props.modelValue,
@@ -541,8 +483,10 @@ export default {
           heading: {
             levels: [1, 2, 3]
           },
-          link: false // Disable Link from StarterKit since we're adding it separately
+          // Disable the default textStyle if you add it manually
+          textStyle: false,
         }),
+        TextStyle,
         FontSize,
         Image.configure({
           inline: true,
@@ -682,7 +626,9 @@ export default {
     const updateCurrentFontSize = (editorInstance) => {
       const attrs = editorInstance.getAttributes('fontSize')
       if (attrs && attrs.fontSize) {
-        currentFontSize.value = attrs.fontSize
+        // Extract numeric value from "16px" format for display
+        const numericValue = attrs.fontSize.toString().replace('px', '')
+        currentFontSize.value = parseInt(numericValue) || null
       } else {
         currentFontSize.value = null
       }
@@ -691,15 +637,14 @@ export default {
     const setFontSize = (size) => {
       if (editor.value && size) {
         try {
-          // Focus first, then apply the mark
-          editor.value.chain().focus().setFontSize(size).run()
-          // Update the current font size display immediately
-          // Use requestAnimationFrame to ensure the editor has processed the change
-          requestAnimationFrame(() => {
+          // The command now expects an object for the attributes
+          editor.value.chain().focus().setFontSize({ fontSize: `${size}px` }).run()
+          // Update the current font size display
+          setTimeout(() => {
             if (editor.value) {
               updateCurrentFontSize(editor.value)
             }
-          })
+          }, 100)
         } catch (error) {
           console.error('Error setting font size:', error)
         }
@@ -740,7 +685,6 @@ export default {
       fontSizes,
       customFontSize,
       currentFontSize,
-      isStickyToolbar,
       setLink,
       insertLink,
       addImage,
@@ -756,8 +700,7 @@ export default {
       deleteColumn,
       deleteTable,
       setFontSize,
-      setCustomFontSize,
-      toggleStickyToolbar
+      setCustomFontSize
     }
   }
 }
@@ -776,18 +719,15 @@ export default {
 }
 
 .editor-toolbar-wrapper {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
   z-index: 10;
   background-color: rgb(var(--v-theme-surface));
   border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
   width: 100%;
-}
-
-.editor-toolbar-wrapper.toolbar-sticky {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
 }
 
 .editor-toolbar {
@@ -885,10 +825,6 @@ export default {
   direction: rtl;
   text-align: right;
   font-family: 'Vazir', 'Tahoma', sans-serif;
-}
-
-:deep(.ProseMirror span[style*="font-size"]) {
-  display: inline;
 }
 
 :deep(.ProseMirror p) {
