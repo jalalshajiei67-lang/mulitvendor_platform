@@ -1,88 +1,172 @@
 <template>
   <div class="tiptap-editor" dir="rtl">
     <div class="editor-content-wrapper">
-      <div class="editor-toolbar-wrapper">
-        <div class="editor-toolbar" v-if="editor">
-        <div class="toolbar-groups">
-          <!-- Text Formatting Group -->
-          <div class="toolbar-group">
-            <v-btn-toggle
-              v-model="toolbarState"
-              variant="outlined"
-              density="compact"
-              divided
-              class="toolbar-buttons"
-            >
+      <div class="editor-content">
+        <editor-content v-if="editor" :editor="editor" />
+      </div>
+
+      <!-- Table Controls Menu (shown when table is active) -->
+      <div v-if="isTableActive" class="table-controls-menu">
+        <v-card elevation="4" class="table-controls-card">
+          <v-card-text class="pa-2">
+            <div class="d-flex align-center" style="gap: 4px; flex-wrap: wrap;">
               <v-btn
-                @click="editor.chain().focus().toggleBold().run()"
-                :class="{ 'v-btn--active': editor.isActive('bold') }"
+                @click="addRowBefore"
                 icon
                 size="small"
+                variant="text"
+                title="افزودن سطر قبل"
               >
-                <v-icon>mdi-format-bold</v-icon>
+                <v-icon size="small">mdi-table-row-plus-before</v-icon>
               </v-btn>
               <v-btn
-                @click="editor.chain().focus().toggleItalic().run()"
-                :class="{ 'v-btn--active': editor.isActive('italic') }"
+                @click="addRowAfter"
                 icon
                 size="small"
+                variant="text"
+                title="افزودن سطر بعد"
               >
-                <v-icon>mdi-format-italic</v-icon>
+                <v-icon size="small">mdi-table-row-plus-after</v-icon>
               </v-btn>
-            </v-btn-toggle>
-            <v-menu location="bottom">
-              <template v-slot:activator="{ props }">
+              <v-btn
+                @click="deleteRow"
+                icon
+                size="small"
+                variant="text"
+                color="error"
+                title="حذف سطر"
+              >
+                <v-icon size="small">mdi-table-row-remove</v-icon>
+              </v-btn>
+              <v-divider vertical class="mx-1"></v-divider>
+              <v-btn
+                @click="addColumnBefore"
+                icon
+                size="small"
+                variant="text"
+                title="افزودن ستون قبل"
+              >
+                <v-icon size="small">mdi-table-column-plus-before</v-icon>
+              </v-btn>
+              <v-btn
+                @click="addColumnAfter"
+                icon
+                size="small"
+                variant="text"
+                title="افزودن ستون بعد"
+              >
+                <v-icon size="small">mdi-table-column-plus-after</v-icon>
+              </v-btn>
+              <v-btn
+                @click="deleteColumn"
+                icon
+                size="small"
+                variant="text"
+                color="error"
+                title="حذف ستون"
+              >
+                <v-icon size="small">mdi-table-column-remove</v-icon>
+              </v-btn>
+              <v-divider vertical class="mx-1"></v-divider>
+              <v-btn
+                @click="deleteTable"
+                icon
+                size="small"
+                variant="text"
+                color="error"
+                title="حذف جدول"
+              >
+                <v-icon size="small">mdi-table-remove</v-icon>
+              </v-btn>
+            </div>
+          </v-card-text>
+        </v-card>
+      </div>
+
+      <div v-if="editor" class="editor-toolbar-wrapper">
+        <div class="editor-toolbar">
+          <div class="toolbar-groups">
+            <!-- Text Formatting Group -->
+            <div class="toolbar-group">
+              <v-btn-toggle
+                v-model="toolbarState"
+                variant="outlined"
+                density="compact"
+                divided
+                class="toolbar-buttons"
+              >
                 <v-btn
-                  v-bind="props"
-                  variant="outlined"
-                  density="compact"
+                  @click="editor.chain().focus().toggleBold().run()"
+                  :class="{ 'v-btn--active': editor.isActive('bold') }"
+                  icon
                   size="small"
-                  class="font-size-btn"
                 >
-                  <span class="font-size-label">{{ currentFontSize || 'اندازه فونت' }}</span>
-                  <v-icon size="small" class="mr-1">mdi-chevron-down</v-icon>
+                  <v-icon>mdi-format-bold</v-icon>
                 </v-btn>
-              </template>
-              <v-card min-width="200">
-                <v-card-text class="pa-2">
-                  <div class="font-size-presets">
-                    <v-btn
-                      v-for="size in fontSizes"
-                      :key="size"
-                      variant="text"
-                      density="compact"
-                      size="small"
-                      block
-                      class="justify-start"
-                      :class="{ 'font-size-active': currentFontSize === size }"
-                      @click="setFontSize(size)"
-                    >
-                      {{ size }}px
-                    </v-btn>
-                  </div>
-                  <v-divider class="my-2"></v-divider>
-                  <v-text-field
-                    v-model.number="customFontSize"
-                    label="اندازه سفارشی (px)"
-                    type="number"
+                <v-btn
+                  @click="editor.chain().focus().toggleItalic().run()"
+                  :class="{ 'v-btn--active': editor.isActive('italic') }"
+                  icon
+                  size="small"
+                >
+                  <v-icon>mdi-format-italic</v-icon>
+                </v-btn>
+              </v-btn-toggle>
+              <v-menu v-model="isFontSizeMenuOpen" location="top">
+                <template v-slot:activator="{ props }">
+                  <v-btn
+                    v-bind="props"
                     variant="outlined"
                     density="compact"
-                    :min="1"
-                    :max="200"
-                    @keyup.enter="setCustomFontSize"
-                  ></v-text-field>
-                  <v-btn
-                    color="primary"
                     size="small"
-                    block
-                    @click="setCustomFontSize"
+                    class="font-size-btn"
                   >
-                    اعمال
+                    <span class="font-size-label">
+                      {{ currentFontSize ? `${currentFontSize}px` : 'اندازه فونت' }}
+                    </span>
+                    <v-icon size="small" class="mr-1">mdi-chevron-down</v-icon>
                   </v-btn>
-                </v-card-text>
-              </v-card>
-            </v-menu>
-          </div>
+                </template>
+                <v-card min-width="200">
+                  <v-card-text class="pa-2">
+                    <div class="font-size-presets">
+                      <v-btn
+                        v-for="size in fontSizes"
+                        :key="size"
+                        variant="text"
+                        density="compact"
+                        size="small"
+                        block
+                        class="justify-start"
+                        :class="{ 'font-size-active': currentFontSize === size }"
+                        @click="setFontSize(size)"
+                      >
+                        {{ size }}px
+                      </v-btn>
+                    </div>
+                    <v-divider class="my-2"></v-divider>
+                    <v-text-field
+                      v-model.number="customFontSize"
+                      label="اندازه سفارشی (px)"
+                      type="number"
+                      variant="outlined"
+                      density="compact"
+                      :min="1"
+                      :max="200"
+                      @keyup.enter="setCustomFontSize"
+                    ></v-text-field>
+                    <v-btn
+                      color="primary"
+                      size="small"
+                      block
+                      @click="setCustomFontSize"
+                    >
+                      اعمال
+                    </v-btn>
+                  </v-card-text>
+                </v-card>
+              </v-menu>
+            </div>
 
           <v-divider vertical class="toolbar-divider"></v-divider>
 
@@ -204,90 +288,11 @@
           </div>
         </div>
       </div>
+
       </div>
-      <div class="editor-content">
-        <editor-content :editor="editor" />
-      
-      <!-- Table Controls Menu (shown when table is active) -->
-      <div v-if="isTableActive" class="table-controls-menu">
-        <v-card elevation="4" class="table-controls-card">
-          <v-card-text class="pa-2">
-            <div class="d-flex align-center" style="gap: 4px; flex-wrap: wrap;">
-              <v-btn
-                @click="addRowBefore"
-                icon
-                size="small"
-                variant="text"
-                title="افزودن سطر قبل"
-              >
-                <v-icon size="small">mdi-table-row-plus-before</v-icon>
-              </v-btn>
-              <v-btn
-                @click="addRowAfter"
-                icon
-                size="small"
-                variant="text"
-                title="افزودن سطر بعد"
-              >
-                <v-icon size="small">mdi-table-row-plus-after</v-icon>
-              </v-btn>
-              <v-btn
-                @click="deleteRow"
-                icon
-                size="small"
-                variant="text"
-                color="error"
-                title="حذف سطر"
-              >
-                <v-icon size="small">mdi-table-row-remove</v-icon>
-              </v-btn>
-              <v-divider vertical class="mx-1"></v-divider>
-              <v-btn
-                @click="addColumnBefore"
-                icon
-                size="small"
-                variant="text"
-                title="افزودن ستون قبل"
-              >
-                <v-icon size="small">mdi-table-column-plus-before</v-icon>
-              </v-btn>
-              <v-btn
-                @click="addColumnAfter"
-                icon
-                size="small"
-                variant="text"
-                title="افزودن ستون بعد"
-              >
-                <v-icon size="small">mdi-table-column-plus-after</v-icon>
-              </v-btn>
-              <v-btn
-                @click="deleteColumn"
-                icon
-                size="small"
-                variant="text"
-                color="error"
-                title="حذف ستون"
-              >
-                <v-icon size="small">mdi-table-column-remove</v-icon>
-              </v-btn>
-              <v-divider vertical class="mx-1"></v-divider>
-              <v-btn
-                @click="deleteTable"
-                icon
-                size="small"
-                variant="text"
-                color="error"
-                title="حذف جدول"
-              >
-                <v-icon size="small">mdi-table-remove</v-icon>
-              </v-btn>
-            </div>
-          </v-card-text>
-        </v-card>
-      </div>
-      </div>
+
     </div>
-    
+
     <!-- Table Dialog -->
     <v-dialog v-model="showTableDialog" max-width="400px">
       <v-card dir="rtl">
@@ -386,83 +391,99 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
-import { Mark } from '@tiptap/core'
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { Extension, Mark, mergeAttributes } from '@tiptap/core'
+import { ref, watch, onBeforeUnmount, nextTick } from 'vue'
 
-// Custom FontSize Mark Extension
-const FontSize = Mark.create({
-  name: 'fontSize',
+const TextStyle = Mark.create({
+  name: 'textStyle',
+
   addOptions() {
     return {
-      HTMLAttributes: {}
+      HTMLAttributes: {},
     }
   },
-  inclusive: true,
-  addAttributes() {
-    return {
-      fontSize: {
-        default: null,
-        parseHTML: element => {
-          const fontSize = element.style.fontSize?.replace('px', '')
-          return fontSize ? parseInt(fontSize) : null
-        },
-        renderHTML: attributes => {
-          if (!attributes.fontSize) {
-            return {}
-          }
-          return {
-            style: `font-size: ${attributes.fontSize}px`
-          }
-        }
-      }
-    }
-  },
+
   parseHTML() {
     return [
       {
-        tag: 'span[style*="font-size"]',
-        getAttrs: (node) => {
-          const element = node
-          const fontSize = element.style.fontSize?.replace('px', '')
-          return fontSize ? { fontSize: parseInt(fontSize) } : false
-        }
-      }
+        tag: 'span',
+        getAttrs: (element) => element.hasAttribute('style') ? {} : false,
+      },
     ]
   },
+
   renderHTML({ HTMLAttributes }) {
-    if (!HTMLAttributes || !HTMLAttributes.fontSize) {
-      return false
+    return ['span', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
+  },
+})
+
+const normalizeFontSizeValue = (fontSize) => {
+  if (fontSize === null || fontSize === undefined || fontSize === '') {
+    return null
+  }
+
+  const numeric = typeof fontSize === 'number'
+    ? fontSize
+    : parseFloat(String(fontSize).replace(/[^0-9.]/g, ''))
+
+  if (!Number.isFinite(numeric)) {
+    return null
+  }
+
+  return `${Math.max(1, Math.min(200, numeric))}px`
+}
+
+// Custom FontSize Extension leveraging TextStyle for consistent inline styling
+const FontSize = Extension.create({
+  name: 'fontSize',
+  addOptions() {
+    return {
+      types: ['textStyle']
     }
+  },
+  addGlobalAttributes() {
     return [
-      'span',
       {
-        ...this.options.HTMLAttributes,
-        style: `font-size: ${HTMLAttributes.fontSize}px`
-      },
-      0
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: (element) => {
+              const raw = element.style.fontSize || element.getAttribute('data-font-size')
+              return normalizeFontSizeValue(raw)
+            },
+            renderHTML: (attributes) => {
+              if (!attributes.fontSize) {
+                return {}
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+                'data-font-size': attributes.fontSize
+              }
+            }
+          }
+        }
+      }
     ]
   },
   addCommands() {
     return {
-      setFontSize: (fontSize) => ({ commands, state, tr, dispatch }) => {
-        if (!fontSize) {
-          return commands.unsetMark(this.name)
+      setFontSize: (fontSize) => ({ chain }) => {
+        const normalized = normalizeFontSizeValue(fontSize)
+        if (!normalized) {
+          return false
         }
-        
-        const { selection } = state
-        const { from, to } = selection
-        
-        if (dispatch && tr) {
-          // Remove existing fontSize marks in the selection
-          tr.removeMark(from, to, this.type)
-          // Add the new fontSize mark
-          tr.addMark(from, to, this.type.create({ fontSize }))
-        }
-        
-        return commands.setMark(this.name, { fontSize })
+
+        return chain()
+          .setMark('textStyle', { fontSize: normalized })
+          .run()
       },
-      unsetFontSize: () => ({ commands }) => {
-        return commands.unsetMark(this.name)
+      unsetFontSize: () => ({ chain }) => {
+        const chainable = chain().updateAttributes('textStyle', { fontSize: null })
+        const maybeCleaned = typeof chainable.removeEmptyTextStyle === 'function'
+          ? chainable.removeEmptyTextStyle()
+          : chainable
+        return maybeCleaned.run()
       }
     }
   }
@@ -484,6 +505,7 @@ export default {
     const showLinkDialog = ref(false)
     const showImageDialog = ref(false)
     const showTableDialog = ref(false)
+    const isFontSizeMenuOpen = ref(false)
     const linkUrl = ref('')
     const imageUrl = ref('')
     const toolbarState = ref(null)
@@ -503,6 +525,7 @@ export default {
             levels: [1, 2, 3]
           }
         }),
+        TextStyle,
         FontSize,
         Image.configure({
           inline: true,
@@ -526,11 +549,12 @@ export default {
         attributes: {
           class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
           dir: 'rtl',
-          style: 'min-height: 200px; padding: 16px;'
+          style: 'min-height: 200px; padding: 16px; padding-bottom: calc(16px + var(--toolbar-height));'
         }
       },
       onUpdate: ({ editor }) => {
         emit('update:modelValue', editor.getHTML())
+        updateCurrentFontSize(editor)
       },
       onSelectionUpdate: ({ editor }) => {
         isTableActive.value = editor.isActive('table')
@@ -552,6 +576,9 @@ export default {
     })
 
     watch(() => props.modelValue, (value) => {
+      if (!editor.value) {
+        return
+      }
       const isSame = editor.value.getHTML() === value
       if (isSame) {
         return
@@ -639,26 +666,48 @@ export default {
       }
     }
 
-    const updateCurrentFontSize = (editorInstance) => {
-      const attrs = editorInstance.getAttributes('fontSize')
-      if (attrs && attrs.fontSize) {
-        currentFontSize.value = attrs.fontSize
-      } else {
-        currentFontSize.value = null
+    const extractNumericFontSize = (value) => {
+      if (!value && value !== 0) {
+        return null
       }
+
+      const numeric = parseFloat(String(value).replace('px', ''))
+      return Number.isFinite(numeric) ? Math.round(numeric) : null
+    }
+
+    const updateCurrentFontSize = (editorInstance) => {
+      const attrs = editorInstance.getAttributes('textStyle')
+      const activeFontSize = extractNumericFontSize(attrs?.fontSize)
+      if (activeFontSize) {
+        currentFontSize.value = activeFontSize
+        return
+      }
+
+      const storedMarks = editorInstance.view?.state?.storedMarks
+      const textStyleMark = storedMarks?.find?.((mark) => mark.type.name === 'textStyle')
+      const storedFontSize = extractNumericFontSize(textStyleMark?.attrs?.fontSize)
+
+      if (storedFontSize) {
+        currentFontSize.value = storedFontSize
+        return
+      }
+
+      currentFontSize.value = null
     }
 
     const setFontSize = (size) => {
       if (editor.value && size) {
         try {
-          // Focus first, then apply the mark
-          editor.value.chain().focus().setFontSize(size).run()
-          // Update the current font size display
-          setTimeout(() => {
-            if (editor.value) {
-              updateCurrentFontSize(editor.value)
-            }
-          }, 100)
+          const applied = editor.value.chain().focus().setFontSize(size).run()
+          if (applied) {
+            currentFontSize.value = extractNumericFontSize(size)
+            nextTick(() => {
+              if (editor.value) {
+                updateCurrentFontSize(editor.value)
+              }
+            })
+            isFontSizeMenuOpen.value = false
+          }
         } catch (error) {
           console.error('Error setting font size:', error)
         }
@@ -666,14 +715,18 @@ export default {
     }
 
     const setCustomFontSize = () => {
-      if (customFontSize.value && customFontSize.value >= 1 && customFontSize.value <= 200) {
-        setFontSize(customFontSize.value)
+      const value = customFontSize.value
+      if (Number.isFinite(value) && value >= 1 && value <= 200) {
+        setFontSize(Math.round(customFontSize.value))
         customFontSize.value = null
+        isFontSizeMenuOpen.value = false
       }
     }
 
     onBeforeUnmount(() => {
-      editor.value.destroy()
+      if (editor.value) {
+        editor.value.destroy()
+      }
     })
 
     // Initialize states
@@ -713,6 +766,7 @@ export default {
       addColumnAfter,
       deleteColumn,
       deleteTable,
+      isFontSizeMenuOpen,
       setFontSize,
       setCustomFontSize
     }
@@ -722,26 +776,32 @@ export default {
 
 <style scoped>
 .tiptap-editor {
+  --toolbar-height: 64px;
+  --editor-max-height: 75vh;
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 4px;
   background-color: rgb(var(--v-theme-surface));
   position: relative;
   display: flex;
   flex-direction: column;
-  max-height: 100%;
-  /* Overflow handled by editor-content-wrapper for sticky to work */
+  max-height: var(--editor-max-height);
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .editor-toolbar-wrapper {
   position: -webkit-sticky;
   position: sticky;
-  top: 0;
+  bottom: 0;
+  top: auto;
   z-index: 10;
   background-color: rgb(var(--v-theme-surface));
-  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
   width: 100%;
+  margin-top: auto;
+  border-radius: 0 0 4px 4px;
 }
 
 .editor-toolbar {
@@ -801,18 +861,23 @@ export default {
   overflow-x: hidden;
   position: relative;
   -webkit-overflow-scrolling: touch;
-  /* Ensure scrolling works properly */
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(var(--editor-max-height) - var(--toolbar-height));
+  border-radius: 4px 4px 0 0;
 }
 
 .editor-content {
   min-height: 200px;
   position: relative;
+  padding-bottom: calc(var(--toolbar-height) + 16px);
+  flex: 1;
 }
 
 .table-controls-menu {
   position: absolute;
-  bottom: 16px;
+  bottom: calc(16px + var(--toolbar-height));
   right: 16px;
   z-index: 20;
   animation: slideUp 0.2s ease-out;
