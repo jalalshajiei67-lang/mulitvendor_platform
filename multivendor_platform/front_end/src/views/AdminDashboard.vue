@@ -29,9 +29,9 @@
         </v-btn>
       </div>
 
-      <v-divider></v-divider>
+      <v-divider class="sidebar-divider"></v-divider>
 
-      <v-list density="compact" nav>
+      <v-list density="compact" nav class="sidebar-menu-list">
         <v-list-item
           prepend-icon="mdi-view-dashboard"
           title="داشبورد"
@@ -66,14 +66,7 @@
       fixed
       dir="rtl"
     >
-      <!-- Mobile Hamburger Button -->
-      <v-app-bar-nav-icon
-        v-if="isMobile"
-        @click="drawer = !drawer"
-        class="hamburger-btn"
-      ></v-app-bar-nav-icon>
-
-      <!-- Logo -->
+      <!-- Logo (Visual Left) -->
       <router-link to="/" class="logo-link">
         <v-img
           src="/indexo.jpg"
@@ -86,6 +79,13 @@
       </router-link>
 
       <v-spacer></v-spacer>
+
+      <!-- Mobile Hamburger Button (Visual Right) -->
+      <v-app-bar-nav-icon
+        v-if="isMobile"
+        @click="drawer = !drawer"
+        class="hamburger-btn"
+      ></v-app-bar-nav-icon>
 
       <!-- Notifications Bell -->
       <v-menu
@@ -985,6 +985,15 @@ export default {
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
+  margin-bottom: 10px;
+}
+
+.sidebar-divider {
+  margin-bottom: 10px;
+}
+
+.sidebar-menu-list {
+  margin-top: 10px;
 }
 
 .admin-header {
@@ -995,11 +1004,17 @@ export default {
   display: flex;
   align-items: center;
   text-decoration: none;
-  margin-right: 16px;
+  margin-left: 16px;
+  order: -1;
 }
 
 .logo-img {
   max-height: 40px;
+}
+
+.hamburger-btn {
+  margin-right: 8px;
+  order: 1;
 }
 
 .notification-btn {
