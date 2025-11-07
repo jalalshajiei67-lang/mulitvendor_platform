@@ -19,35 +19,14 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy Django project
 COPY multivendor_platform/multivendor_platform/ /app/
 
-# Create directories
+# Create directories (useful for build-time checks)
 RUN mkdir -p /app/staticfiles /app/media /app/logs
+
+COPY docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 80
 
-# Startup commands with proper logging and error handling
-CMD echo "==========================================" && \
-    echo "Starting Multivendor Backend Application" && \
-    echo "==========================================" && \
-    echo "" && \
-    echo "[1/5] Creating media directories..." && \
-    mkdir -p /app/media/category_images /app/media/subcategory_images /app/media/product_images /app/media/department_images /app/media/blog_images /app/media/user_images && \
-    chmod -R 755 /app/media && \
-    echo "✅ Media directories created" && \
-    echo "" && \
-    echo "[2/5] Running database migrations..." && \
-    python manage.py migrate --noinput && \
-    echo "✅ Migrations completed" && \
-    echo "" && \
-    echo "[3/5] Collecting static files..." && \
-    python manage.py collectstatic --noinput --clear || echo "⚠️  Collectstatic failed, but continuing..." && \
-    echo "✅ Static files collected" && \
-    echo "" && \
-    echo "[4/5] Verifying Django configuration..." && \
-    python manage.py check --deploy || echo "⚠️  Django check found issues, but continuing..." && \
-    echo "✅ Django configuration verified" && \
-    echo "" && \
-    echo "[5/5] Starting Gunicorn server..." && \
-    echo "Binding to 0.0.0.0:80" && \
-    echo "==========================================" && \
-    exec gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:80 --workers 4 --timeout 120 --access-logfile - --error-logfile - --log-level info --capture-output
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["gunicorn", "multivendor_platform.wsgi:application", "--bind", "0.0.0.0:80", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info", "--capture-output"]
 
