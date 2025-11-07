@@ -4,8 +4,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib.sitemaps.views import sitemap
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 
 # Import sitemaps
 from products.sitemaps import ProductSitemap, DepartmentSitemap, CategorySitemap, SubcategorySitemap, StaticViewSitemap
@@ -74,6 +76,14 @@ def robots_txt(request):
     response = HttpResponse(robots_content, content_type='text/plain; charset=utf-8')
     response['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
     response['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+@csrf_exempt
+@require_http_methods(["OPTIONS"])
+def cors_preflight_handler(request):
+    """Explicit handler for CORS preflight OPTIONS requests"""
+    response = JsonResponse({}, status=200)
+    # CORS headers will be added by corsheaders middleware
     return response
 
 urlpatterns = [

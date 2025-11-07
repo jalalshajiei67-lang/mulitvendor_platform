@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # Add this at the top
+    'corsheaders.middleware.CorsMiddleware',  # MUST be at the top - handles OPTIONS preflight
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',  # Required for admin
     'django.middleware.common.CommonMiddleware',
@@ -141,7 +141,7 @@ CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',')
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
 
-# CORS headers and methods
+# CORS headers and methods - explicitly allow all necessary headers
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -152,6 +152,8 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'access-control-request-method',
+    'access-control-request-headers',
 ]
 
 CORS_ALLOW_METHODS = [
@@ -167,10 +169,16 @@ CORS_ALLOW_METHODS = [
 CORS_EXPOSE_HEADERS = [
     'content-type',
     'authorization',
+    'access-control-allow-origin',
+    'access-control-allow-credentials',
 ]
 
-# Preflight cache duration (in seconds)
+# Preflight cache duration (in seconds) - 24 hours
 CORS_PREFLIGHT_MAX_AGE = 86400
+
+# Allow all origins for preflight (django-cors-headers handles this automatically)
+# This ensures OPTIONS requests are handled correctly
+CORS_URLS_REGEX = r'^/api/.*$'  # Only apply CORS to API endpoints
 
 # Configure DRF
 REST_FRAMEWORK = {
