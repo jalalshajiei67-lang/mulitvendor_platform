@@ -34,6 +34,39 @@ def health_check(request):
     """Health check endpoint for monitoring and debugging"""
     return HttpResponse("OK", content_type="text/plain", status=200)
 
+def robots_txt(request):
+    """Serve robots.txt file to restrict crawlers from unnecessary sections"""
+    # Determine protocol (Django's request.is_secure() handles proxy headers 
+    # when SECURE_PROXY_SSL_HEADER is configured in settings)
+    protocol = 'https' if request.is_secure() else 'http'
+    domain = request.get_host()
+    
+    robots_content = f"""# robots.txt for Multivendor Platform
+
+# Allow all crawlers
+User-agent: *
+
+# Disallow admin panel (private administration area)
+Disallow: /admin/
+
+# Disallow API endpoints (not for web crawling, API access only)
+Disallow: /api/
+
+# Disallow vendor dashboard (private vendor area)
+Disallow: /dashboard/
+
+# Disallow health check endpoint (internal monitoring)
+Disallow: /health/
+
+# Disallow TinyMCE editor (internal admin tool)
+Disallow: /tinymce/
+
+# Allow sitemap for better SEO indexing
+Sitemap: {protocol}://{domain}/sitemap.xml
+"""
+    
+    return HttpResponse(robots_content, content_type='text/plain')
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     
@@ -45,6 +78,9 @@ urlpatterns = [
     
     # Favicon handler
     path('favicon.ico', favicon_view, name='favicon'),
+    
+    # Robots.txt
+    path('robots.txt', robots_txt, name='robots_txt'),
     
     # Sitemap
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
