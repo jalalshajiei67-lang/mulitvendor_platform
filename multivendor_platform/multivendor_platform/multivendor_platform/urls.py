@@ -83,17 +83,17 @@ urlpatterns = [
     # Health check endpoint
     path('health/', health_check, name='health'),
     
-    # Home page
-    path('', HomeView.as_view(), name='home'),
-    
-    # Favicon handler
-    path('favicon.ico', favicon_view, name='favicon'),
-    
-    # Robots.txt
+    # Robots.txt - placed early to ensure it's matched before catch-all routes
     path('robots.txt', robots_txt, name='robots_txt'),
     
     # Sitemap
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    
+    # Favicon handler
+    path('favicon.ico', favicon_view, name='favicon'),
+    
+    # Home page
+    path('', HomeView.as_view(), name='home'),
     
     # TinyMCE
     path('tinymce/', include('tinymce.urls')),
