@@ -163,7 +163,27 @@ class ProductSerializer(serializers.ModelSerializer):
     breadcrumb_hierarchy = serializers.SerializerMethodField(read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
     primary_image = serializers.SerializerMethodField(read_only=True)
-    
+
+    def _build_absolute_image_url(self, image_field):
+        """Return absolute URL for an existing image field."""
+        if not image_field or not getattr(image_field, 'name', None):
+            return None
+
+        storage = getattr(image_field, 'storage', None)
+
+        try:
+            if storage and not storage.exists(image_field.name):
+                return None
+        except Exception:
+            # If storage check fails for any reason, fail gracefully
+            return None
+
+        request = self.context.get('request')
+        url = image_field.url
+        if request:
+            return request.build_absolute_uri(url)
+        return url
+
     class Meta:
         model = Product
         fields = [
@@ -181,12 +201,25 @@ class ProductSerializer(serializers.ModelSerializer):
     
     def get_primary_image(self, obj):
         """Return the URL of the primary image"""
-        primary_img = obj.primary_image
-        if primary_img:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(primary_img.url)
-            return primary_img.url
+        # Prefer primary images first, then follow the configured ordering
+        primary_images = list(obj.images.filter(is_primary=True))
+        ordered_images = list(obj.all_images)
+
+        primary_image_ids = {image.id for image in primary_images}
+        image_candidates = primary_images + [
+            image for image in ordered_images if image.id not in primary_image_ids
+        ]
+
+        for image in image_candidates:
+            image_url = self._build_absolute_image_url(image.image)
+            if image_url:
+                return image_url
+
+        # Fallback to legacy single image field
+        legacy_image_url = self._build_absolute_image_url(getattr(obj, 'image', None))
+        if legacy_image_url:
+            return legacy_image_url
+
         return None
     
     def create(self, validated_data):

@@ -300,6 +300,7 @@ import { useAuthStore } from '@/stores/auth'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
+import { formatImageUrl } from '@/utils/imageUtils'
 
 export default {
   name: 'ProductList',
@@ -359,10 +360,24 @@ export default {
       }
 
       if (product.images && product.images.length > 0) {
-        return product.images[0].image
+        const preferredImage =
+          product.images.find((image) => image.is_primary) || product.images[0]
+
+        if (preferredImage) {
+          return (
+            preferredImage.image_url || formatImageUrl(preferredImage.image)
+          )
+        }
       }
 
-      return product.image || 'https://via.placeholder.com/250x250?text=No+Image'
+      if (product.image) {
+        const formattedImage = formatImageUrl(product.image)
+        if (formattedImage) {
+          return formattedImage
+        }
+      }
+
+      return 'https://via.placeholder.com/250x250?text=No+Image'
     }
 
     const filterProducts = () => {
