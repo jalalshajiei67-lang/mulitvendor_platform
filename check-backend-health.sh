@@ -35,3 +35,6 @@ echo "   - Check environment variables are set correctly"
 echo "   - Verify database is running and accessible"
 
 
+
+
+

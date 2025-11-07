@@ -16,3 +16,5 @@ urlpatterns = [
     path('vendor/rfq/', vendor_rfq_list_view, name='vendor-rfq-list'),
 ]
 
+
+

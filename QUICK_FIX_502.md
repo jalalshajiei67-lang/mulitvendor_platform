@@ -149,3 +149,6 @@ This version skips collectstatic and has minimal startup steps.
 5. Check if there are any recent code changes that broke startup
 
 
+
+
+
