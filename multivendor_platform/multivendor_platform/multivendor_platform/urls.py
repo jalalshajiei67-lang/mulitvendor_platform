@@ -41,31 +41,41 @@ def robots_txt(request):
     protocol = 'https' if request.is_secure() else 'http'
     domain = request.get_host()
     
-    robots_content = f"""# robots.txt for Multivendor Platform
-
-# Allow all crawlers
-User-agent: *
-
-# Disallow admin panel (private administration area)
-Disallow: /admin/
-
-# Disallow API endpoints (not for web crawling, API access only)
-Disallow: /api/
-
-# Disallow vendor dashboard (private vendor area)
-Disallow: /dashboard/
-
-# Disallow health check endpoint (internal monitoring)
-Disallow: /health/
-
-# Disallow TinyMCE editor (internal admin tool)
-Disallow: /tinymce/
-
-# Allow sitemap for better SEO indexing
-Sitemap: {protocol}://{domain}/sitemap.xml
-"""
+    # Build robots.txt content line by line to ensure proper formatting
+    robots_lines = [
+        '# robots.txt for Multivendor Platform',
+        '',
+        '# Allow all crawlers',
+        'User-agent: *',
+        '',
+        '# Disallow admin panel (private administration area)',
+        'Disallow: /admin/',
+        '',
+        '# Disallow API endpoints (not for web crawling, API access only)',
+        'Disallow: /api/',
+        '',
+        '# Disallow vendor dashboard (private vendor area)',
+        'Disallow: /dashboard/',
+        '',
+        '# Disallow health check endpoint (internal monitoring)',
+        'Disallow: /health/',
+        '',
+        '# Disallow TinyMCE editor (internal admin tool)',
+        'Disallow: /tinymce/',
+        '',
+        '# Allow sitemap for better SEO indexing',
+        f'Sitemap: {protocol}://{domain}/sitemap.xml',
+        ''  # Final newline
+    ]
     
-    return HttpResponse(robots_content, content_type='text/plain')
+    robots_content = '\n'.join(robots_lines)
+    
+    # Ensure content is properly encoded
+    response = HttpResponse(robots_content.encode('utf-8'), content_type='text/plain; charset=utf-8')
+    response['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
+    # Add headers to help with debugging
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 urlpatterns = [
     path('admin/', admin.site.urls),
