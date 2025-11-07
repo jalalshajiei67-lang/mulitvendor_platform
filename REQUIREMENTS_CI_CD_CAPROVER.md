@@ -248,6 +248,9 @@ CapRover handles SSL automatically via Let's Encrypt. Ensure:
 - [ ] SSL enabled for domains
 - [ ] Environment variables set (if not using secrets)
 - [ ] PostgreSQL one-click app installed (if using)
+- [ ] **Persistent Directories configured:**
+  - [ ] `/app/media` → `/captain/data/backend-media` (for user uploads)
+  - [ ] `/app/staticfiles` → `/captain/data/backend-static` (for static files) ⚠️ **IMPORTANT**
 
 ### VPS Server:
 - [ ] Docker and Docker Compose installed
@@ -298,8 +301,12 @@ docker logs srv-captain--<app-name>.<container-id>
 ### Common Issues:
 1. **Build failures:** Check Dockerfile and requirements
 2. **Database connection:** Verify environment variables
-3. **Static files 404:** Ensure `collectstatic` runs in Dockerfile CMD
+3. **Static files 404:** 
+   - Ensure `collectstatic` runs in Dockerfile CMD
+   - ⚠️ **Configure persistent volume for `/app/staticfiles`** (see `STATIC_FILES_PERSISTENT_SETUP.md`)
+   - Without persistent volume, static files are regenerated on every deployment (slow)
 4. **CORS errors:** Check `CORS_ALLOWED_ORIGINS` in settings
+5. **Slow deployments:** Add persistent volume for static files to skip `collectstatic` on subsequent deployments
 
 ---
 
@@ -343,6 +350,33 @@ caprover deploy \
   --appName "multivendor-backend" \
   --tarFile backend-deploy.tar.gz
 ```
+
+---
+
+## 📁 13. Persistent Data Configuration
+
+### ⚠️ Critical: Static Files Persistent Volume
+
+**Problem**: Without a persistent volume for static files, `collectstatic` runs on every deployment, causing:
+- Slow deployments (30-60 seconds)
+- Downtime during static file collection
+- Unnecessary resource usage
+
+**Solution**: Configure persistent directory in CapRover Dashboard:
+1. Backend App → App Configs → Persistent Directories
+2. Add: `/app/staticfiles` → `/captain/data/backend-static`
+3. Save & Update
+
+**See detailed guide**: `STATIC_FILES_PERSISTENT_SETUP.md`
+
+### Required Persistent Directories:
+
+| Directory | Purpose | Host Path | Status |
+|-----------|---------|-----------|--------|
+| `/app/media` | User uploads (images, files) | `/captain/data/backend-media` | ⚠️ Required |
+| `/app/staticfiles` | Collected static files (CSS, JS) | `/captain/data/backend-static` | ⚠️ **Recommended** |
+
+**Note**: Media files persistent volume is **critical** (data loss risk). Static files persistent volume is **highly recommended** (performance).
 
 ---
 
