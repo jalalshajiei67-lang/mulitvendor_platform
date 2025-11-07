@@ -70,10 +70,9 @@ def robots_txt(request):
     
     robots_content = '\n'.join(robots_lines)
     
-    # Ensure content is properly encoded
-    response = HttpResponse(robots_content.encode('utf-8'), content_type='text/plain; charset=utf-8')
+    # Create response with proper content type (HttpResponse handles encoding automatically)
+    response = HttpResponse(robots_content, content_type='text/plain; charset=utf-8')
     response['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
-    # Add headers to help with debugging
     response['X-Content-Type-Options'] = 'nosniff'
     return response
 
