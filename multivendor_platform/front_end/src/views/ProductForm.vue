@@ -210,6 +210,125 @@
             </v-card-text>
           </v-card>
 
+          <!-- SEO Settings Card -->
+          <v-card elevation="4" rounded="lg" class="mb-4 mb-sm-6">
+            <v-expansion-panels v-model="seoPanel" variant="accordion" multiple>
+              <v-expansion-panel>
+                <v-expansion-panel-title class="text-h6 text-sm-h5 font-weight-bold">
+                  <v-icon class="mr-2" :size="display.xs.value ? 'default' : 'large'">mdi-search-web</v-icon>
+                  تنظیمات SEO (بهینه‌سازی موتور جستجو)
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  <v-card-text class="pa-4 pa-sm-5 pa-md-6">
+                    <!-- Meta Title -->
+                    <v-text-field
+                      v-model="product.meta_title"
+                      label="عنوان متا (Meta Title)"
+                      prepend-inner-icon="mdi-format-title"
+                      variant="outlined"
+                      rounded="lg"
+                      hint="حداکثر 60 کاراکتر - عنوانی که در نتایج جستجو نمایش داده می‌شود"
+                      :counter="60"
+                      maxlength="60"
+                      persistent-hint
+                      class="mb-4"
+                    ></v-text-field>
+
+                    <!-- Meta Description -->
+                    <v-textarea
+                      v-model="product.meta_description"
+                      label="توضیحات متا (Meta Description)"
+                      prepend-inner-icon="mdi-text"
+                      variant="outlined"
+                      rounded="lg"
+                      rows="3"
+                      hint="حداکثر 160 کاراکتر - توضیحاتی که در نتایج جستجو نمایش داده می‌شود"
+                      :counter="160"
+                      maxlength="160"
+                      persistent-hint
+                      class="mb-4"
+                    ></v-textarea>
+
+                    <!-- Image Alt Text -->
+                    <v-text-field
+                      v-model="product.image_alt_text"
+                      label="متن جایگزین تصویر (Image Alt Text)"
+                      prepend-inner-icon="mdi-image-text"
+                      variant="outlined"
+                      rounded="lg"
+                      hint="متن جایگزین برای تصویر اصلی محصول (برای SEO و دسترسی‌پذیری)"
+                      :counter="125"
+                      maxlength="125"
+                      persistent-hint
+                      class="mb-4"
+                    ></v-text-field>
+
+                    <!-- Canonical URL -->
+                    <v-text-field
+                      v-model="product.canonical_url"
+                      label="آدرس کانونیکال (Canonical URL)"
+                      prepend-inner-icon="mdi-link-variant"
+                      variant="outlined"
+                      rounded="lg"
+                      type="url"
+                      hint="آدرس کانونیکال برای جلوگیری از محتوای تکراری در SEO"
+                      persistent-hint
+                      class="mb-4"
+                    ></v-text-field>
+
+                    <!-- Open Graph Image -->
+                    <v-file-input
+                      v-model="product.og_image"
+                      label="تصویر Open Graph (برای شبکه‌های اجتماعی)"
+                      prepend-inner-icon="mdi-image"
+                      variant="outlined"
+                      rounded="lg"
+                      accept="image/*"
+                      hint="تصویری که در هنگام اشتراک‌گذاری محصول در شبکه‌های اجتماعی نمایش داده می‌شود"
+                      persistent-hint
+                      class="mb-4"
+                      show-size
+                    >
+                      <template v-slot:prepend-inner>
+                        <v-icon>mdi-image</v-icon>
+                      </template>
+                    </v-file-input>
+
+                    <!-- Schema Markup (JSON-LD) -->
+                    <v-textarea
+                      v-model="product.schema_markup"
+                      label="Schema Markup (JSON-LD)"
+                      prepend-inner-icon="mdi-code-json"
+                      variant="outlined"
+                      rounded="lg"
+                      rows="6"
+                      hint="کد JSON-LD برای ساختاردهی داده‌ها و بهبود نمایش در نتایج جستجو"
+                      persistent-hint
+                      class="mb-2"
+                    ></v-textarea>
+
+                    <v-alert
+                      type="info"
+                      variant="tonal"
+                      density="compact"
+                      class="mt-4"
+                    >
+                      <small>
+                        <strong>راهنما:</strong><br>
+                        • عنوان متا: عنوان کوتاه و جذاب (حداکثر 60 کاراکتر)<br>
+                        • توضیحات متا: خلاصه‌ای از محصول (حداکثر 160 کاراکتر)<br>
+                        • متن جایگزین تصویر: برای دسترسی‌پذیری و SEO<br>
+                        • آدرس کانونیکال: جلوگیری از محتوای تکراری<br>
+                        • تصویر Open Graph: برای نمایش بهتر در شبکه‌های اجتماعی<br>
+                        • Schema Markup: کد JSON-LD برای Rich Snippets
+                      </small>
+                    </v-alert>
+                  </v-card-text>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </v-card>
+
           <!-- Product Images Card -->
           <v-card elevation="4" rounded="lg" class="mb-4 mb-sm-6">
             <v-card-title class="text-h6 text-sm-h5 font-weight-bold bg-accent pa-4 pa-sm-5">
@@ -454,8 +573,18 @@ export default {
       price: 0,
       stock: 0,
       image: null,
-      is_active: true
+      is_active: true,
+      // SEO fields
+      meta_title: '',
+      meta_description: '',
+      image_alt_text: '',
+      canonical_url: '',
+      og_image: null,
+      schema_markup: ''
     });
+
+    // SEO expansion panel state
+    const seoPanel = ref([]);
 
     const loading = computed(() => productStore.loading);
     const error = computed(() => productStore.error);
@@ -671,13 +800,25 @@ export default {
         const formData = new FormData();
 
         Object.keys(product.value).forEach(key => {
-          if (key !== 'image') {
-            formData.append(key, product.value[key]);
+          // Skip image and og_image fields (handled separately)
+          if (key !== 'image' && key !== 'og_image') {
+            const value = product.value[key];
+            // Only append if value is not null/undefined/empty string
+            if (value !== null && value !== undefined && value !== '') {
+              formData.append(key, value);
+            }
           }
         });
 
+        // Handle og_image file upload
+        if (product.value.og_image && product.value.og_image instanceof File) {
+          formData.append('og_image', product.value.og_image);
+        }
+
         uploadedImages.value.forEach(image => {
-          formData.append('images', image.file);
+          if (image.file) {
+            formData.append('images', image.file);
+          }
         });
 
         let response;
@@ -704,8 +845,19 @@ export default {
         if (productStore.currentProduct) {
           product.value = { ...productStore.currentProduct };
 
-          if (product.value.subcategory) {
-            const sub = subcategories.value.find(s => s.id === product.value.subcategory);
+          // Handle subcategories - can be array (ManyToMany) or single value
+          let subcategoryId = null;
+          if (product.value.subcategories && Array.isArray(product.value.subcategories) && product.value.subcategories.length > 0) {
+            // If it's an array, take the first one
+            subcategoryId = product.value.subcategories[0];
+          } else if (product.value.subcategory) {
+            // If it's a single value
+            subcategoryId = product.value.subcategory;
+          }
+
+          if (subcategoryId) {
+            product.value.subcategory = subcategoryId;
+            const sub = subcategories.value.find(s => s.id === parseInt(subcategoryId));
             if (sub) {
               if (sub.departments && sub.departments.length > 0) {
                 selectedDepartment.value = sub.departments[0].id;
@@ -717,6 +869,15 @@ export default {
               }
             }
           }
+
+          // Initialize SEO fields if they don't exist
+          if (!product.value.meta_title) product.value.meta_title = '';
+          if (!product.value.meta_description) product.value.meta_description = '';
+          if (!product.value.image_alt_text) product.value.image_alt_text = '';
+          if (!product.value.canonical_url) product.value.canonical_url = '';
+          if (!product.value.schema_markup) product.value.schema_markup = '';
+          // og_image will be null for existing products (file input, user needs to upload new one to change)
+          if (!product.value.og_image) product.value.og_image = null;
 
           if (productStore.currentProduct.images && productStore.currentProduct.images.length > 0) {
             uploadedImages.value = productStore.currentProduct.images.map(img => ({
@@ -764,6 +925,7 @@ export default {
       getFullPath,
       getSelectedFullPath,
       saveProduct,
+      seoPanel,
       t
     };
   }

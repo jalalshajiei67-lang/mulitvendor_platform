@@ -163,6 +163,7 @@ class ProductSerializer(serializers.ModelSerializer):
     breadcrumb_hierarchy = serializers.SerializerMethodField(read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
     primary_image = serializers.SerializerMethodField(read_only=True)
+    og_image_url = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Product
@@ -170,7 +171,8 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'vendor', 'vendor_name', 'subcategories', 'subcategory_name', 'subcategory_details',
             'primary_category', 'category_name', 'category_slug',
             'name', 'slug', 'description', 'price', 'stock', 'image', 'images', 'primary_image',
-            'meta_title', 'meta_description', 'is_active', 'category_path', 'breadcrumb_hierarchy',
+            'image_alt_text', 'og_image', 'og_image_url', 'meta_title', 'meta_description', 
+            'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['vendor', 'created_at', 'updated_at']
@@ -188,6 +190,21 @@ class ProductSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(primary_img.url)
             return primary_img.url
         return None
+    
+    def get_og_image_url(self, obj):
+        """Return the full URL of the Open Graph image"""
+        og_image_field = getattr(obj, 'og_image', None)
+        if not og_image_field:
+            return None
+        
+        storage = og_image_field.storage
+        if not storage.exists(og_image_field.name):
+            return None
+        
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(og_image_field.url)
+        return og_image_field.url
     
     def create(self, validated_data):
         # Set the vendor to the current authenticated user
@@ -267,6 +284,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     breadcrumb_hierarchy = serializers.SerializerMethodField(read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
     primary_image = serializers.SerializerMethodField(read_only=True)
+    og_image_url = serializers.SerializerMethodField(read_only=True)
     comments = ProductCommentSerializer(many=True, read_only=True)
     comment_count = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
@@ -277,7 +295,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'id', 'vendor', 'vendor_name', 'subcategories', 'subcategory_name', 'subcategory_details',
             'primary_category', 'category_name', 'category_slug',
             'name', 'slug', 'description', 'price', 'stock', 'image', 'images', 'primary_image',
-            'meta_title', 'meta_description', 'is_active', 'category_path', 'breadcrumb_hierarchy',
+            'image_alt_text', 'og_image', 'og_image_url', 'meta_title', 'meta_description',
+            'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
             'comments', 'comment_count', 'average_rating',
             'created_at', 'updated_at'
         ]
@@ -296,6 +315,21 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(primary_img.url)
             return primary_img.url
         return None
+    
+    def get_og_image_url(self, obj):
+        """Return the full URL of the Open Graph image"""
+        og_image_field = getattr(obj, 'og_image', None)
+        if not og_image_field:
+            return None
+        
+        storage = og_image_field.storage
+        if not storage.exists(og_image_field.name):
+            return None
+        
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(og_image_field.url)
+        return og_image_field.url
     
     def get_comment_count(self, obj):
         """Get count of approved comments"""
