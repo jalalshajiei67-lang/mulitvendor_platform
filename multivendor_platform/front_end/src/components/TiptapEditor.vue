@@ -14,16 +14,16 @@
               class="toolbar-buttons"
             >
               <v-btn
-                @click="editor.chain().focus().toggleBold().run()"
-                :class="{ 'v-btn--active': editor.isActive('bold') }"
+                @click="editor.chain().focus().toggleBold().run(); editorState++"
+                :class="{ 'v-btn--active': isBoldActive }"
                 icon
                 size="small"
               >
                 <v-icon>mdi-format-bold</v-icon>
               </v-btn>
               <v-btn
-                @click="editor.chain().focus().toggleItalic().run()"
-                :class="{ 'v-btn--active': editor.isActive('italic') }"
+                @click="editor.chain().focus().toggleItalic().run(); editorState++"
+                :class="{ 'v-btn--active': isItalicActive }"
                 icon
                 size="small"
               >
@@ -96,7 +96,7 @@
               class="toolbar-buttons"
             >
               <v-btn
-                @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
+                @click="editor.chain().focus().toggleHeading({ level: 1 }).run(); editorState++"
                 :class="{ 'v-btn--active': editor.isActive('heading', { level: 1 }) }"
                 icon
                 size="small"
@@ -104,7 +104,7 @@
                 <v-icon>mdi-format-header-1</v-icon>
               </v-btn>
               <v-btn
-                @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
+                @click="editor.chain().focus().toggleHeading({ level: 2 }).run(); editorState++"
                 :class="{ 'v-btn--active': editor.isActive('heading', { level: 2 }) }"
                 icon
                 size="small"
@@ -112,7 +112,7 @@
                 <v-icon>mdi-format-header-2</v-icon>
               </v-btn>
               <v-btn
-                @click="editor.chain().focus().toggleHeading({ level: 3 }).run()"
+                @click="editor.chain().focus().toggleHeading({ level: 3 }).run(); editorState++"
                 :class="{ 'v-btn--active': editor.isActive('heading', { level: 3 }) }"
                 icon
                 size="small"
@@ -134,7 +134,7 @@
               class="toolbar-buttons"
             >
               <v-btn
-                @click="editor.chain().focus().toggleBulletList().run()"
+                @click="editor.chain().focus().toggleBulletList().run(); editorState++"
                 :class="{ 'v-btn--active': editor.isActive('bulletList') }"
                 icon
                 size="small"
@@ -142,7 +142,7 @@
                 <v-icon>mdi-format-list-bulleted</v-icon>
               </v-btn>
               <v-btn
-                @click="editor.chain().focus().toggleOrderedList().run()"
+                @click="editor.chain().focus().toggleOrderedList().run(); editorState++"
                 :class="{ 'v-btn--active': editor.isActive('orderedList') }"
                 icon
                 size="small"
@@ -165,7 +165,7 @@
             >
               <v-btn
                 @click="setLink"
-                :class="{ 'v-btn--active': editor.isActive('link') }"
+                :class="{ 'v-btn--active': isLinkActive }"
                 icon
                 size="small"
               >
@@ -194,7 +194,7 @@
             >
               <v-btn
                 @click="openTableDialog"
-                :class="{ 'v-btn--active': editor.isActive('table') }"
+                :class="{ 'v-btn--active': isTableActiveComputed }"
                 icon
                 size="small"
               >
@@ -388,29 +388,24 @@ import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { Mark } from '@tiptap/core'
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { ref, watch, onBeforeUnmount, computed } from 'vue'
 
-// Corrected FontSize Mark Extension
-const FontSize = Mark.create({
-  name: 'fontSize',
-  addOptions() {
-    return {
-      types: ['textStyle'],
-    }
-  },
+// FontSize Extension - extends TextStyle with fontSize support
+// Based on Tiptap's recommended pattern for custom text style attributes
+const FontSize = TextStyle.extend({
   addAttributes() {
     return {
+      ...this.parent?.(),
       fontSize: {
         default: null,
         parseHTML: element => {
           const fontSize = element.style.fontSize
-          if (!fontSize) {
-            return null
-          }
-          const value = fontSize.replace(/['"]+/g, '')
-          return value || null
+          if (!fontSize) return null
+          // Ensure we return a string value
+          return String(fontSize)
         },
         renderHTML: attributes => {
+          // Only return style if fontSize exists
           if (!attributes.fontSize) {
             return {}
           }
@@ -421,32 +416,37 @@ const FontSize = Mark.create({
       },
     }
   },
-  parseHTML() {
-    return [
-      {
-        tag: 'span[style*="font-size"]',
-      },
-    ]
-  },
-  renderHTML({ HTMLAttributes }) {
-    // The HTMLAttributes object is automatically created by the
-    // `addAttributes().renderHTML` function above.
-    // We just need to apply it to a span tag.
-    return ['span', HTMLAttributes, 0]
-  },
+  
   addCommands() {
     return {
-      setFontSize: (fontSize) => ({ commands }) => {
-        if (!fontSize) {
+      ...this.parent?.(),
+      setFontSize: (fontSize) => ({ commands, tr, state, dispatch }) => {
+        if (!fontSize && fontSize !== 0) {
           return commands.unsetMark(this.name)
         }
-        return commands.setMark(this.name, { fontSize })
+        
+        // Normalize fontSize value
+        let fontSizeValue
+        if (typeof fontSize === 'number') {
+          fontSizeValue = `${fontSize}px`
+        } else if (typeof fontSize === 'string') {
+          fontSizeValue = fontSize.includes('px') ? fontSize : `${fontSize}px`
+        } else {
+          return false
+        }
+        
+        // Ensure fontSizeValue is valid
+        if (!fontSizeValue || fontSizeValue === 'px') {
+          return false
+        }
+        
+        return commands.setMark(this.name, { fontSize: fontSizeValue })
       },
       unsetFontSize: () => ({ commands }) => {
         return commands.unsetMark(this.name)
-      }
+      },
     }
-  }
+  },
 })
 
 export default {
@@ -475,6 +475,7 @@ export default {
     const fontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72]
     const customFontSize = ref(null)
     const currentFontSize = ref(null)
+    const editorState = ref(0) // Force reactivity for editor state
 
     const editor = useEditor({
       content: props.modelValue,
@@ -483,10 +484,11 @@ export default {
           heading: {
             levels: [1, 2, 3]
           },
-          // Disable the default textStyle if you add it manually
+          // Disable the default textStyle since FontSize extends it
           textStyle: false,
+          // Disable Link since we add it manually with custom config
+          link: false,
         }),
-        TextStyle,
         FontSize,
         Image.configure({
           inline: true,
@@ -514,15 +516,19 @@ export default {
         }
       },
       onUpdate: ({ editor }) => {
-        emit('update:modelValue', editor.getHTML())
+        const html = editor.getHTML()
+        emit('update:modelValue', html)
       },
       onSelectionUpdate: ({ editor }) => {
         isTableActive.value = editor.isActive('table')
         updateCurrentFontSize(editor)
+        // Force reactivity update
+        editorState.value++
       },
       onFocus: ({ editor }) => {
         isTableActive.value = editor.isActive('table')
         updateCurrentFontSize(editor)
+        editorState.value++
       },
       onBlur: () => {
         // Keep menu visible even on blur if still in table
@@ -530,8 +536,16 @@ export default {
           if (editor.value) {
             isTableActive.value = editor.value.isActive('table')
             updateCurrentFontSize(editor.value)
+            editorState.value++
           }
         }, 100)
+      },
+      onTransaction: ({ editor, transaction }) => {
+        // Update toolbar state on any transaction
+        if (transaction.docChanged || transaction.selectionSet) {
+          updateCurrentFontSize(editor)
+          editorState.value++
+        }
       }
     })
 
@@ -546,6 +560,7 @@ export default {
     const setLink = () => {
       if (editor.value.isActive('link')) {
         editor.value.chain().focus().unsetLink().run()
+        editorState.value++
       } else {
         showLinkDialog.value = true
       }
@@ -554,6 +569,7 @@ export default {
     const insertLink = () => {
       if (linkUrl.value) {
         editor.value.chain().focus().setLink({ href: linkUrl.value }).run()
+        editorState.value++
       }
       showLinkDialog.value = false
       linkUrl.value = ''
@@ -624,7 +640,7 @@ export default {
     }
 
     const updateCurrentFontSize = (editorInstance) => {
-      const attrs = editorInstance.getAttributes('fontSize')
+      const attrs = editorInstance.getAttributes('textStyle')
       if (attrs && attrs.fontSize) {
         // Extract numeric value from "16px" format for display
         const numericValue = attrs.fontSize.toString().replace('px', '')
@@ -635,19 +651,38 @@ export default {
     }
 
     const setFontSize = (size) => {
-      if (editor.value && size) {
-        try {
-          // The command now expects an object for the attributes
-          editor.value.chain().focus().setFontSize({ fontSize: `${size}px` }).run()
+      if (!editor.value) return
+      
+      // Validate size input
+      if (size === null || size === undefined || size === '') {
+        return
+      }
+      
+      // Convert to number if it's a string number
+      const numSize = typeof size === 'string' ? parseFloat(size) : size
+      
+      // Validate numeric range
+      if (isNaN(numSize) || numSize < 1 || numSize > 200) {
+        console.warn('Invalid font size:', size)
+        return
+      }
+      
+      try {
+        // The setFontSize command handles the conversion internally
+        const result = editor.value.chain().focus().setFontSize(numSize).run()
+        
+        if (result) {
+          editorState.value++
           // Update the current font size display
           setTimeout(() => {
             if (editor.value) {
               updateCurrentFontSize(editor.value)
+              editorState.value++
             }
-          }, 100)
-        } catch (error) {
-          console.error('Error setting font size:', error)
+          }, 50)
         }
+      } catch (error) {
+        console.error('Error setting font size:', error, { size, numSize })
       }
     }
 
@@ -658,8 +693,31 @@ export default {
       }
     }
 
+    // Computed properties for reactive editor state
+    const isBoldActive = computed(() => {
+      editorState.value // Depend on editorState for reactivity
+      return editor.value?.isActive('bold') ?? false
+    })
+
+    const isItalicActive = computed(() => {
+      editorState.value // Depend on editorState for reactivity
+      return editor.value?.isActive('italic') ?? false
+    })
+
+    const isLinkActive = computed(() => {
+      editorState.value // Depend on editorState for reactivity
+      return editor.value?.isActive('link') ?? false
+    })
+
+    const isTableActiveComputed = computed(() => {
+      editorState.value // Depend on editorState for reactivity
+      return editor.value?.isActive('table') ?? false
+    })
+
     onBeforeUnmount(() => {
-      editor.value.destroy()
+      if (editor.value) {
+        editor.value.destroy()
+      }
     })
 
     // Initialize states
@@ -672,7 +730,12 @@ export default {
 
     return {
       editor,
+      editorState,
       isTableActive,
+      isTableActiveComputed,
+      isBoldActive,
+      isItalicActive,
+      isLinkActive,
       showLinkDialog,
       showImageDialog,
       showTableDialog,

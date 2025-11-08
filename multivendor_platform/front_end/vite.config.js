@@ -16,23 +16,26 @@ export default defineConfig(({ mode }) => ({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-  server: {
-    host: '0.0.0.0',
-    port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/media': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
-      },
-      '/admin': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
+  // Only configure dev server in development mode
+  ...(mode !== 'production' && {
+    server: {
+      host: '0.0.0.0',
+      port: 5173,
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: true,
+          secure: false,
+        },
+        '/media': {
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: true,
+        },
+        '/admin': {
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: true,
+        }
       }
     }
-  },
+  }),
 }))
