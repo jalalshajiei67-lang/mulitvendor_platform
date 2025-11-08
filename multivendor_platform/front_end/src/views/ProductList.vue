@@ -297,7 +297,7 @@
 <script>
 import { useProductStore } from '@/stores/products'
 import { useAuthStore } from '@/stores/auth'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 
@@ -311,7 +311,7 @@ export default {
     const display = useDisplay()
 
     const selectedCategory = ref('')
-    const searchQuery = ref('')
+    const searchQuery = ref(route.query.search || '')
     const sortBy = ref('-created_at')
     const currentPage = ref(1)
 
@@ -409,6 +409,15 @@ export default {
     const goToProductDetail = (productId) => {
       router.push(`/products/${productId}`)
     }
+
+    // Watch for route query changes to update search
+    watch(() => route.query.search, (newSearch) => {
+      if (newSearch !== undefined) {
+        searchQuery.value = newSearch || ''
+        currentPage.value = 1
+        filterProducts()
+      }
+    })
 
     onMounted(() => {
       console.log('ProductList mounted, fetching data...')

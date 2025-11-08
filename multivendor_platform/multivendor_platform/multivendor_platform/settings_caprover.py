@@ -1,5 +1,6 @@
 # CapRover Production Settings
 import os
+import logging
 from pathlib import Path
 from django.templatetags.static import static
 
@@ -415,6 +416,24 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Logging configuration
+# Try to use file logging if logs directory is writable, otherwise use console only
+_logs_dir = '/app/logs'
+_logs_file = os.path.join(_logs_dir, 'django.log')
+
+# Check if logs directory exists and is writable
+_use_file_logging = False
+try:
+    os.makedirs(_logs_dir, exist_ok=True)
+    # Test write access
+    test_file = os.path.join(_logs_dir, '.test_write')
+    with open(test_file, 'w') as f:
+        f.write('test')
+    os.remove(test_file)
+    _use_file_logging = True
+except (OSError, PermissionError):
+    # If we can't write to logs directory, use console only
+    _use_file_logging = False
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -425,12 +444,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': '/app/logs/django.log',
-            'formatter': 'verbose',
-        },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
@@ -438,14 +451,25 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': ['console'],
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
     },
 }
+
+# Add file handler only if directory is writable
+if _use_file_logging:
+    LOGGING['handlers']['file'] = {
+        'level': 'INFO',
+        'class': 'logging.FileHandler',
+        'filename': _logs_file,
+        'formatter': 'verbose',
+    }
+    LOGGING['root']['handlers'].append('file')
+    LOGGING['loggers']['django']['handlers'].append('file')

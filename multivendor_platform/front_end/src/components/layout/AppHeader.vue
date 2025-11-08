@@ -109,25 +109,6 @@
           </v-list>
         </v-menu>
       </template>
-      <template v-else>
-        <v-btn 
-          color="white" 
-          variant="text" 
-          @click="navigateTo('/login')" 
-          class="mx-1" 
-          size="small"
-        >
-          ورود
-        </v-btn>
-        <v-btn 
-          color="white" 
-          variant="outlined" 
-          @click="navigateTo('/register')" 
-          size="small"
-        >
-          ثبت‌نام
-        </v-btn>
-      </template>
 
       <v-spacer v-if="!isHomePage" class="d-none d-xl-flex"></v-spacer>
 
@@ -220,6 +201,27 @@
       </div>
 
       <v-spacer></v-spacer>
+
+      <!-- Login/Register Buttons (right side of logo in RTL) -->
+      <template v-if="!authStore.isAuthenticated">
+        <v-btn 
+          color="white" 
+          variant="text" 
+          @click="navigateTo('/login')" 
+          class="mx-1" 
+          size="small"
+        >
+          ورود
+        </v-btn>
+        <v-btn 
+          color="white" 
+          variant="outlined" 
+          @click="navigateTo('/register')" 
+          size="small"
+        >
+          ثبت‌نام
+        </v-btn>
+      </template>
 
       <!-- Logo on Left End (last in DOM = left side in RTL) -->
       <router-link to="/" class="logo-link d-flex align-center">

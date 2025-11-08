@@ -9,12 +9,13 @@
         @keydown.escape="closeResults"
         @keydown.down.prevent="navigateResults('down')"
         @keydown.up.prevent="navigateResults('up')"
-        @keydown.enter.prevent="selectResult"
+        @keydown.enter.prevent="handleEnterKey"
         placeholder="جستجو در محصولات و وبلاگ..."
         class="search-input"
       />
       <svg 
         class="search-icon" 
+        @click="performFullSearch"
         xmlns="http://www.w3.org/2000/svg" 
         fill="none" 
         viewBox="0 0 24 24" 
@@ -224,6 +225,28 @@ export default {
       closeResults()
     }
 
+    // Perform full search and navigate to products page
+    const performFullSearch = () => {
+      if (!searchQuery.value || !searchQuery.value.trim()) {
+        return
+      }
+
+      closeResults()
+      router.push({
+        path: '/products',
+        query: { search: searchQuery.value.trim() }
+      })
+    }
+
+    // Handle Enter key - if a result is highlighted, select it; otherwise perform full search
+    const handleEnterKey = () => {
+      if (highlightedIndex.value >= 0) {
+        selectResult()
+      } else {
+        performFullSearch()
+      }
+    }
+
     const clearSearch = () => {
       searchQuery.value = ''
       results.value = { products: [], blogs: [], total: 0 }
@@ -273,6 +296,8 @@ export default {
       getBlogIndex,
       navigateResults,
       selectResult,
+      performFullSearch,
+      handleEnterKey,
       clearSearch,
       closeResults,
       formatPrice,
@@ -341,7 +366,20 @@ export default {
   width: 20px;
   height: 20px;
   color: #999;
-  pointer-events: none;
+  cursor: pointer;
+  transition: color 0.2s;
+  z-index: 1;
+  padding: 4px;
+  margin: -4px;
+  box-sizing: content-box;
+}
+
+.search-icon:hover {
+  color: #2c3e50;
+}
+
+.search-icon:active {
+  color: #1565C0;
 }
 
 .clear-button {

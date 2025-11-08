@@ -1,0 +1,66 @@
+# Docker Compose for Local Development - No Docker Hub Required
+# Uses SQLite instead of PostgreSQL and alternative image sources
+# Usage: docker-compose -f docker-compose.local-nohub.yml up --build
+
+services:
+  # Django Backend (uses SQLite)
+  backend:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.local
+    container_name: multivendor_backend_local
+    restart: unless-stopped
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=local-dev-secret-key-change-in-production-12345678910
+      - DB_ENGINE=django.db.backends.sqlite3
+      - ALLOWED_HOSTS=*,localhost,127.0.0.1,backend
+      - CORS_ALLOW_ALL_ORIGINS=True
+    volumes:
+      - ./multivendor_platform/multivendor_platform:/app
+      - backend_static:/app/staticfiles
+      - backend_media:/app/media
+    ports:
+      - "8000:8000"
+    networks:
+      - multivendor_network_local
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Vue.js Frontend
+  frontend:
+    build:
+      context: ./multivendor_platform/front_end
+      dockerfile: Dockerfile.local
+      args:
+        VITE_API_BASE_URL: ""
+    container_name: multivendor_frontend_local
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - multivendor_network_local
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  backend_static:
+    driver: local
+  backend_media:
+    driver: local
+
+networks:
+  multivendor_network_local:
+    driver: bridge
+
