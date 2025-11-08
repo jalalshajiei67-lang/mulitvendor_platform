@@ -1,14 +1,15 @@
 <!-- src/views/ProductForm.vue - Vuetify Material Design 3 -->
 <template>
-  <v-container fluid class="product-form-container">
+  <v-container fluid class="product-form-container" dir="rtl">
     <!-- Breadcrumbs -->
     <v-breadcrumbs
       :items="breadcrumbItems"
       class="px-2 px-sm-4 py-1 py-sm-2"
       divider="/"
+      dir="rtl"
     >
       <template v-slot:prepend>
-        <v-icon size="small">mdi-home</v-icon>
+        <v-icon size="small" class="mr-2">mdi-home</v-icon>
       </template>
     </v-breadcrumbs>
 
@@ -52,7 +53,7 @@
           <!-- Basic Information Card -->
           <v-card elevation="4" rounded="lg" class="mb-4 mb-sm-6">
             <v-card-title class="text-h6 text-sm-h5 font-weight-bold bg-primary pa-4 pa-sm-5">
-              <v-icon class="ml-2" :size="display.xs.value ? 'default' : 'large'">mdi-information</v-icon>
+              <v-icon class="mr-2" :size="display.xs.value ? 'default' : 'large'">mdi-information</v-icon>
               اطلاعات پایه
             </v-card-title>
 
@@ -69,28 +70,31 @@
               ></v-text-field>
 
               <!-- Description -->
-              <v-textarea
-                v-model="product.description"
-                :label="t('description')"
-                prepend-inner-icon="mdi-text"
-                variant="outlined"
-                rounded="lg"
-                rows="5"
-                :rules="[v => !!v || 'توضیحات الزامی است']"
-                required
-              ></v-textarea>
+              <div class="description-editor-wrapper">
+                <label class="text-body-2 mb-2 d-block">
+                  <v-icon size="small" class="mr-1">mdi-text</v-icon>
+                  {{ t('description') }} <span class="text-error">*</span>
+                </label>
+                <TiptapEditor 
+                  v-model="product.description" 
+                  class="description-editor"
+                />
+                <div v-if="!descriptionValid && descriptionTouched" class="text-error text-caption mt-1">
+                  توضیحات الزامی است
+                </div>
+              </div>
 
               <!-- Price and Stock Row -->
               <v-row>
                 <v-col cols="12" sm="6">
                   <v-text-field
                     v-model.number="product.price"
-                    :label="t('price') + ' ($)'"
+                    :label="t('price') + ' (تومان)'"
                     prepend-inner-icon="mdi-currency-usd"
                     variant="outlined"
                     rounded="lg"
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     :rules="[v => v >= 0 || 'قیمت باید مثبت باشد']"
                     required
@@ -116,7 +120,7 @@
           <!-- Category Selection Card -->
           <v-card elevation="4" rounded="lg" class="mb-4 mb-sm-6">
             <v-card-title class="text-h6 text-sm-h5 font-weight-bold bg-secondary pa-4 pa-sm-5">
-              <v-icon class="ml-2" :size="display.xs.value ? 'default' : 'large'">mdi-shape</v-icon>
+              <v-icon class="mr-2" :size="display.xs.value ? 'default' : 'large'">mdi-shape</v-icon>
               دسته‌بندی محصول
             </v-card-title>
 
@@ -197,7 +201,7 @@
                 variant="tonal"
                 class="mt-4"
               >
-                <v-icon class="ml-2">mdi-route</v-icon>
+                <v-icon class="mr-2">mdi-route</v-icon>
                 <strong>مسیر انتخاب شده:</strong>
                 <div class="mt-2 font-weight-bold">
                   {{ getSelectedFullPath() }}
@@ -209,7 +213,7 @@
           <!-- Product Images Card -->
           <v-card elevation="4" rounded="lg" class="mb-4 mb-sm-6">
             <v-card-title class="text-h6 text-sm-h5 font-weight-bold bg-accent pa-4 pa-sm-5">
-              <v-icon class="ml-2" :size="display.xs.value ? 'default' : 'large'">mdi-image-multiple</v-icon>
+              <v-icon class="mr-2" :size="display.xs.value ? 'default' : 'large'">mdi-image-multiple</v-icon>
               {{ t('productImages') }} (حداکثر 20 تصویر)
             </v-card-title>
 
@@ -336,7 +340,7 @@
           <!-- Status Card -->
           <v-card elevation="4" rounded="lg" class="mb-4 mb-sm-6 sticky-card">
             <v-card-title class="text-subtitle-1 text-sm-h6 font-weight-bold pa-4 pa-sm-5">
-              <v-icon class="ml-2" :size="display.xs.value ? 'default' : 'large'">mdi-cog</v-icon>
+              <v-icon class="mr-2" :size="display.xs.value ? 'default' : 'large'">mdi-cog</v-icon>
               تنظیمات
             </v-card-title>
 
@@ -387,7 +391,7 @@
           <v-card elevation="2" rounded="lg" color="info" variant="tonal">
             <v-card-text class="pa-3 pa-sm-4">
               <div class="d-flex align-start">
-                <v-icon class="ml-2" :size="display.xs.value ? 'small' : 'default'">mdi-information</v-icon>
+                <v-icon class="mr-2" :size="display.xs.value ? 'small' : 'default'">mdi-information</v-icon>
                 <div>
                   <strong class="text-body-2 text-sm-body-1">راهنما:</strong>
                   <ul class="text-caption text-sm-body-2 mt-2">
@@ -407,12 +411,16 @@
 
 <script>
 import { useProductStore } from '@/stores/products';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import TiptapEditor from '@/components/TiptapEditor.vue';
 
 export default {
   name: 'ProductForm',
+  components: {
+    TiptapEditor
+  },
   setup() {
     const productStore = useProductStore();
     const route = useRoute();
@@ -428,6 +436,7 @@ export default {
     const isDragOver = ref(false);
     const imageError = ref('');
     const fileInput = ref(null);
+    const descriptionTouched = ref(false);
 
     // Cascading selector state
     const departments = ref([]);
@@ -450,6 +459,39 @@ export default {
 
     const loading = computed(() => productStore.loading);
     const error = computed(() => productStore.error);
+
+    // Description validation
+    const descriptionValid = computed(() => {
+      if (!product.value.description) return false;
+      
+      // Handle both string and empty cases
+      const description = product.value.description.trim();
+      if (!description || description === '<p></p>' || description === '<p><br></p>') {
+        return false;
+      }
+      
+      // Strip HTML tags and check if there's actual text content
+      try {
+        if (typeof document !== 'undefined') {
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = description;
+          const textContent = tempDiv.textContent || tempDiv.innerText || '';
+          return textContent.trim().length > 0;
+        }
+        // Fallback for SSR: check if description has meaningful content
+        // Remove HTML tags using regex (basic approach)
+        const textOnly = description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+        return textOnly.length > 0;
+      } catch (e) {
+        // Fallback: just check if it's not empty
+        return description.length > 0;
+      }
+    });
+
+    // Watch description changes to mark as touched
+    watch(() => product.value.description, () => {
+      descriptionTouched.value = true;
+    });
 
     // Get selected subcategory object
     const selectedSubcategoryObject = computed(() => {
@@ -611,8 +653,17 @@ export default {
     };
 
     const saveProduct = async () => {
+      // Mark description as touched
+      descriptionTouched.value = true;
+      
+      // Validate form fields
       const { valid } = await formRef.value.validate();
       if (!valid) return;
+
+      // Validate description
+      if (!descriptionValid.value) {
+        return;
+      }
 
       submitting.value = true;
 
@@ -702,6 +753,8 @@ export default {
       formRef,
       breadcrumbItems,
       display,
+      descriptionTouched,
+      descriptionValid,
       triggerFileInput,
       handleFileSelect,
       handleDrop,
@@ -780,7 +833,7 @@ export default {
 .primary-badge {
   position: absolute;
   top: 8px;
-  right: 8px;
+  left: 8px;
 }
 
 /* Add More Card */
@@ -831,6 +884,81 @@ export default {
   max-width: 100%;
   padding-left: 16px;
   padding-right: 16px;
+  direction: rtl;
+  text-align: right;
+}
+
+.product-form-container :deep(.v-card-title) {
+  text-align: right;
+  justify-content: flex-start;
+}
+
+.product-form-container :deep(.v-text-field),
+.product-form-container :deep(.v-textarea),
+.product-form-container :deep(.v-select) {
+  text-align: right;
+}
+
+.product-form-container :deep(.v-text-field input),
+.product-form-container :deep(.v-textarea textarea) {
+  text-align: right;
+  direction: rtl;
+}
+
+.product-form-container :deep(.v-list-item-title),
+.product-form-container :deep(.v-list-item-subtitle) {
+  text-align: right;
+}
+
+.product-form-container h1 {
+  text-align: right;
+  direction: rtl;
+}
+
+.product-form-container :deep(.v-switch .v-label) {
+  text-align: right;
+  margin-right: 8px;
+  margin-left: 0;
+}
+
+.product-form-container :deep(.v-breadcrumbs) {
+  direction: rtl;
+  text-align: right;
+}
+
+.product-form-container :deep(.v-alert) {
+  text-align: right;
+  direction: rtl;
+}
+
+.product-form-container ul {
+  text-align: right;
+  direction: rtl;
+  padding-right: 20px;
+  padding-left: 0;
+}
+
+.product-form-container ul li {
+  text-align: right;
+  direction: rtl;
+}
+
+.description-editor-wrapper {
+  margin-bottom: 16px;
+}
+
+.description-editor-wrapper label {
+  font-weight: 500;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.description-editor {
+  margin-top: 8px;
+}
+
+.description-editor :deep(.tiptap-editor) {
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 @media (min-width: 960px) {

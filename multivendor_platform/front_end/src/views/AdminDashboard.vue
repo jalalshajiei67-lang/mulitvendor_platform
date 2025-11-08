@@ -6,6 +6,7 @@
       :permanent="!isMobile"
       :temporary="isMobile"
       :rail="rail && !isMobile"
+      :width="271"
       location="right"
       class="admin-sidebar"
       fixed
@@ -264,7 +265,7 @@
     <div 
       class="admin-main"
       :style="{
-        paddingLeft: !isMobile && drawer ? (rail ? '64px' : '256px') : '0'
+        paddingLeft: !isMobile && drawer ? (rail ? '64px' : '271px') : '0'
       }"
     >
       <!-- Nested Routes (Product/Blog Forms) -->
@@ -2494,6 +2495,7 @@ export default {
 
 .sidebar-menu-list {
   margin-top: 10px;
+  width: 100%;
 }
 
 .admin-header {

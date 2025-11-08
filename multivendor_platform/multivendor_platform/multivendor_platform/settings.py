@@ -179,6 +179,19 @@ CORS_ALLOW_METHODS = [
     'PUT',
 ]
 
+# CSRF Trusted Origins - Required for admin login and API requests from frontend
+csrf_trusted_origins_str = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+if csrf_trusted_origins_str:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_trusted_origins_str.split(',') if origin.strip()]
+else:
+    # Default for local development
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+    ]
+
 # Security settings for production behind reverse proxy (nginx/CapRover)
 # This ensures Django correctly builds HTTPS URLs when behind a proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

@@ -14,11 +14,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 # ALLOWED_HOSTS for CapRover production
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'multivendor-backend.indexo.ir,indexo.ir,www.indexo.ir').split(',')
+allowed_hosts_str = os.environ.get('ALLOWED_HOSTS', 'multivendor-backend.indexo.ir,indexo.ir,www.indexo.ir')
+ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',') if host.strip()]
 
 # CSRF Trusted Origins - Required for production HTTPS
-CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 
-    'https://multivendor-backend.indexo.ir,https://indexo.ir,https://www.indexo.ir').split(',')
+csrf_trusted_origins_str = os.environ.get('CSRF_TRUSTED_ORIGINS', 
+    'https://multivendor-backend.indexo.ir,https://indexo.ir,https://www.indexo.ir')
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_trusted_origins_str.split(',') if origin.strip()]
 
 # Application definition
 INSTALLED_APPS = [
