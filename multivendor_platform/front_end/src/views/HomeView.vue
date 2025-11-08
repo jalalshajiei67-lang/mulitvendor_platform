@@ -64,7 +64,7 @@
                       محصولات
                     </div>
                     <router-link
-                      v-for="(product, index) in searchResults.products"
+                      v-for="product in searchResults.products"
                       :key="'product-' + product.id"
                       :to="`/products/${product.id}`"
                       @click="closeAutocomplete"
@@ -96,7 +96,7 @@
                       وبلاگ
                     </div>
                     <router-link
-                      v-for="(blog, index) in searchResults.blogs"
+                      v-for="blog in searchResults.blogs"
                       :key="'blog-' + blog.id"
                       :to="`/blog/${blog.slug}`"
                       @click="closeAutocomplete"
@@ -549,7 +549,8 @@ const handleSellerCTA = () => {
   font-size: 32px !important;
   width: 32px !important;
   height: 32px !important;
-  margin-right: 10px !important;
+  margin-right: 5 px !important;
+  margin-left: 10 px !important;
 }
 
 @media (min-width: 960px) {
