@@ -1,242 +1,335 @@
 <template>
   <div class="blog-detail" dir="rtl">
     <!-- Loading State -->
-    <div v-if="loading" class="loading-container">
-      <div class="spinner"></div>
-      <p>{{ t('loadingPost') }}</p>
-    </div>
+    <v-container v-if="loading" class="py-12">
+      <div class="text-center">
+        <v-progress-circular
+          indeterminate
+          color="primary"
+          size="64"
+          class="mb-4"
+        ></v-progress-circular>
+        <p class="text-body-1 text-medium-emphasis">{{ t('loadingPost') }}</p>
+      </div>
+    </v-container>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-container">
-      <i class="fas fa-exclamation-triangle"></i>
-      <h2>{{ t('postNotFound') }}</h2>
-      <p>{{ error }}</p>
-      <button @click="$router.push('/blog')" class="back-btn">
-        <i class="fas fa-arrow-right"></i>
-        {{ t('backToBlog') }}
-      </button>
-    </div>
+    <v-container v-else-if="error" class="py-12">
+      <v-card elevation="2" rounded="lg" class="pa-8 text-center">
+        <v-icon size="64" color="error" class="mb-4">mdi-alert-circle</v-icon>
+        <h2 class="text-h5 mb-2">{{ t('postNotFound') }}</h2>
+        <p class="text-body-1 text-medium-emphasis mb-4">{{ error }}</p>
+        <v-btn @click="$router.push('/blog')" color="primary" prepend-icon="mdi-arrow-right">
+          {{ t('backToBlog') }}
+        </v-btn>
+      </v-card>
+    </v-container>
 
     <!-- Post Content -->
-    <article v-else-if="post" class="post-article">
+    <article v-else-if="post">
       <!-- Post Header -->
       <header class="post-header">
-        <div class="container">
+        <v-container>
           <!-- Breadcrumb -->
-          <nav class="breadcrumb">
-            <router-link to="/blog" class="breadcrumb-link">{{ t('blog') }}</router-link>
-            <span class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-current">{{ post.category_name }}</span>
-          </nav>
+          <v-breadcrumbs
+            :items="[
+              { title: t('blog'), to: '/blog', disabled: false },
+              { title: post.category_name, disabled: true }
+            ]"
+            class="pa-0 mb-4"
+            divider="/"
+          >
+          </v-breadcrumbs>
 
           <!-- Post Meta -->
-          <div class="post-meta">
-            <div class="category-badge" :style="{ backgroundColor: post.category_color }">
+          <div class="d-flex justify-space-between align-center flex-wrap ga-4 mb-6">
+            <v-chip
+              v-if="post.category_color"
+              :style="{ backgroundColor: post.category_color, color: 'white' }"
+              size="large"
+              class="font-weight-bold"
+            >
               {{ post.category_name }}
-            </div>
-            <div class="post-stats">
-              <span class="views">
-                <i class="fas fa-eye"></i>
+            </v-chip>
+            <div class="d-flex align-center flex-wrap ga-4 text-body-2 text-medium-emphasis">
+              <span class="d-flex align-center">
+                <v-icon size="small" class="ml-1">mdi-eye</v-icon>
                 {{ post.view_count }} {{ t('views') }}
               </span>
-              <span class="comments">
-                <i class="fas fa-comment"></i>
+              <span class="d-flex align-center">
+                <v-icon size="small" class="ml-1">mdi-comment</v-icon>
                 {{ post.comment_count }} {{ t('comments') }}
               </span>
-              <span class="reading-time">
-                <i class="fas fa-clock"></i>
+              <span class="d-flex align-center">
+                <v-icon size="small" class="ml-1">mdi-clock-outline</v-icon>
                 {{ post.reading_time }} {{ t('minRead') }}
               </span>
             </div>
           </div>
 
           <!-- Post Title -->
-          <h1 class="post-title">{{ post.title }}</h1>
+          <h1 class="text-h4 text-md-h3 text-lg-h2 font-weight-bold mb-4">{{ post.title }}</h1>
 
           <!-- Post Excerpt -->
-          <p v-if="post.excerpt" class="post-excerpt">{{ post.excerpt }}</p>
+          <p v-if="post.excerpt" class="text-h6 text-md-h5 text-medium-emphasis mb-6">
+            {{ post.excerpt }}
+          </p>
 
           <!-- Author Info -->
-          <div class="author-info">
-            <div class="author-avatar">
-              <i class="fas fa-user"></i>
+          <div class="d-flex justify-space-between align-center flex-wrap ga-4 mb-4">
+            <div class="d-flex align-center ga-3">
+              <v-avatar color="primary" size="50">
+                <v-icon color="white">mdi-account</v-icon>
+              </v-avatar>
+              <div>
+                <div class="text-subtitle-1 font-weight-bold">{{ post.author_name }}</div>
+                <div class="text-caption text-medium-emphasis">
+                  {{ formatDate(post.published_at || post.created_at) }}
+                </div>
+              </div>
             </div>
-            <div class="author-details">
-              <span class="author-name">{{ post.author_name }}</span>
-              <span class="post-date">{{ formatDate(post.published_at || post.created_at) }}</span>
-            </div>
-            <div class="post-actions">
-              <button class="action-btn" @click="sharePost">
-                <i class="fas fa-share"></i>
+            <div class="d-flex ga-2">
+              <v-btn
+                @click="sharePost"
+                color="primary"
+                variant="outlined"
+                prepend-icon="mdi-share-variant"
+              >
                 {{ t('share') }}
-              </button>
-              <button v-if="isAuthor" class="action-btn edit-btn" @click="editPost">
-                <i class="fas fa-edit"></i>
+              </v-btn>
+              <v-btn
+                v-if="isAuthor"
+                @click="editPost"
+                color="success"
+                variant="outlined"
+                prepend-icon="mdi-pencil"
+              >
                 {{ t('edit') }}
-              </button>
+              </v-btn>
             </div>
           </div>
-        </div>
+        </v-container>
       </header>
 
       <!-- Featured Image -->
-      <div v-if="post.featured_image" class="featured-image">
-        <img :src="post.featured_image" :alt="post.title" />
+      <div v-if="post.featured_image" class="featured-image-wrapper">
+        <v-img
+          :src="post.featured_image"
+          :alt="post.title"
+          height="400"
+          cover
+          class="featured-image"
+        ></v-img>
       </div>
 
       <!-- Post Content -->
-      <div class="post-content">
-        <div class="container">
-          <div class="content-wrapper">
-            <div class="main-content">
+      <v-container class="py-8 py-md-12">
+        <v-row>
+          <!-- Main Content -->
+          <v-col cols="12" lg="8">
+            <v-card elevation="2" rounded="xl" class="pa-6 pa-md-8 mb-6">
               <div class="content-body" v-html="formatContent(post.content)"></div>
               
-              <!-- Post Tags (if any) -->
-              <div v-if="post.tags && post.tags.length > 0" class="post-tags">
-                <h4>{{ t('tags') }}:</h4>
-                <div class="tags">
-                  <span v-for="tag in post.tags" :key="tag" class="tag">{{ tag }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Sidebar -->
-            <aside class="sidebar">
-              <!-- Related Posts -->
-              <div v-if="relatedPosts.length > 0" class="sidebar-section">
-                <h3>{{ t('relatedPosts') }}</h3>
-                <div class="related-posts">
-                  <div 
-                    v-for="relatedPost in relatedPosts" 
-                    :key="relatedPost.id"
-                    class="related-post"
-                    @click="goToPost(relatedPost.slug)"
+              <!-- Post Tags -->
+              <div v-if="post.tags && post.tags.length > 0" class="mt-8 pt-6 border-t">
+                <h4 class="text-h6 font-weight-bold mb-4">{{ t('tags') }}:</h4>
+                <div class="d-flex flex-wrap ga-2">
+                  <v-chip
+                    v-for="tag in post.tags"
+                    :key="tag"
+                    color="primary"
+                    variant="tonal"
+                    size="small"
                   >
-                    <div class="related-image">
-                      <img 
-                        v-if="relatedPost.featured_image" 
-                        :src="relatedPost.featured_image" 
-                        :alt="relatedPost.title"
-                      />
-                      <div v-else class="no-image">
-                        <i class="fas fa-image"></i>
-                      </div>
-                    </div>
-                    <div class="related-content">
-                      <h4 class="related-title">{{ relatedPost.title }}</h4>
-                      <span class="related-date">{{ formatDate(relatedPost.created_at) }}</span>
-                    </div>
-                  </div>
+                    {{ tag }}
+                  </v-chip>
                 </div>
               </div>
+            </v-card>
 
-              <!-- Popular Posts -->
-              <div v-if="popularPosts.length > 0" class="sidebar-section">
-                <h3>{{ t('popularPosts') }}</h3>
-                <div class="popular-posts">
-                  <div 
-                    v-for="popularPost in popularPosts.slice(0, 5)" 
-                    :key="popularPost.id"
-                    class="popular-post"
-                    @click="goToPost(popularPost.slug)"
-                  >
-                    <div class="popular-image">
-                      <img 
-                        v-if="popularPost.featured_image" 
-                        :src="popularPost.featured_image" 
-                        :alt="popularPost.title"
-                      />
-                      <div v-else class="no-image">
-                        <i class="fas fa-image"></i>
-                      </div>
-                    </div>
-                    <div class="popular-content">
-                      <h4 class="popular-title">{{ popularPost.title }}</h4>
-                      <div class="popular-meta">
-                        <span class="popular-views">{{ popularPost.view_count }} {{ t('views') }}</span>
-                        <span class="popular-date">{{ formatDate(popularPost.created_at) }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </aside>
-          </div>
-        </div>
-      </div>
+            <!-- Comments Section -->
+            <v-card elevation="2" rounded="xl" class="pa-6 pa-md-8">
+              <h3 class="text-h5 font-weight-bold mb-6">
+                {{ t('comments') }} ({{ post.comment_count }})
+              </h3>
 
-      <!-- Comments Section -->
-      <section class="comments-section">
-        <div class="container">
-          <div class="comments-wrapper">
-            <h3 class="comments-title">
-              {{ t('comments') }} ({{ post.comment_count }})
-            </h3>
-
-            <!-- Comment Form -->
-            <div v-if="isAuthenticated" class="comment-form">
-              <h4>{{ t('leaveComment') }}</h4>
-              <form @submit.prevent="submitComment">
-                <div class="form-group">
-                  <textarea 
+              <!-- Comment Form -->
+              <v-card
+                v-if="isAuthenticated"
+                variant="tonal"
+                color="primary"
+                class="pa-4 pa-md-6 mb-6"
+              >
+                <h4 class="text-h6 font-weight-bold mb-4">{{ t('leaveComment') }}</h4>
+                <form @submit.prevent="submitComment">
+                  <v-textarea
                     v-model="commentForm.content"
                     :placeholder="t('writeComment')"
                     rows="4"
+                    variant="outlined"
                     required
-                  ></textarea>
-                </div>
-                <button type="submit" class="submit-btn" :disabled="submittingComment">
-                  <i v-if="submittingComment" class="fas fa-spinner fa-spin"></i>
-                  <i v-else class="fas fa-paper-plane"></i>
-                  {{ submittingComment ? t('postingComment') : t('postComment') }}
-                </button>
-              </form>
-            </div>
+                    class="mb-4"
+                  ></v-textarea>
+                  <v-btn
+                    type="submit"
+                    color="primary"
+                    :loading="submittingComment"
+                    :disabled="submittingComment"
+                    prepend-icon="mdi-send"
+                  >
+                    {{ submittingComment ? t('postingComment') : t('postComment') }}
+                  </v-btn>
+                </form>
+              </v-card>
 
-            <!-- Login Prompt -->
-            <div v-else class="login-prompt">
-              <p>{{ t('loginToComment') }}</p>
-            </div>
-
-            <!-- Comments List -->
-            <div v-if="comments.length > 0" class="comments-list">
-              <div 
-                v-for="comment in comments" 
-                :key="comment.id"
-                class="comment"
-                :class="{ 'comment-reply': comment.parent }"
+              <!-- Login Prompt -->
+              <v-alert
+                v-else
+                type="info"
+                variant="tonal"
+                class="mb-6"
               >
-                <div class="comment-avatar">
-                  <i class="fas fa-user"></i>
-                </div>
-                <div class="comment-content">
-                  <div class="comment-header">
-                    <span class="comment-author">{{ comment.author_name }}</span>
-                    <span class="comment-date">{{ formatDate(comment.created_at) }}</span>
-                  </div>
-                  <div class="comment-body">{{ comment.content }}</div>
-                  <div class="comment-actions">
-                    <button 
-                      v-if="isAuthenticated" 
-                      @click="replyToComment(comment)"
-                      class="reply-btn"
-                    >
-                      <i class="fas fa-reply"></i>
-                      {{ t('reply') }}
-                    </button>
+                {{ t('loginToComment') }}
+              </v-alert>
+
+              <!-- Comments List -->
+              <div v-if="comments.length > 0" class="comments-list">
+                <div
+                  v-for="comment in comments"
+                  :key="comment.id"
+                  class="comment mb-6"
+                  :class="{ 'comment-reply': comment.parent }"
+                >
+                  <div class="d-flex ga-4">
+                    <v-avatar color="primary" size="40">
+                      <v-icon color="white" size="small">mdi-account</v-icon>
+                    </v-avatar>
+                    <div class="flex-grow-1">
+                      <div class="d-flex justify-space-between align-center mb-2 flex-wrap ga-2">
+                        <span class="text-subtitle-2 font-weight-bold">{{ comment.author_name }}</span>
+                        <span class="text-caption text-medium-emphasis">
+                          {{ formatDate(comment.created_at) }}
+                        </span>
+                      </div>
+                      <div class="text-body-2 mb-2">{{ comment.content }}</div>
+                      <v-btn
+                        v-if="isAuthenticated"
+                        @click="replyToComment(comment)"
+                        color="primary"
+                        variant="text"
+                        size="small"
+                        prepend-icon="mdi-reply"
+                      >
+                        {{ t('reply') }}
+                      </v-btn>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- No Comments -->
-            <div v-else class="no-comments">
-              <i class="fas fa-comments"></i>
-              <p>{{ t('beFirstToComment') }}</p>
+              <!-- No Comments -->
+              <div v-else class="text-center py-12">
+                <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-comment-outline</v-icon>
+                <p class="text-body-1 text-medium-emphasis">{{ t('beFirstToComment') }}</p>
+              </div>
+            </v-card>
+          </v-col>
+
+          <!-- Sidebar -->
+          <v-col cols="12" lg="4">
+            <div class="sidebar">
+              <!-- Related Posts -->
+              <v-card
+                v-if="relatedPosts.length > 0"
+                elevation="2"
+                rounded="xl"
+                class="pa-4 pa-md-6 mb-6"
+              >
+                <h3 class="text-h6 font-weight-bold mb-4">{{ t('relatedPosts') }}</h3>
+                <div class="related-posts">
+                  <div
+                    v-for="relatedPost in relatedPosts"
+                    :key="relatedPost.id"
+                    class="related-post mb-4"
+                    @click="goToPost(relatedPost.slug)"
+                  >
+                    <div class="d-flex ga-3 cursor-pointer">
+                      <v-avatar
+                        rounded="lg"
+                        size="60"
+                        class="flex-shrink-0"
+                      >
+                        <v-img
+                          v-if="relatedPost.featured_image"
+                          :src="relatedPost.featured_image"
+                          :alt="relatedPost.title"
+                          cover
+                        ></v-img>
+                        <v-icon v-else>mdi-image</v-icon>
+                      </v-avatar>
+                      <div class="flex-grow-1 min-width-0">
+                        <h4 class="text-subtitle-2 font-weight-bold mb-1 line-clamp-2">
+                          {{ relatedPost.title }}
+                        </h4>
+                        <span class="text-caption text-medium-emphasis">
+                          {{ formatDate(relatedPost.created_at) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </v-card>
+
+              <!-- Popular Posts -->
+              <v-card
+                v-if="popularPosts.length > 0"
+                elevation="2"
+                rounded="xl"
+                class="pa-4 pa-md-6"
+              >
+                <h3 class="text-h6 font-weight-bold mb-4">{{ t('popularPosts') }}</h3>
+                <div class="popular-posts">
+                  <div
+                    v-for="popularPost in popularPosts.slice(0, 5)"
+                    :key="popularPost.id"
+                    class="popular-post mb-4"
+                    @click="goToPost(popularPost.slug)"
+                  >
+                    <div class="d-flex ga-3 cursor-pointer">
+                      <v-avatar
+                        rounded="lg"
+                        size="60"
+                        class="flex-shrink-0"
+                      >
+                        <v-img
+                          v-if="popularPost.featured_image"
+                          :src="popularPost.featured_image"
+                          :alt="popularPost.title"
+                          cover
+                        ></v-img>
+                        <v-icon v-else>mdi-image</v-icon>
+                      </v-avatar>
+                      <div class="flex-grow-1 min-width-0">
+                        <h4 class="text-subtitle-2 font-weight-bold mb-1 line-clamp-2">
+                          {{ popularPost.title }}
+                        </h4>
+                        <div class="d-flex align-center flex-wrap ga-2 text-caption text-medium-emphasis">
+                          <span class="d-flex align-center">
+                            <v-icon size="x-small" class="ml-1">mdi-eye</v-icon>
+                            {{ popularPost.view_count }} {{ t('views') }}
+                          </span>
+                          <span>•</span>
+                          <span>{{ formatDate(popularPost.created_at) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </v-card>
             </div>
-          </div>
-        </div>
-      </section>
+          </v-col>
+        </v-row>
+      </v-container>
     </article>
   </div>
 </template>
@@ -347,7 +440,7 @@ export default {
     
     const formatDate = (dateString) => {
       const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', {
+      return date.toLocaleDateString('fa-IR', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
@@ -401,249 +494,91 @@ export default {
 <style scoped>
 .blog-detail {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #F5F5F5;
   direction: rtl;
-  text-align: right;
-}
-
-.loading-container, .error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 50vh;
-  text-align: center;
-  color: #6c757d;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #007bff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.back-btn {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  flex-direction: row-reverse;
-}
-
-.post-article {
-  background: white;
 }
 
 .post-header {
+  background: white;
   padding: 2rem 0;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-.breadcrumb {
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
-
-.breadcrumb-link {
-  color: #007bff;
-  text-decoration: none;
-}
-
-.breadcrumb-link:hover {
-  text-decoration: underline;
-}
-
-.breadcrumb-separator {
-  margin: 0 0.5rem;
-  color: #6c757d;
-}
-
-.breadcrumb-current {
-  color: #6c757d;
-}
-
-.post-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-  flex-direction: row-reverse;
-}
-
-.category-badge {
-  display: inline-block;
-  background-color: #007bff;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.post-stats {
-  display: flex;
-  gap: 1.5rem;
-  font-size: 0.9rem;
-  color: #6c757d;
-  flex-direction: row-reverse;
-}
-
-.post-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: 1rem;
-  color: #2c3e50;
-}
-
-.post-excerpt {
-  font-size: 1.2rem;
-  color: #6c757d;
-  margin-bottom: 2rem;
-  line-height: 1.6;
-}
-
-.author-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-direction: row-reverse;
-}
-
-.author-avatar {
-  width: 50px;
-  height: 50px;
-  background-color: #e9ecef;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6c757d;
-  font-size: 1.2rem;
-}
-
-.author-details {
-  flex: 1;
-}
-
-.author-name {
-  display: block;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.post-date {
-  display: block;
-  font-size: 0.9rem;
-  color: #6c757d;
-}
-
-.post-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-direction: row-reverse;
-}
-
-.action-btn {
-  background: none;
-  border: 1px solid #dee2e6;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
-  flex-direction: row-reverse;
-}
-
-.action-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.edit-btn {
-  border-color: #28a745;
-  color: #28a745;
-}
-
-.edit-btn:hover {
-  background-color: #28a745;
-  color: white;
-}
-
-.featured-image {
-  height: 400px;
+.featured-image-wrapper {
+  width: 100%;
   overflow: hidden;
 }
 
-.featured-image img {
+.featured-image {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.post-content {
-  padding: 3rem 0;
-}
-
-.content-wrapper {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 3rem;
-}
-
-.main-content {
-  min-width: 0;
 }
 
 .content-body {
   font-size: 1.1rem;
   line-height: 1.8;
-  color: #2c3e50;
-  margin-bottom: 2rem;
+  color: #212121;
 }
 
-.post-tags {
+.content-body :deep(p) {
+  margin-bottom: 1.5rem;
+}
+
+.content-body :deep(h1),
+.content-body :deep(h2),
+.content-body :deep(h3),
+.content-body :deep(h4),
+.content-body :deep(h5),
+.content-body :deep(h6) {
   margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid #e9ecef;
-}
-
-.post-tags h4 {
   margin-bottom: 1rem;
-  color: #2c3e50;
+  font-weight: 600;
+  color: #212121;
 }
 
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  flex-direction: row-reverse;
+.content-body :deep(ul),
+.content-body :deep(ol) {
+  margin-bottom: 1.5rem;
+  padding-right: 2rem;
 }
 
-.tag {
-  background-color: #e9ecef;
-  color: #495057;
-  padding: 0.25rem 0.75rem;
-  border-radius: 15px;
-  font-size: 0.9rem;
+.content-body :deep(li) {
+  margin-bottom: 0.5rem;
+}
+
+.content-body :deep(blockquote) {
+  border-right: 4px solid #1565C0;
+  padding-right: 1rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: #666;
+}
+
+.content-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+}
+
+.content-body :deep(pre) {
+  background-color: #f5f7fa;
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  border: 1px solid #e0e0e0;
+}
+
+.content-body :deep(code) {
+  background-color: #f5f7fa;
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.content-body :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
 }
 
 .sidebar {
@@ -652,269 +587,56 @@ export default {
   height: fit-content;
 }
 
-.sidebar-section {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.sidebar-section h3 {
-  margin-bottom: 1rem;
-  color: #2c3e50;
-  font-size: 1.2rem;
-}
-
-.related-posts, .popular-posts {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.related-post, .popular-post {
-  display: flex;
-  gap: 1rem;
+.related-post,
+.popular-post {
   cursor: pointer;
   transition: opacity 0.3s ease;
-  flex-direction: row-reverse;
 }
 
-.related-post:hover, .popular-post:hover {
+.related-post:hover,
+.popular-post:hover {
   opacity: 0.8;
 }
 
-.related-image, .popular-image {
-  width: 60px;
-  height: 60px;
-  border-radius: 6px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.related-image img, .popular-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.no-image {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f8f9fa;
-  color: #6c757d;
-}
-
-.related-content, .popular-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.related-title, .popular-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-  color: #2c3e50;
-  line-height: 1.4;
+.line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.related-date, .popular-meta {
-  font-size: 0.8rem;
-  color: #6c757d;
-}
-
-.popular-meta {
-  display: flex;
-  gap: 0.5rem;
-  flex-direction: row-reverse;
-}
-
-.comments-section {
-  background: white;
-  padding: 3rem 0;
-  border-top: 1px solid #e9ecef;
-}
-
-.comments-title {
-  margin-bottom: 2rem;
-  color: #2c3e50;
-}
-
-.comment-form {
-  background: #f8f9fa;
-  padding: 2rem;
-  border-radius: 8px;
-  margin-bottom: 2rem;
-}
-
-.comment-form h4 {
-  margin-bottom: 1rem;
-  color: #2c3e50;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group textarea {
-  width: 100%;
-  padding: 1rem;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  font-family: inherit;
-  resize: vertical;
-}
-
-.submit-btn {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-direction: row-reverse;
-}
-
-.submit-btn:disabled {
-  background-color: #6c757d;
-  cursor: not-allowed;
-}
-
-.login-prompt {
-  text-align: center;
-  padding: 2rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  margin-bottom: 2rem;
-}
-
-.comments-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.comment {
-  display: flex;
-  gap: 1rem;
-  flex-direction: row-reverse;
+.min-width-0 {
+  min-width: 0;
 }
 
 .comment-reply {
   margin-right: 3rem;
 }
 
-.comment-avatar {
-  width: 40px;
-  height: 40px;
-  background-color: #e9ecef;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6c757d;
-  flex-shrink: 0;
+.border-t {
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-.comment-content {
-  flex: 1;
-}
-
-.comment-header {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
-  flex-direction: row-reverse;
-}
-
-.comment-author {
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.comment-date {
-  font-size: 0.9rem;
-  color: #6c757d;
-}
-
-.comment-body {
-  margin-bottom: 0.5rem;
-  line-height: 1.6;
-  color: #495057;
-}
-
-.comment-actions {
-  display: flex;
-  gap: 1rem;
-  flex-direction: row-reverse;
-}
-
-.reply-btn {
-  background: none;
-  border: none;
-  color: #007bff;
+.cursor-pointer {
   cursor: pointer;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  flex-direction: row-reverse;
 }
 
-.reply-btn:hover {
-  text-decoration: underline;
-}
-
-.no-comments {
-  text-align: center;
-  padding: 3rem;
-  color: #6c757d;
-}
-
-.no-comments i {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-@media (max-width: 768px) {
-  .post-title {
-    font-size: 2rem;
-  }
-  
-  .content-wrapper {
-    grid-template-columns: 1fr;
-    gap: 2rem;
+/* Mobile Responsive */
+@media (max-width: 959px) {
+  .post-header {
+    padding: 1.5rem 0;
   }
   
   .sidebar {
     position: static;
   }
   
-  .post-meta {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .post-stats {
-    flex-wrap: wrap;
-  }
-  
-  .post-stats {
-    flex-wrap: wrap;
-  }
-  
   .comment-reply {
     margin-right: 1rem;
+  }
+  
+  .featured-image-wrapper {
+    height: 250px;
   }
 }
 </style>

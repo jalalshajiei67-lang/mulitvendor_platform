@@ -2,198 +2,366 @@
   <div class="blog-list" dir="rtl">
     <!-- Header Section -->
     <div class="blog-header">
-      <div class="container">
-        <h1 class="blog-title">{{ t('blog') }}</h1>
-        <p class="blog-subtitle">{{ t('discoverInsights') }}</p>
-      </div>
+      <v-container fluid class="pa-0">
+        <v-row no-gutters justify="center" align="center" class="hero-content">
+          <v-col cols="12" class="text-center pa-8 pa-md-12">
+            <h1 class="text-h3 text-md-h2 text-lg-h1 font-weight-bold mb-4 text-white">
+              {{ t('blog') }}
+            </h1>
+            <p class="text-h6 text-md-h5 text-white opacity-90 max-width-600 mx-auto">
+              {{ t('discoverInsights') }}
+            </p>
+          </v-col>
+        </v-row>
+      </v-container>
     </div>
 
     <!-- Category Filter -->
-    <div class="category-filter">
-      <div class="container">
-        <div class="filter-tabs">
-          <button 
-            @click="selectCategory(null)"
-            :class="['filter-tab', { active: !selectedCategory }]"
-          >
-            {{ t('allPosts') }}
-          </button>
-          <button 
-            v-for="category in categories" 
-            :key="category.id"
-            @click="selectCategory(category)"
-            :class="['filter-tab', { active: selectedCategory?.id === category.id }]"
-            :style="{ borderColor: category.color }"
-          >
-            {{ category.name }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <v-container class="pa-0">
+      <v-card 
+        elevation="2" 
+        rounded="0" 
+        class="category-filter"
+        color="surface"
+      >
+        <v-container>
+          <div class="filter-tabs d-flex flex-wrap ga-2 py-4">
+            <v-btn
+              v-for="category in categories"
+              :key="category.id"
+              @click="selectCategory(category)"
+              :color="getCategoryButtonColor(category)"
+              :variant="selectedCategory?.id === category.id ? 'elevated' : 'outlined'"
+              rounded="xl"
+              size="small"
+              :style="getCategoryButtonStyle(category)"
+            >
+              {{ category.name }}
+            </v-btn>
+            <v-btn
+              @click="selectCategory(null)"
+              :color="!selectedCategory ? 'primary' : 'default'"
+              :variant="!selectedCategory ? 'elevated' : 'outlined'"
+              rounded="xl"
+              size="small"
+              class="ms-auto"
+            >
+              {{ t('allPosts') }}
+            </v-btn>
+          </div>
+        </v-container>
+      </v-card>
+    </v-container>
 
     <!-- Main Content -->
-    <div class="container">
-      <div class="blog-content">
-        <!-- Featured Posts Section -->
-        <section v-if="!selectedCategory && featuredPosts.length > 0" class="featured-section">
-          <h2 class="section-title">{{ t('featuredPosts') }}</h2>
-          <div class="featured-grid">
-            <div 
-              v-for="post in featuredPosts.slice(0, 3)" 
-              :key="post.id"
-              class="featured-card"
+    <v-container class="py-8 py-md-12">
+      <!-- Featured Posts Section -->
+      <section v-if="!selectedCategory && featuredPosts.length > 0" class="mb-12">
+        <h2 class="text-h4 text-md-h3 font-weight-bold mb-6">{{ t('featuredPosts') }}</h2>
+        <v-row>
+          <v-col
+            v-for="post in featuredPosts.slice(0, 3)"
+            :key="post.id"
+            cols="12"
+            md="6"
+            lg="4"
+          >
+            <v-card
+              elevation="4"
+              rounded="xl"
+              class="featured-card h-100"
               @click="goToPost(post.slug)"
+              hover
             >
-              <div class="featured-image">
-                <img 
-                  v-if="post.featured_image" 
-                  :src="post.featured_image" 
-                  :alt="post.title"
-                />
-                <div v-else class="no-image">
-                  <i class="fas fa-image"></i>
-                </div>
-              </div>
-              <div class="featured-content">
-                <div class="category-badge" :style="{ backgroundColor: post.category_color }">
-                  {{ post.category_name }}
-                </div>
-                <h3 class="featured-title">{{ post.title }}</h3>
-                <p class="featured-excerpt">{{ post.excerpt }}</p>
-                <div class="featured-meta">
-                  <span class="author">{{ post.author_name }}</span>
-                  <span class="date">{{ formatDate(post.created_at) }}</span>
-                  <span class="reading-time">{{ post.reading_time }} {{ t('minRead') }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Posts Grid -->
-        <section class="posts-section">
-          <div class="section-header">
-            <h2 class="section-title">
-              {{ selectedCategory ? `${selectedCategory.name} ${t('posts')}` : t('allPosts') }}
-            </h2>
-            <div class="view-options">
-              <button 
-                @click="viewMode = 'grid'"
-                :class="['view-btn', { active: viewMode === 'grid' }]"
-                :title="t('gridView')"
+              <v-img
+                v-if="post.featured_image"
+                :src="post.featured_image"
+                :alt="post.title"
+                height="200"
+                cover
               >
-                <i class="fas fa-th"></i>
-              </button>
-              <button 
-                @click="viewMode = 'list'"
-                :class="['view-btn', { active: viewMode === 'list' }]"
-                :title="t('listView')"
-              >
-                <i class="fas fa-list"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Loading State -->
-          <div v-if="loading" class="loading-state">
-            <div class="spinner"></div>
-            <p>{{ t('loadingPosts') }}</p>
-          </div>
-
-          <!-- Error State -->
-          <div v-else-if="error" class="error-state">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p>{{ error }}</p>
-            <button @click="fetchPosts" class="retry-btn">{{ t('tryAgain') }}</button>
-          </div>
-
-          <!-- Posts Grid/List -->
-          <div v-else-if="posts.length > 0" :class="['posts-container', viewMode]">
-            <article 
-              v-for="post in posts" 
-              :key="post.id"
-              class="post-card"
-              @click="goToPost(post.slug)"
-            >
-              <div class="post-image">
-                <img 
-                  v-if="post.featured_image" 
-                  :src="post.featured_image" 
-                  :alt="post.title"
-                />
-                <div v-else class="no-image">
-                  <i class="fas fa-image"></i>
-                </div>
-                <div v-if="post.is_featured" class="featured-badge">
-                  <i class="fas fa-star"></i>
-                </div>
+              </v-img>
+              <div v-else class="no-image d-flex align-center justify-center" style="height: 200px;">
+                <v-icon size="48" color="grey-lighten-1">mdi-image</v-icon>
               </div>
               
-              <div class="post-content">
-                <div class="post-meta">
-                  <div class="category-badge" :style="{ backgroundColor: post.category_color }">
+              <v-card-text class="pa-4 pa-md-6">
+                <v-chip
+                  v-if="post.category_color"
+                  :style="{ backgroundColor: post.category_color, color: 'white' }"
+                  size="small"
+                  class="mb-3"
+                >
+                  {{ post.category_name }}
+                </v-chip>
+                
+                <h3 class="text-h6 text-md-h5 font-weight-bold mb-3">{{ post.title }}</h3>
+                <p class="text-body-2 text-medium-emphasis mb-4">{{ post.excerpt }}</p>
+                
+                <div class="d-flex align-center flex-wrap ga-3 text-caption text-medium-emphasis">
+                  <span class="d-flex align-center">
+                    <v-icon size="small" class="ml-1">mdi-account</v-icon>
+                    {{ post.author_name }}
+                  </span>
+                  <span class="d-flex align-center">
+                    <v-icon size="small" class="ml-1">mdi-calendar</v-icon>
+                    {{ formatDate(post.created_at) }}
+                  </span>
+                  <span class="d-flex align-center">
+                    <v-icon size="small" class="ml-1">mdi-clock-outline</v-icon>
+                    {{ post.reading_time }} {{ t('minRead') }}
+                  </span>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+      </section>
+
+      <!-- Posts Section -->
+      <section class="posts-section">
+        <div class="d-flex justify-space-between align-center mb-6 flex-column-reverse flex-md-row-reverse ga-4">
+          <h2 class="text-h4 text-md-h3 font-weight-bold mb-0">
+            {{ selectedCategory ? `${selectedCategory.name} ${t('posts')}` : t('allPosts') }}
+          </h2>
+          <div class="d-flex ga-2">
+            <v-btn
+              @click="viewMode = 'grid'"
+              :color="viewMode === 'grid' ? 'primary' : 'default'"
+              :variant="viewMode === 'grid' ? 'elevated' : 'outlined'"
+              icon="mdi-view-grid"
+              size="small"
+            ></v-btn>
+            <v-btn
+              @click="viewMode = 'list'"
+              :color="viewMode === 'list' ? 'primary' : 'default'"
+              :variant="viewMode === 'list' ? 'elevated' : 'outlined'"
+              icon="mdi-view-list"
+              size="small"
+            ></v-btn>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="loading" class="text-center py-12">
+          <v-progress-circular
+            indeterminate
+            color="primary"
+            size="64"
+            class="mb-4"
+          ></v-progress-circular>
+          <p class="text-body-1 text-medium-emphasis">{{ t('loadingPosts') }}</p>
+        </div>
+
+        <!-- Error State -->
+        <v-card v-else-if="error" elevation="2" rounded="lg" class="pa-8 text-center">
+          <v-icon size="64" color="error" class="mb-4">mdi-alert-circle</v-icon>
+          <h3 class="text-h6 mb-2">{{ error }}</h3>
+          <v-btn @click="fetchPosts" color="primary" class="mt-4">
+            {{ t('tryAgain') }}
+          </v-btn>
+        </v-card>
+
+        <!-- Posts Grid/List -->
+        <v-row v-else-if="posts.length > 0" :class="{ 'posts-list': viewMode === 'list' }">
+          <v-col
+            v-for="post in posts"
+            :key="post.id"
+            :cols="viewMode === 'list' ? 12 : 12"
+            :sm="viewMode === 'list' ? 12 : 6"
+            :md="viewMode === 'list' ? 12 : 6"
+            :lg="viewMode === 'list' ? 12 : 4"
+          >
+            <v-card
+              v-if="viewMode === 'grid'"
+              elevation="2"
+              rounded="xl"
+              class="post-card h-100"
+              @click="goToPost(post.slug)"
+              hover
+            >
+              <div class="post-image-wrapper position-relative">
+                <v-img
+                  v-if="post.featured_image"
+                  :src="post.featured_image"
+                  :alt="post.title"
+                  height="200"
+                  cover
+                ></v-img>
+                <div v-else class="no-image d-flex align-center justify-center" style="height: 200px;">
+                  <v-icon size="48" color="grey-lighten-1">mdi-image</v-icon>
+                </div>
+                <v-chip
+                  v-if="post.is_featured"
+                  color="warning"
+                  size="small"
+                  class="position-absolute"
+                  style="top: 12px; right: 12px;"
+                >
+                  <v-icon start size="small">mdi-star</v-icon>
+                  {{ t('featured') }}
+                </v-chip>
+              </div>
+              
+              <v-card-text class="pa-4 pa-md-6">
+                <div class="d-flex justify-space-between align-center mb-3">
+                  <v-chip
+                    v-if="post.category_color"
+                    :style="{ backgroundColor: post.category_color, color: 'white' }"
+                    size="small"
+                  >
                     {{ post.category_name }}
-                  </div>
-                  <div class="post-stats">
-                    <span class="views">
-                      <i class="fas fa-eye"></i>
+                  </v-chip>
+                  <div class="d-flex ga-3 text-caption text-medium-emphasis">
+                    <span class="d-flex align-center">
+                      <v-icon size="x-small" class="ml-1">mdi-eye</v-icon>
                       {{ post.view_count }}
                     </span>
-                    <span class="comments">
-                      <i class="fas fa-comment"></i>
+                    <span class="d-flex align-center">
+                      <v-icon size="x-small" class="ml-1">mdi-comment</v-icon>
                       {{ post.comment_count }}
                     </span>
                   </div>
                 </div>
                 
-                <h3 class="post-title">{{ post.title }}</h3>
-                <p class="post-excerpt">{{ post.excerpt }}</p>
+                <h3 class="text-h6 font-weight-bold mb-2">{{ post.title }}</h3>
+                <p class="text-body-2 text-medium-emphasis mb-4">{{ post.excerpt }}</p>
                 
-                  <div class="post-footer">
-                    <div class="author-info">
-                      <span class="author">{{ post.author_name }}</span>
-                      <span class="date">{{ formatDate(post.created_at) }}</span>
-                    </div>
-                    <span class="reading-time">{{ post.reading_time }} {{ t('minRead') }}</span>
+                <div class="d-flex justify-space-between align-center flex-wrap ga-2 text-caption text-medium-emphasis">
+                  <div class="d-flex align-center flex-wrap ga-2">
+                    <span>{{ post.author_name }}</span>
+                    <span>•</span>
+                    <span>{{ formatDate(post.created_at) }}</span>
                   </div>
-              </div>
-            </article>
-          </div>
+                  <span class="d-flex align-center">
+                    <v-icon size="x-small" class="ml-1">mdi-clock-outline</v-icon>
+                    {{ post.reading_time }} {{ t('minRead') }}
+                  </span>
+                </div>
+              </v-card-text>
+            </v-card>
 
-          <!-- Empty State -->
-          <div v-else class="empty-state">
-            <i class="fas fa-newspaper"></i>
-            <h3>{{ t('noPostsFound') }}</h3>
-            <p>{{ selectedCategory ? t('noPostsInCategory') : t('noBlogPostsAvailable') }}</p>
-          </div>
+            <!-- List View Card -->
+            <v-card
+              v-else
+              elevation="2"
+              rounded="xl"
+              class="post-card-list mb-4"
+              @click="goToPost(post.slug)"
+              hover
+            >
+              <v-row no-gutters>
+                <v-col cols="12" sm="4" md="3">
+                  <div class="post-image-wrapper position-relative h-100">
+                    <v-img
+                      v-if="post.featured_image"
+                      :src="post.featured_image"
+                      :alt="post.title"
+                      height="100%"
+                      min-height="200"
+                      cover
+                    ></v-img>
+                    <div v-else class="no-image d-flex align-center justify-center h-100" style="min-height: 200px;">
+                      <v-icon size="48" color="grey-lighten-1">mdi-image</v-icon>
+                    </div>
+                    <v-chip
+                      v-if="post.is_featured"
+                      color="warning"
+                      size="small"
+                      class="position-absolute"
+                      style="top: 12px; right: 12px;"
+                    >
+                      <v-icon start size="small">mdi-star</v-icon>
+                      {{ t('featured') }}
+                    </v-chip>
+                  </div>
+                </v-col>
+                <v-col cols="12" sm="8" md="9">
+                  <v-card-text class="pa-4 pa-md-6">
+                    <div class="d-flex justify-space-between align-center mb-3 flex-wrap ga-2">
+                      <v-chip
+                        v-if="post.category_color"
+                        :style="{ backgroundColor: post.category_color, color: 'white' }"
+                        size="small"
+                      >
+                        {{ post.category_name }}
+                      </v-chip>
+                      <div class="d-flex ga-3 text-caption text-medium-emphasis">
+                        <span class="d-flex align-center">
+                          <v-icon size="x-small" class="ml-1">mdi-eye</v-icon>
+                          {{ post.view_count }}
+                        </span>
+                        <span class="d-flex align-center">
+                          <v-icon size="x-small" class="ml-1">mdi-comment</v-icon>
+                          {{ post.comment_count }}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <h3 class="text-h6 text-md-h5 font-weight-bold mb-2">{{ post.title }}</h3>
+                    <p class="text-body-2 text-medium-emphasis mb-4">{{ post.excerpt }}</p>
+                    
+                    <div class="d-flex justify-space-between align-center flex-wrap ga-2 text-caption text-medium-emphasis">
+                      <div class="d-flex align-center flex-wrap ga-2">
+                        <span class="d-flex align-center">
+                          <v-icon size="x-small" class="ml-1">mdi-account</v-icon>
+                          {{ post.author_name }}
+                        </span>
+                        <span>•</span>
+                        <span class="d-flex align-center">
+                          <v-icon size="x-small" class="ml-1">mdi-calendar</v-icon>
+                          {{ formatDate(post.created_at) }}
+                        </span>
+                      </div>
+                      <span class="d-flex align-center">
+                        <v-icon size="x-small" class="ml-1">mdi-clock-outline</v-icon>
+                        {{ post.reading_time }} {{ t('minRead') }}
+                      </span>
+                    </div>
+                  </v-card-text>
+                </v-col>
+              </v-row>
+            </v-card>
+          </v-col>
+        </v-row>
 
-          <!-- Pagination -->
-          <div v-if="pagination.count > 12" class="pagination">
-            <button 
-              @click="loadPage(pagination.previous)"
-              :disabled="!pagination.previous"
-              class="pagination-btn"
-            >
-              <i class="fas fa-chevron-right"></i>
-              {{ t('previous') }}
-            </button>
-            
-            <div class="pagination-info">
-              {{ t('page') }} {{ currentPage }} {{ t('of') }} {{ totalPages }}
-            </div>
-            
-            <button 
-              @click="loadPage(pagination.next)"
-              :disabled="!pagination.next"
-              class="pagination-btn"
-            >
-              {{ t('next') }}
-              <i class="fas fa-chevron-left"></i>
-            </button>
+        <!-- Empty State -->
+        <v-card v-else elevation="2" rounded="lg" class="pa-12 text-center">
+          <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-newspaper-variant</v-icon>
+          <h3 class="text-h6 mb-2">{{ t('noPostsFound') }}</h3>
+          <p class="text-body-2 text-medium-emphasis">
+            {{ selectedCategory ? t('noPostsInCategory') : t('noBlogPostsAvailable') }}
+          </p>
+        </v-card>
+
+        <!-- Pagination -->
+        <div v-if="pagination.count > 12" class="d-flex justify-center align-center flex-wrap ga-4 mt-8">
+          <v-btn
+            @click="loadPage(pagination.previous)"
+            :disabled="!pagination.previous"
+            color="primary"
+            variant="elevated"
+            prepend-icon="mdi-chevron-right"
+          >
+            {{ t('previous') }}
+          </v-btn>
+          
+          <div class="text-body-1 font-weight-medium">
+            {{ t('page') }} {{ currentPage }} {{ t('of') }} {{ totalPages }}
           </div>
-        </section>
-      </div>
-    </div>
+          
+          <v-btn
+            @click="loadPage(pagination.next)"
+            :disabled="!pagination.next"
+            color="primary"
+            variant="elevated"
+            append-icon="mdi-chevron-left"
+          >
+            {{ t('next') }}
+          </v-btn>
+        </div>
+      </section>
+    </v-container>
   </div>
 </template>
 
@@ -267,11 +435,29 @@ export default {
     
     const formatDate = (dateString) => {
       const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', {
+      return date.toLocaleDateString('fa-IR', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
       })
+    }
+    
+    const getCategoryButtonColor = (category) => {
+      if (selectedCategory.value?.id === category.id) {
+        return category.color ? undefined : 'primary'
+      }
+      return 'default'
+    }
+    
+    const getCategoryButtonStyle = (category) => {
+      if (selectedCategory.value?.id === category.id && category.color) {
+        return {
+          backgroundColor: category.color,
+          borderColor: category.color,
+          color: 'white'
+        }
+      }
+      return {}
     }
     
     onMounted(async () => {
@@ -302,7 +488,9 @@ export default {
       selectCategory,
       loadPage,
       goToPost,
-      formatDate
+      formatDate,
+      getCategoryButtonColor,
+      getCategoryButtonStyle
     }
   }
 }
@@ -311,390 +499,97 @@ export default {
 <style scoped>
 .blog-list {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #F5F5F5;
   direction: rtl;
-  text-align: right;
 }
 
 .blog-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, #1565C0 0%, #0277BD 100%);
   padding: 4rem 0;
-  text-align: center;
 }
 
-.blog-title {
-  font-size: 3rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-}
-
-.blog-subtitle {
-  font-size: 1.2rem;
-  opacity: 0.9;
+.max-width-600 {
   max-width: 600px;
-  margin: 0 auto;
 }
 
 .category-filter {
-  background: white;
-  border-bottom: 1px solid #e9ecef;
-  padding: 1rem 0;
   position: sticky;
   top: 0;
   z-index: 100;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .filter-tabs {
-  display: flex;
-  gap: 1rem;
   overflow-x: auto;
   padding: 0.5rem 0;
-  flex-direction: row-reverse;
 }
 
-.filter-tab {
-  background: none;
-  border: 2px solid transparent;
-  border-radius: 25px;
-  padding: 0.5rem 1.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
+.filter-tabs::-webkit-scrollbar {
+  height: 4px;
 }
 
-.filter-tab:hover {
-  background-color: #f8f9fa;
+.filter-tabs::-webkit-scrollbar-track {
+  background: #f1f1f1;
 }
 
-.filter-tab.active {
-  background-color: #007bff;
-  color: white;
-  border-color: #007bff;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.blog-content {
-  padding: 2rem 0;
-}
-
-.section-title {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 2rem;
-  color: #2c3e50;
-}
-
-.featured-section {
-  margin-bottom: 4rem;
-}
-
-.featured-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 2rem;
+.filter-tabs::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 2px;
 }
 
 .featured-card {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .featured-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.featured-image {
-  height: 200px;
-  overflow: hidden;
-}
-
-.featured-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.no-image {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f8f9fa;
-  color: #6c757d;
-  font-size: 2rem;
-}
-
-.featured-content {
-  padding: 1.5rem;
-}
-
-.category-badge {
-  display: inline-block;
-  background-color: #007bff;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 15px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  margin-bottom: 1rem;
-}
-
-.featured-title {
-  font-size: 1.3rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  color: #2c3e50;
-  line-height: 1.4;
-}
-
-.featured-excerpt {
-  color: #6c757d;
-  margin-bottom: 1rem;
-  line-height: 1.6;
-}
-
-.featured-meta {
-  display: flex;
-  gap: 1rem;
-  font-size: 0.9rem;
-  color: #6c757d;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-direction: row-reverse;
-}
-
-.view-options {
-  display: flex;
-  gap: 0.5rem;
-  flex-direction: row-reverse;
-}
-
-.view-btn {
-  background: none;
-  border: 1px solid #dee2e6;
-  padding: 0.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.view-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.view-btn.active {
-  background-color: #007bff;
-  color: white;
-  border-color: #007bff;
-}
-
-.posts-container.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
-}
-
-.posts-container.list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  transform: translateY(-8px);
 }
 
 .post-card {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .post-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
 }
 
-.post-image {
-  height: 200px;
+.post-card-list {
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.post-card-list:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+.post-image-wrapper {
   overflow: hidden;
-  position: relative;
+  border-radius: 12px 12px 0 0;
 }
 
-.post-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.posts-list .post-image-wrapper {
+  border-radius: 12px 0 0 12px;
 }
 
-.featured-badge {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background-color: #ffc107;
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 15px;
-  font-size: 0.8rem;
+.no-image {
+  background-color: #f5f5f5;
 }
 
-.post-content {
-  padding: 1.5rem;
-}
-
-.post-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.post-stats {
-  display: flex;
-  gap: 1rem;
-  font-size: 0.9rem;
-  color: #6c757d;
-}
-
-.post-title {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  color: #2c3e50;
-  line-height: 1.4;
-}
-
-.post-excerpt {
-  color: #6c757d;
-  margin-bottom: 1rem;
-  line-height: 1.6;
-}
-
-.post-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.9rem;
-  color: #6c757d;
-  flex-direction: row-reverse;
-}
-
-.author-info {
-  display: flex;
-  gap: 1rem;
-  flex-direction: row-reverse;
-}
-
-.loading-state, .error-state, .empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
-  color: #6c757d;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #007bff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.retry-btn {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-top: 1rem;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 2rem;
-  margin-top: 3rem;
-  flex-direction: row-reverse;
-}
-
-.pagination-btn {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: background-color 0.3s ease;
-  flex-direction: row-reverse;
-}
-
-.pagination-btn:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-.pagination-btn:disabled {
-  background-color: #6c757d;
-  cursor: not-allowed;
-}
-
-.pagination-info {
-  font-weight: 500;
-  color: #2c3e50;
-}
-
-@media (max-width: 768px) {
-  .blog-title {
-    font-size: 2rem;
+/* Mobile Responsive */
+@media (max-width: 959px) {
+  .blog-header {
+    padding: 2rem 0;
   }
   
-  .featured-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .posts-container.grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .section-header {
+  .post-card-list :deep(.v-row) {
     flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
   }
   
-  .view-options {
-    flex-direction: row;
-  }
-  
-  .pagination {
-    flex-direction: column;
-    gap: 1rem;
+  .posts-list .post-image-wrapper {
+    border-radius: 12px 12px 0 0;
   }
 }
 </style>

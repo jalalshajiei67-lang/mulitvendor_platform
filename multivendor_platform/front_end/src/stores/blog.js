@@ -318,6 +318,16 @@ export const useBlogStore = defineStore('blog', {
             }
         },
 
+        async fetchRelatedPosts(slug) {
+            try {
+                const response = await api.getRelatedBlogPosts(slug);
+                this.relatedPosts = response.data;
+            } catch (error) {
+                console.error('Error fetching related posts:', error);
+                this.relatedPosts = [];
+            }
+        },
+
         async fetchMyPosts() {
             this.loading = true;
             this.error = null;
