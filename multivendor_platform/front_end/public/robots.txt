@@ -1,0 +1,21 @@
+User-agent: *
+
+# Disallow admin panel (private administration area)
+Disallow: /admin/
+
+# Disallow API endpoints (not for web crawling, API access only)
+Disallow: /api/
+
+# Disallow vendor dashboard (private vendor area)
+Disallow: /dashboard/
+
+# Disallow health check endpoint (internal monitoring)
+Disallow: /health/
+
+# Disallow TinyMCE editor (internal admin tool)
+Disallow: /tinymce/
+
+# Allow sitemap for better SEO indexing
+Sitemap: https://indexo.ir/sitemap.xml
+
+
