@@ -72,6 +72,9 @@ export default {
   getProduct(id) {
     return apiClient.get(`/products/${id}/`);
   },
+  getProductBySlug(slug) {
+    return apiClient.get(`/products/slug/${slug}/`);
+  },
   createProduct(data) {
     // Handle FormData for file uploads
     const config = {};

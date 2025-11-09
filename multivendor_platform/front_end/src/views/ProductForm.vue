@@ -633,7 +633,11 @@ export default {
         return [
           { title: t.value('home'), to: '/', disabled: false },
           { title: t.value('products'), to: '/products', disabled: false },
-          { title: product.value?.name || t.value('loading'), to: product.value ? `/products/${product.value.id}` : undefined, disabled: false },
+          { 
+            title: product.value?.name || t.value('loading'), 
+            to: product.value ? `/products/${product.value.slug || product.value.id}` : undefined, 
+            disabled: false 
+          },
           { title: t.value('edit'), disabled: true }
         ];
       }
@@ -828,7 +832,8 @@ export default {
           response = await productStore.createProduct(formData);
         }
 
-        router.push(`/products/${response.id}`);
+        const destinationSlug = response.slug || response.id;
+        router.push(`/products/${destinationSlug}`);
       } catch (error) {
         console.error('Error saving product:', error);
       } finally {

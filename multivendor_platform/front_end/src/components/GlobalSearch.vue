@@ -63,7 +63,7 @@
             <router-link
               v-for="(product, index) in results.products"
               :key="'product-' + product.id"
-              :to="`/products/${product.id}`"
+              :to="product.slug ? `/products/${product.slug}` : `/products/${product.id}`"
               @click="closeResults"
               class="result-item"
               :class="{ 'highlighted': highlightedIndex === getProductIndex(index) }"
@@ -215,7 +215,11 @@ export default {
       
       if (highlightedIndex.value < productsCount) {
         const product = results.value.products[highlightedIndex.value]
-        router.push(`/products/${product.id}`)
+        if (product.slug) {
+          router.push(`/products/${product.slug}`)
+        } else {
+          router.push(`/products/${product.id}`)
+        }
       } else {
         const blogIndex = highlightedIndex.value - productsCount
         const blog = results.value.blogs[blogIndex]

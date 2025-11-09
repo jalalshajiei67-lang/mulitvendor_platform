@@ -546,7 +546,7 @@ export default {
     const router = useRouter()
     const display = useDisplay()
 
-    const productId = ref(route.params.id)
+    const productSlug = ref(route.params.slug)
     const currentImageIndex = ref(0)
     const showImageModal = ref(false)
     const modalImageUrl = ref('')
@@ -729,11 +729,11 @@ export default {
     }
 
     const submitComment = async () => {
-      if (!commentForm.value.content) return
+      if (!commentForm.value.content || !product.value?.id) return
 
       submittingComment.value = true
       try {
-        await productStore.createProductComment(productId.value, commentForm.value)
+        await productStore.createProductComment(product.value.id, commentForm.value)
         commentForm.value.content = ''
         commentForm.value.rating = 5
         commentForm.value.parent = null
@@ -762,7 +762,9 @@ export default {
     }
 
     onMounted(() => {
-      productStore.fetchProduct(productId.value)
+      if (productSlug.value) {
+        productStore.fetchProductBySlug(productSlug.value)
+      }
       window.addEventListener('keydown', handleKeyPress)
     })
 
@@ -771,11 +773,17 @@ export default {
     })
 
     watch(
-      () => route.params.id,
-      (newId) => {
-        productId.value = newId
+      () => route.params.slug,
+      async (newSlug) => {
+        productSlug.value = newSlug
         currentImageIndex.value = 0
-        productStore.fetchProduct(newId)
+        if (newSlug) {
+          try {
+            await productStore.fetchProductBySlug(newSlug)
+          } catch (error) {
+            console.error('Error fetching product by slug:', error)
+          }
+        }
       },
     )
 
@@ -826,7 +834,8 @@ export default {
       replyToComment,
       formatDate,
       t,
-      Math
+      Math,
+      productSlug
     }
   },
 }

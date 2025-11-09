@@ -66,7 +66,7 @@
                     <router-link
                       v-for="product in searchResults.products"
                       :key="'product-' + product.id"
-                      :to="`/products/${product.id}`"
+                      :to="product.slug ? `/products/${product.slug}` : `/products/${product.id}`"
                       @click="closeAutocomplete"
                       class="result-item"
                     >

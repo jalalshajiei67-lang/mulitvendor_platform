@@ -1,6 +1,5 @@
 // src/stores/modules/orderStore.js
 import { defineStore } from 'pinia';
-import api from '@/services/api';
 
 const translations = {
   loading: 'در حال بارگذاری...',
@@ -53,13 +52,13 @@ export const useOrderStore = defineStore('orders', {
   },
 
   actions: {
-    async fetchOrders(params = {}) {
+    async fetchOrders(_params = {}) {
       this.loading = true;
       this.error = null;
 
       try {
         // This would need to be implemented in your API
-        // const response = await api.getOrders(params);
+        // const response = await api.getOrders(_params);
         // this.orders = response.data.results || response.data;
         // this.pagination = {
         //   count: response.data.count || 0,
@@ -75,12 +74,12 @@ export const useOrderStore = defineStore('orders', {
       }
     },
 
-    async fetchOrder(id) {
+    async fetchOrder(_id) {
       this.loading = true;
       this.error = null;
 
       try {
-        // const response = await api.getOrder(id);
+        // const response = await api.getOrder(_id);
         // this.currentOrder = response.data;
         // return response.data;
         console.log('Order Store: Fetch order not yet implemented');
@@ -92,12 +91,12 @@ export const useOrderStore = defineStore('orders', {
       }
     },
 
-    async createOrder(orderData) {
+    async createOrder(_orderData) {
       this.loading = true;
       this.error = null;
 
       try {
-        // const response = await api.createOrder(orderData);
+        // const response = await api.createOrder(_orderData);
         // this.orders.unshift(response.data);
         // return response.data;
         console.log('Order Store: Create order not yet implemented');
@@ -109,12 +108,12 @@ export const useOrderStore = defineStore('orders', {
       }
     },
 
-    async updateOrderStatus(id, status) {
+    async updateOrderStatus(_id, _status) {
       this.loading = true;
       this.error = null;
 
       try {
-        // const response = await api.updateOrderStatus(id, status);
+        // const response = await api.updateOrderStatus(_id, _status);
         // this.updateOrderInStore(response.data);
         // return response.data;
         console.log('Order Store: Update order status not yet implemented');

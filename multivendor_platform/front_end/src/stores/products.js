@@ -178,6 +178,23 @@ export const useProductStore = defineStore('products', {
       }
     },
 
+    async fetchProductBySlug(slug) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await api.getProductBySlug(slug);
+        this.currentProduct = response.data;
+        return response.data;
+      } catch (error) {
+        this.error = this.t('failedToFetch');
+        console.error('Error fetching product by slug:', error);
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async createProduct(productData) {
       this.loading = true;
       this.error = null;

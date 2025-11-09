@@ -132,7 +132,7 @@
           rounded="lg"
           hover
           class="product-card h-100"
-          @click="goToProductDetail(product.id)"
+          @click="goToProductDetail(product.slug)"
         >
           <!-- Product Image -->
           <v-img
@@ -203,7 +203,7 @@
               variant="text"
               prepend-icon="mdi-eye"
               :size="display.xs.value ? 'x-small' : 'small'"
-              @click.stop="goToProductDetail(product.id)"
+              @click.stop="goToProductDetail(product.slug)"
             >
               {{ t('view') }}
             </v-btn>
@@ -406,8 +406,9 @@ export default {
       }
     }
 
-    const goToProductDetail = (productId) => {
-      router.push(`/products/${productId}`)
+    const goToProductDetail = (productSlug) => {
+      if (!productSlug) return
+      router.push(`/products/${productSlug}`)
     }
 
     // Watch for route query changes to update search

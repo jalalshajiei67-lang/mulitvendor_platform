@@ -1,5 +1,5 @@
 # Django imports
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import CreateView, ListView, TemplateView
@@ -101,6 +101,16 @@ class ProductViewSet(viewsets.ModelViewSet):
         if self.action == 'retrieve':
             return ProductDetailSerializer
         return ProductSerializer
+    
+    @action(detail=False, methods=['get'], url_path='slug/(?P<slug>[^/.]+)', permission_classes=[AllowAny])
+    def retrieve_by_slug(self, request, slug=None):
+        """
+        Retrieve product detail using slug instead of numeric ID.
+        """
+        queryset = self.get_queryset()
+        product = get_object_or_404(queryset, slug=slug)
+        serializer = ProductDetailSerializer(product, context={'request': request})
+        return Response(serializer.data)
     
     def perform_create(self, serializer):
         product = serializer.save(vendor=self.request.user)

@@ -9,6 +9,7 @@ const translations = {
   failedToCreate: 'خطا در ایجاد',
   failedToUpdate: 'خطا در بروزرسانی',
   failedToDelete: 'خطا در حذف',
+  failedToSubmitComment: 'خطا در ثبت نظر',
   products: 'محصولات',
   product: 'محصول',
   myProducts: 'محصولات من'
@@ -77,6 +78,22 @@ export const useProductStore = defineStore('products', {
 
       try {
         const response = await api.getProduct(id);
+        this.currentProduct = response.data;
+        return response.data;
+      } catch (error) {
+        this.error = this.t('failedToFetch');
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async fetchProductBySlug(slug) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await api.getProductBySlug(slug);
         this.currentProduct = response.data;
         return response.data;
       } catch (error) {
@@ -184,6 +201,39 @@ export const useProductStore = defineStore('products', {
       } catch (error) {
         this.error = this.t('failedToDelete');
         console.error('Error deleting product image:', error);
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async createProductComment(productId, commentData) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await api.createProductComment(productId, commentData);
+        await this.fetchProduct(productId);
+        return response.data;
+      } catch (error) {
+        this.error = this.t('failedToSubmitComment');
+        console.error('Error creating product comment:', error);
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async fetchProductComments(productId) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await api.getProductComments(productId);
+        return response.data;
+      } catch (error) {
+        this.error = this.t('failedToFetch');
+        console.error('Error fetching product comments:', error);
         throw error;
       } finally {
         this.loading = false;

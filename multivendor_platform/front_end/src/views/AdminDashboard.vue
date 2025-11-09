@@ -829,7 +829,7 @@
                     </v-btn>
                   </template>
                   <v-list>
-                    <v-list-item @click="viewProduct(item.id)">
+                    <v-list-item @click="viewProduct(item)">
                       <template v-slot:prepend>
                         <v-icon>mdi-eye</v-icon>
                       </template>
@@ -1953,8 +1953,14 @@ export default {
       router.push('/admin/dashboard/products/new')
     }
     
-    const viewProduct = (productId) => {
-      router.push(`/products/${productId}`)
+    const viewProduct = (product) => {
+      const slug = typeof product === 'object' ? product.slug : undefined
+      const id = typeof product === 'object' ? product.id : product
+      if (slug) {
+        router.push(`/products/${slug}`)
+      } else if (id) {
+        router.push(`/products/${id}`)
+      }
     }
     
     const editProduct = (productId) => {

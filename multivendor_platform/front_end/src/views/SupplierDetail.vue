@@ -252,7 +252,7 @@
                       elevation="2"
                       rounded="lg"
                       hover
-                      @click="goToProduct(product.id)"
+                      @click="goToProduct(product)"
                       class="cursor-pointer"
                     >
                       <v-img
@@ -561,8 +561,15 @@ export default {
       }
     }
 
-    const goToProduct = (productId) => {
-      router.push(`/products/${productId}`)
+    const goToProduct = (product) => {
+      if (!product) return
+      const slug = typeof product === 'object' ? product.slug : undefined
+      const id = typeof product === 'object' ? product.id : product
+      if (slug) {
+        router.push(`/products/${slug}`)
+      } else if (id) {
+        router.push(`/products/${id}`)
+      }
     }
 
     onMounted(() => {
