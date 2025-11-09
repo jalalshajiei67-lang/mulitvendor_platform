@@ -281,7 +281,8 @@
 
 <script>
 import { ref, onMounted } from 'vue'
-import api from '@/services/api'
+import { useSubcategoryStore } from '@/stores/modules/subcategoryStore'
+import { useCategoryStore } from '@/stores/modules/categoryStore'
 import TiptapEditor from '@/components/TiptapEditor.vue'
 
 export default {
@@ -290,9 +291,11 @@ export default {
     TiptapEditor
   },
   setup() {
-    const subcategories = ref([])
-    const categories = ref([])
-    const loading = ref(false)
+    // Stores
+    const subcategoryStore = useSubcategoryStore()
+    const categoryStore = useCategoryStore()
+
+    // Local component state
     const saving = ref(false)
     const showDialog = ref(false)
     const editingItem = ref(null)
@@ -339,26 +342,21 @@ export default {
     ]
 
     const loadSubcategories = async () => {
-      loading.value = true
       try {
         const params = {}
         if (filters.value.search) params.search = filters.value.search
         if (filters.value.is_active !== null) params.is_active = filters.value.is_active
         if (filters.value.category) params.category = filters.value.category
 
-        const response = await api.getAdminSubcategories(params)
-        subcategories.value = response.data
+        await subcategoryStore.fetchAdminSubcategories(params)
       } catch (error) {
         console.error('Failed to load subcategories:', error)
-      } finally {
-        loading.value = false
       }
     }
 
     const loadCategories = async () => {
       try {
-        const response = await api.getAdminCategories()
-        categories.value = response.data
+        await categoryStore.fetchAdminCategories()
       } catch (error) {
         console.error('Failed to load categories:', error)
       }
@@ -373,8 +371,7 @@ export default {
     const editSubcategory = async (item) => {
       editingItem.value = item
       try {
-        const response = await api.getAdminSubcategoryDetail(item.id)
-        const data = response.data
+        const data = await subcategoryStore.fetchAdminSubcategoryDetail(item.id)
         form.value = {
           name: data.name || '',
           slug: data.slug || '',
@@ -480,9 +477,9 @@ export default {
         }
 
         if (editingItem.value) {
-          await api.adminUpdateSubcategory(editingItem.value.id, formData)
+          await subcategoryStore.updateSubcategory(editingItem.value.id, formData)
         } else {
-          await api.adminCreateSubcategory(formData)
+          await subcategoryStore.createSubcategory(formData)
         }
 
         closeDialog()
@@ -497,8 +494,7 @@ export default {
     const deleteSubcategory = async (item) => {
       if (confirm(`آیا مطمئن هستید که می‌خواهید زیردسته "${item.name}" را حذف کنید؟`)) {
         try {
-          await api.adminDeleteSubcategory(item.id)
-          await loadSubcategories()
+          await subcategoryStore.deleteSubcategory(item.id)
         } catch (error) {
           console.error('Failed to delete subcategory:', error)
         }
@@ -516,9 +512,9 @@ export default {
     })
 
     return {
-      subcategories,
-      categories,
-      loading,
+      subcategories: subcategoryStore.subcategories,
+      categories: categoryStore.categories,
+      loading: subcategoryStore.loading,
       saving,
       showDialog,
       editingItem,

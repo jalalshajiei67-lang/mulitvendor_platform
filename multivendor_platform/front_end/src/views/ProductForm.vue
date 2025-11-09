@@ -529,7 +529,7 @@
 </template>
 
 <script>
-import { useProductStore } from '@/stores/products';
+import { useProductStore } from '@/stores/modules/productStore';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';

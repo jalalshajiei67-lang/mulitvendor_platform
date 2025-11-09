@@ -281,7 +281,8 @@
 
 <script>
 import { ref, onMounted } from 'vue'
-import api from '@/services/api'
+import { useCategoryStore } from '@/stores/modules/categoryStore'
+import { useDepartmentStore } from '@/stores/modules/departmentStore'
 import TiptapEditor from '@/components/TiptapEditor.vue'
 
 export default {
@@ -290,9 +291,11 @@ export default {
     TiptapEditor
   },
   setup() {
-    const categories = ref([])
-    const departments = ref([])
-    const loading = ref(false)
+    // Stores
+    const categoryStore = useCategoryStore()
+    const departmentStore = useDepartmentStore()
+
+    // Local component state
     const saving = ref(false)
     const showDialog = ref(false)
     const editingItem = ref(null)
@@ -339,26 +342,21 @@ export default {
     ]
 
     const loadCategories = async () => {
-      loading.value = true
       try {
         const params = {}
         if (filters.value.search) params.search = filters.value.search
         if (filters.value.is_active !== null) params.is_active = filters.value.is_active
         if (filters.value.department) params.department = filters.value.department
 
-        const response = await api.getAdminCategories(params)
-        categories.value = response.data
+        await categoryStore.fetchAdminCategories(params)
       } catch (error) {
         console.error('Failed to load categories:', error)
-      } finally {
-        loading.value = false
       }
     }
 
     const loadDepartments = async () => {
       try {
-        const response = await api.getAdminDepartments()
-        departments.value = response.data
+        await departmentStore.fetchAdminDepartments()
       } catch (error) {
         console.error('Failed to load departments:', error)
       }
@@ -373,8 +371,7 @@ export default {
     const editCategory = async (item) => {
       editingItem.value = item
       try {
-        const response = await api.getAdminCategoryDetail(item.id)
-        const data = response.data
+        const data = await categoryStore.fetchAdminCategoryDetail(item.id)
         form.value = {
           name: data.name || '',
           slug: data.slug || '',
@@ -480,9 +477,9 @@ export default {
         }
 
         if (editingItem.value) {
-          await api.adminUpdateCategory(editingItem.value.id, formData)
+          await categoryStore.updateCategory(editingItem.value.id, formData)
         } else {
-          await api.adminCreateCategory(formData)
+          await categoryStore.createCategory(formData)
         }
 
         closeDialog()
@@ -497,8 +494,7 @@ export default {
     const deleteCategory = async (item) => {
       if (confirm(`آیا مطمئن هستید که می‌خواهید دسته‌بندی "${item.name}" را حذف کنید؟`)) {
         try {
-          await api.adminDeleteCategory(item.id)
-          await loadCategories()
+          await categoryStore.deleteCategory(item.id)
         } catch (error) {
           console.error('Failed to delete category:', error)
         }
@@ -516,9 +512,9 @@ export default {
     })
 
     return {
-      categories,
-      departments,
-      loading,
+      categories: categoryStore.categories,
+      departments: departmentStore.departments,
+      loading: categoryStore.loading,
       saving,
       showDialog,
       editingItem,

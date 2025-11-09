@@ -295,7 +295,7 @@
 </template>
 
 <script>
-import { useProductStore } from '@/stores/products'
+import { useProductStore } from '@/stores/modules/productStore'
 import { useAuthStore } from '@/stores/auth'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

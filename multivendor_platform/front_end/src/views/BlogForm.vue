@@ -242,7 +242,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBlogStore } from '@/stores/blog'
-import { useProductStore } from '@/stores/products'
+import { useCategoryStore } from '@/stores/modules/categoryStore'
 
 export default {
   name: 'BlogForm',
@@ -250,7 +250,7 @@ export default {
     const route = useRoute()
     const router = useRouter()
     const blogStore = useBlogStore()
-    const productStore = useProductStore()
+    const categoryStore = useCategoryStore()
     
     const isEditing = ref(false)
     const submitting = ref(false)
@@ -278,7 +278,7 @@ export default {
     })
     
     const categories = computed(() => blogStore.categories)
-    const productCategories = computed(() => productStore.categories)
+    const productCategories = computed(() => categoryStore.categories)
     const t = computed(() => blogStore.t)
     
     const selectedCategory = computed(() => {
@@ -294,7 +294,7 @@ export default {
     const fetchData = async () => {
       await Promise.all([
         blogStore.fetchCategories(),
-        productStore.fetchCategories()
+        categoryStore.fetchCategories()
       ])
     }
     

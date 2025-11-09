@@ -269,7 +269,7 @@
 
 <script>
 import { ref, onMounted } from 'vue'
-import api from '@/services/api'
+import { useDepartmentStore } from '@/stores/modules/departmentStore'
 import TiptapEditor from '@/components/TiptapEditor.vue'
 
 export default {
@@ -278,8 +278,10 @@ export default {
     TiptapEditor
   },
   setup() {
-    const departments = ref([])
-    const loading = ref(false)
+    // Store
+    const departmentStore = useDepartmentStore()
+
+    // Local component state
     const saving = ref(false)
     const showDialog = ref(false)
     const editingItem = ref(null)
@@ -325,18 +327,14 @@ export default {
     ]
 
     const loadDepartments = async () => {
-      loading.value = true
       try {
         const params = {}
         if (filters.value.search) params.search = filters.value.search
         if (filters.value.is_active !== null) params.is_active = filters.value.is_active
 
-        const response = await api.getAdminDepartments(params)
-        departments.value = response.data
+        await departmentStore.fetchAdminDepartments(params)
       } catch (error) {
         console.error('Failed to load departments:', error)
-      } finally {
-        loading.value = false
       }
     }
 
@@ -349,8 +347,7 @@ export default {
     const editDepartment = async (item) => {
       editingItem.value = item
       try {
-        const response = await api.getAdminDepartmentDetail(item.id)
-        const data = response.data
+        const data = await departmentStore.fetchAdminDepartmentDetail(item.id)
         form.value = {
           name: data.name || '',
           slug: data.slug || '',
@@ -449,9 +446,9 @@ export default {
         formData.append('is_active', form.value.is_active)
 
         if (editingItem.value) {
-          await api.adminUpdateDepartment(editingItem.value.id, formData)
+          await departmentStore.updateDepartment(editingItem.value.id, formData)
         } else {
-          await api.adminCreateDepartment(formData)
+          await departmentStore.createDepartment(formData)
         }
 
         closeDialog()
@@ -466,8 +463,7 @@ export default {
     const deleteDepartment = async (item) => {
       if (confirm(`آیا مطمئن هستید که می‌خواهید دپارتمان "${item.name}" را حذف کنید؟`)) {
         try {
-          await api.adminDeleteDepartment(item.id)
-          await loadDepartments()
+          await departmentStore.deleteDepartment(item.id)
         } catch (error) {
           console.error('Failed to delete department:', error)
         }
@@ -484,8 +480,8 @@ export default {
     })
 
     return {
-      departments,
-      loading,
+      departments: departmentStore.departments,
+      loading: departmentStore.loading,
       saving,
       showDialog,
       editingItem,

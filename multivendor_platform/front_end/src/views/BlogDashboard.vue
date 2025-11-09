@@ -292,14 +292,14 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBlogStore } from '@/stores/blog'
-import { useProductStore } from '@/stores/products'
+import { useCategoryStore } from '@/stores/modules/categoryStore'
 
 export default {
   name: 'BlogDashboard',
   setup() {
     const router = useRouter()
     const blogStore = useBlogStore()
-    const productStore = useProductStore()
+    const categoryStore = useCategoryStore()
     
     // State
     const activeTab = ref('posts')
@@ -335,7 +335,7 @@ export default {
     // Computed
     const myPosts = computed(() => blogStore.posts)
     const categories = computed(() => blogStore.categories)
-    const productCategories = computed(() => productStore.categories)
+    const productCategories = computed(() => categoryStore.categories)
     const loading = computed(() => blogStore.loading)
     const t = computed(() => blogStore.t)
     
@@ -372,7 +372,7 @@ export default {
       await Promise.all([
         blogStore.fetchMyPosts(),
         blogStore.fetchCategories(),
-        productStore.fetchCategories()
+        categoryStore.fetchCategories()
       ])
     }
     
