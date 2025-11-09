@@ -45,7 +45,7 @@
             v-for="product in paginatedProducts" 
             :key="product.id" 
             class="item-card"
-            @click="goToProductDetail(product.id)"
+            @click="goToProductDetail(product.slug || product.id)"
           >
             <div class="circular-image">
               <img 
@@ -234,8 +234,9 @@ export default {
       }
     }
 
-    const goToProductDetail = (id) => {
-      router.push({ name: 'ProductDetail', params: { id } })
+    const goToProductDetail = (slugOrId) => {
+      if (!slugOrId) return
+      router.push({ name: 'ProductDetail', params: { slug: slugOrId } })
     }
 
     watch(() => route.params.slug, () => {
