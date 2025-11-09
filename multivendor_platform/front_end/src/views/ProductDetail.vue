@@ -532,6 +532,7 @@ import { useAuthStore } from '@/stores/auth'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
+import { useHead } from '@unhead/vue'
 import RFQForm from '@/components/RFQForm.vue'
 
 export default {
@@ -606,6 +607,154 @@ export default {
       items.push({ title: product.value.name, disabled: true })
 
       return items
+    })
+
+    const stripHtml = (text) => {
+      if (typeof text !== 'string') {
+        return ''
+      }
+      return text.replace(/<[^>]+>/g, ' ')
+    }
+
+    const truncate = (text, maxLength = 160) => {
+      if (typeof text !== 'string') {
+        return undefined
+      }
+      const clean = text.replace(/\s+/g, ' ').trim()
+      if (!clean) {
+        return undefined
+      }
+      if (clean.length <= maxLength) {
+        return clean
+      }
+      return `${clean.slice(0, maxLength - 3)}...`
+    }
+
+    const fallbackDescription = 'مشخصات کامل محصول و نحوه همکاری با تامین‌کننده در ایندکسو.'
+
+    const productSummary = computed(() => {
+      if (!product.value) {
+        return fallbackDescription
+      }
+
+      const descriptionCandidates = [
+        product.value.meta_description,
+        product.value.short_description,
+        stripHtml(product.value.description)
+      ].filter(candidate => typeof candidate === 'string' && candidate.trim().length > 0)
+
+      if (!descriptionCandidates.length) {
+        return fallbackDescription
+      }
+
+      return truncate(descriptionCandidates[0]) || fallbackDescription
+    })
+
+    const productPrimaryImage = computed(() => {
+      if (!product.value) {
+        return undefined
+      }
+      if (product.value.primary_image) {
+        return product.value.primary_image
+      }
+      if (product.value.cover_image) {
+        return product.value.cover_image
+      }
+      if (product.value.images && product.value.images.length > 0) {
+        const firstImage = product.value.images[0]
+        return firstImage.image_url || firstImage.image
+      }
+      return undefined
+    })
+
+    const staticOrigin = import.meta.env.VITE_SITE_URL || ''
+
+    const canonicalUrl = computed(() => {
+      const origin = typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : staticOrigin
+
+      if (!origin) {
+        return undefined
+      }
+
+      return `${origin.replace(/\/+$/, '')}${route.fullPath}`
+    })
+
+    useHead(() => {
+      const title = product.value?.name || 'جزئیات محصول'
+      const description = productSummary.value
+      const image = productPrimaryImage.value
+      const url = canonicalUrl.value
+
+      const metaTags = [
+        {
+          key: 'og:type',
+          property: 'og:type',
+          content: 'product'
+        },
+        title && {
+          key: 'og:title',
+          property: 'og:title',
+          content: title
+        },
+        description && {
+          key: 'description',
+          name: 'description',
+          content: description
+        },
+        description && {
+          key: 'og:description',
+          property: 'og:description',
+          content: description
+        },
+        url && {
+          key: 'og:url',
+          property: 'og:url',
+          content: url
+        },
+        image && {
+          key: 'og:image',
+          property: 'og:image',
+          content: image
+        },
+        title && {
+          key: 'twitter:title',
+          name: 'twitter:title',
+          content: title
+        },
+        description && {
+          key: 'twitter:description',
+          name: 'twitter:description',
+          content: description
+        },
+        image && {
+          key: 'twitter:image',
+          name: 'twitter:image',
+          content: image
+        },
+        {
+          key: 'twitter:card',
+          name: 'twitter:card',
+          content: image ? 'summary_large_image' : 'summary'
+        }
+      ].filter(Boolean)
+
+      const linkTags = url
+        ? [
+            {
+              key: 'canonical',
+              rel: 'canonical',
+              href: url
+            }
+          ]
+        : []
+
+      return {
+        title,
+        meta: metaTags,
+        link: linkTags
+      }
     })
 
     const setCurrentImage = (index) => {

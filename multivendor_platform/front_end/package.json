@@ -26,6 +26,7 @@
     "@tiptap/extension-text-style": "^3.10.2",
     "@tiptap/starter-kit": "^3.10.2",
     "@tiptap/vue-3": "^3.10.2",
+    "@unhead/vue": "^2.0.19",
     "axios": "^1.12.2",
     "pinia": "^3.0.3",
     "vue": "^3.5.22",
