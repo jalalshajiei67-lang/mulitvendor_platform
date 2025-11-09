@@ -16,6 +16,7 @@ from .views import (
     admin_update_category_view, admin_delete_category_view,
     admin_subcategories_view, admin_subcategory_detail_view, admin_create_subcategory_view,
     admin_update_subcategory_view, admin_delete_subcategory_view,
+    admin_blog_posts_view, admin_blog_categories_view,
     SupplierViewSet, SupplierCommentViewSet
 )
 
@@ -77,6 +78,10 @@ urlpatterns = [
     path('admin/subcategories/create/', admin_create_subcategory_view, name='admin-create-subcategory'),
     path('admin/subcategories/<int:subcategory_id>/update/', admin_update_subcategory_view, name='admin-update-subcategory'),
     path('admin/subcategories/<int:subcategory_id>/delete/', admin_delete_subcategory_view, name='admin-delete-subcategory'),
+    
+    # Admin Blog Management
+    path('admin/blog/posts/', admin_blog_posts_view, name='admin-blog-posts'),
+    path('admin/blog/categories/', admin_blog_categories_view, name='admin-blog-categories'),
     
     # Seller Ads (ViewSet routes)
     path('', include(router.urls)),

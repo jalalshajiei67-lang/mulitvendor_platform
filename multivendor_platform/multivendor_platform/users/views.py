@@ -1065,3 +1065,58 @@ class SupplierCommentViewSet(viewsets.ModelViewSet):
         
         # Log activity
         log_activity(self.request.user, 'other', 'User created a supplier comment', self.request)
+
+
+# ===== ADMIN BLOG MANAGEMENT =====
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_blog_posts_view(request):
+    """Get all blog posts with filtering for admin"""
+    from blog.models import BlogPost
+    from blog.serializers import BlogPostListSerializer
+    
+    posts = BlogPost.objects.all().order_by('-created_at')
+    
+    # Filter by status
+    status_filter = request.query_params.get('status')
+    if status_filter:
+        posts = posts.filter(status=status_filter)
+    
+    # Filter by category
+    category = request.query_params.get('category')
+    if category:
+        posts = posts.filter(category__id=category)
+    
+    # Search by title/content
+    search = request.query_params.get('search')
+    if search:
+        posts = posts.filter(
+            Q(title__icontains=search) | 
+            Q(content__icontains=search) |
+            Q(excerpt__icontains=search)
+        )
+    
+    serializer = BlogPostListSerializer(posts, many=True, context={'request': request})
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_blog_categories_view(request):
+    """Get all blog categories with filtering for admin"""
+    from blog.models import BlogCategory
+    from blog.serializers import BlogCategorySerializer
+    
+    categories = BlogCategory.objects.all()
+    
+    # Search by name/description
+    search = request.query_params.get('search')
+    if search:
+        categories = categories.filter(
+            Q(name__icontains=search) | 
+            Q(description__icontains=search)
+        )
+    
+    serializer = BlogCategorySerializer(categories, many=True, context={'request': request})
+    return Response(serializer.data)

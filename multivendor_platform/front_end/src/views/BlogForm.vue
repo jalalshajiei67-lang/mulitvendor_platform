@@ -25,7 +25,9 @@
                   required 
                   :placeholder="t('enterTitle')"
                   class="form-input"
+                  :class="{ 'error': !form.title.trim() && submitting }"
                 />
+                <small v-if="!form.title.trim() && submitting" class="error-text">عنوان پست الزامی است</small>
               </div>
 
               <div class="form-group">
@@ -100,16 +102,24 @@
 
               <div class="form-group">
                 <label for="category">{{ t('category') }} *</label>
-                <select id="category" v-model="form.category" required class="form-select">
-                  <option value="">{{ t('selectCategory') }}</option>
-                  <option v-for="category in categories" :key="category.id" :value="category.id">
-                    {{ category.name }}
-                  </option>
-                </select>
-                <button @click="showCreateCategory = true" class="create-category-btn">
-                  <i class="fas fa-plus"></i>
-                  {{ t('createNewCategory') }}
-                </button>
+                <div class="category-select-wrapper">
+                  <select 
+                    id="category" 
+                    v-model="form.category" 
+                    class="form-select"
+                    :class="{ 'error': !form.category && submitting }"
+                    required
+                  >
+                    <option value="">{{ t('selectCategory') }}</option>
+                    <option v-for="category in categories" :key="category.id" :value="category.id">
+                      {{ category.name }}
+                    </option>
+                  </select>
+                  <button type="button" @click="showCreateCategory = true" class="add-category-btn">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+                <small v-if="!form.category && submitting" class="error-text">انتخاب دسته‌بندی الزامی است</small>
               </div>
 
               <div class="form-group">
@@ -363,9 +373,30 @@ export default {
       submitting.value = true
       try {
         const formData = new FormData()
+        
+        // Validate required fields
+        if (!form.value.title.trim()) {
+          throw new Error('عنوان پست الزامی است')
+        }
+        if (!form.value.content.trim()) {
+          throw new Error('محتوای پست الزامی است')
+        }
+        if (!form.value.category || form.value.category === '') {
+          throw new Error('انتخاب دسته‌بندی الزامی است')
+        }
+        
+        // Append only non-empty fields
         Object.keys(form.value).forEach(key => {
-          if (form.value[key] !== null && form.value[key] !== '') {
-            formData.append(key, form.value[key])
+          if (form.value[key] !== null && form.value[key] !== '' && form.value[key] !== undefined) {
+            if (key === 'category') {
+              // Ensure category is sent as integer
+              formData.append(key, parseInt(form.value[key]))
+            } else if (key === 'is_featured') {
+              // Ensure boolean is sent as string for FormData
+              formData.append(key, form.value[key] ? 'true' : 'false')
+            } else {
+              formData.append(key, form.value[key])
+            }
           }
         })
         
@@ -378,6 +409,30 @@ export default {
         router.push('/blog/dashboard')
       } catch (error) {
         console.error('Error submitting form:', error)
+        // Show user-friendly error message
+        if (error.message) {
+          alert(error.message)
+        } else if (error.response?.data) {
+          // Handle backend validation errors
+          const errorData = error.response.data
+          let errorMessage = 'خطا در ارسال فرم: '
+          
+          if (typeof errorData === 'object') {
+            Object.keys(errorData).forEach(key => {
+              if (Array.isArray(errorData[key])) {
+                errorMessage += `${key}: ${errorData[key].join(', ')}`
+              } else {
+                errorMessage += `${key}: ${errorData[key]}`
+              }
+            })
+          } else {
+            errorMessage += errorData
+          }
+          
+          alert(errorMessage)
+        } else {
+          alert('خطا در ارسال فرم. لطفاً دوباره تلاش کنید.')
+        }
       } finally {
         submitting.value = false
       }
@@ -565,6 +620,27 @@ export default {
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
+.form-input.error,
+.form-textarea.error,
+.form-select.error {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.form-input.error:focus,
+.form-textarea.error:focus,
+.form-select.error:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+}
+
+.error-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #dc3545;
+}
+
 .form-textarea {
   resize: vertical;
   min-height: 100px;
@@ -613,6 +689,27 @@ export default {
 }
 
 .create-category-btn:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+.add-category-btn {
+  background: none;
+  border: 1px solid #007bff;
+  color: #007bff;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.3s ease;
+  flex-direction: row-reverse;
+}
+
+.add-category-btn:hover {
   background-color: #007bff;
   color: white;
 }
