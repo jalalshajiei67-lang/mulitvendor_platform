@@ -394,7 +394,7 @@ router.beforeEach((to, from, next) => {
 })
 
 router.afterEach((to) => {
-  if (removeRouteHeadEntry) {
+  if (removeRouteHeadEntry && typeof removeRouteHeadEntry === 'function') {
     removeRouteHeadEntry()
     removeRouteHeadEntry = undefined
   }

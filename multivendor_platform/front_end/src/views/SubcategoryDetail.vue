@@ -103,9 +103,11 @@
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useHead } from '@unhead/vue'
 import api from '@/services/api'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import { formatImageUrl } from '@/utils/imageUtils'
+import { prepareSchemaScripts, generateBreadcrumbSchema } from '@/composables/useSchema'
 
 export default {
   name: 'SubcategoryDetail',
@@ -143,6 +145,67 @@ export default {
       items.push({ text: subcategory.value?.name || 'زیردسته', to: `/subcategories/${route.params.slug}` })
       
       return items
+    })
+
+    // Setup useHead at the top with reactive data
+    useHead(() => {
+      if (!subcategory.value) {
+        return {
+          title: 'زیردسته',
+          meta: []
+        }
+      }
+
+      const baseUrl = typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : import.meta.env.VITE_SITE_URL || ''
+
+      const schemas = []
+
+      // Use schema_markup from database if available
+      if (subcategory.value.schema_markup) {
+        try {
+          const parsedSchema = typeof subcategory.value.schema_markup === 'string'
+            ? JSON.parse(subcategory.value.schema_markup)
+            : subcategory.value.schema_markup
+          
+          if (Array.isArray(parsedSchema)) {
+            schemas.push(...parsedSchema)
+          } else {
+            schemas.push(parsedSchema)
+          }
+
+          // Add BreadcrumbList schema only if schema_markup exists
+          if (breadcrumbItems.value.length > 0 && baseUrl) {
+            const breadcrumbSchema = generateBreadcrumbSchema(
+              breadcrumbItems.value.map(item => ({
+                name: item.text,
+                url: item.to ? `${baseUrl}${item.to}` : undefined
+              })),
+              baseUrl
+            )
+            if (breadcrumbSchema) {
+              schemas.push(breadcrumbSchema)
+            }
+          }
+        } catch (error) {
+          console.warn('Error parsing schema_markup:', error)
+        }
+      }
+
+      // Prepare script tags for schemas
+      const scriptTags = schemas.length > 0 ? prepareSchemaScripts(schemas) : []
+
+      return {
+        title: subcategory.value.meta_title || subcategory.value.name,
+        meta: [
+          {
+            name: 'description',
+            content: subcategory.value.meta_description || (subcategory.value.description ? subcategory.value.description.substring(0, 160) : '')
+          }
+        ],
+        ...(scriptTags.length > 0 && { script: scriptTags })
+      }
     })
 
     const fetchSubcategoryData = async () => {

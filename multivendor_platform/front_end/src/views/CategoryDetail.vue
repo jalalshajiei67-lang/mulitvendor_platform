@@ -102,9 +102,11 @@
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useHead } from '@unhead/vue'
 import api from '@/services/api'
 import Breadcrumb from '@/components/Breadcrumb.vue'
 import { formatImageUrl } from '@/utils/imageUtils'
+import { prepareSchemaScripts, generateBreadcrumbSchema } from '@/composables/useSchema'
 
 export default {
   name: 'CategoryDetail',
@@ -136,6 +138,67 @@ export default {
       items.push({ text: category.value?.name || 'دسته‌بندی', to: `/categories/${route.params.slug}` })
       
       return items
+    })
+
+    // Setup useHead at the top with reactive data
+    useHead(() => {
+      if (!category.value) {
+        return {
+          title: 'دسته‌بندی',
+          meta: []
+        }
+      }
+
+      const baseUrl = typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : import.meta.env.VITE_SITE_URL || ''
+
+      const schemas = []
+
+      // Use schema_markup from database if available
+      if (category.value.schema_markup) {
+        try {
+          const parsedSchema = typeof category.value.schema_markup === 'string'
+            ? JSON.parse(category.value.schema_markup)
+            : category.value.schema_markup
+          
+          if (Array.isArray(parsedSchema)) {
+            schemas.push(...parsedSchema)
+          } else {
+            schemas.push(parsedSchema)
+          }
+
+          // Add BreadcrumbList schema only if schema_markup exists
+          if (breadcrumbItems.value.length > 0 && baseUrl) {
+            const breadcrumbSchema = generateBreadcrumbSchema(
+              breadcrumbItems.value.map(item => ({
+                name: item.text,
+                url: item.to ? `${baseUrl}${item.to}` : undefined
+              })),
+              baseUrl
+            )
+            if (breadcrumbSchema) {
+              schemas.push(breadcrumbSchema)
+            }
+          }
+        } catch (error) {
+          console.warn('Error parsing schema_markup:', error)
+        }
+      }
+
+      // Prepare script tags for schemas
+      const scriptTags = schemas.length > 0 ? prepareSchemaScripts(schemas) : []
+
+      return {
+        title: category.value.meta_title || category.value.name,
+        meta: [
+          {
+            name: 'description',
+            content: category.value.meta_description || (category.value.description ? category.value.description.substring(0, 160) : '')
+          }
+        ],
+        ...(scriptTags.length > 0 && { script: scriptTags })
+      }
     })
 
     const fetchCategoryData = async () => {

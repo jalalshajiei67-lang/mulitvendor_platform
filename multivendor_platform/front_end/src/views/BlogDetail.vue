@@ -337,8 +337,10 @@
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useHead } from '@unhead/vue'
 import { useBlogStore } from '@/stores/blog'
 import { useAuthStore } from '@/stores/auth'
+import { prepareSchemaScripts, generateArticleSchema, generateBreadcrumbSchema } from '@/composables/useSchema'
 
 export default {
   name: 'BlogDetail',
@@ -365,6 +367,83 @@ export default {
     
     const isAuthor = computed(() => {
       return post.value && authStore.user && post.value.author === authStore.user.id
+    })
+
+    // Setup useHead at the top with reactive data
+    useHead(() => {
+      if (!post.value) {
+        return {
+          title: 'وبلاگ',
+          meta: []
+        }
+      }
+
+      const baseUrl = typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : import.meta.env.VITE_SITE_URL || ''
+
+      const schemas = []
+
+      // Generate automatic Article schema (BlogPost doesn't have schema_markup field)
+      const articleSchema = generateArticleSchema(post.value, baseUrl)
+      if (articleSchema) {
+        schemas.push(articleSchema)
+      }
+
+      // Add BreadcrumbList schema
+      if (baseUrl) {
+        const breadcrumbSchema = generateBreadcrumbSchema([
+          { name: 'خانه', url: `${baseUrl}/` },
+          { name: 'وبلاگ', url: `${baseUrl}/blog` },
+          ...(post.value.category ? [{ name: post.value.category_name || post.value.category?.name, url: `${baseUrl}/blog/category/${post.value.category?.slug || post.value.category}` }] : []),
+          { name: post.value.title, url: `${baseUrl}/blog/${post.value.slug}` }
+        ], baseUrl)
+        if (breadcrumbSchema) {
+          schemas.push(breadcrumbSchema)
+        }
+      }
+
+      // Prepare script tags for schemas
+      const scriptTags = schemas.length > 0 ? prepareSchemaScripts(schemas) : []
+
+      return {
+        title: post.value.meta_title || post.value.title,
+        meta: [
+          {
+            name: 'description',
+            content: post.value.meta_description || post.value.excerpt || ''
+          },
+          {
+            property: 'og:type',
+            content: 'article'
+          },
+          {
+            property: 'og:title',
+            content: post.value.meta_title || post.value.title
+          },
+          {
+            property: 'og:description',
+            content: post.value.meta_description || post.value.excerpt || ''
+          },
+          {
+            property: 'og:image',
+            content: post.value.featured_image || ''
+          },
+          {
+            property: 'article:published_time',
+            content: post.value.published_at || post.value.created_at
+          },
+          {
+            property: 'article:modified_time',
+            content: post.value.updated_at
+          },
+          {
+            property: 'article:author',
+            content: post.value.author_name || ''
+          }
+        ],
+        ...(scriptTags.length > 0 && { script: scriptTags })
+      }
     })
     
     const fetchPost = async () => {

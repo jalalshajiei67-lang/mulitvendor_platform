@@ -533,6 +533,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useHead } from '@unhead/vue'
+import { prepareSchemaScripts, generateProductSchema, generateBreadcrumbSchema } from '@/composables/useSchema'
 import RFQForm from '@/components/RFQForm.vue'
 
 export default {
@@ -593,10 +594,18 @@ export default {
       ]
 
       if (product.value.breadcrumb_hierarchy && product.value.breadcrumb_hierarchy.length > 0) {
+        // Map type to correct route path
+        const typeToPath = {
+          'department': 'departments',
+          'category': 'categories',
+          'subcategory': 'subcategories'
+        }
+        
         product.value.breadcrumb_hierarchy.forEach(item => {
+          const path = typeToPath[item.type] || `${item.type}s`
           items.push({
             title: item.name,
-            to: `/${item.type}s/${item.slug}`,
+            to: `/${path}/${item.slug}`,
             disabled: false
           })
         })
@@ -687,6 +696,10 @@ export default {
       const image = productPrimaryImage.value
       const url = canonicalUrl.value
 
+      const baseUrl = typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : staticOrigin
+
       const metaTags = [
         {
           key: 'og:type',
@@ -750,10 +763,55 @@ export default {
           ]
         : []
 
+      const schemas = []
+
+      // Use schema_markup from database if available
+      if (product.value?.schema_markup) {
+        try {
+          const parsedSchema = typeof product.value.schema_markup === 'string'
+            ? JSON.parse(product.value.schema_markup)
+            : product.value.schema_markup
+          
+          if (Array.isArray(parsedSchema)) {
+            schemas.push(...parsedSchema)
+          } else {
+            schemas.push(parsedSchema)
+          }
+        } catch (error) {
+          console.warn('Error parsing schema_markup:', error)
+        }
+      }
+
+      // Always generate automatic Product schema
+      if (product.value && baseUrl) {
+        const productSchema = generateProductSchema(product.value, baseUrl)
+        if (productSchema) {
+          schemas.push(productSchema)
+        }
+
+        // Add BreadcrumbList schema only if schema_markup exists
+        if (product.value.schema_markup && breadcrumbItems.value.length > 0) {
+          const breadcrumbSchema = generateBreadcrumbSchema(
+            breadcrumbItems.value.map(item => ({
+              name: item.title,
+              url: item.to ? `${baseUrl}${item.to}` : undefined
+            })),
+            baseUrl
+          )
+          if (breadcrumbSchema) {
+            schemas.push(breadcrumbSchema)
+          }
+        }
+      }
+
+      // Prepare script tags for schemas
+      const scriptTags = schemas.length > 0 ? prepareSchemaScripts(schemas) : []
+
       return {
         title,
         meta: metaTags,
-        link: linkTags
+        link: linkTags,
+        ...(scriptTags.length > 0 && { script: scriptTags })
       }
     })
 
