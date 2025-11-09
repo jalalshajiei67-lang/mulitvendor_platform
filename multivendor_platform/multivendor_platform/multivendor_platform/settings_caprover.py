@@ -132,6 +132,9 @@ STATICFILES_FINDERS = [
 MEDIA_URL = os.environ.get('MEDIA_URL', '/media/')
 MEDIA_ROOT = os.environ.get('MEDIA_ROOT', '/app/media')
 
+# Base URL for building absolute URLs (used in serializers)
+BASE_URL = os.environ.get('BASE_URL', 'https://multivendor-backend.indexo.ir')
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -410,6 +413,10 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
+
+# Proxy SSL header - Required for Django to detect HTTPS when behind CapRover proxy
+# CapRover sets X-Forwarded-Proto header, so Django knows the original request was HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Cookie security settings for HTTPS
 SESSION_COOKIE_SECURE = True

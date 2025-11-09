@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Order, OrderItem, Payment, OrderImage
 from products.models import Product
+from products.utils import build_absolute_uri
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product_id = serializers.IntegerField(write_only=True, required=False)
@@ -27,9 +28,7 @@ class OrderImageSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         if obj.image:
             request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
+            return build_absolute_uri(request, obj.image.url)
         return None
 
 class OrderSerializer(serializers.ModelSerializer):
