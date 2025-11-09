@@ -135,6 +135,9 @@ export const useProductStore = defineStore('products', {
       } catch (error) {
         this.error = this.t('failedToCreate');
         console.error('Error creating product:', error);
+        console.error('Error response:', error.response);
+        console.error('Error response data:', error.response?.data);
+        console.error('Error status:', error.response?.status);
         throw error;
       } finally {
         this.loading = false;

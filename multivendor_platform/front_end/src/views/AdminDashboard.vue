@@ -1,153 +1,18 @@
 <template>
   <div dir="rtl" class="admin-dashboard-wrapper">
     <!-- Navigation Drawer (Sidebar) -->
-    <v-navigation-drawer
-      v-model="drawer"
-      :permanent="!isMobile"
-      :temporary="isMobile"
-      :rail="rail && !isMobile"
-      :width="271"
-      location="right"
-      class="admin-sidebar"
-      fixed
-      dir="rtl"
-    >
-      <div class="sidebar-header">
-        <v-list-item
-          v-if="!rail || isMobile"
-          prepend-avatar="/indexo.jpg"
-          :title="authStore.user?.username || 'Admin'"
-          :subtitle="authStore.user?.email || ''"
-        ></v-list-item>
-        <v-btn
-          v-if="!isMobile"
-          icon
-          variant="text"
-          @click="rail = !rail"
-          class="rail-toggle"
-        >
-          <v-icon>{{ rail ? 'mdi-chevron-right' : 'mdi-chevron-left' }}</v-icon>
-        </v-btn>
-      </div>
-
-      <v-divider class="sidebar-divider"></v-divider>
-
-      <v-list density="compact" nav class="sidebar-menu-list">
-        <v-list-item
-          prepend-icon="mdi-view-dashboard"
-          title="داشبورد"
-          value="dashboard"
-          :active="activeView === 'dashboard'"
-          @click="setActiveView('dashboard')"
-        ></v-list-item>
-
-        <v-list-item
-          prepend-icon="mdi-account-multiple"
-          title="مدیریت کاربران"
-          value="users"
-          :active="activeView === 'users'"
-          @click="setActiveView('users')"
-        ></v-list-item>
-
-        <v-list-group value="products">
-          <template v-slot:activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              prepend-icon="mdi-package-variant"
-              title="مدیریت محصولات"
-            ></v-list-item>
-          </template>
-
-          <v-list-item
-            prepend-icon="mdi-format-list-bulleted"
-            title="لیست محصولات"
-            value="products-list"
-            :active="activeView === 'products'"
-            @click="setActiveView('products')"
-          ></v-list-item>
-
-          <v-list-item
-            prepend-icon="mdi-plus-circle"
-            title="افزودن محصول"
-            value="products-create"
-            @click="createNewProduct"
-          ></v-list-item>
-
-          <v-list-item
-            prepend-icon="mdi-domain"
-            title="مدیریت دپارتمان‌ها"
-            value="departments"
-            :active="activeView === 'departments'"
-            @click.stop="setActiveView('departments')"
-          ></v-list-item>
-
-          <v-list-item
-            prepend-icon="mdi-folder"
-            title="مدیریت دسته‌بندی‌ها"
-            value="categories"
-            :active="activeView === 'categories'"
-            @click.stop="setActiveView('categories')"
-          ></v-list-item>
-
-          <v-list-item
-            prepend-icon="mdi-folder-multiple"
-            title="مدیریت زیردسته‌ها"
-            value="subcategories"
-            :active="activeView === 'subcategories'"
-            @click.stop="setActiveView('subcategories')"
-          ></v-list-item>
-        </v-list-group>
-
-        <v-list-item
-          prepend-icon="mdi-history"
-          title="گزارش فعالیت‌ها"
-          value="activities"
-          :active="activeView === 'activities'"
-          @click="setActiveView('activities')"
-        ></v-list-item>
-
-        <v-list-item
-          prepend-icon="mdi-file-document-edit-outline"
-          title="درخواست‌های استعلام قیمت"
-          value="rfqs"
-          :active="activeView === 'rfqs'"
-          @click="setActiveView('rfqs')"
-        ></v-list-item>
-
-        <v-list-group value="blog">
-          <template v-slot:activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              prepend-icon="mdi-newspaper"
-              title="مدیریت وبلاگ"
-            ></v-list-item>
-          </template>
-
-          <v-list-item
-            prepend-icon="mdi-format-list-bulleted"
-            title="لیست پست‌ها"
-            value="blog-posts"
-            :active="activeView === 'blog'"
-            @click="setActiveView('blog')"
-          ></v-list-item>
-
-          <v-list-item
-            prepend-icon="mdi-plus-circle"
-            title="افزودن پست"
-            value="blog-create"
-            @click="createNewBlogPost"
-          ></v-list-item>
-
-          <v-list-item
-            prepend-icon="mdi-tag"
-            title="مدیریت دسته‌بندی‌ها"
-            value="blog-categories"
-            :active="activeView === 'blog-categories'"
-            @click="setActiveView('blog-categories')"
-          ></v-list-item>
-        </v-list-group>
-      </v-list>
-    </v-navigation-drawer>
+    <AdminSidebar
+      :drawer="drawer"
+      :rail="rail"
+      :is-mobile="isMobile"
+      :active-view="activeView"
+      :user="authStore.user"
+      @update:drawer="drawer = $event"
+      @update:rail="rail = $event"
+      @navigate="setActiveView"
+      @create-product="createNewProduct"
+      @create-blog-post="createNewBlogPost"
+    />
 
     <!-- App Bar (Header) -->
     <v-app-bar
@@ -1426,6 +1291,7 @@ import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
+import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import DepartmentManagement from '@/components/admin/DepartmentManagement.vue'
 import CategoryManagement from '@/components/admin/CategoryManagement.vue'
 import SubcategoryManagement from '@/components/admin/SubcategoryManagement.vue'
@@ -1433,6 +1299,7 @@ import SubcategoryManagement from '@/components/admin/SubcategoryManagement.vue'
 export default {
   name: 'AdminDashboard',
   components: {
+    AdminSidebar,
     DepartmentManagement,
     CategoryManagement,
     SubcategoryManagement
@@ -1448,6 +1315,19 @@ export default {
     const isMobile = computed(() => mdAndDown.value)
     const activeView = ref('dashboard')
     const isNavigatingFromForm = ref(false)
+    const validViews = new Set([
+      'dashboard',
+      'users',
+      'products',
+      'departments',
+      'categories',
+      'subcategories',
+      'activities',
+      'blog',
+      'blog-categories',
+      'rfqs'
+    ])
+    const isProgrammaticViewUpdate = ref(false)
     
     // Check if we're on a product or blog form route (admin routes)
     const isProductFormRoute = computed(() => {
@@ -1737,6 +1617,42 @@ export default {
       }
     }
     
+    const syncActiveViewFromQuery = (view) => {
+      if (typeof view === 'string' && validViews.has(view)) {
+        activeView.value = view
+      } else if (!view && route.path === '/admin/dashboard') {
+        activeView.value = 'dashboard'
+      }
+    }
+
+    syncActiveViewFromQuery(route.query.view)
+
+    const updateRouteViewQuery = async (view) => {
+      const query = { ...route.query }
+      if (view && view !== 'dashboard') {
+        query.view = view
+      } else {
+        delete query.view
+      }
+
+      if (route.path !== '/admin/dashboard') {
+        return
+      }
+
+      isProgrammaticViewUpdate.value = true
+      try {
+        await router.replace({ path: '/admin/dashboard', query })
+      } catch (error) {
+        if (error?.name !== 'NavigationDuplicated') {
+          console.error('Failed to update admin dashboard view query:', error)
+        }
+      } finally {
+        setTimeout(() => {
+          isProgrammaticViewUpdate.value = false
+        }, 0)
+      }
+    }
+    
     const setActiveView = (view) => {
       console.log('Setting active view to:', view)
       
@@ -1752,6 +1668,7 @@ export default {
             drawer.value = false
           }
           scrollToTop()
+          updateRouteViewQuery(view)
           // Clear flag after a short delay
           setTimeout(() => {
             isNavigatingFromForm.value = false
@@ -1764,6 +1681,7 @@ export default {
             drawer.value = false
           }
           isNavigatingFromForm.value = false
+          updateRouteViewQuery(view)
         })
       } else {
         // If already on dashboard, just update the view
@@ -1772,6 +1690,7 @@ export default {
           drawer.value = false
         }
         scrollToTop()
+        updateRouteViewQuery(view)
       }
     }
     
@@ -2294,10 +2213,28 @@ export default {
       } else if (isBlogFormRoute.value) {
         activeView.value = 'blog'
       } else if (newPath === '/admin/dashboard') {
-        // Only reset to dashboard if not navigating from form
-        activeView.value = 'dashboard'
+        const queryView = typeof route.query.view === 'string' ? route.query.view : null
+        if (queryView && validViews.has(queryView)) {
+          activeView.value = queryView
+        } else {
+          activeView.value = 'dashboard'
+        }
       }
     }, { immediate: true })
+    
+    watch(() => route.query.view, (newView) => {
+      if (isNavigatingFromForm.value || isProgrammaticViewUpdate.value) {
+        return
+      }
+      if (route.path !== '/admin/dashboard') {
+        return
+      }
+      if (typeof newView === 'string' && validViews.has(newView)) {
+        activeView.value = newView
+      } else if (!newView) {
+        activeView.value = 'dashboard'
+      }
+    })
     
     // RFQ Management Methods
     const loadRFQs = async () => {
@@ -2532,34 +2469,6 @@ export default {
 </script>
 
 <style scoped>
-.admin-sidebar {
-  direction: rtl;
-  right: 0 !important;
-  left: auto !important;
-}
-
-.sidebar-header {
-  position: relative;
-  padding: 8px;
-}
-
-.rail-toggle {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-bottom: 10px;
-}
-
-.sidebar-divider {
-  margin-bottom: 10px;
-}
-
-.sidebar-menu-list {
-  margin-top: 10px;
-  width: 100%;
-}
-
 .admin-header {
   direction: ltr;
 }

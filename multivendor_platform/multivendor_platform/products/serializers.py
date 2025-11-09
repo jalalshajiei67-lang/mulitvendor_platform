@@ -180,8 +180,12 @@ class ProductSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         request = self.context.get('request')
         if request and request.user.is_staff:
-            # Admin users can modify vendor field
+            # Admin users can modify vendor field, but it's optional (will default to current user if not provided)
             self.Meta.read_only_fields = ['created_at', 'updated_at']
+            # Make vendor field optional for admins (not required)
+            if 'vendor' in self.fields:
+                self.fields['vendor'].required = False
+                self.fields['vendor'].allow_null = True
         else:
             # Regular users cannot modify vendor field
             self.Meta.read_only_fields = ['vendor', 'created_at', 'updated_at']
@@ -218,11 +222,11 @@ class ProductSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Set the vendor to the current authenticated user, unless it's an admin specifying a different vendor
         request = self.context.get('request')
-        if request and request.user.is_staff and 'vendor' in validated_data:
-            # Admin can specify vendor
+        if request and request.user.is_staff and 'vendor' in validated_data and validated_data['vendor']:
+            # Admin can specify a specific vendor
             pass
         else:
-            # Regular users must be set as vendor
+            # Set vendor to current user (for both regular users and admins who didn't specify vendor)
             validated_data['vendor'] = request.user
         return super().create(validated_data)
     

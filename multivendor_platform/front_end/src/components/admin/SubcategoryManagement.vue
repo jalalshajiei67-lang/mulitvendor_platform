@@ -200,16 +200,44 @@
                 ></v-switch>
               </v-col>
               <v-col cols="12">
-                <v-select
-                  v-model="form.categories"
-                  :items="categories"
-                  item-title="name"
-                  item-value="id"
-                  label="دسته‌بندی‌ها"
-                  multiple
-                  variant="outlined"
-                  density="compact"
-                ></v-select>
+                <div class="d-flex align-center" style="gap: 8px;">
+                  <v-select
+                    v-model="form.categories"
+                    :items="categories"
+                    item-title="name"
+                    item-value="id"
+                    label="دسته‌بندی‌ها *"
+                    multiple
+                    chips
+                    variant="outlined"
+                    density="compact"
+                    :loading="categoryStore.loading"
+                    :disabled="categoryStore.loading"
+                    :hint="categories && categories.length === 0 ? 'هیچ دسته‌بندی وجود ندارد. لطفاً ابتدا یک دسته‌بندی ایجاد کنید.' : `${categories?.length || 0} دسته‌بندی موجود است`"
+                    persistent-hint
+                    :rules="[v => (v && v.length > 0) || 'حداقل یک دسته‌بندی را انتخاب کنید']"
+                    style="flex: 1;"
+                  >
+                    <template v-slot:no-data>
+                      <v-list-item>
+                        <v-list-item-title>
+                          هیچ دسته‌بندی یافت نشد
+                        </v-list-item-title>
+                      </v-list-item>
+                    </template>
+                  </v-select>
+                  <v-btn
+                    icon
+                    variant="outlined"
+                    color="primary"
+                    @click="loadCategories"
+                    :loading="categoryStore.loading"
+                    title="بارگذاری مجدد دسته‌بندی‌ها"
+                    size="small"
+                  >
+                    <v-icon>mdi-refresh</v-icon>
+                  </v-btn>
+                </div>
               </v-col>
 
               <!-- SEO Section -->
@@ -357,20 +385,33 @@ export default {
     const loadCategories = async () => {
       try {
         await categoryStore.fetchAdminCategories()
+        console.log('Categories loaded:', categoryStore.categories)
+        console.log('Number of categories:', categoryStore.categories?.length)
       } catch (error) {
         console.error('Failed to load categories:', error)
+        // Show user-friendly error message
+        alert('خطا در بارگذاری دسته‌بندی‌ها. لطفاً صفحه را بارگذاری مجدد کنید.')
       }
     }
 
-    const openCreateDialog = () => {
+    const openCreateDialog = async () => {
       editingItem.value = null
       resetForm()
+      // Ensure categories are loaded before opening dialog
+      if (!categoryStore.categories || categoryStore.categories.length === 0) {
+        await loadCategories()
+      }
       showDialog.value = true
     }
 
     const editSubcategory = async (item) => {
       editingItem.value = item
       try {
+        // Ensure categories are loaded before opening dialog
+        if (!categoryStore.categories || categoryStore.categories.length === 0) {
+          await loadCategories()
+        }
+        
         const data = await subcategoryStore.fetchAdminSubcategoryDetail(item.id)
         form.value = {
           name: data.name || '',
@@ -393,6 +434,7 @@ export default {
         showDialog.value = true
       } catch (error) {
         console.error('Failed to load subcategory:', error)
+        alert('خطا در بارگذاری اطلاعات زیردسته')
       }
     }
 
@@ -520,6 +562,7 @@ export default {
     return {
       subcategories: subcategoryStore.subcategories,
       categories: categoryStore.categories,
+      categoryStore,
       loading: subcategoryStore.loading,
       saving,
       showDialog,

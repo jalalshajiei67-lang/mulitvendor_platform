@@ -1,220 +1,308 @@
 <template>
-  <div class="blog-dashboard" dir="rtl">
-    <div class="container">
-      <!-- Dashboard Header -->
-      <div class="dashboard-header">
-        <h1>{{ t('blog') }} {{ t('dashboard') }}</h1>
-        <div class="header-actions">
-          <button @click="createNewPost" class="btn btn-primary">
-            <i class="fas fa-plus"></i>
-            {{ t('newPost') }}
-          </button>
-          <button @click="showCreateCategory = true" class="btn btn-secondary">
-            <i class="fas fa-tag"></i>
-            {{ t('newCategory') }}
-          </button>
-        </div>
-      </div>
+  <div dir="rtl" class="blog-admin-dashboard-wrapper">
+    <AdminSidebar
+      :drawer="drawer"
+      :rail="rail"
+      :is-mobile="isMobile"
+      :active-view="sidebarActiveView"
+      :user="authStore.user"
+      @update:drawer="drawer = $event"
+      @update:rail="rail = $event"
+      @navigate="handleSidebarAction"
+      @create-product="() => handleSidebarAction('products-create')"
+      @create-blog-post="() => handleSidebarAction('blog-create')"
+    />
 
-      <!-- Dashboard Stats -->
-      <div class="dashboard-stats">
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-newspaper"></i>
-          </div>
-          <div class="stat-content">
-            <h3>{{ myPosts.length }}</h3>
-            <p>{{ t('totalPosts') }}</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-eye"></i>
-          </div>
-          <div class="stat-content">
-            <h3>{{ totalViews }}</h3>
-            <p>{{ t('totalViews') }}</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-comment"></i>
-          </div>
-          <div class="stat-content">
-            <h3>{{ totalComments }}</h3>
-            <p>{{ t('totalComments') }}</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-tag"></i>
-          </div>
-          <div class="stat-content">
-            <h3>{{ categories.length }}</h3>
-            <p>{{ t('categories') }}</p>
-          </div>
-        </div>
-      </div>
+    <v-app-bar
+      :elevation="2"
+      color="primary"
+      class="admin-header"
+      fixed
+    >
+      <router-link to="/" class="logo-link">
+        <v-img
+          src="/indexo.jpg"
+          alt="Logo"
+          max-height="40"
+          max-width="120"
+          contain
+          class="logo-img"
+        ></v-img>
+      </router-link>
 
-      <!-- Dashboard Tabs -->
-      <div class="dashboard-tabs">
-        <button 
-          @click="activeTab = 'posts'"
-          :class="['tab-btn', { active: activeTab === 'posts' }]"
-        >
-          <i class="fas fa-newspaper"></i>
-          {{ t('myPosts') }}
-        </button>
-        <button 
-          @click="activeTab = 'categories'"
-          :class="['tab-btn', { active: activeTab === 'categories' }]"
-        >
-          <i class="fas fa-tag"></i>
-          {{ t('categories') }}
-        </button>
-      </div>
+      <v-spacer></v-spacer>
 
-      <!-- Posts Tab -->
-      <div v-if="activeTab === 'posts'" class="tab-content">
-        <div class="posts-header">
-          <h2>{{ t('myPosts') }}</h2>
-          <div class="posts-filters">
-            <select v-model="postFilter" @change="filterPosts">
-              <option value="all">{{ t('allPosts') }}</option>
-              <option value="published">{{ t('published') }}</option>
-              <option value="draft">{{ t('draft') }}</option>
-              <option value="archived">{{ t('archived') }}</option>
-            </select>
-            <input 
-              v-model="searchQuery" 
-              @input="searchPosts"
-              type="text" 
-              :placeholder="t('search') + '...'"
-              class="search-input"
-            />
-          </div>
-        </div>
+      <v-app-bar-nav-icon
+        v-if="isMobile"
+        @click="drawer = !drawer"
+        class="hamburger-btn"
+      ></v-app-bar-nav-icon>
 
-        <!-- Loading State -->
-        <div v-if="loading" class="loading-state">
-          <div class="spinner"></div>
-          <p>{{ t('loadingPosts') }}</p>
-        </div>
+      <v-menu location="bottom end">
+        <template #activator="{ props }">
+          <v-btn icon v-bind="props" variant="text">
+            <v-avatar size="32">
+              <v-icon>mdi-account</v-icon>
+            </v-avatar>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item @click="handleLogout">
+            <template #prepend>
+              <v-icon>mdi-logout</v-icon>
+            </template>
+            <v-list-item-title>خروج</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+    </v-app-bar>
 
-        <!-- Posts Table -->
-        <div v-else class="posts-table">
-          <div class="table-header">
-            <div class="col-title">{{ t('postTitle') }}</div>
-            <div class="col-category">{{ t('category') }}</div>
-            <div class="col-status">{{ t('status') }}</div>
-            <div class="col-stats">{{ t('views') }}</div>
-            <div class="col-date">{{ t('date') }}</div>
-            <div class="col-actions">{{ t('actions') }}</div>
-          </div>
-          
-          <div v-if="filteredPosts.length > 0" class="table-body">
-            <div 
-              v-for="post in filteredPosts" 
-              :key="post.id"
-              class="table-row"
-            >
-              <div class="col-title">
-                <div class="post-title">
-                  <h4>{{ post.title }}</h4>
-                  <p class="post-excerpt">{{ post.excerpt }}</p>
+    <div
+      class="blog-admin-main"
+      :style="mainContentStyle"
+    >
+      <v-container fluid class="pa-4">
+        <div class="blog-dashboard-content">
+          <div class="blog-dashboard" dir="rtl">
+            <div class="container">
+              <!-- Dashboard Header -->
+              <div class="dashboard-header">
+                <h1>{{ t('blog') }} {{ t('dashboard') }}</h1>
+                <div class="header-actions">
+                  <button @click="createNewPost" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    {{ t('newPost') }}
+                  </button>
+                  <button @click="showCreateCategory = true" class="btn btn-secondary">
+                    <i class="fas fa-tag"></i>
+                    {{ t('newCategory') }}
+                  </button>
                 </div>
               </div>
-              <div class="col-category">
-                <span class="category-badge" :style="{ backgroundColor: post.category_color }">
-                  {{ post.category_name }}
-                </span>
-              </div>
-              <div class="col-status">
-                <span :class="['status-badge', post.status]">
-                  {{ post.status }}
-                </span>
-              </div>
-              <div class="col-stats">
-                <span class="views">{{ post.view_count }}</span>
-              </div>
-              <div class="col-date">
-                {{ formatDate(post.created_at) }}
-              </div>
-              <div class="col-actions">
-                <div class="action-buttons">
-                  <button @click="viewPost(post.slug)" class="btn-icon" :title="t('view')">
+
+              <!-- Dashboard Stats -->
+              <div class="dashboard-stats">
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fas fa-newspaper"></i>
+                  </div>
+                  <div class="stat-content">
+                    <h3>{{ myPosts.length }}</h3>
+                    <p>{{ t('totalPosts') }}</p>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon">
                     <i class="fas fa-eye"></i>
-                  </button>
-                  <button @click="editPost(post.slug)" class="btn-icon" :title="t('edit')">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button @click="deletePost(post)" class="btn-icon danger" :title="t('delete')">
-                    <i class="fas fa-trash"></i>
-                  </button>
+                  </div>
+                  <div class="stat-content">
+                    <h3>{{ totalViews }}</h3>
+                    <p>{{ t('totalViews') }}</p>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fas fa-comment"></i>
+                  </div>
+                  <div class="stat-content">
+                    <h3>{{ totalComments }}</h3>
+                    <p>{{ t('totalComments') }}</p>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fas fa-tag"></i>
+                  </div>
+                  <div class="stat-content">
+                    <h3>{{ categories.length }}</h3>
+                    <p>{{ t('categories') }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dashboard Tabs -->
+              <div class="dashboard-tabs">
+                <button 
+                  @click="activeTab = 'posts'"
+                  :class="['tab-btn', { active: activeTab === 'posts' }]"
+                >
+                  <i class="fas fa-newspaper"></i>
+                  {{ t('myPosts') }}
+                </button>
+                <button 
+                  @click="activeTab = 'categories'"
+                  :class="['tab-btn', { active: activeTab === 'categories' }]"
+                >
+                  <i class="fas fa-tag"></i>
+                  {{ t('categories') }}
+                </button>
+              </div>
+
+              <!-- Posts Tab -->
+              <div v-if="activeTab === 'posts'" class="tab-content">
+                <div class="posts-header">
+                  <h2>{{ t('myPosts') }}</h2>
+                  <div class="posts-filters">
+                    <select v-model="postFilter" @change="filterPosts">
+                      <option value="all">{{ t('allPosts') }}</option>
+                      <option value="published">{{ t('published') }}</option>
+                      <option value="draft">{{ t('draft') }}</option>
+                      <option value="archived">{{ t('archived') }}</option>
+                    </select>
+                    <input 
+                      v-model="searchQuery" 
+                      @input="searchPosts"
+                      type="text" 
+                      :placeholder="t('search') + '...'"
+                      class="search-input"
+                    />
+                  </div>
+                </div>
+
+                <!-- Loading State -->
+                <div v-if="loading" class="loading-state">
+                  <div class="spinner"></div>
+                  <p>{{ t('loadingPosts') }}</p>
+                </div>
+
+                <!-- Posts Table -->
+                <div v-else class="posts-table">
+                  <div class="table-header">
+                    <div class="col-title">{{ t('postTitle') }}</div>
+                    <div class="col-category">{{ t('category') }}</div>
+                    <div class="col-status">{{ t('status') }}</div>
+                    <div class="col-stats">{{ t('views') }}</div>
+                    <div class="col-date">{{ t('date') }}</div>
+                    <div class="col-actions">{{ t('actions') }}</div>
+                  </div>
+                  
+                  <div v-if="filteredPosts.length > 0" class="table-body">
+                    <div 
+                      v-for="post in filteredPosts" 
+                      :key="post.id"
+                      class="table-row"
+                    >
+                      <div class="col-title">
+                        <div class="post-title">
+                          <h4>{{ post.title }}</h4>
+                          <p class="post-excerpt">{{ post.excerpt }}</p>
+                        </div>
+                      </div>
+                      <div class="col-category">
+                        <span class="category-badge" :style="{ backgroundColor: post.category_color }">
+                          {{ post.category_name }}
+                        </span>
+                      </div>
+                      <div class="col-status">
+                        <span :class="['status-badge', post.status]">
+                          {{ post.status }}
+                        </span>
+                      </div>
+                      <div class="col-stats">
+                        <span class="views">{{ post.view_count }}</span>
+                      </div>
+                      <div class="col-date">
+                        {{ formatDate(post.created_at) }}
+                      </div>
+                      <div class="col-actions">
+                        <div class="action-buttons">
+                          <button @click="viewPost(post.slug)" class="btn-icon" :title="t('view')">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button @click="editPost(post.slug)" class="btn-icon" :title="t('edit')">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button @click="deletePost(post)" class="btn-icon danger" :title="t('delete')">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Empty State -->
+                  <div v-else class="empty-state">
+                    <i class="fas fa-newspaper"></i>
+                    <h3>{{ t('noPostsFound') }}</h3>
+                    <p>{{ t('noBlogPostsAvailable') }}</p>
+                    <button @click="createNewPost" class="btn btn-primary">
+                      {{ t('createNewPost') }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Categories Tab -->
+              <div v-if="activeTab === 'categories'" class="tab-content">
+                <div class="categories-header">
+                  <h2>{{ t('categories') }}</h2>
+                </div>
+
+                <!-- Categories Grid -->
+                <div class="categories-grid">
+                  <div 
+                    v-for="category in categories" 
+                    :key="category.id"
+                    class="category-card"
+                  >
+                    <div class="category-header">
+                      <div class="category-color" :style="{ backgroundColor: category.color }"></div>
+                      <h3>{{ category.name }}</h3>
+                      <div class="category-actions">
+                        <button @click="editCategory(category)" class="btn-icon" :title="t('edit')">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button @click="deleteCategory(category)" class="btn-icon danger" :title="t('delete')">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <p class="category-description">{{ category.description || t('noDescription') }}</p>
+                    <div class="category-stats">
+                      <span class="post-count">{{ category.post_count }} {{ t('posts') }}</span>
+                      <span v-if="category.linked_product_category" class="linked-category">
+                        {{ t('linkedToProductCategory') }}: {{ category.linked_product_category.name }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Empty State -->
+                  <div v-if="categories.length === 0" class="empty-state">
+                    <i class="fas fa-tag"></i>
+                    <h3>{{ t('noCategoriesFound') }}</h3>
+                    <p>{{ t('createNewCategory') }}</p>
+                    <button @click="showCreateCategory = true" class="btn btn-primary">
+                      {{ t('createCategory') }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- Empty State -->
-          <div v-else class="empty-state">
-            <i class="fas fa-newspaper"></i>
-            <h3>{{ t('noPostsFound') }}</h3>
-            <p>{{ t('noBlogPostsAvailable') }}</p>
-            <button @click="createNewPost" class="btn btn-primary">
-              {{ t('createNewPost') }}
-            </button>
-          </div>
         </div>
-      </div>
-
-      <!-- Categories Tab -->
-      <div v-if="activeTab === 'categories'" class="tab-content">
-        <div class="categories-header">
-          <h2>{{ t('categories') }}</h2>
-        </div>
-
-        <!-- Categories Grid -->
-        <div class="categories-grid">
-          <div 
-            v-for="category in categories" 
-            :key="category.id"
-            class="category-card"
-          >
-            <div class="category-header">
-              <div class="category-color" :style="{ backgroundColor: category.color }"></div>
-              <h3>{{ category.name }}</h3>
-              <div class="category-actions">
-                <button @click="editCategory(category)" class="btn-icon" :title="t('edit')">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button @click="deleteCategory(category)" class="btn-icon danger" :title="t('delete')">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </div>
-            <p class="category-description">{{ category.description || t('noDescription') }}</p>
-            <div class="category-stats">
-              <span class="post-count">{{ category.post_count }} {{ t('posts') }}</span>
-              <span v-if="category.linked_product_category" class="linked-category">
-                {{ t('linkedToProductCategory') }}: {{ category.linked_product_category.name }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Empty State -->
-          <div v-if="categories.length === 0" class="empty-state">
-            <i class="fas fa-tag"></i>
-            <h3>{{ t('noCategoriesFound') }}</h3>
-            <p>{{ t('createNewCategory') }}</p>
-            <button @click="showCreateCategory = true" class="btn btn-primary">
-              {{ t('createCategory') }}
-            </button>
-          </div>
-        </div>
-      </div>
+      </v-container>
     </div>
 
+    <v-bottom-navigation
+      v-if="isMobile"
+      :model-value="mobileNav"
+      @update:model-value="handleMobileNav"
+      color="primary"
+      class="mobile-bottom-nav"
+    >
+      <v-btn value="blog">
+        <v-icon>mdi-newspaper</v-icon>
+        <span>پست‌ها</span>
+      </v-btn>
+      <v-btn value="categories">
+        <v-icon>mdi-tag</v-icon>
+        <span>دسته‌بندی‌ها</span>
+      </v-btn>
+      <v-btn value="create">
+        <v-icon>mdi-plus-circle</v-icon>
+        <span>افزودن</span>
+      </v-btn>
+    </v-bottom-navigation>
 
     <!-- Create/Edit Category Modal -->
     <div v-if="showCreateCategory || showEditCategory" class="modal-overlay" @click="closeModals">
@@ -291,18 +379,31 @@
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
+import { useAuthStore } from '@/stores/auth'
 import { useBlogStore } from '@/stores/blog'
 import { useCategoryStore } from '@/stores/modules/categoryStore'
+import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 
 export default {
   name: 'BlogDashboard',
+  components: {
+    AdminSidebar
+  },
   setup() {
     const router = useRouter()
     const blogStore = useBlogStore()
     const categoryStore = useCategoryStore()
+    const authStore = useAuthStore()
+    const { mdAndDown } = useDisplay()
     
     // State
+    const drawer = ref(!mdAndDown.value)
+    const rail = ref(false)
+    const isMobile = computed(() => mdAndDown.value)
     const activeTab = ref('posts')
+    const sidebarActiveView = ref('blog')
+    const mobileNav = ref('blog')
     const showCreatePost = ref(false)
     const showEditPost = ref(false)
     const showCreateCategory = ref(false)
@@ -310,6 +411,10 @@ export default {
     const postFilter = ref('all')
     const searchQuery = ref('')
     const submitting = ref(false)
+    
+    watch(isMobile, (newVal) => {
+      drawer.value = !newVal
+    })
     
     // Forms
     const postForm = ref({
@@ -367,7 +472,108 @@ export default {
       return posts
     })
     
+    const mainContentStyle = computed(() => ({
+      paddingRight: !isMobile.value && drawer.value ? (rail.value ? '64px' : '271px') : '0',
+      paddingBottom: isMobile.value ? '80px' : '0'
+    }))
+    
+    const adminViewMap = {
+      dashboard: 'dashboard',
+      users: 'users',
+      products: 'products',
+      departments: 'departments',
+      categories: 'categories',
+      subcategories: 'subcategories',
+      activities: 'activities',
+      rfqs: 'rfqs'
+    }
+    
+    watch(activeTab, (tab) => {
+      if (tab === 'posts') {
+        sidebarActiveView.value = 'blog'
+        if (mobileNav.value !== 'blog') {
+          mobileNav.value = 'blog'
+        }
+      } else if (tab === 'categories') {
+        sidebarActiveView.value = 'blog-categories'
+        if (mobileNav.value !== 'categories') {
+          mobileNav.value = 'categories'
+        }
+      }
+    }, { immediate: true })
+    
     // Methods
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    const closeDrawerOnMobile = () => {
+      if (isMobile.value) {
+        drawer.value = false
+      }
+    }
+
+    const handleSidebarAction = (action) => {
+      if (adminViewMap[action]) {
+        const targetView = adminViewMap[action]
+        sidebarActiveView.value = targetView
+        const query = targetView && targetView !== 'dashboard' ? { view: targetView } : {}
+        router.push({ path: '/admin/dashboard', query }).catch(() => {})
+        scrollToTop()
+        closeDrawerOnMobile()
+        return
+      }
+
+      if (action === 'products-create') {
+        sidebarActiveView.value = 'products'
+        router.push('/admin/dashboard/products/new').catch(() => {})
+        closeDrawerOnMobile()
+        return
+      }
+
+      if (action === 'blog' || action === 'blog-posts') {
+        activeTab.value = 'posts'
+        sidebarActiveView.value = 'blog'
+        mobileNav.value = 'blog'
+        scrollToTop()
+        closeDrawerOnMobile()
+        return
+      }
+
+      if (action === 'blog-create') {
+        sidebarActiveView.value = 'blog'
+        createNewPost()
+        closeDrawerOnMobile()
+        return
+      }
+
+      if (action === 'blog-categories') {
+        activeTab.value = 'categories'
+        sidebarActiveView.value = 'blog-categories'
+        mobileNav.value = 'categories'
+        scrollToTop()
+        closeDrawerOnMobile()
+      }
+    }
+
+    const handleMobileNav = (value) => {
+      if (value === 'blog') {
+        activeTab.value = 'posts'
+        sidebarActiveView.value = 'blog'
+        mobileNav.value = 'blog'
+        scrollToTop()
+      } else if (value === 'categories') {
+        activeTab.value = 'categories'
+        sidebarActiveView.value = 'blog-categories'
+        mobileNav.value = 'categories'
+        scrollToTop()
+      } else if (value === 'create') {
+        sidebarActiveView.value = 'blog'
+        createNewPost()
+        mobileNav.value = 'blog'
+      }
+    }
+    
     const fetchData = async () => {
       await Promise.all([
         blogStore.fetchMyPosts(),
@@ -526,13 +732,28 @@ export default {
         day: 'numeric'
       })
     }
+
+    const handleLogout = async () => {
+      try {
+        await authStore.logout()
+        router.push('/')
+      } catch (error) {
+        console.error('Logout error:', error)
+      }
+    }
     
     onMounted(() => {
       fetchData()
     })
     
     return {
+      authStore,
+      drawer,
+      rail,
+      isMobile,
       activeTab,
+      sidebarActiveView,
+      mobileNav,
       showCreatePost,
       showEditPost,
       showCreateCategory,
@@ -540,6 +761,7 @@ export default {
       postFilter,
       searchQuery,
       submitting,
+      mainContentStyle,
       postForm,
       categoryForm,
       myPosts,
@@ -550,6 +772,8 @@ export default {
       totalComments,
       filteredPosts,
       t,
+      handleSidebarAction,
+      handleMobileNav,
       filterPosts,
       searchPosts,
       viewPost,
@@ -561,13 +785,58 @@ export default {
       submitPost,
       submitCategory,
       closeModals,
-      formatDate
+      formatDate,
+      handleLogout
     }
   }
 }
 </script>
 
 <style scoped>
+.blog-admin-dashboard-wrapper {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.admin-header {
+  direction: ltr;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  margin-right: 16px;
+}
+
+.logo-img {
+  max-height: 40px;
+}
+
+.hamburger-btn {
+  margin-left: 8px;
+}
+
+.blog-admin-main {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding-top: 64px;
+  transition: padding-right 0.3s ease;
+}
+
+.blog-dashboard-content {
+  min-height: calc(100vh - 64px);
+}
+
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  direction: rtl;
+}
+
 .blog-dashboard {
   min-height: 100vh;
   background-color: #f8f9fa;

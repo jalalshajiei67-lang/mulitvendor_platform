@@ -34,19 +34,20 @@
       </v-col>
     </v-row>
 
-    <!-- Error State -->
-    <v-alert
-      v-else-if="error"
-      type="error"
-      variant="tonal"
-      prominent
-      class="my-4"
-    >
-      {{ error }}
-    </v-alert>
-
-    <!-- Form -->
-    <v-form v-else @submit.prevent="saveProduct" ref="formRef">
+    <!-- Form (visible even when there's an error) -->
+    <v-form v-if="!loading" @submit.prevent="saveProduct" ref="formRef">
+      <!-- Error State Alert (dismissible) -->
+      <v-alert
+        v-if="error"
+        type="error"
+        variant="tonal"
+        prominent
+        closable
+        class="mb-4"
+        @click:close="clearError"
+      >
+        {{ error }}
+      </v-alert>
       <v-row>
         <!-- Main Form Column -->
         <v-col cols="12" lg="8">
@@ -67,6 +68,18 @@
                 rounded="lg"
                 :rules="[v => !!v || 'نام محصول الزامی است']"
                 required
+              ></v-text-field>
+
+              <!-- Slug -->
+              <v-text-field
+                v-model="product.slug"
+                label="Slug (نامک)"
+                prepend-inner-icon="mdi-link-variant"
+                variant="outlined"
+                rounded="lg"
+                hint="در صورت خالی بودن، به صورت خودکار از نام محصول ایجاد می‌شود"
+                persistent-hint
+                placeholder="product-name-example"
               ></v-text-field>
 
               <!-- Description -->
@@ -525,6 +538,20 @@
         </v-col>
       </v-row>
     </v-form>
+
+    <!-- Success Snackbar -->
+    <v-snackbar
+      v-model="showSuccessSnackbar"
+      :timeout="3000"
+      color="success"
+      location="top"
+      rounded="pill"
+    >
+      <div class="d-flex align-center">
+        <v-icon class="mr-2">mdi-check-circle</v-icon>
+        <span>{{ successMessage }}</span>
+      </div>
+    </v-snackbar>
   </v-container>
 </template>
 
@@ -558,6 +585,10 @@ export default {
     const imageError = ref('');
     const fileInput = ref(null);
     const descriptionTouched = ref(false);
+    
+    // Success snackbar
+    const showSuccessSnackbar = ref(false);
+    const successMessage = ref('');
 
     // Cascading selector state
     const departments = ref([]);
@@ -574,6 +605,7 @@ export default {
 
     const product = ref({
       name: '',
+      slug: '',
       subcategory: '',
       description: '',
       price: 0,
@@ -823,19 +855,14 @@ export default {
         const formData = new FormData();
 
         Object.keys(product.value).forEach(key => {
-          // Skip fields that are processed separately
-          if (['image', 'og_image', 'subcategory'].includes(key)) {
+          // Skip fields that are processed separately or handled by backend
+          if (['image', 'og_image', 'subcategory', 'vendor'].includes(key)) {
             return;
           }
 
           const value = product.value[key];
           // Only append if value is not null/undefined/empty string
-          // For vendor field, only include if user is admin and vendor is selected
-          if (key === 'vendor') {
-            if (isAdmin.value && value) {
-              formData.append(key, value);
-            }
-          } else if (value !== null && value !== undefined && value !== '') {
+          if (value !== null && value !== undefined && value !== '') {
             formData.append(key, value);
           }
         });
@@ -862,21 +889,71 @@ export default {
         let response;
         if (isEdit.value) {
           response = await productStore.updateProduct(productId.value, formData);
+          // Show success message for edit
+          successMessage.value = `محصول "${response.name}" با موفقیت به‌روزرسانی شد!`;
         } else {
           response = await productStore.createProduct(formData);
+          // Show success message for create
+          successMessage.value = `محصول "${response.name}" با موفقیت ایجاد شد!`;
         }
+        
+        showSuccessSnackbar.value = true;
 
-        const destinationSlug = response.slug || response.id;
-        router.push(`/products/${destinationSlug}`);
+        // Small delay to show success message before redirect
+        setTimeout(() => {
+          // Check if user is admin and came from admin dashboard
+          if (isAdmin.value && route.path.includes('/admin/dashboard')) {
+            // Redirect to admin dashboard products view
+            router.push('/admin/dashboard?view=products');
+          } else {
+            // For regular users, redirect to their products list or product detail
+            const destinationSlug = response.slug || response.id;
+            router.push(`/products/${destinationSlug}`);
+          }
+        }, 1500); // 1.5 second delay to show success message
       } catch (error) {
         console.error('Error saving product:', error);
-        // Show error message
-        const errorMessage = error.response?.data?.detail ||
-                           error.response?.data?.message ||
-                           error.response?.data?.non_field_errors?.[0] ||
-                           error.message ||
-                           'خطا در ذخیره محصول'
-        alert(errorMessage)
+        console.error('Error response data:', error.response?.data);
+        console.error('Error response data (JSON):', JSON.stringify(error.response?.data, null, 2));
+        console.error('Error status:', error.response?.status);
+        
+        // Build detailed error message
+        let errorMessage = 'خطا در ذخیره محصول:\n';
+        
+        if (error.response?.data) {
+          const data = error.response.data;
+          
+          // Handle different error formats
+          if (typeof data === 'string') {
+            errorMessage += data;
+          } else if (data.detail) {
+            errorMessage += data.detail;
+          } else if (data.message) {
+            errorMessage += data.message;
+          } else if (data.non_field_errors) {
+            errorMessage += data.non_field_errors.join('\n');
+          } else {
+            // Handle field-specific errors
+            const fieldErrors = [];
+            Object.keys(data).forEach(key => {
+              const value = data[key];
+              if (Array.isArray(value)) {
+                fieldErrors.push(`${key}: ${value.join(', ')}`);
+              } else {
+                fieldErrors.push(`${key}: ${value}`);
+              }
+            });
+            if (fieldErrors.length > 0) {
+              errorMessage += fieldErrors.join('\n');
+            } else {
+              errorMessage = error.message || 'خطا در ذخیره محصول';
+            }
+          }
+        } else {
+          errorMessage = error.message || 'خطا در ذخیره محصول';
+        }
+        
+        alert(errorMessage);
       } finally {
         submitting.value = false;
       }
@@ -939,6 +1016,10 @@ export default {
 
     const t = computed(() => productStore.t);
 
+    const clearError = () => {
+      productStore.error = null;
+    };
+
     return {
       isEdit,
       product,
@@ -962,6 +1043,8 @@ export default {
       display,
       descriptionTouched,
       descriptionValid,
+      showSuccessSnackbar,
+      successMessage,
       triggerFileInput,
       handleFileSelect,
       handleDrop,
@@ -971,6 +1054,7 @@ export default {
       getFullPath,
       getSelectedFullPath,
       saveProduct,
+      clearError,
       seoPanel,
       t
     };

@@ -200,16 +200,44 @@
                 ></v-switch>
               </v-col>
               <v-col cols="12">
-                <v-select
-                  v-model="form.departments"
-                  :items="departments"
-                  item-title="name"
-                  item-value="id"
-                  label="دپارتمان‌ها"
-                  multiple
-                  variant="outlined"
-                  density="compact"
-                ></v-select>
+                <div class="d-flex align-center" style="gap: 8px;">
+                  <v-select
+                    v-model="form.departments"
+                    :items="departments"
+                    item-title="name"
+                    item-value="id"
+                    label="دپارتمان‌ها *"
+                    multiple
+                    chips
+                    variant="outlined"
+                    density="compact"
+                    :loading="departmentStore.loading"
+                    :disabled="departmentStore.loading"
+                    :hint="departments && departments.length === 0 ? 'هیچ دپارتمانی وجود ندارد. لطفاً ابتدا یک دپارتمان ایجاد کنید.' : `${departments?.length || 0} دپارتمان موجود است`"
+                    persistent-hint
+                    :rules="[v => (v && v.length > 0) || 'حداقل یک دپارتمان را انتخاب کنید']"
+                    style="flex: 1;"
+                  >
+                    <template v-slot:no-data>
+                      <v-list-item>
+                        <v-list-item-title>
+                          هیچ دپارتمانی یافت نشد
+                        </v-list-item-title>
+                      </v-list-item>
+                    </template>
+                  </v-select>
+                  <v-btn
+                    icon
+                    variant="outlined"
+                    color="primary"
+                    @click="loadDepartments"
+                    :loading="departmentStore.loading"
+                    title="بارگذاری مجدد دپارتمان‌ها"
+                    size="small"
+                  >
+                    <v-icon>mdi-refresh</v-icon>
+                  </v-btn>
+                </div>
               </v-col>
 
               <!-- SEO Section -->
@@ -357,20 +385,33 @@ export default {
     const loadDepartments = async () => {
       try {
         await departmentStore.fetchAdminDepartments()
+        console.log('Departments loaded:', departmentStore.departments)
+        console.log('Number of departments:', departmentStore.departments?.length)
       } catch (error) {
         console.error('Failed to load departments:', error)
+        // Show user-friendly error message
+        alert('خطا در بارگذاری دپارتمان‌ها. لطفاً صفحه را بارگذاری مجدد کنید.')
       }
     }
 
-    const openCreateDialog = () => {
+    const openCreateDialog = async () => {
       editingItem.value = null
       resetForm()
+      // Ensure departments are loaded before opening dialog
+      if (!departmentStore.departments || departmentStore.departments.length === 0) {
+        await loadDepartments()
+      }
       showDialog.value = true
     }
 
     const editCategory = async (item) => {
       editingItem.value = item
       try {
+        // Ensure departments are loaded before opening dialog
+        if (!departmentStore.departments || departmentStore.departments.length === 0) {
+          await loadDepartments()
+        }
+        
         const data = await categoryStore.fetchAdminCategoryDetail(item.id)
         form.value = {
           name: data.name || '',
@@ -393,6 +434,7 @@ export default {
         showDialog.value = true
       } catch (error) {
         console.error('Failed to load category:', error)
+        alert('خطا در بارگذاری اطلاعات دسته‌بندی')
       }
     }
 
@@ -520,6 +562,7 @@ export default {
     return {
       categories: categoryStore.categories,
       departments: departmentStore.departments,
+      departmentStore,
       loading: categoryStore.loading,
       saving,
       showDialog,
