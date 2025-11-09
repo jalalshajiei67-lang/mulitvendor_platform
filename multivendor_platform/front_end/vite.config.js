@@ -16,11 +16,29 @@ export default defineConfig(({ mode }) => ({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  // Optimize build and prevent corruption issues
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+    chunkSizeWarningLimit: 2000,
+    sourcemap: false,
+  },
   // Only configure dev server in development mode
   ...(mode !== 'production' && {
     server: {
       host: '0.0.0.0',
       port: 5173,
+      strictPort: false,
+      hmr: {
+        overlay: true,
+      },
+      watch: {
+        usePolling: false,
+        interval: 100,
+      },
       proxy: {
         '/api': {
           target: 'http://127.0.0.1:8000',

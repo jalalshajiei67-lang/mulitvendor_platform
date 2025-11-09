@@ -33,7 +33,7 @@
           ></v-btn>
         </template>
         <v-list dir="rtl">
-          <v-list-item>
+          <v-list-item @click="navigateTo('/admin/dashboard')">
             <v-list-item-title class="font-weight-bold">{{ authStore.user?.username }}</v-list-item-title>
             <v-list-item-subtitle>{{ authStore.user?.role }}</v-list-item-subtitle>
           </v-list-item>
@@ -88,7 +88,7 @@
             ></v-btn>
           </template>
           <v-list dir="rtl">
-            <v-list-item>
+            <v-list-item @click="navigateTo('/admin/dashboard')">
               <v-list-item-title class="font-weight-bold">{{ authStore.user?.username }}</v-list-item-title>
               <v-list-item-subtitle>{{ authStore.user?.role }}</v-list-item-subtitle>
             </v-list-item>
@@ -252,7 +252,7 @@
   >
     <v-list nav dense>
       <!-- User Info -->
-      <v-list-item v-if="authStore.isAuthenticated" class="mb-4">
+      <v-list-item v-if="authStore.isAuthenticated" class="mb-4" @click="navigateAndClose('/admin/dashboard')">
         <template v-slot:prepend>
           <v-avatar color="primary" size="40">
             <span class="text-white">
