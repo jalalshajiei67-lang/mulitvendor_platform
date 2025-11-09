@@ -1,0 +1,183 @@
+<template>
+  <div class="products-page">
+    <section class="hero">
+      <v-container class="py-10 text-white text-center">
+        <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
+          {{ t('products') }}
+        </h1>
+        <p class="text-subtitle-1 opacity-90 mx-auto max-w-640">
+          {{ t('discoverMarketplace') }}
+        </p>
+      </v-container>
+    </section>
+
+    <v-container class="py-8">
+      <v-row class="mb-6" align="center">
+        <v-col cols="12" md="4">
+          <v-text-field
+            v-model="search"
+            :label="t('searchProducts')"
+            variant="outlined"
+            density="comfortable"
+            prepend-inner-icon="mdi-magnify"
+            @keyup.enter="applyFilters"
+          />
+        </v-col>
+        <v-col cols="12" md="4">
+          <v-select
+            v-model="selectedCategory"
+            :items="categoryOptions"
+            item-title="name"
+            item-value="id"
+            variant="outlined"
+            density="comfortable"
+            :label="t('selectCategory')"
+            clearable
+            @update:model-value="applyFilters"
+          />
+        </v-col>
+        <v-col cols="12" md="4">
+          <v-select
+            v-model="ordering"
+            :items="orderingOptions"
+            variant="outlined"
+            density="comfortable"
+            :label="t('sortBy')"
+            @update:model-value="applyFilters"
+          />
+        </v-col>
+      </v-row>
+
+      <div v-if="loading" class="text-center py-14">
+        <v-progress-circular indeterminate color="primary" size="64" class="mb-4" />
+        <p class="text-body-1 text-medium-emphasis">
+          {{ t('loading') }}
+        </p>
+      </div>
+
+      <v-alert v-else-if="error" type="error" variant="tonal" class="mb-6">
+        {{ error }}
+      </v-alert>
+
+      <template v-else>
+        <v-row v-if="products.length" class="ga-4">
+          <v-col v-for="product in products" :key="product.id" cols="12" sm="6" md="4" xl="3">
+            <ProductCard :product="product" />
+          </v-col>
+        </v-row>
+
+        <v-card v-else elevation="1" rounded="xl" class="pa-10 text-center">
+          <v-icon size="56" color="primary" class="mb-4">mdi-package-variant</v-icon>
+          <h3 class="text-h6 mb-2">{{ t('noProductsFound') }}</h3>
+          <p class="text-body-2 text-medium-emphasis mb-6">
+            {{ t('tryDifferentFilters') }}
+          </p>
+          <v-btn color="primary" @click="resetFilters">
+            {{ t('resetFilters') }}
+          </v-btn>
+        </v-card>
+
+        <div v-if="pagination.count > products.length" class="d-flex justify-center mt-10">
+          <v-pagination
+            v-model="page"
+            :length="pageCount"
+            :total-visible="5"
+            @update:model-value="onPageChange"
+          />
+        </div>
+      </template>
+    </v-container>
+  </div>
+</template>
+
+<script setup lang="ts">
+definePageMeta({
+  layout: 'default'
+})
+
+useSeoMeta({
+  title: 'محصولات',
+  description: 'همه محصولات ایندکسو را مرور کنید و بهترین پیشنهادها را بیابید.',
+  ogTitle: 'محصولات ایندکسو',
+  ogDescription: 'مقایسه و انتخاب محصولات از فروشندگان متعدد در ایندکسو.',
+  ogType: 'website'
+})
+
+const productStore = useProductStore()
+const { products, loading, error, pagination } = storeToRefs(productStore)
+const t = productStore.t
+
+const search = ref('')
+const selectedCategory = ref<number | null>(null)
+const ordering = ref<string | null>(null)
+const page = ref(1)
+const pageSize = 12
+
+const categoryOptions = ref<any[]>([])
+
+const orderingOptions = [
+  { title: t('newest'), value: '-created_at' },
+  { title: t('priceLowToHigh'), value: 'price' },
+  { title: t('priceHighToLow'), value: '-price' }
+]
+
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil((pagination.value.count || products.value.length || 1) / pageSize))
+)
+
+const fetchCategories = async () => {
+  try {
+    const data = await useApiFetch<any[] | { results: any[] }>('categories/')
+    categoryOptions.value = Array.isArray(data) ? data : data.results ?? []
+  } catch (err) {
+    console.error('Error fetching categories for filters:', err)
+  }
+}
+
+const fetchPage = async () => {
+  await productStore.fetchProducts({
+    page: page.value,
+    page_size: pageSize,
+    search: search.value || undefined,
+    category: selectedCategory.value || undefined,
+    ordering: ordering.value || undefined
+  })
+}
+
+await useAsyncData('product-list-page', async () => {
+  await Promise.all([fetchCategories(), fetchPage()])
+})
+
+const onPageChange = async (value: number) => {
+  page.value = value
+  await fetchPage()
+}
+
+const applyFilters = async () => {
+  page.value = 1
+  await fetchPage()
+}
+
+const resetFilters = async () => {
+  search.value = ''
+  selectedCategory.value = null
+  ordering.value = null
+  page.value = 1
+  await fetchPage()
+}
+</script>
+
+<style scoped>
+.products-page {
+  min-height: 100vh;
+}
+
+.hero {
+  background: linear-gradient(135deg, rgba(0, 197, 142, 0.2), rgba(0, 111, 82, 0.2));
+}
+
+.max-w-640 {
+  max-width: 640px;
+}
+</style>
+

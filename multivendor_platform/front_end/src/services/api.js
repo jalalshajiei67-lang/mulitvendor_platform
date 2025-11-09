@@ -45,7 +45,7 @@ const isValidAbsoluteUrl = (value) => {
   }
 
   try {
-    // eslint-disable-next-line no-new
+     
     new URL(value);
     return true;
   } catch (error) {
@@ -208,7 +208,7 @@ const buildRequestConfig = (data, config = {}) => {
   if (!(data instanceof FormData)) {
     finalConfig.headers = {
       'Content-Type': 'application/json',
-      ...(config.headers || {}),
+      ...config.headers,
     };
   }
 

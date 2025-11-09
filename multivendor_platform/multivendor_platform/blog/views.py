@@ -192,6 +192,20 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         serializer = BlogPostListSerializer(related_posts, many=True, context={'request': request})
         return Response(serializer.data)
     
+    @action(detail=True, methods=['get'])
+    def comments(self, request, slug=None):
+        """
+        Retrieve approved comments for a blog post.
+        """
+        post = self.get_object()
+        comments_qs = post.comments.all().order_by('-created_at')
+        
+        if not request.user.is_staff:
+            comments_qs = comments_qs.filter(is_approved=True)
+        
+        serializer = BlogCommentSerializer(comments_qs, many=True, context={'request': request})
+        return Response(serializer.data)
+    
     @action(detail=True, methods=['post'])
     def comment(self, request, slug=None):
         """
