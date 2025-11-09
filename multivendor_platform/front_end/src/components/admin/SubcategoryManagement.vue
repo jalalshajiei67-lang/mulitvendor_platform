@@ -486,6 +486,12 @@ export default {
         await loadSubcategories()
       } catch (error) {
         console.error('Failed to save subcategory:', error)
+        // Show error message
+        const errorMessage = error.response?.data?.detail ||
+                           error.response?.data?.message ||
+                           error.message ||
+                           'خطا در ذخیره زیردسته'
+        alert(errorMessage)
       } finally {
         saving.value = false
       }

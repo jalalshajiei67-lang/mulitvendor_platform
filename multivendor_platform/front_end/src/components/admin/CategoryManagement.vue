@@ -486,6 +486,12 @@ export default {
         await loadCategories()
       } catch (error) {
         console.error('Failed to save category:', error)
+        // Show error message
+        const errorMessage = error.response?.data?.detail ||
+                           error.response?.data?.message ||
+                           error.message ||
+                           'خطا در ذخیره دسته‌بندی'
+        alert(errorMessage)
       } finally {
         saving.value = false
       }

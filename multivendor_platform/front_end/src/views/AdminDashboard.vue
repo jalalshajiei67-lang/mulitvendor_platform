@@ -864,17 +864,17 @@
 
         <!-- Departments Management View -->
         <div v-if="activeView === 'departments'" class="departments-view">
-          <DepartmentManagement />
+          <DepartmentManagement ref="departmentManagementRef" />
         </div>
 
         <!-- Categories Management View -->
         <div v-if="activeView === 'categories'" class="categories-view">
-          <CategoryManagement />
+          <CategoryManagement ref="categoryManagementRef" />
         </div>
 
         <!-- Subcategories Management View -->
         <div v-if="activeView === 'subcategories'" class="subcategories-view">
-          <SubcategoryManagement />
+          <SubcategoryManagement ref="subcategoryManagementRef" />
         </div>
 
         <!-- Blog Management View -->
@@ -1451,10 +1451,11 @@ export default {
     
     // Check if we're on a product or blog form route (admin routes)
     const isProductFormRoute = computed(() => {
-      return route.path === '/admin/dashboard/products/new' || 
-             route.path.match(/^\/admin\/dashboard\/products\/\d+\/edit$/) ||
-             route.path === '/products/new' || 
-             route.path.match(/^\/products\/\d+\/edit$/)
+      const path = route.path
+      return path === '/admin/dashboard/products/new' ||
+             /^\/admin\/dashboard\/products\/[^/]+\/edit$/.test(path) ||
+             path === '/products/new' ||
+             /^\/products\/[^/]+\/edit$/.test(path)
     })
     
     const isBlogFormRoute = computed(() => {
@@ -1522,6 +1523,10 @@ export default {
       name: '',
       description: ''
     })
+
+    const departmentManagementRef = ref(null)
+    const categoryManagementRef = ref(null)
+    const subcategoryManagementRef = ref(null)
     
     // Watch for mobile changes
     watch(isMobile, (newVal) => {
@@ -1787,6 +1792,16 @@ export default {
       }
     }
     
+    const normalizeCollectionResponse = (data) => {
+      if (Array.isArray(data)) {
+        return data
+      }
+      if (Array.isArray(data?.results)) {
+        return data.results
+      }
+      return []
+    }
+    
     const loadUsers = async () => {
       loadingUsers.value = true
       try {
@@ -1796,7 +1811,7 @@ export default {
         if (userFilters.value.is_verified !== null) params.is_verified = userFilters.value.is_verified
         
         const response = await api.getAdminUsers(params)
-        users.value = response.data
+        users.value = normalizeCollectionResponse(response.data)
       } catch (error) {
         console.error('Failed to load users:', error)
         showSnackbar('خطا در بارگذاری کاربران', 'error')
@@ -1812,7 +1827,7 @@ export default {
         if (activityFilters.value.action) params.action = activityFilters.value.action
         
         const response = await api.getAdminActivities(params)
-        activities.value = response.data
+        activities.value = normalizeCollectionResponse(response.data)
       } catch (error) {
         console.error('Failed to load activities:', error)
         showSnackbar('خطا در بارگذاری فعالیت‌ها', 'error')
@@ -1940,7 +1955,7 @@ export default {
         if (productFilters.value.max_price) params.max_price = productFilters.value.max_price
         
         const response = await api.getAdminProducts(params)
-        products.value = response.data
+        products.value = normalizeCollectionResponse(response.data)
       } catch (error) {
         console.error('Failed to load products:', error)
         showSnackbar('خطا در بارگذاری محصولات', 'error')
@@ -2047,7 +2062,7 @@ export default {
           // Fallback to regular blog posts endpoint if admin endpoint doesn't exist
           response = await api.getBlogPosts(params)
         }
-        blogPosts.value = response.data.results || response.data || []
+        blogPosts.value = normalizeCollectionResponse(response.data)
       } catch (error) {
         console.error('Failed to load blog posts:', error)
         showSnackbar('خطا در بارگذاری پست‌های وبلاگ', 'error')
@@ -2067,7 +2082,7 @@ export default {
           // Fallback to regular blog categories endpoint
           response = await api.getBlogCategories()
         }
-        blogCategories.value = response.data.results || response.data || []
+        blogCategories.value = normalizeCollectionResponse(response.data)
       } catch (error) {
         console.error('Failed to load blog categories:', error)
         showSnackbar('خطا در بارگذاری دسته‌بندی‌های وبلاگ', 'error')
@@ -2144,14 +2159,16 @@ export default {
         
         // Try admin endpoint first, fallback to individual updates
         try {
-          await api.adminBlogPostBulkAction(action, postSlugs)
+          const normalizedAction = action === 'archive' ? 'archived' : action
+          await api.adminBlogPostBulkAction(normalizedAction, postSlugs)
         } catch {
           // Fallback to individual updates
           for (const slug of postSlugs) {
             if (action === 'delete') {
               await api.deleteBlogPost(slug)
             } else {
-              await api.updateBlogPost(slug, { status: action })
+              const normalizedStatus = action === 'archive' ? 'archived' : action
+              await api.updateBlogPost(slug, { status: normalizedStatus })
             }
           }
         }
@@ -2291,7 +2308,7 @@ export default {
         if (rfqFilters.value.search) params.search = rfqFilters.value.search
         
         const response = await api.getAdminRFQs(params)
-        rfqs.value = response.data
+        rfqs.value = normalizeCollectionResponse(response.data)
       } catch (error) {
         console.error('Failed to load RFQs:', error)
         showSnackbar('خطا در بارگذاری درخواست‌های استعلام قیمت', 'error')
@@ -2347,11 +2364,47 @@ export default {
       }
       return texts[status] || status
     }
+
+    const departmentStoreFetchSafe = () => {
+      if (departmentManagementRef.value?.loadDepartments) {
+        departmentManagementRef.value.loadDepartments()
+      }
+    }
+
+    const categoryStoreFetchSafe = () => {
+      if (categoryManagementRef.value?.loadCategories) {
+        categoryManagementRef.value.loadCategories()
+      }
+      if (categoryManagementRef.value?.loadDepartments) {
+        categoryManagementRef.value.loadDepartments()
+      }
+    }
+
+    const subcategoryStoreFetchSafe = () => {
+      if (subcategoryManagementRef.value?.loadSubcategories) {
+        subcategoryManagementRef.value.loadSubcategories()
+      }
+      if (subcategoryManagementRef.value?.loadCategories) {
+        subcategoryManagementRef.value.loadCategories()
+      }
+    }
     
     // Watch for activeView changes to load data when needed
     watch(activeView, (newView) => {
-      if (newView === 'products') {
+      if (newView === 'dashboard') {
+        loadDashboardData()
+      } else if (newView === 'users') {
+        loadUsers()
+      } else if (newView === 'activities') {
+        loadActivities()
+      } else if (newView === 'products') {
         loadProducts()
+      } else if (newView === 'departments') {
+        departmentStoreFetchSafe()
+      } else if (newView === 'categories') {
+        categoryStoreFetchSafe()
+      } else if (newView === 'subcategories') {
+        subcategoryStoreFetchSafe()
       } else if (newView === 'blog') {
         loadBlogPosts()
         loadBlogCategories()
@@ -2417,6 +2470,9 @@ export default {
       loadUsers,
       loadActivities,
       loadProducts,
+      departmentManagementRef,
+      categoryManagementRef,
+      subcategoryManagementRef,
       createNewProduct,
       viewProduct,
       editProduct,

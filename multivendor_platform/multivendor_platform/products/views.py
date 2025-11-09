@@ -113,11 +113,13 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     def perform_create(self, serializer):
-        product = serializer.save(vendor=self.request.user)
+        product = serializer.save()
+        self._ensure_primary_category(product)
         self._handle_image_uploads(product)
     
     def perform_update(self, serializer):
-        product = serializer.save(vendor=self.request.user)
+        product = serializer.save()
+        self._ensure_primary_category(product)
         self._handle_image_uploads(product)
     
     def _handle_image_uploads(self, product):
@@ -139,6 +141,29 @@ class ProductViewSet(viewsets.ModelViewSet):
                         is_primary=is_primary,
                         sort_order=existing_count + i
                     )
+    
+    def _ensure_primary_category(self, product):
+        """
+        Ensure a product always has a primary category when subcategories exist.
+        If the request explicitly provided a primary_category the serializer already set it.
+        """
+        if product.primary_category or not product.subcategories.exists():
+            return
+        
+        fallback_category = product.subcategories.first().categories.first()
+        if not fallback_category:
+            return
+        
+        product.primary_category = fallback_category
+        
+        requested_is_active = self.request.data.get('is_active')
+        if requested_is_active is not None:
+            product.is_active = str(requested_is_active).lower() in ['true', '1', 'yes', 'on']
+        elif not product.is_active:
+            # Reactivate by default when we can determine a primary category
+            product.is_active = True
+        
+        product.save(update_fields=['primary_category', 'is_active'])
     
     @action(detail=True, methods=['delete'], url_path='images/(?P<image_id>[^/.]+)')
     def delete_image(self, request, pk=None, image_id=None):

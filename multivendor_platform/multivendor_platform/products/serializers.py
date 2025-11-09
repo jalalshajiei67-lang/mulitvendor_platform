@@ -171,11 +171,20 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'vendor', 'vendor_name', 'subcategories', 'subcategory_name', 'subcategory_details',
             'primary_category', 'category_name', 'category_slug',
             'name', 'slug', 'description', 'price', 'stock', 'image', 'images', 'primary_image',
-            'image_alt_text', 'og_image', 'og_image_url', 'meta_title', 'meta_description', 
+            'image_alt_text', 'og_image', 'og_image_url', 'meta_title', 'meta_description',
             'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['vendor', 'created_at', 'updated_at']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and request.user.is_staff:
+            # Admin users can modify vendor field
+            self.Meta.read_only_fields = ['created_at', 'updated_at']
+        else:
+            # Regular users cannot modify vendor field
+            self.Meta.read_only_fields = ['vendor', 'created_at', 'updated_at']
     
     def get_breadcrumb_hierarchy(self, obj):
         """Return the breadcrumb hierarchy for the product"""
@@ -207,8 +216,14 @@ class ProductSerializer(serializers.ModelSerializer):
         return og_image_field.url
     
     def create(self, validated_data):
-        # Set the vendor to the current authenticated user
-        validated_data['vendor'] = self.context['request'].user
+        # Set the vendor to the current authenticated user, unless it's an admin specifying a different vendor
+        request = self.context.get('request')
+        if request and request.user.is_staff and 'vendor' in validated_data:
+            # Admin can specify vendor
+            pass
+        else:
+            # Regular users must be set as vendor
+            validated_data['vendor'] = request.user
         return super().create(validated_data)
     
     def validate(self, data):

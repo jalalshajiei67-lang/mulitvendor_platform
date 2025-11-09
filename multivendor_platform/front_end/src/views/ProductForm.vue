@@ -530,6 +530,7 @@
 
 <script>
 import { useProductStore } from '@/stores/modules/productStore';
+import { useAuthStore } from '@/stores/auth';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
@@ -542,6 +543,7 @@ export default {
   },
   setup() {
     const productStore = useProductStore();
+    const authStore = useAuthStore();
     const route = useRoute();
     const router = useRouter();
     const display = useDisplay();
@@ -566,6 +568,10 @@ export default {
     const filteredCategories = ref([]);
     const filteredSubcategories = ref([]);
 
+    // Vendor selection for admins
+    const vendors = ref([]);
+    const isAdmin = computed(() => authStore.isAdmin);
+
     const product = ref({
       name: '',
       subcategory: '',
@@ -574,6 +580,7 @@ export default {
       stock: 0,
       image: null,
       is_active: true,
+      vendor: null, // Only for admin users
       // SEO fields
       meta_title: '',
       meta_description: '',
@@ -762,15 +769,26 @@ export default {
       try {
         const api = (await import('@/services/api')).default;
 
-        const [deptResponse, catResponse, subResponse] = await Promise.all([
+        const promises = [
           api.getDepartments(),
           api.getCategories(),
           api.getSubcategories()
-        ]);
+        ];
 
-        departments.value = deptResponse.data.results || deptResponse.data;
-        categories.value = catResponse.data.results || catResponse.data;
-        subcategories.value = subResponse.data.results || subResponse.data;
+        // Load vendors for admin users
+        if (isAdmin.value) {
+          promises.push(api.getAdminUsers({ role: 'seller' }));
+        }
+
+        const responses = await Promise.all(promises);
+
+        departments.value = responses[0].data.results || responses[0].data;
+        categories.value = responses[1].data.results || responses[1].data;
+        subcategories.value = responses[2].data.results || responses[2].data;
+
+        if (isAdmin.value && responses[3]) {
+          vendors.value = responses[3].data.filter(user => user.profile?.role === 'seller');
+        }
 
         filteredCategories.value = categories.value;
         filteredSubcategories.value = subcategories.value;
@@ -778,7 +796,8 @@ export default {
         console.log('Loaded data:', {
           departments: departments.value.length,
           categories: categories.value.length,
-          subcategories: subcategories.value.length
+          subcategories: subcategories.value.length,
+          vendors: vendors.value.length
         });
       } catch (error) {
         console.error('Error fetching form data:', error);
@@ -804,15 +823,30 @@ export default {
         const formData = new FormData();
 
         Object.keys(product.value).forEach(key => {
-          // Skip image and og_image fields (handled separately)
-          if (key !== 'image' && key !== 'og_image') {
-            const value = product.value[key];
-            // Only append if value is not null/undefined/empty string
-            if (value !== null && value !== undefined && value !== '') {
+          // Skip fields that are processed separately
+          if (['image', 'og_image', 'subcategory'].includes(key)) {
+            return;
+          }
+
+          const value = product.value[key];
+          // Only append if value is not null/undefined/empty string
+          // For vendor field, only include if user is admin and vendor is selected
+          if (key === 'vendor') {
+            if (isAdmin.value && value) {
               formData.append(key, value);
             }
+          } else if (value !== null && value !== undefined && value !== '') {
+            formData.append(key, value);
           }
         });
+
+        if (product.value.subcategory) {
+          formData.append('subcategories', product.value.subcategory);
+        }
+
+        if (selectedCategory.value) {
+          formData.append('primary_category', selectedCategory.value);
+        }
 
         // Handle og_image file upload
         if (product.value.og_image && product.value.og_image instanceof File) {
@@ -836,6 +870,13 @@ export default {
         router.push(`/products/${destinationSlug}`);
       } catch (error) {
         console.error('Error saving product:', error);
+        // Show error message
+        const errorMessage = error.response?.data?.detail ||
+                           error.response?.data?.message ||
+                           error.response?.data?.non_field_errors?.[0] ||
+                           error.message ||
+                           'خطا در ذخیره محصول'
+        alert(errorMessage)
       } finally {
         submitting.value = false;
       }

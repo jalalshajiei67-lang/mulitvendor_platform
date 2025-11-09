@@ -455,6 +455,12 @@ export default {
         await loadDepartments()
       } catch (error) {
         console.error('Failed to save department:', error)
+        // Show error message
+        const errorMessage = error.response?.data?.detail ||
+                           error.response?.data?.message ||
+                           error.message ||
+                           'خطا در ذخیره دپارتمان'
+        alert(errorMessage)
       } finally {
         saving.value = false
       }

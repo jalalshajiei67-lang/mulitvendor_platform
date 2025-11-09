@@ -45,6 +45,50 @@ def log_activity(user, action, description='', request=None, obj=None):
     
     UserActivity.objects.create(**activity_data)
 
+def extract_id_list(data, key):
+    """
+    Normalize multi-value request parameters (supports QueryDict and JSON payloads).
+    Returns a list of integers, ignoring blanks and invalid values.
+    """
+    values = []
+    
+    if hasattr(data, 'getlist'):
+        values = data.getlist(key)
+        if not values:
+            fallback = data.get(key)
+            if isinstance(fallback, (list, tuple, set)):
+                values = list(fallback)
+            elif fallback not in (None, '', []):
+                values = [fallback]
+    else:
+        raw_value = data.get(key, [])
+        if isinstance(raw_value, (list, tuple, set)):
+            values = list(raw_value)
+        elif raw_value in (None, '', []):
+            values = []
+        else:
+            values = [raw_value]
+    
+    normalized = []
+    for value in values:
+        if isinstance(value, (list, tuple, set)):
+            normalized.extend(item for item in value if item not in (None, '', []))
+        elif value not in (None, '', []):
+            normalized.append(value)
+    
+    result = []
+    for item in normalized:
+        if isinstance(item, str) and ',' in item:
+            parts = [part.strip() for part in item.split(',') if part.strip()]
+        else:
+            parts = [item]
+        for part in parts:
+            try:
+                result.append(int(part))
+            except (TypeError, ValueError):
+                continue
+    return result
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
@@ -810,11 +854,12 @@ def admin_create_category_view(request):
     if serializer.is_valid():
         category = serializer.save()
         # Handle departments M2M relationship
-        departments = request.data.get('departments', [])
-        if departments:
+        departments = extract_id_list(request.data, 'departments')
+        if departments or ('departments' in request.data):
             category.departments.set(departments)
         log_activity(request.user, 'other', f'Admin created category {category.name}', request, category)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        response_data = CategorySerializer(category, context={'request': request}).data
+        return Response(response_data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['PUT', 'PATCH'])
@@ -830,10 +875,12 @@ def admin_update_category_view(request, category_id):
         if serializer.is_valid():
             serializer.save()
             # Handle departments M2M relationship
-            if 'departments' in request.data:
-                category.departments.set(request.data.get('departments', []))
+            if 'departments' in request.data or (hasattr(request.data, 'getlist') and request.data.getlist('departments')):
+                departments = extract_id_list(request.data, 'departments')
+                category.departments.set(departments)
             log_activity(request.user, 'other', f'Admin updated category {category.name}', request, category)
-            return Response(serializer.data)
+            response_data = CategorySerializer(category, context={'request': request}).data
+            return Response(response_data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Category.DoesNotExist:
         return Response({'error': 'Category not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -909,11 +956,12 @@ def admin_create_subcategory_view(request):
     if serializer.is_valid():
         subcategory = serializer.save()
         # Handle categories M2M relationship
-        categories = request.data.get('categories', [])
-        if categories:
+        categories = extract_id_list(request.data, 'categories')
+        if categories or ('categories' in request.data):
             subcategory.categories.set(categories)
         log_activity(request.user, 'other', f'Admin created subcategory {subcategory.name}', request, subcategory)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        response_data = SubcategorySerializer(subcategory, context={'request': request}).data
+        return Response(response_data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['PUT', 'PATCH'])
@@ -929,10 +977,12 @@ def admin_update_subcategory_view(request, subcategory_id):
         if serializer.is_valid():
             serializer.save()
             # Handle categories M2M relationship
-            if 'categories' in request.data:
-                subcategory.categories.set(request.data.get('categories', []))
+            if 'categories' in request.data or (hasattr(request.data, 'getlist') and request.data.getlist('categories')):
+                categories = extract_id_list(request.data, 'categories')
+                subcategory.categories.set(categories)
             log_activity(request.user, 'other', f'Admin updated subcategory {subcategory.name}', request, subcategory)
-            return Response(serializer.data)
+            response_data = SubcategorySerializer(subcategory, context={'request': request}).data
+            return Response(response_data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Subcategory.DoesNotExist:
         return Response({'error': 'Subcategory not found'}, status=status.HTTP_404_NOT_FOUND)

@@ -1,13 +1,18 @@
 # multivendor_platform/urls.py
 
-from django.contrib import admin
-from django.urls import path, include
+import re
+from pathlib import Path
+
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import HttpResponse, JsonResponse
+from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
-from django.views.decorators.http import require_http_methods
+from django.http import HttpResponse, JsonResponse
+from django.urls import include, path, re_path
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.views.generic import View
+from django.views.static import serve as static_serve
 
 # Import sitemaps
 from products.sitemaps import ProductSitemap, DepartmentSitemap, CategorySitemap, SubcategorySitemap, StaticViewSitemap
@@ -27,6 +32,9 @@ sitemaps = {
     'suppliers': SupplierSitemap,
     'static': StaticViewSitemap,
 }
+
+FRONTEND_DIST_DIR = Path(settings.BASE_DIR).parent / 'front_end' / 'dist'
+FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / 'assets'
 
 def favicon_view(request):
     """Simple favicon handler to prevent 404 errors"""
@@ -86,7 +94,24 @@ def cors_preflight_handler(request):
     # CORS headers will be added by corsheaders middleware
     return response
 
+class FrontendAppView(View):
+    """Serve the built Vue SPA for non-API routes."""
+
+    index_path = Path(settings.BASE_DIR).parent / 'front_end' / 'dist' / 'index.html'
+
+    def get(self, request, *args, **kwargs):
+        if not self.index_path.exists():
+            return HttpResponse(
+                "Frontend build not found. Run 'npm install && npm run build' inside front_end/.",
+                status=503,
+                content_type='text/plain'
+            )
+
+        with self.index_path.open('r', encoding='utf-8') as index_file:
+            return HttpResponse(index_file.read(), content_type='text/html')
+
 urlpatterns = [
+    re_path(r'^admin/dashboard(?:/.*)?$', FrontendAppView.as_view(), name='spa-admin-dashboard'),
     path('admin/', admin.site.urls),
     
     # Health check endpoint
@@ -118,6 +143,8 @@ urlpatterns = [
     path('dashboard/', VendorDashboardView.as_view(), name='vendor-dashboard'),
     path('dashboard/create/', ProductCreateView.as_view(), name='vendor-create-product'),
     
+    # Frontend built assets
+    re_path(r'^assets/(?P<path>.*)$', static_serve, {'document_root': FRONTEND_ASSETS_DIR}, name='spa-assets'),
     
     # You can add other app URLs here
 ]
@@ -129,14 +156,25 @@ if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 else:
     # Production: Use Django's serve view directly (works without DEBUG=True)
-    from django.views.static import serve
-    from django.urls import re_path
-    
     urlpatterns += [
-        re_path(r'^static/(?P<path>.*)$', serve, {
+        re_path(r'^static/(?P<path>.*)$', static_serve, {
             'document_root': settings.STATIC_ROOT,
         }),
-        re_path(r'^media/(?P<path>.*)$', serve, {
+        re_path(r'^media/(?P<path>.*)$', static_serve, {
             'document_root': settings.MEDIA_ROOT,
         }),
     ]
+
+SPA_EXCLUDED_PREFIXES = (
+    'api/', 'admin/', 'static/', 'media/', 'assets/', 'health/', 'sitemap.xml',
+    'robots.txt', 'tinymce/', 'favicon.ico'
+)
+SPA_PREFIX_PATTERN = '|'.join(re.escape(prefix.rstrip('/')) for prefix in SPA_EXCLUDED_PREFIXES)
+
+urlpatterns += [
+    re_path(
+        rf'^(?!({SPA_PREFIX_PATTERN})).*$',
+        FrontendAppView.as_view(),
+        name='spa-entry'
+    ),
+]
