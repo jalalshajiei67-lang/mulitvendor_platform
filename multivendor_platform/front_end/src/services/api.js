@@ -1,72 +1,223 @@
 // src/services/api.js
 import axios from 'axios';
 
-// Use VITE_API_BASE_URL environment variable, or default based on mode
-// In production, VITE_API_BASE_URL should include /api suffix
-// In development, use local Django server
-let apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+const DEFAULT_DEV_API_URL = 'http://127.0.0.1:8000/api/';
+const DEFAULT_PROD_API_URL = '/api/';
+const DOCKER_HOSTNAME_REGEX = /backend:8000/gi;
+const REQUIRED_ENV_VARS = ['VITE_API_BASE_URL'];
+const isBrowser = typeof window !== 'undefined';
 
-// If VITE_API_BASE_URL is set but contains Docker hostname 'backend:8000', 
-// replace it with localhost for local development
-if (apiBaseUrl && apiBaseUrl.includes('backend:8000')) {
-  console.warn('⚠️ Detected Docker hostname "backend:8000" in VITE_API_BASE_URL. Using localhost instead for local development.');
-  apiBaseUrl = apiBaseUrl.replace('backend:8000', '127.0.0.1:8000');
-}
-
-// Ensure /api suffix is present for local development
-if (apiBaseUrl && !apiBaseUrl.endsWith('/api') && !apiBaseUrl.endsWith('/api/')) {
-  // Only add /api if it's a full URL (not empty/relative)
-  if (apiBaseUrl.startsWith('http')) {
-    apiBaseUrl = apiBaseUrl.endsWith('/') ? apiBaseUrl + 'api' : apiBaseUrl + '/api';
+const validateEnvironment = () => {
+  if (import.meta.env.MODE !== 'production') {
+    return;
   }
-}
 
-const API_BASE_URL = apiBaseUrl || (
-  import.meta.env.MODE === 'production'
-    ? ''  // Empty for relative URLs in production (Nginx handles routing)
-    : 'http://127.0.0.1:8000/api'
-);
+  const missing = REQUIRED_ENV_VARS.filter(
+    (envKey) => !import.meta.env[envKey]
+  );
 
-// Log the final API base URL for debugging
-console.log('🔧 API Client initialized with baseURL:', API_BASE_URL);
+  if (missing.length > 0) {
+    console.warn(
+      `⚠️ Missing required environment variable(s): ${missing.join(', ')}`
+    );
+  }
+};
+
+const ensureTrailingSlash = (value) =>
+  value.endsWith('/') ? value : `${value}/`;
+
+const ensureApiSuffix = (value) => {
+  if (value.endsWith('/api/')) {
+    return value;
+  }
+  if (value.endsWith('/api')) {
+    return `${value}/`;
+  }
+  return `${ensureTrailingSlash(value)}api/`;
+};
+
+const sanitizeDockerHostname = (value) =>
+  value.replace(DOCKER_HOSTNAME_REGEX, '127.0.0.1:8000');
+
+const isValidAbsoluteUrl = (value) => {
+  if (!value.startsWith('http')) {
+    return true;
+  }
+
+  try {
+    // eslint-disable-next-line no-new
+    new URL(value);
+    return true;
+  } catch (error) {
+    console.warn(
+      `⚠️ Invalid VITE_API_BASE_URL provided (${value}). Falling back to defaults.`,
+      error
+    );
+    return false;
+  }
+};
+
+const getBaseUrl = () => {
+  let baseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+
+  if (baseUrl && DOCKER_HOSTNAME_REGEX.test(baseUrl)) {
+    console.warn(
+      '⚠️ Detected Docker hostname "backend:8000" in VITE_API_BASE_URL. Using localhost instead.'
+    );
+    baseUrl = sanitizeDockerHostname(baseUrl);
+  }
+
+  if (baseUrl && !isValidAbsoluteUrl(baseUrl)) {
+    baseUrl = undefined;
+  }
+
+  if (!baseUrl) {
+    baseUrl =
+      import.meta.env.MODE === 'production'
+        ? DEFAULT_PROD_API_URL
+        : DEFAULT_DEV_API_URL;
+  }
+
+  if (!baseUrl.startsWith('http')) {
+    baseUrl = ensureApiSuffix(ensureTrailingSlash(baseUrl));
+  } else {
+    baseUrl = ensureApiSuffix(baseUrl);
+  }
+
+  if (import.meta.env.MODE !== 'production') {
+    console.debug('🔧 API Client baseURL resolved to:', baseUrl);
+  }
+
+  return baseUrl;
+};
+
+validateEnvironment();
 
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 10000,
 });
 
-// Add response interceptor for debugging
+const requestControllers = new Map();
+
+const safeSerialize = (payload) => {
+  if (!payload) {
+    return '';
+  }
+
+  if (payload instanceof FormData) {
+    return '[form-data]';
+  }
+
+  if (typeof payload === 'object') {
+    try {
+      return JSON.stringify(payload, Object.keys(payload).sort());
+    } catch (error) {
+      console.warn('⚠️ Unable to serialize request payload for deduplication.', error);
+      return '[unserializable-object]';
+    }
+  }
+
+  return String(payload);
+};
+
+const createRequestKey = (config) => {
+  const method = (config.method || 'GET').toUpperCase();
+  const url = `${config.baseURL || ''}${config.url || ''}`;
+  const params = safeSerialize(config.params);
+  const data = safeSerialize(config.data);
+  return `${method}::${url}::${params}::${data}`;
+};
+
+const getTimeoutForEndpoint = (endpoint = '') => {
+  const timeoutMatrix = [
+    { pattern: /\/products\/.+\/images\/|\/upload/gi, timeout: 30000 },
+    { pattern: /\/products\/|\/categories\/|\/subcategories\//gi, timeout: 15000 },
+    { pattern: /\/auth\/|\/login|\/logout/gi, timeout: 12000 },
+  ];
+
+  const match = timeoutMatrix.find(({ pattern }) => pattern.test(endpoint));
+  return match ? match.timeout : 10000;
+};
+
+const clearPendingRequest = (key) => {
+  const controller = requestControllers.get(key);
+  if (controller) {
+    controller.abort();
+    requestControllers.delete(key);
+  }
+};
+
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = isBrowser ? localStorage.getItem('authToken') : null;
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        Authorization: `Token ${token}`,
+      };
+    }
+
+    config.timeout = getTimeoutForEndpoint(config.url);
+
+    const requestKey = createRequestKey(config);
+    clearPendingRequest(requestKey);
+
+    const controller = new AbortController();
+    config.signal = controller.signal;
+    requestControllers.set(requestKey, controller);
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 apiClient.interceptors.response.use(
-  response => {
-    console.log('API Response:', response);
+  (response) => {
+    const requestKey = createRequestKey(response.config);
+    requestControllers.delete(requestKey);
+
     return response;
   },
-  error => {
-    console.error('API Error:', error);
-    console.error('API Error Response:', error.response);
+  (error) => {
+    if (error.config) {
+      const requestKey = createRequestKey(error.config);
+      requestControllers.delete(requestKey);
+    }
+
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      if (isBrowser) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      }
+    }
+
     return Promise.reject(error);
   }
 );
 
-// Add a request interceptor to include auth token
-apiClient.interceptors.request.use(config => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Token ${token}`;
+const buildRequestConfig = (data, config = {}) => {
+  const finalConfig = { ...config };
+
+  if (!(data instanceof FormData)) {
+    finalConfig.headers = {
+      'Content-Type': 'application/json',
+      ...(config.headers || {}),
+    };
   }
-  return config;
-});
+
+  return finalConfig;
+};
 
 export default {
   // Products
   getProducts(params = {}) {
-    console.log('API: getProducts called with params:', params);
-    console.log('API: Making request to:', apiClient.defaults.baseURL + '/products/');
-    console.log('API: Full URL will be:', apiClient.defaults.baseURL + '/products/');
-    console.log('API: Request params:', params);
     return apiClient.get('/products/', { params });
   },
   getProduct(id) {
@@ -76,24 +227,10 @@ export default {
     return apiClient.get(`/products/slug/${slug}/`);
   },
   createProduct(data) {
-    // Handle FormData for file uploads
-    const config = {};
-    if (data instanceof FormData) {
-      config.headers = {
-        'Content-Type': 'multipart/form-data'
-      };
-    }
-    return apiClient.post('/products/', data, config);
+    return apiClient.post('/products/', data, buildRequestConfig(data));
   },
   updateProduct(id, data) {
-    // Handle FormData for file uploads
-    const config = {};
-    if (data instanceof FormData) {
-      config.headers = {
-        'Content-Type': 'multipart/form-data'
-      };
-    }
-    return apiClient.put(`/products/${id}/`, data, config);
+    return apiClient.put(`/products/${id}/`, data, buildRequestConfig(data));
   },
   deleteProduct(id) {
     return apiClient.delete(`/products/${id}/`);
@@ -149,30 +286,16 @@ export default {
 
   // Blog Posts
   getBlogPosts(params = {}) {
-    console.log('API: getBlogPosts called with params:', params);
-    console.log('API: Making request to:', apiClient.defaults.baseURL + '/blog/posts/');
     return apiClient.get('/blog/posts/', { params });
   },
   getBlogPost(slug) {
     return apiClient.get(`/blog/posts/${slug}/`);
   },
   createBlogPost(data) {
-    const config = {};
-    if (data instanceof FormData) {
-      config.headers = {
-        'Content-Type': 'multipart/form-data'
-      };
-    }
-    return apiClient.post('/blog/posts/', data, config);
+    return apiClient.post('/blog/posts/', data, buildRequestConfig(data));
   },
   updateBlogPost(slug, data) {
-    const config = {};
-    if (data instanceof FormData) {
-      config.headers = {
-        'Content-Type': 'multipart/form-data'
-      };
-    }
-    return apiClient.put(`/blog/posts/${slug}/`, data, config);
+    return apiClient.put(`/blog/posts/${slug}/`, data, buildRequestConfig(data));
   },
   deleteBlogPost(slug) {
     return apiClient.delete(`/blog/posts/${slug}/`);
@@ -195,15 +318,13 @@ export default {
 
   // Blog Categories
   getBlogCategories() {
-    console.log('API: getBlogCategories called');
-    console.log('API: Making request to:', apiClient.defaults.baseURL + '/blog/categories/');
     return apiClient.get('/blog/categories/');
   },
   getBlogCategory(slug) {
     return apiClient.get(`/blog/categories/${slug}/`);
   },
   createBlogCategory(data) {
-    return apiClient.post('/blog/categories/', data);
+    return apiClient.post('/blog/categories/', data, buildRequestConfig(data));
   },
   updateBlogCategory(slug, data) {
     return apiClient.put(`/blog/categories/${slug}/`, data);
@@ -252,13 +373,11 @@ export default {
     return apiClient.get('/auth/me/');
   },
   updateProfile(data) {
-    const config = {};
-    if (data instanceof FormData) {
-      config.headers = {
-        'Content-Type': 'multipart/form-data'
-      };
-    }
-    return apiClient.put('/auth/profile/update/', data, config);
+    return apiClient.put(
+      '/auth/profile/update/',
+      data,
+      buildRequestConfig(data)
+    );
   },
 
   // Buyer Dashboard
@@ -291,20 +410,20 @@ export default {
     return apiClient.get(`/auth/ads/${id}/`);
   },
   createSellerAd(data) {
-    return apiClient.post('/auth/ads/', data);
+    return apiClient.post('/auth/ads/', data, buildRequestConfig(data));
   },
   updateSellerAd(id, data) {
-    return apiClient.put(`/auth/ads/${id}/`, data);
+    return apiClient.put(`/auth/ads/${id}/`, data, buildRequestConfig(data));
   },
   deleteSellerAd(id) {
     return apiClient.delete(`/auth/ads/${id}/`);
   },
   uploadAdImage(adId, formData) {
-    return apiClient.post(`/auth/ads/${adId}/upload_image/`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+    return apiClient.post(
+      `/auth/ads/${adId}/upload_image/`,
+      formData,
+      buildRequestConfig(formData)
+    );
   },
 
   // Admin Dashboard
@@ -358,18 +477,18 @@ export default {
     return apiClient.get(`/auth/admin/departments/${departmentId}/`);
   },
   adminCreateDepartment(data) {
-    const config = {};
-    if (data instanceof FormData) {
-      config.headers = { 'Content-Type': 'multipart/form-data' };
-    }
-    return apiClient.post('/auth/admin/departments/create/', data, config);
+    return apiClient.post(
+      '/auth/admin/departments/create/',
+      data,
+      buildRequestConfig(data)
+    );
   },
   adminUpdateDepartment(departmentId, data) {
-    const config = {};
-    if (data instanceof FormData) {
-      config.headers = { 'Content-Type': 'multipart/form-data' };
-    }
-    return apiClient.put(`/auth/admin/departments/${departmentId}/update/`, data, config);
+    return apiClient.put(
+      `/auth/admin/departments/${departmentId}/update/`,
+      data,
+      buildRequestConfig(data)
+    );
   },
   adminDeleteDepartment(departmentId) {
     return apiClient.delete(`/auth/admin/departments/${departmentId}/delete/`);
@@ -383,18 +502,18 @@ export default {
     return apiClient.get(`/auth/admin/categories/${categoryId}/`);
   },
   adminCreateCategory(data) {
-    const config = {};
-    if (data instanceof FormData) {
-      config.headers = { 'Content-Type': 'multipart/form-data' };
-    }
-    return apiClient.post('/auth/admin/categories/create/', data, config);
+    return apiClient.post(
+      '/auth/admin/categories/create/',
+      data,
+      buildRequestConfig(data)
+    );
   },
   adminUpdateCategory(categoryId, data) {
-    const config = {};
-    if (data instanceof FormData) {
-      config.headers = { 'Content-Type': 'multipart/form-data' };
-    }
-    return apiClient.put(`/auth/admin/categories/${categoryId}/update/`, data, config);
+    return apiClient.put(
+      `/auth/admin/categories/${categoryId}/update/`,
+      data,
+      buildRequestConfig(data)
+    );
   },
   adminDeleteCategory(categoryId) {
     return apiClient.delete(`/auth/admin/categories/${categoryId}/delete/`);
@@ -408,18 +527,18 @@ export default {
     return apiClient.get(`/auth/admin/subcategories/${subcategoryId}/`);
   },
   adminCreateSubcategory(data) {
-    const config = {};
-    if (data instanceof FormData) {
-      config.headers = { 'Content-Type': 'multipart/form-data' };
-    }
-    return apiClient.post('/auth/admin/subcategories/create/', data, config);
+    return apiClient.post(
+      '/auth/admin/subcategories/create/',
+      data,
+      buildRequestConfig(data)
+    );
   },
   adminUpdateSubcategory(subcategoryId, data) {
-    const config = {};
-    if (data instanceof FormData) {
-      config.headers = { 'Content-Type': 'multipart/form-data' };
-    }
-    return apiClient.put(`/auth/admin/subcategories/${subcategoryId}/update/`, data, config);
+    return apiClient.put(
+      `/auth/admin/subcategories/${subcategoryId}/update/`,
+      data,
+      buildRequestConfig(data)
+    );
   },
   adminDeleteSubcategory(subcategoryId) {
     return apiClient.delete(`/auth/admin/subcategories/${subcategoryId}/delete/`);
@@ -445,10 +564,18 @@ export default {
     return apiClient.get('/auth/admin/blog/categories/', { params });
   },
   adminCreateBlogCategory(data) {
-    return apiClient.post('/auth/admin/blog/categories/create/', data);
+    return apiClient.post(
+      '/auth/admin/blog/categories/create/',
+      data,
+      buildRequestConfig(data)
+    );
   },
   adminUpdateBlogCategory(slug, data) {
-    return apiClient.put(`/auth/admin/blog/categories/${slug}/update/`, data);
+    return apiClient.put(
+      `/auth/admin/blog/categories/${slug}/update/`,
+      data,
+      buildRequestConfig(data)
+    );
   },
   adminDeleteBlogCategory(slug) {
     return apiClient.delete(`/auth/admin/blog/categories/${slug}/delete/`);
@@ -456,12 +583,11 @@ export default {
   
   // RFQ (Request for Quotation)
   createRFQ(formData) {
-    const config = {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    };
-    return apiClient.post('/orders/rfq/create/', formData, config);
+    return apiClient.post(
+      '/orders/rfq/create/',
+      formData,
+      buildRequestConfig(formData)
+    );
   },
   getAdminRFQs(params = {}) {
     return apiClient.get('/orders/admin/rfq/', { params });
