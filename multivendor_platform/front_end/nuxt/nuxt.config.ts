@@ -1,16 +1,62 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'node:url'
+
+const projectRoot = fileURLToPath(new URL('./', import.meta.url))
+
 export default defineNuxtConfig({
-  compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  ssr: true,
   css: [
     'vuetify/styles',
     '@mdi/font/css/materialdesignicons.css',
-    '~/assets/css/base.css',
-    '~/assets/css/main.css'
+    '@/assets/css/base.css',
+    '@/assets/css/main.css'
   ],
-  modules: ['@pinia/nuxt'],
+  modules: ['@pinia/nuxt', 'vuetify-nuxt-module'],
   pinia: {
     autoImports: ['defineStore', 'storeToRefs', 'acceptHMRUpdate']
+  },
+  vuetify: {
+    moduleOptions: {
+      /* module specific options */
+    },
+    vuetifyOptions: {
+      ssr: true,
+      defaults: {
+        VBtn: {
+          color: 'primary',
+          rounded: 'lg'
+        }
+      },
+      icons: {
+        defaultSet: 'mdi'
+      },
+      locale: {
+        locale: 'fa',
+        fallback: 'fa',
+        rtl: {
+          fa: true
+        }
+      },
+      theme: {
+        defaultTheme: 'light',
+        themes: {
+          light: {
+            dark: false,
+            colors: {
+              primary: '#00c58e',
+              secondary: '#006f52',
+              accent: '#fbbc05',
+              background: '#ffffff'
+            }
+          }
+        }
+      }
+    }
+  },
+  alias: {
+    '@': projectRoot,
+    '~': projectRoot
   },
   runtimeConfig: {
     public: {

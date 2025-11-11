@@ -94,6 +94,7 @@ const t = categoryStore.t
 
 const fetchPage = async () => {
   await categoryStore.fetchCategories({ page_size: 100 })
+  return true
 }
 
 await useAsyncData('category-list-page', fetchPage)

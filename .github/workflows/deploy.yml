@@ -1,0 +1,43 @@
+name: Deploy to CapRover
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend to CapRover
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy Backend to CapRover
+        uses: caprover/deploy-from-github@v1.1.2
+        with:
+          server: '${{ secrets.CAPROVER_SERVER }}'
+          app: '${{ secrets.CAPROVER_BACKEND_APP }}'
+          token: '${{ secrets.CAPROVER_APP_TOKEN }}'
+
+  deploy-frontend:
+    name: Deploy Frontend to CapRover
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy Frontend to CapRover
+        uses: caprover/deploy-from-github@v1.1.2
+        with:
+          server: '${{ secrets.CAPROVER_SERVER }}'
+          app: '${{ secrets.CAPROVER_FRONTEND_APP }}'
+          token: '${{ secrets.CAPROVER_APP_TOKEN }}'
+          dockerfile: './multivendor_platform/front_end/nuxt/Dockerfile'
+          context: './multivendor_platform/front_end/nuxt'
+

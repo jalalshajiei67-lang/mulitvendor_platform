@@ -86,6 +86,7 @@ const t = departmentStore.t
 
 const fetchPage = async () => {
   await departmentStore.fetchDepartments({ page_size: 100 })
+  return true
 }
 
 await useAsyncData('department-list-page', fetchPage)

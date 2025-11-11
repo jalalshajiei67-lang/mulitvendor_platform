@@ -1,7 +1,7 @@
 <template>
   <div v-if="subcategory" class="subcategory-detail">
     <section class="hero">
-      <v-container class="py-10 text-white">
+      <v-container class="py-10">
         <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0">
           <template #divider>
             <v-icon>mdi-chevron-left</v-icon>
@@ -10,9 +10,6 @@
         <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
           {{ subcategory.name }}
         </h1>
-        <p class="text-subtitle-1 opacity-90 max-w-720">
-          {{ subcategory.description || 'جزئیات این زیردسته به زودی تکمیل می‌شود.' }}
-        </p>
       </v-container>
     </section>
 
@@ -63,6 +60,25 @@
           </div>
         </template>
       </section>
+
+      <v-card elevation="4" rounded="xl" class="description-card">
+        <v-card-title class="d-flex align-center gap-3">
+          <v-avatar size="48" class="description-icon" variant="tonal" color="primary">
+            <v-icon>mdi-text-box</v-icon>
+          </v-avatar>
+          <div>
+            <h2 class="text-h6 text-md-h5 font-weight-bold mb-1">
+              درباره {{ subcategory.name }}
+            </h2>
+            <p class="text-body-2 text-medium-emphasis mb-0">
+              توضیحاتی درباره این زیردسته و کاربردهای آن
+            </p>
+          </div>
+        </v-card-title>
+        <v-card-text class="text-body-1 description-text">
+          {{ subcategory.description || 'برای این زیردسته هنوز توضیحاتی ثبت نشده است.' }}
+        </v-card-text>
+      </v-card>
     </v-container>
   </div>
 
@@ -139,6 +155,7 @@ const refreshProducts = async () => {
 await useAsyncData(`subcategory-detail-${slug.value}`, async () => {
   await loadSubcategory()
   await refreshProducts()
+  return true
 })
 
 const onPageChange = async (nextPage: number) => {
@@ -169,13 +186,41 @@ useSeoMeta({
 </script>
 
 <style scoped>
-.hero {
-  background: linear-gradient(135deg, rgba(0, 197, 142, 0.85), rgba(0, 111, 82, 0.85));
-  color: white;
+.subcategory-detail {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  color: rgba(var(--v-theme-on-surface), 0.92);
 }
 
-.max-w-720 {
-  max-width: 720px;
+.hero {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.24), rgba(var(--v-theme-secondary), 0.28));
+  color: rgba(var(--v-theme-on-primary), 0.96);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.24), transparent 60%);
+  pointer-events: none;
+}
+
+.description-card {
+  background: white;
+  border: 1px solid rgba(var(--v-theme-primary), 0.08);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+  margin-top: 16px;
+}
+
+.description-icon :deep(.v-icon) {
+  color: rgb(var(--v-theme-primary));
+}
+
+.description-text {
+  line-height: 2;
 }
 </style>
 

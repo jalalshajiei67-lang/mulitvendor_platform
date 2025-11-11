@@ -1,7 +1,7 @@
 <template>
   <div v-if="category" class="category-detail">
     <section class="hero">
-      <v-container class="py-10 text-white">
+      <v-container class="py-10">
         <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0">
           <template #divider>
             <v-icon>mdi-chevron-left</v-icon>
@@ -10,9 +10,6 @@
         <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
           {{ category.name }}
         </h1>
-        <p class="text-subtitle-1 opacity-90 max-w-720">
-          {{ category.description || 'بدون توضیحات تکمیلی برای این دسته.' }}
-        </p>
       </v-container>
     </section>
 
@@ -46,13 +43,13 @@
           </v-btn>
         </header>
 
-        <div v-if="subLoading.value" class="text-center py-10">
+        <div v-if="subLoading" class="text-center py-10">
           <v-progress-circular indeterminate color="primary" size="56" class="mb-4" />
           <p class="text-body-1 text-medium-emphasis">در حال دریافت زیردسته‌ها...</p>
         </div>
 
-        <v-alert v-else-if="subError.value" type="error" variant="tonal">
-          {{ subError.value }}
+        <v-alert v-else-if="subError" type="error" variant="tonal">
+          {{ subError }}
         </v-alert>
 
         <v-row v-else-if="subcategories.length" class="ga-4">
@@ -64,21 +61,24 @@
             md="4"
             lg="3"
           >
-            <v-card rounded="xl" elevation="2" class="subcategory-card h-100" hover>
+            <v-card 
+              rounded="xl" 
+              elevation="2" 
+              class="subcategory-card h-100" 
+              hover
+              @click="navigateTo(`/subcategories/${sub.slug}`)"
+            >
               <v-card-text class="pa-6">
                 <h3 class="text-h6 font-weight-bold mb-2">{{ sub.name }}</h3>
                 <p class="text-body-2 text-medium-emphasis line-clamp-3">
                   {{ sub.description || 'بدون توضیحات' }}
                 </p>
-                <v-btn
-                  variant="text"
-                  color="primary"
-                  class="mt-4"
-                  @click="navigateTo(`/subcategories/${sub.slug}`)"
-                >
-                  مشاهده محصولات
-                  <v-icon class="mr-2">mdi-arrow-left</v-icon>
-                </v-btn>
+                <div class="d-flex align-center justify-space-between mt-4">
+                  <span class="text-primary text-body-2 font-weight-medium">
+                    مشاهده محصولات
+                  </span>
+                  <v-icon color="primary">mdi-arrow-left</v-icon>
+                </div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -92,6 +92,25 @@
           </p>
         </v-card>
       </section>
+
+      <v-card elevation="4" rounded="xl" class="description-card">
+        <v-card-title class="d-flex align-center gap-3">
+          <v-avatar size="48" class="description-icon" variant="tonal" color="primary">
+            <v-icon>mdi-text-box-edit-outline</v-icon>
+          </v-avatar>
+          <div>
+            <h2 class="text-h6 text-md-h5 font-weight-bold mb-1">
+              درباره {{ category.name }}
+            </h2>
+            <p class="text-body-2 text-medium-emphasis mb-0">
+              توضیحاتی کوتاه درباره این دسته‌بندی و کاربردهای آن
+            </p>
+          </div>
+        </v-card-title>
+        <v-card-text class="text-body-1 description-text">
+          {{ category.description || 'برای این دسته هنوز توضیحاتی ثبت نشده است.' }}
+        </v-card-text>
+      </v-card>
     </v-container>
   </div>
 
@@ -139,6 +158,7 @@ const refreshSubcategories = async () => {
 await useAsyncData(`category-detail-${slug.value}`, async () => {
   await loadCategory()
   await refreshSubcategories()
+  return true
 })
 
 watch(
@@ -163,9 +183,26 @@ useSeoMeta({
 </script>
 
 <style scoped>
+.category-detail {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  color: rgba(var(--v-theme-on-surface), 0.92);
+}
+
 .hero {
-  background: linear-gradient(135deg, rgba(0, 197, 142, 0.85), rgba(0, 111, 82, 0.85));
-  color: white;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.24), rgba(var(--v-theme-secondary), 0.28));
+  color: rgba(var(--v-theme-on-primary), 0.96);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.24), transparent 60%);
+  pointer-events: none;
 }
 
 .subcategory-card {
@@ -173,6 +210,9 @@ useSeoMeta({
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  cursor: pointer;
+  border: 1px solid rgba(var(--v-theme-primary), 0.08);
+  background: white;
 }
 
 .subcategory-card:hover {
@@ -187,8 +227,23 @@ useSeoMeta({
   overflow: hidden;
 }
 
-.max-w-720 {
-  max-width: 720px;
+.subcategory-card :deep(.text-medium-emphasis) {
+  color: rgba(var(--v-theme-on-surface), 0.68) !important;
+}
+
+.description-card {
+  background: white;
+  border: 1px solid rgba(var(--v-theme-primary), 0.08);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+  margin-top: 16px;
+}
+
+.description-icon :deep(.v-icon) {
+  color: rgb(var(--v-theme-primary));
+}
+
+.description-text {
+  line-height: 2;
 }
 </style>
 

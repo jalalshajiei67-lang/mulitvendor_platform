@@ -32,10 +32,14 @@ export const useApiFetch = async <T>(endpoint: string, options: FetchOptions<T> 
     headers.Authorization = `Token ${authToken}`
   }
 
+  type ExtendedFetchOptions = FetchOptions<T> & { params?: FetchOptions<T>['query'] }
+  const { params, ...restOptions } = (options ?? {}) as ExtendedFetchOptions
+
   return $fetch<T>(url, {
-    ...options,
+    ...restOptions,
+    query: restOptions.query ?? params,
     headers,
-    credentials: options?.credentials ?? 'include'
+    credentials: restOptions.credentials ?? 'include'
   })
 }
 

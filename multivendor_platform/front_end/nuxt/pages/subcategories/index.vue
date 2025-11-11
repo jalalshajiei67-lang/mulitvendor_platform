@@ -94,6 +94,7 @@ const t = subcategoryStore.t
 
 const fetchPage = async () => {
   await subcategoryStore.fetchSubcategories({ page_size: 100 })
+  return true
 }
 
 await useAsyncData('subcategory-list-page', fetchPage)

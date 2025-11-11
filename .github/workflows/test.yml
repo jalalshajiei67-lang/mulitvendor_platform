@@ -1,0 +1,98 @@
+name: Run Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+jobs:
+  test-backend:
+    name: Test Django Backend
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Django tests
+        env:
+          DB_ENGINE: django.db.backends.postgresql
+          DB_NAME: test_db
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          SECRET_KEY: test-secret-key-for-ci
+          DEBUG: True
+        run: |
+          cd multivendor_platform
+          python manage.py test
+
+  test-frontend:
+    name: Test Nuxt Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'multivendor_platform/front_end/nuxt/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: multivendor_platform/front_end/nuxt
+        run: npm ci --legacy-peer-deps
+
+      - name: Build Nuxt app
+        working-directory: multivendor_platform/front_end/nuxt
+        env:
+          NUXT_PUBLIC_API_BASE: http://localhost:8000/api
+        run: npm run build
+
+      - name: Check for build errors
+        working-directory: multivendor_platform/front_end/nuxt
+        run: |
+          if [ -d ".output" ]; then
+            echo "✅ Build successful"
+          else
+            echo "❌ Build failed"
+            exit 1
+          fi
+

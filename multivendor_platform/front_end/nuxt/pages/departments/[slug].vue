@@ -1,7 +1,7 @@
 <template>
   <div v-if="department" class="department-detail">
     <section class="hero">
-      <v-container class="py-10 text-white">
+      <v-container class="py-10">
         <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0">
           <template #divider>
             <v-icon>mdi-chevron-left</v-icon>
@@ -10,9 +10,6 @@
         <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
           {{ department.name }}
         </h1>
-        <p class="text-subtitle-1 opacity-90 max-w-720">
-          {{ department.description || 'بدون توضیحات تکمیلی برای این دپارتمان.' }}
-        </p>
       </v-container>
     </section>
 
@@ -26,13 +23,13 @@
           </v-btn>
         </header>
 
-        <div v-if="catLoading.value" class="text-center py-10">
+        <div v-if="catLoading" class="text-center py-10">
           <v-progress-circular indeterminate color="primary" size="56" class="mb-4" />
           <p class="text-body-1 text-medium-emphasis">در حال دریافت دسته‌بندی‌ها...</p>
         </div>
 
-        <v-alert v-else-if="catError.value" type="error" variant="tonal">
-          {{ catError.value }}
+        <v-alert v-else-if="catError" type="error" variant="tonal">
+          {{ catError }}
         </v-alert>
 
         <v-row v-else-if="categories.length" class="ga-4">
@@ -43,21 +40,24 @@
             sm="6"
             md="4"
           >
-            <v-card rounded="xl" elevation="2" class="category-card" hover>
+            <v-card 
+              rounded="xl" 
+              elevation="2" 
+              class="category-card" 
+              hover
+              @click="navigateTo(`/categories/${category.slug}`)"
+            >
               <v-card-text class="pa-6">
                 <h3 class="text-h6 font-weight-bold mb-2">{{ category.name }}</h3>
                 <p class="text-body-2 text-medium-emphasis line-clamp-3">
                   {{ category.description || 'بدون توضیحات' }}
                 </p>
-                <v-btn
-                  variant="text"
-                  color="primary"
-                  class="mt-4"
-                  @click="navigateTo(`/categories/${category.slug}`)"
-                >
-                  مشاهده دسته‌بندی
-                  <v-icon class="mr-2">mdi-arrow-left</v-icon>
-                </v-btn>
+                <div class="d-flex align-center justify-space-between mt-4">
+                  <span class="text-primary text-body-2 font-weight-medium">
+                    مشاهده دسته‌بندی
+                  </span>
+                  <v-icon color="primary">mdi-arrow-left</v-icon>
+                </div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -71,6 +71,25 @@
           </p>
         </v-card>
       </section>
+
+      <v-card elevation="4" rounded="xl" class="description-card">
+        <v-card-title class="d-flex align-center gap-3">
+          <v-avatar size="48" class="description-icon" variant="tonal" color="primary">
+            <v-icon>mdi-text-account</v-icon>
+          </v-avatar>
+          <div>
+            <h2 class="text-h6 text-md-h5 font-weight-bold mb-1">
+              درباره {{ department.name }}
+            </h2>
+            <p class="text-body-2 text-medium-emphasis mb-0">
+              مروری کوتاه بر نقش این دپارتمان در ساختار ایندکسو
+            </p>
+          </div>
+        </v-card-title>
+        <v-card-text class="text-body-1 description-text">
+          {{ department.description || 'برای این دپارتمان هنوز توضیحاتی ثبت نشده است.' }}
+        </v-card-text>
+      </v-card>
     </v-container>
   </div>
 
@@ -122,6 +141,7 @@ const refreshCategories = async () => {
 await useAsyncData(`department-detail-${slug.value}`, async () => {
   await loadDepartment()
   await refreshCategories()
+  return true
 })
 
 watch(
@@ -146,18 +166,46 @@ useSeoMeta({
 </script>
 
 <style scoped>
+.department-detail {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  color: rgba(var(--v-theme-on-surface), 0.92);
+}
+
 .hero {
-  background: linear-gradient(135deg, rgba(0, 111, 82, 0.9), rgba(0, 197, 142, 0.9));
-  color: white;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.24), rgba(var(--v-theme-secondary), 0.28));
+  color: rgba(var(--v-theme-on-primary), 0.96);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.24), transparent 60%);
+  pointer-events: none;
 }
 
 .category-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  border: 1px solid rgba(var(--v-theme-primary), 0.08);
+  background: white;
 }
 
 .category-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+}
+
+.category-card :deep(.text-medium-emphasis) {
+  color: rgba(var(--v-theme-on-surface), 0.68) !important;
+}
+
+.category-card :deep(.text-primary) {
+  color: rgb(var(--v-theme-primary)) !important;
 }
 
 .line-clamp-3 {
@@ -167,8 +215,19 @@ useSeoMeta({
   overflow: hidden;
 }
 
-.max-w-720 {
-  max-width: 720px;
+.description-card {
+  background: white;
+  border: 1px solid rgba(var(--v-theme-primary), 0.08);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+  margin-top: 16px;
+}
+
+.description-text {
+  line-height: 2;
+}
+
+.description-icon :deep(.v-icon) {
+  color: rgb(var(--v-theme-primary));
 }
 </style>
 
