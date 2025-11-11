@@ -15,36 +15,60 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if secrets are configured
+        run: |
+          if [ -z "${{ secrets.CAPROVER_URL }}" ]; then
+            echo "::warning::CAPROVER_URL secret is not set. Skipping deployment."
+            echo "::notice::Configure GitHub Secrets to enable automatic deployment."
+            exit 0
+          fi
+
       - name: Set up Node.js
+        if: secrets.CAPROVER_URL != ''
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install CapRover CLI
+        if: secrets.CAPROVER_URL != ''
         run: npm install -g caprover
 
       - name: Create backend deployment tarball
+        if: secrets.CAPROVER_URL != ''
         run: |
+          echo "Creating backend tarball..."
           cp captain-definition-backend captain-definition
           tar -czf backend-deploy.tar.gz \
             --exclude='multivendor_platform/front_end' \
-            --exclude='multivendor_platform/multivendor_platform/venv' \
-            --exclude='multivendor_platform/multivendor_platform/__pycache__' \
-            --exclude='multivendor_platform/multivendor_platform/*/__pycache__' \
-            --exclude='multivendor_platform/multivendor_platform/*/migrations/__pycache__' \
+            --exclude='**/venv' \
+            --exclude='**/__pycache__' \
+            --exclude='**/.pytest_cache' \
+            --exclude='**/node_modules' \
             --exclude='*.pyc' \
             --exclude='*.pyo' \
+            --exclude='*.sqlite3' \
+            --exclude='.git' \
             captain-definition \
             Dockerfile.backend \
-            multivendor_platform/ \
-            requirements.txt
+            multivendor_platform/
+          
+          echo "Tarball contents:"
+          tar -tzf backend-deploy.tar.gz | head -20
+          echo "Tarball size: $(du -h backend-deploy.tar.gz | cut -f1)"
 
       - name: Deploy Backend to CapRover
+        if: secrets.CAPROVER_URL != ''
         env:
           CAPROVER_URL: ${{ secrets.CAPROVER_URL }}
           CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
           CAPROVER_APP_NAME: ${{ secrets.CAPROVER_BACKEND_APP_NAME }}
         run: |
+          if [ -z "$CAPROVER_URL" ] || [ -z "$CAPROVER_PASSWORD" ] || [ -z "$CAPROVER_APP_NAME" ]; then
+            echo "::error::Missing required secrets for deployment"
+            exit 1
+          fi
+          
+          echo "Deploying backend to CapRover..."
           caprover deploy \
             --caproverUrl "$CAPROVER_URL" \
             --caproverPassword "$CAPROVER_PASSWORD" \
@@ -65,30 +89,55 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if secrets are configured
+        run: |
+          if [ -z "${{ secrets.CAPROVER_URL }}" ]; then
+            echo "::warning::CAPROVER_URL secret is not set. Skipping deployment."
+            exit 0
+          fi
+
       - name: Set up Node.js
+        if: secrets.CAPROVER_URL != ''
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install CapRover CLI
+        if: secrets.CAPROVER_URL != ''
         run: npm install -g caprover
 
       - name: Create frontend deployment tarball
+        if: secrets.CAPROVER_URL != ''
         run: |
+          echo "Creating frontend tarball..."
           cp captain-definition-frontend captain-definition
           tar -czf frontend-deploy.tar.gz \
-            --exclude='node_modules' \
-            --exclude='dist' \
-            --exclude='.output' \
+            --exclude='**/node_modules' \
+            --exclude='**/dist' \
+            --exclude='**/.output' \
+            --exclude='**/.nuxt' \
+            --exclude='**/__pycache__' \
+            --exclude='.git' \
             captain-definition \
             multivendor_platform/front_end/nuxt/
+          
+          echo "Tarball contents:"
+          tar -tzf frontend-deploy.tar.gz | head -20
+          echo "Tarball size: $(du -h frontend-deploy.tar.gz | cut -f1)"
 
       - name: Deploy Frontend to CapRover
+        if: secrets.CAPROVER_URL != ''
         env:
           CAPROVER_URL: ${{ secrets.CAPROVER_URL }}
           CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
           CAPROVER_APP_NAME: ${{ secrets.CAPROVER_FRONTEND_APP_NAME }}
         run: |
+          if [ -z "$CAPROVER_URL" ] || [ -z "$CAPROVER_PASSWORD" ] || [ -z "$CAPROVER_APP_NAME" ]; then
+            echo "::error::Missing required secrets for deployment"
+            exit 1
+          fi
+          
+          echo "Deploying frontend to CapRover..."
           caprover deploy \
             --caproverUrl "$CAPROVER_URL" \
             --caproverPassword "$CAPROVER_PASSWORD" \
@@ -96,6 +145,7 @@ jobs:
             --tarFile frontend-deploy.tar.gz
 
       - name: Frontend deployment successful
+        if: secrets.CAPROVER_URL != ''
         run: |
           echo "✅ Frontend deployed successfully to CapRover!"
           echo "🔗 Frontend URL: https://indexo.ir"
