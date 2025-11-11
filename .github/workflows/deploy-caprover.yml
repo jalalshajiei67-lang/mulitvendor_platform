@@ -85,7 +85,7 @@ jobs:
             --exclude='multivendor_platform/front_end/node_modules' \
             --exclude='multivendor_platform/front_end/dist' \
             captain-definition \
-            Dockerfile.frontend \
+            Dockerfile.frontend.nuxt \
             multivendor_platform/front_end/
 
       - name: Deploy Frontend to CapRover

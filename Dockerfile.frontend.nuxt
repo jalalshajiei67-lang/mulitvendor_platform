@@ -1,0 +1,61 @@
+# Nuxt.js Frontend Dockerfile for CapRover - Optimized
+# Force rebuild: 2025-11-11-v3
+FROM node:20-alpine as build-stage
+
+# Set working directory
+WORKDIR /app
+
+# Copy everything first to simplify paths
+COPY . .
+
+# Navigate to nuxt directory and install
+WORKDIR /app/multivendor_platform/front_end/nuxt
+
+# Install dependencies
+RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+# Set environment variables for the build
+ARG NUXT_PUBLIC_API_BASE=https://multivendor-backend.indexo.ir/api
+ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
+
+# Build the Nuxt app
+RUN echo "========================================" && \
+    echo "Starting Nuxt build..." && \
+    echo "NUXT_PUBLIC_API_BASE: $NUXT_PUBLIC_API_BASE" && \
+    echo "Current directory: $(pwd)" && \
+    echo "========================================" && \
+    npm run build && \
+    echo "========================================" && \
+    echo "Build completed! Checking .output folder..." && \
+    ls -la .output/ && \
+    echo "========================================"
+
+# Production stage - use Node.js to run Nuxt server
+FROM node:20-alpine as production-stage
+
+WORKDIR /app
+
+# Copy package files from the nuxt directory
+COPY --from=build-stage /app/multivendor_platform/front_end/nuxt/package*.json ./
+
+# Install only production dependencies
+RUN npm ci --omit=dev --legacy-peer-deps || npm install --omit=dev --legacy-peer-deps
+
+# Copy built application from build stage
+COPY --from=build-stage /app/multivendor_platform/front_end/nuxt/.output /app/.output
+
+# Expose port 3000 (Nuxt default)
+EXPOSE 3000
+
+# Set environment to production
+ENV NODE_ENV=production
+ENV NUXT_HOST=0.0.0.0
+ENV NUXT_PORT=3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+
+# Start Nuxt server
+CMD ["node", ".output/server/index.mjs"]
+
