@@ -42,7 +42,7 @@ npm-debug.log
 yarn-error.log
 .npm
 .yarn
-package-lock.json
+# package-lock.json should be committed for reproducible builds
 
 # Build files
 *.min.js
