@@ -74,7 +74,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated]
         else:
-            permission_classes = []
+            permission_classes = [AllowAny]
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
@@ -252,7 +252,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated]
         else:
-            permission_classes = []
+            permission_classes = [AllowAny]
         return [permission() for permission in permission_classes]
 
 class SubcategoryViewSet(viewsets.ModelViewSet):
@@ -290,7 +290,7 @@ class SubcategoryViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated]
         else:
-            permission_classes = []
+            permission_classes = [AllowAny]
         return [permission() for permission in permission_classes]
 
 class DepartmentViewSet(viewsets.ModelViewSet):
@@ -323,7 +323,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated]
         else:
-            permission_classes = []
+            permission_classes = [AllowAny]
         return [permission() for permission in permission_classes]
 
 class MyProductsView(viewsets.ReadOnlyModelViewSet):
