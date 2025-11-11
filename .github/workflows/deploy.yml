@@ -1,7 +1,11 @@
-name: Deploy to CapRover (Simple - Disabled)
+name: Deploy to CapRover
 
 on:
-  workflow_dispatch:  # Only manual trigger, disabled for automatic push
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
 
 jobs:
   deploy-backend:
