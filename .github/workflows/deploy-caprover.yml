@@ -79,12 +79,14 @@ jobs:
         run: |
           cp captain-definition-frontend captain-definition
           tar -czf frontend-deploy.tar.gz \
+            --exclude='multivendor_platform/front_end/nuxt/node_modules' \
+            --exclude='multivendor_platform/front_end/nuxt/.nuxt' \
+            --exclude='multivendor_platform/front_end/nuxt/.output' \
             --exclude='multivendor_platform/front_end/node_modules' \
             --exclude='multivendor_platform/front_end/dist' \
             captain-definition \
             Dockerfile.frontend \
-            multivendor_platform/front_end/ \
-            nginx/frontend.conf
+            multivendor_platform/front_end/
 
       - name: Deploy Frontend to CapRover
         env:
