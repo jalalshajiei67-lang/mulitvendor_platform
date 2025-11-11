@@ -1,4 +1,4 @@
-name: Deploy to CapRover
+name: Deploy to CapRover (Manual Tarball)
 
 on:
   push:
@@ -77,12 +77,11 @@ jobs:
         run: |
           cp captain-definition-frontend captain-definition
           tar -czf frontend-deploy.tar.gz \
-            --exclude='multivendor_platform/front_end/node_modules' \
-            --exclude='multivendor_platform/front_end/dist' \
+            --exclude='node_modules' \
+            --exclude='dist' \
+            --exclude='.output' \
             captain-definition \
-            Dockerfile.frontend \
-            multivendor_platform/front_end/ \
-            nginx/frontend.conf
+            multivendor_platform/front_end/nuxt/
 
       - name: Deploy Frontend to CapRover
         env:
