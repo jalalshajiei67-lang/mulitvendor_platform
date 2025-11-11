@@ -37,6 +37,7 @@ jobs:
             --exclude='*.pyo' \
             captain-definition \
             Dockerfile.backend \
+            docker-entrypoint.sh \
             multivendor_platform/ \
             requirements.txt
 
