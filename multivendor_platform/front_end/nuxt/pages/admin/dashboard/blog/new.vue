@@ -335,7 +335,12 @@ const saveDraft = async () => {
 const submitForm = async () => {
   contentTouched.value = true
 
-  const { valid } = await formRef.value?.validate()
+  const formInstance = formRef.value
+  if (!formInstance) {
+    return
+  }
+
+  const { valid } = await formInstance.validate()
   if (!valid) return
 
   if (!contentValid.value) {
@@ -377,7 +382,12 @@ const submitForm = async () => {
 }
 
 const createCategory = async () => {
-  const { valid } = await categoryFormRef.value?.validate()
+  const categoryFormInstance = categoryFormRef.value
+  if (!categoryFormInstance) {
+    return
+  }
+
+  const { valid } = await categoryFormInstance.validate()
   if (!valid) return
 
   creatingCategory.value = true

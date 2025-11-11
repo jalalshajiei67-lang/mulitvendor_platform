@@ -1,5 +1,3 @@
-import type { FetchOptions } from 'ofetch'
-
 export const useAdminApi = () => {
   return {
     // Dashboard

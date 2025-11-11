@@ -511,7 +511,12 @@ const fetchFormData = async () => {
 const saveProduct = async () => {
   descriptionTouched.value = true
 
-  const { valid } = await formRef.value?.validate()
+  const formInstance = formRef.value
+  if (!formInstance) {
+    return
+  }
+
+  const { valid } = await formInstance.validate()
   if (!valid) return
 
   if (!descriptionValid.value) {
