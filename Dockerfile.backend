@@ -1,4 +1,5 @@
 # FIXED VERSION - Includes static files collection
+# Force rebuild: 2025-11-11-AllowAny-permissions-fix
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
