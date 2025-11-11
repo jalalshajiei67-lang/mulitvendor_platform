@@ -19,6 +19,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          # No cache needed - we only install CapRover CLI
 
       - name: Install CapRover CLI
         run: npm install -g caprover
@@ -69,6 +70,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          # No cache needed - we only install CapRover CLI
 
       - name: Install CapRover CLI
         run: npm install -g caprover
