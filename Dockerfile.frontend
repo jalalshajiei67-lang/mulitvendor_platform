@@ -1,4 +1,5 @@
 # Nuxt.js Frontend Dockerfile for CapRover
+# Force rebuild: 2025-11-11-v2
 FROM node:20-alpine as build-stage
 
 # Set working directory
