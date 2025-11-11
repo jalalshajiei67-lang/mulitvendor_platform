@@ -1,5 +1,5 @@
-# FIXED VERSION - Includes static files collection
-# Force rebuild: 2025-11-11-AllowAny-permissions-fix
+# FIXED VERSION - Migrations must succeed before starting server
+# Force rebuild: 2025-11-11-fix-migrations-and-static
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -23,40 +23,12 @@ COPY multivendor_platform/multivendor_platform/ /app/
 # Create directories
 RUN mkdir -p /app/staticfiles /app/media /app/logs
 
+# Copy startup script
+COPY docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
 EXPOSE 80
 
-# Startup commands with proper logging and error handling
-# Note: Persistent volumes are mounted at /app/staticfiles and /app/media
-CMD echo "==========================================" && \
-    echo "Starting Multivendor Backend Application" && \
-    echo "==========================================" && \
-    echo "" && \
-    echo "[1/6] Ensuring directories exist with proper permissions..." && \
-    mkdir -p /app/logs && \
-    mkdir -p /app/staticfiles && \
-    mkdir -p /app/media && \
-    mkdir -p /app/media/category_images /app/media/subcategory_images /app/media/product_images /app/media/department_images /app/media/blog_images /app/media/user_images && \
-    chmod -R 777 /app/media /app/staticfiles /app/logs || echo "⚠️  Permission change failed (may be expected with persistent volumes)" && \
-    echo "✅ Directories ready" && \
-    echo "" && \
-    echo "[2/6] Running database migrations..." && \
-    python manage.py migrate --noinput || echo "⚠️  Migration failed, but continuing..." && \
-    echo "✅ Migrations completed" && \
-    echo "" && \
-    echo "[3/6] Collecting static files (preserving existing files)..." && \
-    python manage.py collectstatic --noinput || echo "⚠️  Collectstatic failed, but continuing..." && \
-    echo "✅ Static files collected" && \
-    echo "" && \
-    echo "[4/6] Verifying Django configuration..." && \
-    python manage.py check --deploy || echo "⚠️  Django check found issues, but continuing..." && \
-    echo "✅ Django configuration verified" && \
-    echo "" && \
-    echo "[5/6] Testing directory permissions..." && \
-    touch /app/logs/test.log 2>/dev/null && rm -f /app/logs/test.log && echo "✅ Logs directory is writable" || echo "⚠️  Logs directory may not be writable (using console logging only)" && \
-    touch /app/media/test.txt 2>/dev/null && rm -f /app/media/test.txt && echo "✅ Media directory is writable" || echo "⚠️  WARNING: Media directory may not be writable" && \
-    echo "" && \
-    echo "[6/6] Starting Gunicorn server..." && \
-    echo "Binding to 0.0.0.0:80" && \
-    echo "==========================================" && \
-    exec gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:80 --workers 4 --timeout 120 --access-logfile - --error-logfile - --log-level info --capture-output
+# Use the entrypoint script
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
