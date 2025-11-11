@@ -57,9 +57,8 @@ jobs:
           DB_PORT: 5432
           SECRET_KEY: test-secret-key-for-ci
           DEBUG: True
-        run: |
-          cd multivendor_platform
-          python manage.py test
+        working-directory: multivendor_platform/multivendor_platform
+        run: python manage.py test
 
   test-frontend:
     name: Test Nuxt Frontend

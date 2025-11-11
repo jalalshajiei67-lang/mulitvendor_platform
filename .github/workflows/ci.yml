@@ -102,29 +102,29 @@ jobs:
       - name: Cache node modules
         uses: actions/cache@v4
         with:
-          path: multivendor_platform/front_end/node_modules
+          path: multivendor_platform/front_end/nuxt/node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
       - name: Install dependencies
         run: |
-          cd multivendor_platform/front_end
+          cd multivendor_platform/front_end/nuxt
           npm install
 
       - name: Run linting
         run: |
-          cd multivendor_platform/front_end
+          cd multivendor_platform/front_end/nuxt
           npm run lint
 
       - name: Build frontend
         run: |
-          cd multivendor_platform/front_end
+          cd multivendor_platform/front_end/nuxt
           npm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: multivendor_platform/front_end/dist/
+          path: multivendor_platform/front_end/nuxt/.output/
 
