@@ -1,4 +1,4 @@
 {
   "schemaVersion": 2,
-  "dockerfilePath": "./multivendor_platform/front_end/nuxt/Dockerfile"
+  "dockerfilePath": "./Dockerfile.frontend"
 }
