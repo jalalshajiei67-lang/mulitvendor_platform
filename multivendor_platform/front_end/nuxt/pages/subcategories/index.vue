@@ -106,7 +106,7 @@ await useAsyncData('subcategory-list-page', fetchPage)
 }
 
 .hero {
-  background: linear-gradient(135deg, rgba(0, 197, 142, 0.25), rgba(0, 111, 82, 0.25));
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.25), rgba(var(--v-theme-secondary), 0.25));
 }
 
 .subcategory-card {
@@ -116,7 +116,7 @@ await useAsyncData('subcategory-list-page', fetchPage)
 
 .subcategory-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 32px rgba(var(--v-theme-on-surface), 0.12);
 }
 
 .line-clamp-3 {

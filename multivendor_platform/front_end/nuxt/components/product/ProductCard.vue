@@ -14,7 +14,7 @@
       <v-chip
         v-if="product.is_featured"
         size="small"
-        color="warning"
+        color="accent"
         class="badge"
       >
         {{ t('featured') }}
@@ -85,7 +85,7 @@ const openProduct = () => {
 
 .product-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 32px rgba(var(--v-theme-on-surface), 0.12);
 }
 
 .image-wrapper {
@@ -100,7 +100,7 @@ const openProduct = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f5f5f5;
+  background-color: rgba(var(--v-theme-on-surface), 0.06);
 }
 
 .badge {

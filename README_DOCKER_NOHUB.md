@@ -157,3 +157,5 @@ docker exec -it multivendor_backend_local python manage.py shell
 
 
 
+
+

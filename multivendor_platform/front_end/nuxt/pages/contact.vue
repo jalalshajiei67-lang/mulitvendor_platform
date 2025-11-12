@@ -2,10 +2,12 @@
   <div class="contact-us" dir="rtl">
     <!-- Hero Section -->
     <div class="hero-section">
-      <div class="hero-content">
-        <h1>تماس با ما</h1>
-        <p>ما اینجا هستیم تا به شما کمک کنیم</p>
-      </div>
+      <v-container class="py-10 text-center text-white">
+        <div class="hero-content">
+          <h1>تماس با ما</h1>
+          <p>ما اینجا هستیم تا به شما کمک کنیم</p>
+        </div>
+      </v-container>
     </div>
 
     <!-- About Us Section -->
@@ -101,7 +103,7 @@ useHead({
   min-height: 100vh;
   direction: rtl;
   text-align: right;
-  background-color: #f8fafc;
+  background-color: rgba(var(--v-theme-surface), 0.97);
   color: rgba(var(--v-theme-on-surface), 0.92);
 }
 
@@ -109,17 +111,20 @@ useHead({
 .hero-section {
   background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.85), rgba(var(--v-theme-secondary), 0.9));
   color: rgba(var(--v-theme-on-primary), 0.98);
-  padding: 80px 20px;
+  margin: 16px auto 36px;
+  max-width: 1440px;
+  border-radius: 24px;
   text-align: center;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12);
 }
 
 .hero-section::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.18), transparent 55%);
+  background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.28), transparent 60%);
   pointer-events: none;
 }
 
@@ -165,7 +170,7 @@ useHead({
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.65), transparent);
+  background: linear-gradient(135deg, rgba(var(--v-theme-surface), 0.65), transparent);
   opacity: 0.45;
   pointer-events: none;
 }
@@ -210,11 +215,11 @@ useHead({
 }
 
 .contact-card {
-  background: white;
+  background: rgb(var(--v-theme-surface));
   padding: 40px 30px;
   border-radius: 18px;
   text-align: center;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 28px rgba(var(--v-theme-on-surface), 0.08);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   color: rgba(var(--v-theme-on-surface), 0.92);
   border: 1px solid rgba(var(--v-theme-primary), 0.12);
@@ -222,7 +227,7 @@ useHead({
 
 .contact-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 18px 36px rgba(var(--v-theme-on-surface), 0.12);
   border-color: rgba(var(--v-theme-primary), 0.3);
 }
 

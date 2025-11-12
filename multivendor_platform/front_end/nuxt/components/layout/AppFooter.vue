@@ -61,8 +61,8 @@ const currentYear = new Date().getFullYear()
 
 <style scoped>
 .app-footer {
-  border-top: 1px solid rgba(33, 33, 33, 0.08);
-  background: #ffffff;
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgb(var(--v-theme-surface));
 }
 
 .footer-links {
@@ -74,12 +74,12 @@ const currentYear = new Date().getFullYear()
 }
 
 .footer-links a {
-  color: #424242;
+  color: rgba(var(--v-theme-on-surface), 0.7);
   transition: color 0.2s;
 }
 
 .footer-links a:hover {
-  color: #00c58e;
+  color: rgb(var(--v-theme-primary));
 }
 </style>
 

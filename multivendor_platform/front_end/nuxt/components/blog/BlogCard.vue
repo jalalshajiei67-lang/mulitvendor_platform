@@ -13,7 +13,7 @@
       </div>
       <v-chip
         v-if="post.is_featured && variant !== 'list'"
-        color="warning"
+        color="accent"
         size="small"
         class="badge"
       >
@@ -76,7 +76,7 @@ const t = blogStore.t
 const chipStyle = computed(() => {
   if (!props.post.category_color) {
     return {
-      backgroundColor: 'rgba(0,0,0,0.04)'
+      backgroundColor: 'rgba(var(--v-theme-on-surface), 0.04)'
     }
   }
 
@@ -106,7 +106,7 @@ const formatDate = (value: string) =>
 
 .blog-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 32px rgba(var(--v-theme-on-surface), 0.12);
 }
 
 .image-wrapper {
@@ -121,7 +121,7 @@ const formatDate = (value: string) =>
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f5f5f5;
+  background-color: rgba(var(--v-theme-on-surface), 0.06);
 }
 
 .badge {

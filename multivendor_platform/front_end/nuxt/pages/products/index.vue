@@ -170,13 +170,27 @@ const resetFilters = async () => {
 <style scoped>
 .products-page {
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: rgba(var(--v-theme-surface), 0.97);
   color: rgba(var(--v-theme-on-surface), 0.92);
 }
 
 .hero {
-  background: linear-gradient(135deg, rgba(0, 197, 142, 0.2), rgba(0, 111, 82, 0.2));
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.2), rgba(var(--v-theme-secondary), 0.2));
   color: rgba(var(--v-theme-on-surface), 0.98);
+  border-radius: 24px;
+  margin-top: 12px;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.28), transparent 60%);
+  pointer-events: none;
 }
 
 .max-w-640 {

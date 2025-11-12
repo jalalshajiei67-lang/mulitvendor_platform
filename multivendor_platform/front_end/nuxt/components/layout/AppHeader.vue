@@ -130,8 +130,8 @@ watch(
 
 <style scoped>
 .app-header {
-  border-bottom: 1px solid rgba(33, 33, 33, 0.08);
-  background-color: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background-color: rgba(var(--v-theme-surface), 0.95);
   backdrop-filter: blur(8px);
 }
 
@@ -140,13 +140,13 @@ watch(
 }
 
 .nav-link {
-  color: #333;
+  color: rgba(var(--v-theme-on-surface), 0.87);
   transition: color 0.2s;
   margin: 0 10px;
 }
 
 .nav-link:hover {
-  color: #00c58e;
+  color: rgb(var(--v-theme-primary));
 }
 </style>
 

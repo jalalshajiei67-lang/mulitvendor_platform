@@ -64,3 +64,5 @@ NUXT_PUBLIC_API_BASE=https://multivendor-backend.indexo.ir/api
 3. For CapRover, set it in the app's environment variables before deployment
 4. For Docker, pass it as build arg in docker-compose.yml (already configured)
 
+
+

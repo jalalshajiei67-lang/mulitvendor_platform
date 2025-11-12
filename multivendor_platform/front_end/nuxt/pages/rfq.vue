@@ -346,7 +346,7 @@ const supportOptions = [
     title: 'ارسال ایمیل',
     description: 'ایمیل خود را به آدرس rfq@indexo.ir بفرستید تا در اولین فرصت پاسخ دهیم.',
     subtitle: 'پاسخ‌گویی کمتر از یک روز کاری',
-    color: 'success'
+    color: 'accent'
   }
 ]
 
@@ -435,7 +435,7 @@ useSeoMeta({
 .rfq-page {
   min-height: 100vh;
   padding: 64px 16px 80px;
-  background-color: #f8fafc;
+  background-color: rgba(var(--v-theme-surface), 0.97);
   color: rgba(var(--v-theme-on-surface), 0.92);
 }
 
@@ -445,7 +445,7 @@ useSeoMeta({
   padding: 48px 32px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12);
   margin: 0 auto 40px;
   max-width: 1100px;
 }
@@ -454,7 +454,7 @@ useSeoMeta({
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.24), transparent 60%);
+  background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.24), transparent 60%);
   pointer-events: none;
 }
 
@@ -485,14 +485,14 @@ useSeoMeta({
 .hero-highlight {
   padding: 20px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--v-theme-surface), 0.08);
   backdrop-filter: blur(6px);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 12px 24px rgba(var(--v-theme-on-surface), 0.12);
 }
 
 .rfq-card {
-  background: #ffffff;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+  background: rgb(var(--v-theme-surface));
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.08);
   border: 1px solid rgba(var(--v-theme-primary), 0.08);
 }
 
@@ -503,9 +503,9 @@ useSeoMeta({
 .feature-card {
   padding: 24px;
   border-radius: 22px;
-  background-color: rgba(255, 255, 255, 0.75);
+  background-color: rgba(var(--v-theme-surface), 0.75);
   backdrop-filter: blur(6px);
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 32px rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .feature-card :deep(.v-icon) {
@@ -513,10 +513,10 @@ useSeoMeta({
 }
 
 .process-section {
-  background: white;
+  background: rgb(var(--v-theme-surface));
   border-radius: 24px;
   padding: 40px 32px;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.06);
   border: 1px solid rgba(var(--v-theme-primary), 0.06);
 }
 
@@ -526,7 +526,7 @@ useSeoMeta({
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background-color: rgba(255, 255, 255, 0.75);
+  background-color: rgba(var(--v-theme-surface), 0.75);
   backdrop-filter: blur(6px);
 }
 
@@ -550,8 +550,8 @@ useSeoMeta({
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background-color: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  background-color: rgba(var(--v-theme-surface), 0.85);
+  box-shadow: 0 16px 32px rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .support-card :deep(.v-icon) {
@@ -559,10 +559,10 @@ useSeoMeta({
 }
 
 .faq-section {
-  background: white;
+  background: rgb(var(--v-theme-surface));
   border-radius: 24px;
   padding: 40px 32px;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.06);
   border: 1px solid rgba(var(--v-theme-primary), 0.06);
 }
 

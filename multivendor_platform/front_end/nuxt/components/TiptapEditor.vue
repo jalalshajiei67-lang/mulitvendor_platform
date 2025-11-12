@@ -718,7 +718,7 @@ watch(() => editor.value, (newEditor) => {
   z-index: 10;
   background-color: rgb(var(--v-theme-surface));
   border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(var(--v-theme-on-surface), 0.05);
   flex-shrink: 0;
   width: 100%;
 }

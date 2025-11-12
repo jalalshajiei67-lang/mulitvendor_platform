@@ -528,3 +528,5 @@ Your multivendor platform has been successfully migrated from Vue to Nuxt 3!
 
 **Happy deploying!** 🎉
 
+
+

@@ -190,7 +190,7 @@ const commentLoading = ref(false)
 const heroStyle = computed(() => {
   const gradient = post.value?.category_color
     ? `linear-gradient(135deg, ${post.value.category_color}, rgba(0,0,0,0.45))`
-    : 'linear-gradient(135deg, rgba(0, 197, 142, 0.9), rgba(0, 111, 82, 0.9))'
+    : `linear-gradient(135deg, rgba(var(--v-theme-primary), 0.9), rgba(var(--v-theme-secondary), 0.9))`
 
   return {
     background: gradient
@@ -257,7 +257,21 @@ useSeoMeta({
 
 <style scoped>
 .hero {
-  color: white;
+  color: rgba(var(--v-theme-on-primary), 0.98);
+  border-radius: 24px;
+  margin: 16px auto 36px;
+  max-width: 1440px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 60%);
+  pointer-events: none;
 }
 
 .blog-detail .content :deep(img) {
@@ -277,7 +291,7 @@ useSeoMeta({
 .blog-detail .content :deep(p) {
   line-height: 2.2;
   margin-bottom: 1rem;
-  color: #424242;
+  color: rgba(var(--v-theme-on-surface), 0.87);
   font-size: 1.05rem;
 }
 
@@ -287,7 +301,7 @@ useSeoMeta({
 
 .comment-item {
   border-radius: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   margin-bottom: 16px;
 }
 </style>

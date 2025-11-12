@@ -1,7 +1,7 @@
 <template>
   <div class="blog-list">
     <section class="hero">
-      <v-container fluid class="py-12 text-center text-white">
+      <v-container class="py-12 text-center text-white">
         <h1 class="text-h3 text-md-h2 font-weight-bold mb-4">
           {{ t('blog') }}
         </h1>
@@ -224,8 +224,22 @@ watch(
 }
 
 .hero {
-  background: linear-gradient(135deg, rgba(0, 197, 142, 0.85), rgba(0, 111, 82, 0.85));
-  color: white;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.22), rgba(var(--v-theme-secondary), 0.26));
+  color: rgba(var(--v-theme-on-primary), 0.98);
+  border-radius: 24px;
+  margin: 16px auto 36px;
+  max-width: 1440px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.28), transparent 60%);
+  pointer-events: none;
 }
 
 .max-w-600 {

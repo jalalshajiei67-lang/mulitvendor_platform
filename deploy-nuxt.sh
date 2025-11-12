@@ -154,3 +154,5 @@ if [[ $view_logs =~ ^[Yy]$ ]]; then
     docker-compose logs -f
 fi
 
+
+

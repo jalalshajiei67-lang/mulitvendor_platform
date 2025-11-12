@@ -139,7 +139,7 @@
     </v-container>
 
     <v-container class="buyers-section py-8 py-md-12">
-      <v-card elevation="4" rounded="xl" class="section-card buyers-card" color="info">
+      <v-card elevation="4" rounded="xl" class="section-card buyers-card" color="primary" variant="tonal">
         <v-card-title class="section-title text-h4 text-md-h3 text-center pa-6 pa-md-8">
           <v-icon size="large" class="ml-2">mdi-account-group</v-icon>
           ایندکسو برای خریداران
@@ -200,7 +200,7 @@
     </v-container>
 
     <v-container class="sellers-section py-8 py-md-12">
-      <v-card elevation="4" rounded="xl" class="section-card sellers-card" color="success">
+      <v-card elevation="4" rounded="xl" class="section-card sellers-card" color="secondary" variant="tonal">
         <v-card-title class="section-title text-h4 text-md-h3 text-center pa-6 pa-md-8">
           <v-icon size="large" class="ml-2">mdi-store</v-icon>
           ایندکسو برای فروشندگان
@@ -303,19 +303,19 @@ const buyerAdvantages = [
     icon: 'mdi-account-switch',
     title: 'ارتباط مستقیم',
     description: 'بدون واسطه و اصطکاک، مستقیماً با تامین‌کنندگان معتبر در ارتباط باشید',
-    color: 'info'
+    color: 'primary'
   },
   {
     icon: 'mdi-shield-check',
     title: 'تامین‌کنندگان معتبر',
     description: 'از بین بهترین تولیدکنندگان ماشین‌آلات، تامین‌کننده مناسب خود را پیدا کنید',
-    color: 'success'
+    color: 'secondary'
   },
   {
     icon: 'mdi-lightning-bolt',
     title: 'مسیر کوتاه خرید',
     description: 'فرآیند خرید را کوتاه کرده و سریع‌تر به محصول مورد نظر خود برسید',
-    color: 'warning'
+    color: 'accent'
   }
 ]
 
@@ -324,7 +324,7 @@ const sellerAdvantages = [
     icon: 'mdi-cash',
     title: 'هزینه کم',
     description: 'با حداقل هزینه، محصولات خود را به خریداران هدف معرفی کنید',
-    color: 'success'
+    color: 'secondary'
   },
   {
     icon: 'mdi-chart-line',
@@ -336,7 +336,7 @@ const sellerAdvantages = [
     icon: 'mdi-handshake',
     title: 'دسترسی به خریداران',
     description: 'مستقیماً با خریداران واقعی در صنعت ماشین‌آلات ارتباط برقرار کنید',
-    color: 'info'
+    color: 'accent'
   }
 ]
 
@@ -455,7 +455,7 @@ const handleSellerCTA = () => {
 <style scoped>
 .home {
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: rgba(var(--v-theme-surface), 0.97);
   color: rgba(var(--v-theme-on-surface), 0.92);
 }
 
@@ -507,8 +507,8 @@ const handleSellerCTA = () => {
   margin: 0 auto;
   position: relative;
   z-index: 1;
-  background: rgba(255, 255, 255, 0.95) !important;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12) !important;
+  background: rgba(var(--v-theme-surface), 0.95) !important;
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12) !important;
 }
 
 .home-search-input :deep(.v-field) {
@@ -575,11 +575,11 @@ const handleSellerCTA = () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #666;
+  color: rgba(var(--v-theme-on-surface), 0.6);
 }
 
 .no-results {
-  color: #999;
+  color: rgba(var(--v-theme-on-surface), 0.5);
 }
 
 .results-container {
@@ -587,7 +587,7 @@ const handleSellerCTA = () => {
 }
 
 .result-section {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .result-section:last-child {
@@ -595,9 +595,9 @@ const handleSellerCTA = () => {
 }
 
 .section-title {
-  background-color: #f8f9fa;
-  color: #666;
-  border-bottom: 1px solid #e0e0e0;
+  background-color: rgba(var(--v-theme-surface), 0.97);
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .result-item {
@@ -606,10 +606,10 @@ const handleSellerCTA = () => {
   gap: 12px;
   padding: 12px 16px;
   text-decoration: none;
-  color: #333;
+  color: rgba(var(--v-theme-on-surface), 0.87);
   transition: background-color 0.2s;
   cursor: pointer;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.06);
 }
 
 .result-item:last-child {
@@ -617,7 +617,7 @@ const handleSellerCTA = () => {
 }
 
 .result-item:hover {
-  background-color: #f8f9fa;
+  background-color: rgba(var(--v-theme-primary), 0.04);
 }
 
 .result-image {
@@ -626,7 +626,7 @@ const handleSellerCTA = () => {
   border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
-  background-color: #f0f0f0;
+  background-color: rgba(var(--v-theme-on-surface), 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -644,8 +644,8 @@ const handleSellerCTA = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #e0e0e0;
-  color: #999;
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
+  color: rgba(var(--v-theme-on-surface), 0.5);
 }
 
 .result-content {
@@ -667,16 +667,16 @@ const handleSellerCTA = () => {
   align-items: center;
   gap: 8px;
   font-size: 0.875rem;
-  color: #666;
+  color: rgba(var(--v-theme-on-surface), 0.6);
 }
 
 .result-price {
   font-weight: 500;
-  color: #2c3e50;
+  color: rgb(var(--v-theme-primary));
 }
 
 .result-excerpt {
-  color: #999;
+  color: rgba(var(--v-theme-on-surface), 0.5);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -684,8 +684,8 @@ const handleSellerCTA = () => {
 }
 
 .view-all {
-  background-color: #f8f9fa;
-  border-top: 1px solid #e0e0e0;
+  background-color: rgba(var(--v-theme-surface), 0.97);
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .dropdown-enter-active,
@@ -702,7 +702,7 @@ const handleSellerCTA = () => {
 .autocomplete-dropdown :deep(.v-card-text),
 .autocomplete-dropdown {
   scrollbar-width: thin;
-  scrollbar-color: #ccc #f1f1f1;
+  scrollbar-color: rgba(var(--v-theme-primary), 0.4) rgba(var(--v-theme-surface), 0.5);
 }
 
 .autocomplete-dropdown::-webkit-scrollbar {
@@ -710,25 +710,25 @@ const handleSellerCTA = () => {
 }
 
 .autocomplete-dropdown::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: rgba(var(--v-theme-surface), 0.5);
   border-radius: 4px;
 }
 
 .autocomplete-dropdown::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: rgba(var(--v-theme-primary), 0.4);
   border-radius: 4px;
 }
 
 .autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
-  background: #999;
+  background: rgba(var(--v-theme-primary), 0.6);
 }
 
 .section-card {
   max-width: 1200px;
   margin: 0 auto;
-  background: white;
+  background: rgb(var(--v-theme-surface));
   border: 1px solid rgba(var(--v-theme-primary), 0.08);
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 40px rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .buyers-card {
@@ -743,10 +743,10 @@ const handleSellerCTA = () => {
 .sellers-card {
   background: linear-gradient(
     135deg,
-    rgba(var(--v-theme-success), 0.14) 0%,
+    rgba(var(--v-theme-secondary), 0.14) 0%,
     rgba(var(--v-theme-primary), 0.16) 100%
   );
-  border-left: 4px solid rgba(var(--v-theme-success), 0.4);
+  border-left: 4px solid rgba(var(--v-theme-secondary), 0.4);
 }
 
 .advantages-grid {
@@ -757,16 +757,16 @@ const handleSellerCTA = () => {
   height: 100%;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border: 1px solid rgba(var(--v-theme-primary), 0.08);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(var(--v-theme-surface), 0.92);
 }
 
 .advantage-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 8px 16px rgba(var(--v-theme-on-surface), 0.15) !important;
 }
 
 .cta-card {
-  background: white;
+  background: rgb(var(--v-theme-surface));
 }
 
 .cta-button {

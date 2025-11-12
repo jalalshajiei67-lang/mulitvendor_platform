@@ -311,7 +311,7 @@ onMounted(() => {
 <style scoped>
 .supplier-list-container {
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: rgba(var(--v-theme-surface), 0.97);
   color: rgba(var(--v-theme-on-surface), 0.92);
   padding-bottom: 80px;
   max-width: 100%;
@@ -353,14 +353,14 @@ onMounted(() => {
   margin-bottom: 32px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12);
 }
 
 .page-hero::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 60%);
+  background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.28), transparent 60%);
   pointer-events: none;
 }
 
@@ -373,8 +373,8 @@ onMounted(() => {
 }
 
 .filter-card {
-  background-color: white;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+  background-color: rgb(var(--v-theme-surface));
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.08);
   border: 1px solid rgba(var(--v-theme-primary), 0.08);
 }
 
@@ -394,7 +394,7 @@ onMounted(() => {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
   border: 1px solid rgba(var(--v-theme-primary), 0.08);
-  background: white;
+  background: rgb(var(--v-theme-surface));
   display: flex;
   flex-direction: column;
 }

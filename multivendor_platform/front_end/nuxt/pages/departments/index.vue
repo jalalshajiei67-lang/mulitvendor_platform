@@ -98,7 +98,7 @@ await useAsyncData('department-list-page', fetchPage)
 }
 
 .hero {
-  background: linear-gradient(135deg, rgba(0, 111, 82, 0.3), rgba(0, 197, 142, 0.3));
+  background: linear-gradient(135deg, rgba(var(--v-theme-secondary), 0.3), rgba(var(--v-theme-primary), 0.3));
 }
 
 .department-card {
@@ -108,7 +108,7 @@ await useAsyncData('department-list-page', fetchPage)
 
 .department-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 18px 32px rgba(var(--v-theme-on-surface), 0.12);
 }
 
 .line-clamp-3 {

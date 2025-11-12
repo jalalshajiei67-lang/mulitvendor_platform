@@ -85,23 +85,36 @@ a {
   }
 }
 
-/* Scrollbar RTL Support */
+/* Scrollbar RTL Support - Using Vuetify Colors */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: rgba(var(--v-theme-surface), 0.5);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background: rgba(var(--v-theme-primary), 0.4);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: rgba(var(--v-theme-primary), 0.6);
+}
+
+/* Dark theme scrollbar */
+.v-theme--dark ::-webkit-scrollbar-track {
+  background: rgba(var(--v-theme-surface), 0.3);
+}
+
+.v-theme--dark ::-webkit-scrollbar-thumb {
+  background: rgba(var(--v-theme-primary), 0.5);
+}
+
+.v-theme--dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--v-theme-primary), 0.7);
 }
 
 /* Persian Number Support */

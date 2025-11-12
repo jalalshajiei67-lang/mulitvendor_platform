@@ -213,8 +213,8 @@ useSeoMeta({
 
 <style scoped>
 .hero {
-  background: linear-gradient(135deg, rgba(0, 197, 142, 0.9), rgba(0, 111, 82, 0.9));
-  color: white;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.9), rgba(var(--v-theme-secondary), 0.9));
+  color: rgb(var(--v-theme-on-primary));
 }
 
 .product-detail .no-image {
@@ -222,7 +222,7 @@ useSeoMeta({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  background: rgba(var(--v-theme-on-surface), 0.06);
   border-radius: 12px;
 }
 

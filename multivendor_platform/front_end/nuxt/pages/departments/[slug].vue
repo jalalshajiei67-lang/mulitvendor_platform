@@ -168,7 +168,7 @@ useSeoMeta({
 <style scoped>
 .department-detail {
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: rgba(var(--v-theme-surface), 0.97);
   color: rgba(var(--v-theme-on-surface), 0.92);
 }
 
@@ -177,14 +177,14 @@ useSeoMeta({
   color: rgba(var(--v-theme-on-primary), 0.96);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12);
 }
 
 .hero::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.24), transparent 60%);
+  background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.24), transparent 60%);
   pointer-events: none;
 }
 
@@ -192,12 +192,12 @@ useSeoMeta({
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
   border: 1px solid rgba(var(--v-theme-primary), 0.08);
-  background: white;
+  background: rgb(var(--v-theme-surface));
 }
 
 .category-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 32px rgba(var(--v-theme-on-surface), 0.12);
 }
 
 .category-card :deep(.text-medium-emphasis) {
@@ -216,9 +216,9 @@ useSeoMeta({
 }
 
 .description-card {
-  background: white;
+  background: rgb(var(--v-theme-surface));
   border: 1px solid rgba(var(--v-theme-primary), 0.08);
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.08);
   margin-top: 16px;
 }
 

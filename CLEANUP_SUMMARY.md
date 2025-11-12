@@ -454,3 +454,5 @@ cd ../.. && docker-compose build frontend
 
 **Your clean, modern Nuxt codebase awaits!** 🎊
 
+
+
