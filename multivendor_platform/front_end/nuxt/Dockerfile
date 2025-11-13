@@ -6,6 +6,9 @@ FROM node:20-alpine as build-stage
 
 WORKDIR /app
 
+# Increase Node.js memory limit for SSR build
+ENV NODE_OPTIONS=--max-old-space-size=2048
+
 # Accept build arguments
 # For local development, leave empty to use relative URLs
 # For production, set to production API URL
@@ -28,6 +31,9 @@ RUN npm run build
 FROM node:20-alpine as production-stage
 
 WORKDIR /app
+
+# Keep same Node options at runtime (safe no-op if unused)
+ENV NODE_OPTIONS=--max-old-space-size=2048
 
 # Copy package files
 COPY package*.json ./

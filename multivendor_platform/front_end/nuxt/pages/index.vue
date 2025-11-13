@@ -1,142 +1,144 @@
 <template>
   <div class="home" dir="rtl">
-    <v-container fluid class="hero-section pa-0">
-      <v-row no-gutters justify="center" align="center" class="hero-content">
-        <v-col cols="12" md="10" lg="8" class="pa-4 pa-md-8">
-          <div class="search-wrapper" ref="searchContainer">
-            <v-card elevation="8" rounded="xl" class="search-card pa-4 pa-md-6 mb-4" color="surface">
-              <v-card-text class="pa-0">
-                <v-text-field
-                  v-model="searchQuery"
-                  placeholder="چه دستگاهی نیاز دارید؟"
-                  append-inner-icon="mdi-magnify"
-                  variant="outlined"
-                  rounded="lg"
-                  hide-details
-                  class="home-search-input"
-                  density="comfortable"
-                  @focus="isSearchFocused = true"
-                  @keydown.enter.prevent="performSearch"
-                  @keydown.escape="closeAutocomplete"
-                  @click:append-inner="performSearch"
-                  @update:model-value="onSearchQueryChange"
-                />
-              </v-card-text>
-            </v-card>
-
-            <transition name="dropdown">
-              <v-card
-                v-if="showAutocomplete && (hasResults || isLoadingSearch)"
-                elevation="8"
-                rounded="lg"
-                class="autocomplete-dropdown"
-              >
-                <div v-if="isLoadingSearch" class="search-loading pa-4">
-                  <v-progress-circular
-                    indeterminate
-                    color="primary"
-                    size="24"
-                    class="mr-2"
+    <section class="hero-section">
+      <v-container class="pa-0">
+        <v-row no-gutters justify="center" align="center" class="hero-content">
+          <v-col cols="12" md="10" lg="8" class="pa-4 pa-md-8">
+            <div class="search-wrapper" ref="searchContainer">
+              <v-card elevation="8" rounded="xl" class="search-card pa-4 pa-md-6 mb-4" color="surface">
+                <v-card-text class="pa-0">
+                  <v-text-field
+                    v-model="searchQuery"
+                    placeholder="چه دستگاهی نیاز دارید؟"
+                    append-inner-icon="mdi-magnify"
+                    variant="outlined"
+                    rounded="lg"
+                    hide-details
+                    class="home-search-input"
+                    density="comfortable"
+                    @focus="isSearchFocused = true"
+                    @keydown.enter.prevent="performSearch"
+                    @keydown.escape="closeAutocomplete"
+                    @click:append-inner="performSearch"
+                    @update:model-value="onSearchQueryChange"
                   />
-                  <span>در حال جستجو...</span>
-                </div>
-
-                <div v-else-if="!hasResults && searchQuery.length >= 2" class="no-results pa-4 text-center">
-                  <p class="text-body-2 text-medium-emphasis">نتیجه‌ای یافت نشد</p>
-                </div>
-
-                <div v-else-if="hasResults" class="results-container">
-                  <div
-                    v-if="searchResults.products && searchResults.products.length > 0"
-                    class="result-section"
-                  >
-                    <div class="section-title pa-2 text-caption font-weight-bold">
-                      محصولات
-                    </div>
-                    <NuxtLink
-                      v-for="product in searchResults.products"
-                      :key="`product-${product.id}`"
-                      :to="product.slug ? `/products/${product.slug}` : `/products/${product.id}`"
-                      @click="closeAutocomplete"
-                      class="result-item"
-                    >
-                      <div class="result-image">
-                        <img
-                          v-if="product.primary_image"
-                          :src="product.primary_image"
-                          :alt="product.name"
-                        />
-                        <div v-else class="placeholder-image">
-                          <v-icon size="small">mdi-image</v-icon>
-                        </div>
-                      </div>
-                      <div class="result-content">
-                        <div class="result-title">{{ product.name }}</div>
-                        <div class="result-meta">
-                          <v-chip size="x-small" color="primary" variant="flat">محصول</v-chip>
-                          <span class="result-price">
-                            {{ product.price ? formatPrice(product.price) : 'تماس بگیرید' }}
-                          </span>
-                        </div>
-                      </div>
-                    </NuxtLink>
-                  </div>
-
-                  <div
-                    v-if="searchResults.blogs && searchResults.blogs.length > 0"
-                    class="result-section"
-                  >
-                    <div class="section-title pa-2 text-caption font-weight-bold">
-                      وبلاگ
-                    </div>
-                    <NuxtLink
-                      v-for="blog in searchResults.blogs"
-                      :key="`blog-${blog.id}`"
-                      :to="`/blog/${blog.slug}`"
-                      @click="closeAutocomplete"
-                      class="result-item"
-                    >
-                      <div class="result-image">
-                        <img
-                          v-if="blog.featured_image"
-                          :src="blog.featured_image"
-                          :alt="blog.title"
-                        />
-                        <div v-else class="placeholder-image">
-                          <v-icon size="small">mdi-file-document</v-icon>
-                        </div>
-                      </div>
-                      <div class="result-content">
-                        <div class="result-title">{{ blog.title }}</div>
-                        <div class="result-meta">
-                          <v-chip size="x-small" color="purple" variant="flat">وبلاگ</v-chip>
-                          <span class="result-excerpt">{{ truncate(blog.excerpt, 60) }}</span>
-                        </div>
-                      </div>
-                    </NuxtLink>
-                  </div>
-
-                  <div v-if="searchResults.total > totalDisplayed" class="view-all pa-2 text-center">
-                    <v-btn
-                      variant="text"
-                      size="small"
-                      @click="performSearch"
-                      class="text-caption"
-                    >
-                      مشاهده همه نتایج ({{ searchResults.total - totalDisplayed }} نتیجه دیگر)
-                    </v-btn>
-                  </div>
-                </div>
+                </v-card-text>
               </v-card>
-            </transition>
-          </div>
 
-          <p class="search-subtitle text-center text-body-1 text-md-h6">
-            از بین تولیدات بهترین تولید کنندگان ماشین آلات نیاز خود را جستجو کنید
-          </p>
-        </v-col>
-      </v-row>
-    </v-container>
+              <transition name="dropdown">
+                <v-card
+                  v-if="showAutocomplete && (hasResults || isLoadingSearch)"
+                  elevation="8"
+                  rounded="lg"
+                  class="autocomplete-dropdown"
+                >
+                  <div v-if="isLoadingSearch" class="search-loading pa-4">
+                    <v-progress-circular
+                      indeterminate
+                      color="primary"
+                      size="24"
+                      class="mr-2"
+                    />
+                    <span>در حال جستجو...</span>
+                  </div>
+
+                  <div v-else-if="!hasResults && searchQuery.length >= 2" class="no-results pa-4 text-center">
+                    <p class="text-body-2 text-medium-emphasis">نتیجه‌ای یافت نشد</p>
+                  </div>
+
+                  <div v-else-if="hasResults" class="results-container">
+                    <div
+                      v-if="searchResults.products && searchResults.products.length > 0"
+                      class="result-section"
+                    >
+                      <div class="section-title pa-2 text-caption font-weight-bold">
+                        محصولات
+                      </div>
+                      <NuxtLink
+                        v-for="product in searchResults.products"
+                        :key="`product-${product.id}`"
+                        :to="product.slug ? `/products/${product.slug}` : `/products/${product.id}`"
+                        @click="closeAutocomplete"
+                        class="result-item"
+                      >
+                        <div class="result-image">
+                          <img
+                            v-if="product.primary_image"
+                            :src="product.primary_image"
+                            :alt="product.name"
+                          />
+                          <div v-else class="placeholder-image">
+                            <v-icon size="small">mdi-image</v-icon>
+                          </div>
+                        </div>
+                        <div class="result-content">
+                          <div class="result-title">{{ product.name }}</div>
+                          <div class="result-meta">
+                            <v-chip size="x-small" color="primary" variant="flat">محصول</v-chip>
+                            <span class="result-price">
+                              {{ product.price ? formatPrice(product.price) : 'تماس بگیرید' }}
+                            </span>
+                          </div>
+                        </div>
+                      </NuxtLink>
+                    </div>
+
+                    <div
+                      v-if="searchResults.blogs && searchResults.blogs.length > 0"
+                      class="result-section"
+                    >
+                      <div class="section-title pa-2 text-caption font-weight-bold">
+                        وبلاگ
+                      </div>
+                      <NuxtLink
+                        v-for="blog in searchResults.blogs"
+                        :key="`blog-${blog.id}`"
+                        :to="`/blog/${blog.slug}`"
+                        @click="closeAutocomplete"
+                        class="result-item"
+                      >
+                        <div class="result-image">
+                          <img
+                            v-if="blog.featured_image"
+                            :src="blog.featured_image"
+                            :alt="blog.title"
+                          />
+                          <div v-else class="placeholder-image">
+                            <v-icon size="small">mdi-file-document</v-icon>
+                          </div>
+                        </div>
+                        <div class="result-content">
+                          <div class="result-title">{{ blog.title }}</div>
+                          <div class="result-meta">
+                            <v-chip size="x-small" color="purple" variant="flat">وبلاگ</v-chip>
+                            <span class="result-excerpt">{{ truncate(blog.excerpt, 60) }}</span>
+                          </div>
+                        </div>
+                      </NuxtLink>
+                    </div>
+
+                    <div v-if="searchResults.total > totalDisplayed" class="view-all pa-2 text-center">
+                      <v-btn
+                        variant="text"
+                        size="small"
+                        @click="performSearch"
+                        class="text-caption"
+                      >
+                        مشاهده همه نتایج ({{ searchResults.total - totalDisplayed }} نتیجه دیگر)
+                      </v-btn>
+                    </div>
+                  </div>
+                </v-card>
+              </transition>
+            </div>
+
+            <p class="search-subtitle text-center text-body-1 text-md-h6">
+              از بین تولیدات بهترین تولید کنندگان ماشین آلات نیاز خود را جستجو کنید
+            </p>
+          </v-col>
+        </v-row>
+      </v-container>
+    </section>
 
     <v-container class="buyers-section py-8 py-md-12">
       <v-card elevation="4" rounded="xl" class="section-card buyers-card" color="primary" variant="tonal">
@@ -430,19 +432,19 @@ watch(
 
 onMounted(() => {
   initializeFromRoute()
-  if (process.client) {
+  if (import.meta.client) {
     document.addEventListener('click', handleClickOutside)
   }
 })
 
 onUnmounted(() => {
-  if (process.client) {
+  if (import.meta.client) {
     document.removeEventListener('click', handleClickOutside)
   }
 })
 
 const handleBuyerCTA = () => {
-  if (process.client) {
+  if (import.meta.client) {
     window.location.hash = '#rfq'
   }
 }
@@ -460,17 +462,16 @@ const handleSellerCTA = () => {
 }
 
 .hero-section {
-  background: linear-gradient(
-    135deg,
-    rgba(var(--v-theme-primary), 0.22) 0%,
-    rgba(var(--v-theme-secondary), 0.28) 100%
-  );
+  background: linear-gradient(135deg, rgba(0, 197, 142, 0.22), rgba(0, 111, 82, 0.26));
   min-height: 400px;
   display: flex;
   align-items: center;
   padding: 60px 20px;
   position: relative;
   overflow: hidden;
+  border-radius: 24px;
+  margin: 16px auto 36px;
+  max-width: 1440px;
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
 }
 
@@ -478,7 +479,7 @@ const handleSellerCTA = () => {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.24), transparent 60%);
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 60%);
   pointer-events: none;
 }
 

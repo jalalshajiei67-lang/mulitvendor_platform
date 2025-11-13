@@ -5,6 +5,9 @@ FROM node:20-alpine as build-stage
 # Set working directory
 WORKDIR /app
 
+# Increase Node.js memory limit for heavy SSR builds
+ENV NODE_OPTIONS=--max-old-space-size=2048
+
 # Copy everything first to simplify paths
 COPY . .
 
@@ -34,6 +37,9 @@ RUN echo "========================================" && \
 FROM node:20-alpine as production-stage
 
 WORKDIR /app
+
+# Keep same Node options at runtime (harmless if not needed)
+ENV NODE_OPTIONS=--max-old-space-size=2048
 
 # Copy package files from the nuxt directory
 COPY --from=build-stage /app/multivendor_platform/front_end/nuxt/package*.json ./
