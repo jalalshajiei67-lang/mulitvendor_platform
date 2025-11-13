@@ -42,7 +42,7 @@
               </v-avatar>
               <h2 class="text-h5 font-weight-bold mb-3">{{ department.name }}</h2>
               <p class="text-body-2 text-medium-emphasis line-clamp-3">
-                {{ department.description || 'بدون توضیحات' }}
+                {{ department.description_plain || 'بدون توضیحات' }}
               </p>
               <div class="d-flex justify-space-between align-center mt-4 text-caption text-medium-emphasis">
                 <span>

@@ -50,7 +50,7 @@
               <v-card-text class="pa-6">
                 <h3 class="text-h6 font-weight-bold mb-2">{{ category.name }}</h3>
                 <p class="text-body-2 text-medium-emphasis line-clamp-3">
-                  {{ category.description || 'بدون توضیحات' }}
+                  {{ category.description_plain || 'بدون توضیحات' }}
                 </p>
                 <div class="d-flex align-center justify-space-between mt-4">
                   <span class="text-primary text-body-2 font-weight-medium">
@@ -86,8 +86,12 @@
             </p>
           </div>
         </v-card-title>
-        <v-card-text class="text-body-1 description-text">
-          {{ department.description || 'برای این دپارتمان هنوز توضیحاتی ثبت نشده است.' }}
+        <v-card-text class="description-text">
+          <div
+            v-html="department.description_html"
+            class="text-body-1"
+            data-testid="department-description"
+          />
         </v-card-text>
       </v-card>
     </v-container>

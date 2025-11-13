@@ -46,7 +46,7 @@
                   {{ category.name }}
                 </h2>
                 <p class="text-body-2 text-medium-emphasis line-clamp-3">
-                  {{ category.description || 'بدون توضیحات' }}
+                  {{ category.description_plain || 'بدون توضیحات' }}
                 </p>
                 <v-chip
                   v-if="category.department_name"

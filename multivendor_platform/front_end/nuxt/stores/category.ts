@@ -22,15 +22,30 @@ const translations: Record<string, string> = {
 
 const defaultDescription = 'برای این دسته هنوز توضیحاتی ثبت نشده است.'
 
-const decodeHtmlEntities = (input: string): string =>
-  input
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&zwnj;/gi, '\u200C')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
+const decodeHtmlEntities = (input: string): string => {
+  if (!input) return input
+  // Handle double-encoding by decoding multiple times if needed
+  let decoded = input
+  let previousDecoded = ''
+  
+  // Decode until no more changes occur (handles double/triple encoding)
+  while (decoded !== previousDecoded) {
+    previousDecoded = decoded
+    decoded = decoded
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/&#x27;/gi, "'")
+      .replace(/&zwnj;/gi, '\u200C')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&#160;/gi, ' ')
+      .replace(/&apos;/gi, "'")
+  }
+  
+  return decoded
+}
 
 const sanitizeHtml = (input: string): string =>
   input
@@ -38,6 +53,18 @@ const sanitizeHtml = (input: string): string =>
     .replace(/\son\w+="[^"]*"/gi, '')
     .replace(/\son\w+='[^']*'/gi, '')
     .replace(/javascript:/gi, '')
+
+const stripHtmlTags = (html: string): string => {
+  if (!html) return html
+  // Create a temporary DOM element to parse HTML and extract text
+  if (typeof document !== 'undefined') {
+    const tmp = document.createElement('div')
+    tmp.innerHTML = html
+    return tmp.textContent || tmp.innerText || ''
+  }
+  // Fallback for SSR: use regex to strip tags
+  return html.replace(/<[^>]*>/g, '').trim()
+}
 
 const buildRichText = (raw: string | null | undefined, fallback = defaultDescription): string => {
   if (!raw) {
@@ -58,6 +85,20 @@ const buildRichText = (raw: string | null | undefined, fallback = defaultDescrip
   return hasHtmlTags ? sanitized : `<p>${sanitized}</p>`
 }
 
+const buildPlainText = (raw: string | null | undefined, fallback = defaultDescription): string => {
+  if (!raw) {
+    return fallback
+  }
+
+  const decoded = decodeHtmlEntities(raw).trim()
+  if (!decoded) {
+    return fallback
+  }
+
+  const plainText = stripHtmlTags(decoded).trim()
+  return plainText || fallback
+}
+
 const enhanceCategory = <T extends Category | null>(entity: T): T => {
   if (!entity) {
     return entity
@@ -65,7 +106,8 @@ const enhanceCategory = <T extends Category | null>(entity: T): T => {
 
   return {
     ...entity,
-    description_html: buildRichText(entity.description, defaultDescription)
+    description_html: buildRichText(entity.description, defaultDescription),
+    description_plain: buildPlainText(entity.description, defaultDescription)
   }
 }
 

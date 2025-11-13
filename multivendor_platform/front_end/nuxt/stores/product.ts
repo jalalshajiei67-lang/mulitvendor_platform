@@ -42,6 +42,56 @@ const translations: Record<string, string> = {
   home: 'خانه'
 }
 
+const decodeHtmlEntities = (input: string): string => {
+  if (!input) return input
+  // Handle double-encoding by decoding multiple times if needed
+  let decoded = input
+  let previousDecoded = ''
+  
+  // Decode until no more changes occur (handles double/triple encoding)
+  while (decoded !== previousDecoded) {
+    previousDecoded = decoded
+    decoded = decoded
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/&#x27;/gi, "'")
+      .replace(/&zwnj;/gi, '\u200C')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&#160;/gi, ' ')
+      .replace(/&apos;/gi, "'")
+  }
+  
+  return decoded
+}
+
+const sanitizeHtml = (input: string): string =>
+  input
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+    .replace(/\son\w+="[^"]*"/gi, '')
+    .replace(/\son\w+='[^']*'/gi, '')
+    .replace(/javascript:/gi, '')
+
+const enhanceProduct = <T extends Product | null>(entity: T): T => {
+  if (!entity) {
+    return entity
+  }
+
+  // Decode description if it exists
+  if (entity.description) {
+    const decoded = decodeHtmlEntities(entity.description)
+    const sanitized = sanitizeHtml(decoded)
+    return {
+      ...entity,
+      description: sanitized
+    }
+  }
+
+  return entity
+}
+
 export const useProductStore = defineStore('products', () => {
   const products = ref<Product[]>([])
   const currentProduct = ref<Product | null>(null)
@@ -71,10 +121,10 @@ export const useProductStore = defineStore('products', () => {
       })
 
       if (Array.isArray(response)) {
-        products.value = response
+        products.value = response.map((item) => enhanceProduct(item))
         setPagination()
       } else {
-        products.value = response.results ?? []
+        products.value = (response.results ?? []).map((item) => enhanceProduct(item))
         setPagination(response)
       }
     } catch (err: any) {
@@ -92,8 +142,9 @@ export const useProductStore = defineStore('products', () => {
 
     try {
       const data = await useApiFetch<Product>(`products/${id}/`)
-      currentProduct.value = data
-      return data
+      const enhanced = enhanceProduct(data)
+      currentProduct.value = enhanced
+      return enhanced
     } catch (err: any) {
       error.value = t('failedToFetch')
       throw err
@@ -108,8 +159,9 @@ export const useProductStore = defineStore('products', () => {
 
     try {
       const data = await useApiFetch<Product>(`products/slug/${slug}/`)
-      currentProduct.value = data
-      return data
+      const enhanced = enhanceProduct(data)
+      currentProduct.value = enhanced
+      return enhanced
     } catch (err: any) {
       error.value = t('failedToFetch')
       throw err
@@ -125,10 +177,10 @@ export const useProductStore = defineStore('products', () => {
     try {
       const response = await useApiFetch<PaginatedResponse<Product> | Product[]>('products/my_products/')
       if (Array.isArray(response)) {
-        products.value = response
+        products.value = response.map((item) => enhanceProduct(item))
         setPagination()
       } else {
-        products.value = response.results ?? []
+        products.value = (response.results ?? []).map((item) => enhanceProduct(item))
         setPagination(response)
       }
     } catch (err: any) {
@@ -149,8 +201,9 @@ export const useProductStore = defineStore('products', () => {
         method: 'POST',
         body: payload as any
       })
-      products.value = [data, ...products.value]
-      return data
+      const enhanced = enhanceProduct(data)
+      products.value = [enhanced, ...products.value]
+      return enhanced
     } catch (err: any) {
       error.value = t('failedToCreate')
       console.error('Error creating product:', err)
@@ -170,16 +223,17 @@ export const useProductStore = defineStore('products', () => {
         body: payload as any
       })
 
+      const enhanced = enhanceProduct(data)
       const index = products.value.findIndex((product) => product.id === id)
       if (index !== -1) {
-        products.value.splice(index, 1, data)
+        products.value.splice(index, 1, enhanced)
       }
 
       if (currentProduct.value?.id === id) {
-        currentProduct.value = data
+        currentProduct.value = enhanced
       }
 
-      return data
+      return enhanced
     } catch (err: any) {
       error.value = t('failedToUpdate')
       console.error('Error updating product:', err)
