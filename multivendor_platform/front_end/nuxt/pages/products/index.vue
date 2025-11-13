@@ -1,11 +1,16 @@
 <template>
   <div class="products-page">
     <section class="hero">
-      <v-container class="py-10 text-white text-center">
-        <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
+      <v-container class="py-10 text-white">
+        <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
+          <template #divider>
+            <v-icon>mdi-chevron-left</v-icon>
+          </template>
+        </v-breadcrumbs>
+        <h1 class="text-h3 text-md-h2 font-weight-bold mb-3 text-center">
           {{ t('products') }}
         </h1>
-        <p class="text-subtitle-1 opacity-90 mx-auto max-w-640">
+        <p class="text-subtitle-1 opacity-90 mx-auto max-w-640 text-center">
           {{ t('discoverMarketplace') }}
         </p>
       </v-container>
@@ -124,6 +129,11 @@ const orderingOptions = [
 const pageCount = computed(() =>
   Math.max(1, Math.ceil((pagination.value.count || products.value.length || 1) / pageSize))
 )
+
+const breadcrumbs = computed(() => [
+  { title: t('home'), to: '/' },
+  { title: t('products'), disabled: true }
+])
 
 const fetchCategories = async () => {
   try {

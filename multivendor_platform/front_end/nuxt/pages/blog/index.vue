@@ -1,11 +1,16 @@
 <template>
   <div class="blog-list">
     <section class="hero">
-      <v-container class="py-12 text-center text-white">
-        <h1 class="text-h3 text-md-h2 font-weight-bold mb-4">
+      <v-container class="py-12 text-white">
+        <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
+          <template #divider>
+            <v-icon>mdi-chevron-left</v-icon>
+          </template>
+        </v-breadcrumbs>
+        <h1 class="text-h3 text-md-h2 font-weight-bold mb-4 text-center">
           {{ t('blog') }}
         </h1>
-        <p class="text-subtitle-1 text-md-h5 opacity-90 mx-auto max-w-600">
+        <p class="text-subtitle-1 text-md-h5 opacity-90 mx-auto max-w-600 text-center">
           {{ t('discoverInsights') }}
         </p>
       </v-container>
@@ -159,6 +164,11 @@ const page = ref(1)
 const pageSize = 12
 
 const pageCount = computed(() => Math.max(1, Math.ceil((pagination.value.count || posts.value.length || 1) / pageSize)))
+
+const breadcrumbs = computed(() => [
+  { title: t('home'), to: '/' },
+  { title: t('blog'), disabled: true }
+])
 
 const applyRouteCategory = async () => {
   const slug = route.query.category

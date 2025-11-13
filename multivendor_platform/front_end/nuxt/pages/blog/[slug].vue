@@ -3,6 +3,11 @@
     <section class="hero" :style="heroStyle">
       <v-container class="py-10 py-md-14">
         <div class="text-white">
+          <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
+            <template #divider>
+              <v-icon>mdi-chevron-left</v-icon>
+            </template>
+          </v-breadcrumbs>
           <v-chip v-if="post.category_name" class="mb-4" size="small" color="rgba(255,255,255,0.24)">
             {{ post.category_name }}
           </v-chip>
@@ -186,6 +191,12 @@ const post = computed(() => currentPost.value)
 
 const newComment = ref('')
 const commentLoading = ref(false)
+
+const breadcrumbs = computed(() => [
+  { title: t('home'), to: '/' },
+  { title: t('blog'), to: '/blog' },
+  { title: post.value?.title ?? '', disabled: true }
+])
 
 const heroStyle = computed(() => {
   const gradient = post.value?.category_color

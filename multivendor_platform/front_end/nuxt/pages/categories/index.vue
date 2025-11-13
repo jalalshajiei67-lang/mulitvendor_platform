@@ -1,11 +1,16 @@
 <template>
   <div class="categories-page">
     <section class="hero">
-      <v-container class="py-10 text-center text-white">
-        <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
+      <v-container class="py-10 text-white">
+        <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
+          <template #divider>
+            <v-icon>mdi-chevron-left</v-icon>
+          </template>
+        </v-breadcrumbs>
+        <h1 class="text-h3 text-md-h2 font-weight-bold mb-3 text-center">
           {{ t('categories') }}
         </h1>
-        <p class="text-subtitle-1 opacity-85 mx-auto max-w-640">
+        <p class="text-subtitle-1 opacity-85 mx-auto max-w-640 text-center">
           همه دسته‌بندی‌های فعال ایندکسو را مرور کنید و مسیر خرید خود را سریع‌تر پیدا کنید.
         </p>
       </v-container>
@@ -91,6 +96,11 @@ useSeoMeta({
 const categoryStore = useCategoryStore()
 const { categories, loading, error } = storeToRefs(categoryStore)
 const t = categoryStore.t
+
+const breadcrumbs = computed(() => [
+  { title: t('home'), to: '/' },
+  { title: t('categories'), disabled: true }
+])
 
 const fetchPage = async () => {
   await categoryStore.fetchCategories({ page_size: 100 })

@@ -1,11 +1,16 @@
 <template>
   <div class="subcategories-page">
     <section class="hero">
-      <v-container class="py-10 text-center text-white">
-        <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
+      <v-container class="py-10 text-white">
+        <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
+          <template #divider>
+            <v-icon>mdi-chevron-left</v-icon>
+          </template>
+        </v-breadcrumbs>
+        <h1 class="text-h3 text-md-h2 font-weight-bold mb-3 text-center">
           {{ t('subcategories') }}
         </h1>
-        <p class="text-subtitle-1 opacity-85 mx-auto max-w-640">
+        <p class="text-subtitle-1 opacity-85 mx-auto max-w-640 text-center">
           زیردسته‌های دقیق‌تر برای هدایت شما به محصولات تخصصی در ایندکسو.
         </p>
       </v-container>
@@ -91,6 +96,11 @@ useSeoMeta({
 const subcategoryStore = useSubcategoryStore()
 const { subcategories, loading, error } = storeToRefs(subcategoryStore)
 const t = subcategoryStore.t
+
+const breadcrumbs = computed(() => [
+  { title: t('home'), to: '/' },
+  { title: t('subcategories'), disabled: true }
+])
 
 const fetchPage = async () => {
   await subcategoryStore.fetchSubcategories({ page_size: 100 })

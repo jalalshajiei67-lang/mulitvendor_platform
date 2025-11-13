@@ -1,11 +1,16 @@
 <template>
   <div class="departments-page">
     <section class="hero">
-      <v-container class="py-10 text-center text-white">
-        <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
+      <v-container class="py-10 text-white">
+        <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
+          <template #divider>
+            <v-icon>mdi-chevron-left</v-icon>
+          </template>
+        </v-breadcrumbs>
+        <h1 class="text-h3 text-md-h2 font-weight-bold mb-3 text-center">
           {{ t('departments') }}
         </h1>
-        <p class="text-subtitle-1 opacity-85 mx-auto max-w-640">
+        <p class="text-subtitle-1 opacity-85 mx-auto max-w-640 text-center">
           سازماندهی کلان محصولات و خدمات در ایندکسو؛ هر دپارتمان به نیاز خاصی پاسخ می‌دهد.
         </p>
       </v-container>
@@ -83,6 +88,11 @@ useSeoMeta({
 const departmentStore = useDepartmentStore()
 const { departments, loading, error } = storeToRefs(departmentStore)
 const t = departmentStore.t
+
+const breadcrumbs = computed(() => [
+  { title: t('home'), to: '/' },
+  { title: t('departments'), disabled: true }
+])
 
 const fetchPage = async () => {
   await departmentStore.fetchDepartments({ page_size: 100 })

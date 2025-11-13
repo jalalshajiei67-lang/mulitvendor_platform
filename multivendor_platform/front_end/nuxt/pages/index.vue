@@ -1,20 +1,35 @@
 <template>
   <div class="home" dir="rtl">
+    <!-- Background Decorative Shapes -->
+    <div class="background-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+    </div>
+
+    <!-- Hero Section -->
     <section class="hero-section">
-      <v-container class="pa-0">
-        <v-row no-gutters justify="center" align="center" class="hero-content">
-          <v-col cols="12" md="10" lg="8" class="pa-4 pa-md-8">
-            <div class="search-wrapper" ref="searchContainer">
-              <v-card elevation="8" rounded="xl" class="search-card pa-4 pa-md-6 mb-4" color="surface">
-                <v-card-text class="pa-0">
+      <v-container>
+        <v-row justify="center">
+          <v-col cols="12" md="10" lg="8">
+            <v-card elevation="8" rounded="xl" class="hero-card pa-6 pa-md-8" color="surface">
+              <div class="hero-content">
+                <h1 class="hero-title text-h3 text-md-h2 font-weight-bold text-center mb-4">
+                  ارتباط با تامین‌کنندگان برتر ماشین‌آلات در سراسر کشور
+                </h1>
+                <p class="hero-subtitle text-body-1 text-md-h6 text-center mb-6">
+                  تجهیزات مناسب برای نیازهای کسب‌وکار خود را پیدا کنید
+                </p>
+
+                <!-- Search Container -->
+                <div class="search-wrapper" ref="searchContainer">
                   <v-text-field
                     v-model="searchQuery"
-                    placeholder="چه دستگاهی نیاز دارید؟"
+                    placeholder="جستجوی ماشین‌آلات، تجهیزات، قطعات..."
                     append-inner-icon="mdi-magnify"
                     variant="outlined"
                     rounded="lg"
                     hide-details
-                    class="home-search-input"
+                    class="hero-search-input mb-6"
                     density="comfortable"
                     @focus="isSearchFocused = true"
                     @keydown.enter.prevent="performSearch"
@@ -22,244 +37,220 @@
                     @click:append-inner="performSearch"
                     @update:model-value="onSearchQueryChange"
                   />
-                </v-card-text>
-              </v-card>
 
-              <transition name="dropdown">
-                <v-card
-                  v-if="showAutocomplete && (hasResults || isLoadingSearch)"
-                  elevation="8"
-                  rounded="lg"
-                  class="autocomplete-dropdown"
-                >
-                  <div v-if="isLoadingSearch" class="search-loading pa-4">
-                    <v-progress-circular
-                      indeterminate
-                      color="primary"
-                      size="24"
-                      class="mr-2"
-                    />
-                    <span>در حال جستجو...</span>
-                  </div>
-
-                  <div v-else-if="!hasResults && searchQuery.length >= 2" class="no-results pa-4 text-center">
-                    <p class="text-body-2 text-medium-emphasis">نتیجه‌ای یافت نشد</p>
-                  </div>
-
-                  <div v-else-if="hasResults" class="results-container">
-                    <div
-                      v-if="searchResults.products && searchResults.products.length > 0"
-                      class="result-section"
+                  <!-- Autocomplete Dropdown -->
+                  <transition name="dropdown">
+                    <v-card
+                      v-if="showAutocomplete && (hasResults || isLoadingSearch)"
+                      elevation="8"
+                      rounded="lg"
+                      class="autocomplete-dropdown"
                     >
-                      <div class="section-title pa-2 text-caption font-weight-bold">
-                        محصولات
+                      <div v-if="isLoadingSearch" class="search-loading pa-4">
+                        <v-progress-circular indeterminate color="primary" size="24" class="mr-2" />
+                        <span>در حال جستجو...</span>
                       </div>
-                      <NuxtLink
-                        v-for="product in searchResults.products"
-                        :key="`product-${product.id}`"
-                        :to="product.slug ? `/products/${product.slug}` : `/products/${product.id}`"
-                        @click="closeAutocomplete"
-                        class="result-item"
-                      >
-                        <div class="result-image">
-                          <img
-                            v-if="product.primary_image"
-                            :src="product.primary_image"
-                            :alt="product.name"
-                          />
-                          <div v-else class="placeholder-image">
-                            <v-icon size="small">mdi-image</v-icon>
-                          </div>
-                        </div>
-                        <div class="result-content">
-                          <div class="result-title">{{ product.name }}</div>
-                          <div class="result-meta">
-                            <v-chip size="x-small" color="primary" variant="flat">محصول</v-chip>
-                            <span class="result-price">
-                              {{ product.price ? formatPrice(product.price) : 'تماس بگیرید' }}
-                            </span>
-                          </div>
-                        </div>
-                      </NuxtLink>
-                    </div>
 
-                    <div
-                      v-if="searchResults.blogs && searchResults.blogs.length > 0"
-                      class="result-section"
-                    >
-                      <div class="section-title pa-2 text-caption font-weight-bold">
-                        وبلاگ
+                      <div v-else-if="!hasResults && searchQuery.length >= 2" class="no-results pa-4 text-center">
+                        <p class="text-body-2 text-medium-emphasis">نتیجه‌ای یافت نشد</p>
                       </div>
-                      <NuxtLink
-                        v-for="blog in searchResults.blogs"
-                        :key="`blog-${blog.id}`"
-                        :to="`/blog/${blog.slug}`"
-                        @click="closeAutocomplete"
-                        class="result-item"
-                      >
-                        <div class="result-image">
-                          <img
-                            v-if="blog.featured_image"
-                            :src="blog.featured_image"
-                            :alt="blog.title"
-                          />
-                          <div v-else class="placeholder-image">
-                            <v-icon size="small">mdi-file-document</v-icon>
-                          </div>
-                        </div>
-                        <div class="result-content">
-                          <div class="result-title">{{ blog.title }}</div>
-                          <div class="result-meta">
-                            <v-chip size="x-small" color="purple" variant="flat">وبلاگ</v-chip>
-                            <span class="result-excerpt">{{ truncate(blog.excerpt, 60) }}</span>
-                          </div>
-                        </div>
-                      </NuxtLink>
-                    </div>
 
-                    <div v-if="searchResults.total > totalDisplayed" class="view-all pa-2 text-center">
-                      <v-btn
-                        variant="text"
-                        size="small"
-                        @click="performSearch"
-                        class="text-caption"
-                      >
-                        مشاهده همه نتایج ({{ searchResults.total - totalDisplayed }} نتیجه دیگر)
-                      </v-btn>
-                    </div>
-                  </div>
-                </v-card>
-              </transition>
-            </div>
+                      <div v-else-if="hasResults" class="results-container">
+                        <div
+                          v-if="searchResults.products && searchResults.products.length > 0"
+                          class="result-section"
+                        >
+                          <div class="section-label pa-2 text-caption font-weight-bold">محصولات</div>
+                          <NuxtLink
+                            v-for="product in searchResults.products"
+                            :key="`product-${product.id}`"
+                            :to="product.slug ? `/products/${product.slug}` : `/products/${product.id}`"
+                            @click="closeAutocomplete"
+                            class="result-item"
+                          >
+                            <div class="result-image">
+                              <img
+                                v-if="product.primary_image"
+                                :src="product.primary_image"
+                                :alt="product.name"
+                              />
+                              <div v-else class="placeholder-image">
+                                <v-icon size="small">mdi-image</v-icon>
+                              </div>
+                            </div>
+                            <div class="result-content">
+                              <div class="result-title">{{ product.name }}</div>
+                              <div class="result-meta">
+                                <v-chip size="x-small" color="primary" variant="flat">محصول</v-chip>
+                                <span class="result-price">
+                                  {{ product.price ? formatPrice(product.price) : 'تماس بگیرید' }}
+                                </span>
+                              </div>
+                            </div>
+                          </NuxtLink>
+                        </div>
 
-            <p class="search-subtitle text-center text-body-1 text-md-h6">
-              از بین تولیدات بهترین تولید کنندگان ماشین آلات نیاز خود را جستجو کنید
-            </p>
+                        <div
+                          v-if="searchResults.blogs && searchResults.blogs.length > 0"
+                          class="result-section"
+                        >
+                          <div class="section-label pa-2 text-caption font-weight-bold">وبلاگ</div>
+                          <NuxtLink
+                            v-for="blog in searchResults.blogs"
+                            :key="`blog-${blog.id}`"
+                            :to="`/blog/${blog.slug}`"
+                            @click="closeAutocomplete"
+                            class="result-item"
+                          >
+                            <div class="result-image">
+                              <img
+                                v-if="blog.featured_image"
+                                :src="blog.featured_image"
+                                :alt="blog.title"
+                              />
+                              <div v-else class="placeholder-image">
+                                <v-icon size="small">mdi-file-document</v-icon>
+                              </div>
+                            </div>
+                            <div class="result-content">
+                              <div class="result-title">{{ blog.title }}</div>
+                              <div class="result-meta">
+                                <v-chip size="x-small" color="purple" variant="flat">وبلاگ</v-chip>
+                                <span class="result-excerpt">{{ truncate(blog.excerpt, 60) }}</span>
+                              </div>
+                            </div>
+                          </NuxtLink>
+                        </div>
+
+                        <div v-if="searchResults.total > totalDisplayed" class="view-all pa-2 text-center">
+                          <v-btn variant="text" size="small" @click="performSearch" class="text-caption">
+                            مشاهده همه نتایج ({{ searchResults.total - totalDisplayed }} نتیجه دیگر)
+                          </v-btn>
+                        </div>
+                      </div>
+                    </v-card>
+                  </transition>
+                </div>
+
+                <!-- Hero Buttons -->
+                <div class="hero-buttons d-flex flex-column flex-sm-row gap-3 justify-center">
+                  <v-btn
+                    color="primary"
+                    size="x-large"
+                    rounded="lg"
+                    elevation="4"
+                    prepend-icon="mdi-cart"
+                    @click="navigateToProducts"
+                  >
+                    مشاهده محصولات
+                  </v-btn>
+                  <v-btn
+                    color="primary"
+                    size="x-large"
+                    rounded="lg"
+                    variant="outlined"
+                    prepend-icon="mdi-storefront"
+                    @click="handleSellerCTA"
+                  >
+                    فروشنده شوید
+                  </v-btn>
+                </div>
+              </div>
+            </v-card>
           </v-col>
         </v-row>
       </v-container>
     </section>
 
-    <v-container class="buyers-section py-8 py-md-12">
-      <v-card elevation="4" rounded="xl" class="section-card buyers-card" color="primary" variant="tonal">
-        <v-card-title class="section-title text-h4 text-md-h3 text-center pa-6 pa-md-8">
-          <v-icon size="large" class="ml-2">mdi-account-group</v-icon>
-          ایندکسو برای خریداران
-        </v-card-title>
+    <!-- Popular Categories Section -->
+    <v-container class="categories-section py-8 py-md-12">
+      <h2 class="section-title text-h3 text-md-h2 font-weight-bold mb-8">دسته‌بندی‌های محبوب</h2>
+      
+      <v-row>
+        <v-col
+          v-for="(category, index) in categories"
+          :key="`category-${index}`"
+          cols="6"
+          sm="4"
+          md="4"
+          lg="2"
+        >
+          <v-card
+            elevation="2"
+            rounded="lg"
+            class="category-card pa-4 text-center"
+            color="surface"
+            hover
+            @click="navigateToCategory(category)"
+          >
+            <v-icon :icon="category.icon" size="48" color="primary" class="mb-3" />
+            <h3 class="category-title text-body-1 font-weight-bold">
+              {{ category.title }}
+            </h3>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
 
-        <v-card-text class="pa-4 pa-md-6">
-          <v-row class="advantages-grid mb-6">
-            <v-col
-              v-for="(advantage, index) in buyerAdvantages"
-              :key="`buyer-${index}`"
-              cols="12"
-              sm="6"
-              md="4"
-              class="d-flex justify-center"
-            >
-              <v-card
-                elevation="2"
-                rounded="lg"
-                class="advantage-card pa-4 pa-md-6 text-center"
-                color="surface"
+    <!-- Verification Section -->
+    <v-container class="verification-section py-8 py-md-12">
+      <v-card elevation="4" rounded="xl" class="verification-card pa-6 pa-md-8" color="surface">
+        <v-row align="center">
+          <v-col cols="12" md="5">
+            <h3 class="text-h4 text-md-h3 font-weight-bold mb-3">تامین‌کنندگان معتبر</h3>
+            <p class="text-body-1 text-md-h6 text-medium-emphasis">
+              تمام تامین‌کنندگان ما از فرآیند احراز هویت دقیق عبور می‌کنند
+            </p>
+          </v-col>
+          
+          <v-col cols="12" md="7">
+            <v-row>
+              <v-col
+                v-for="(badge, index) in verificationBadges"
+                :key="`badge-${index}`"
+                cols="4"
+                class="text-center"
               >
-                <v-icon :icon="advantage.icon" size="64" :color="advantage.color" class="mb-4" />
-                <h3 class="text-h6 text-md-h5 font-weight-bold mb-3">
-                  {{ advantage.title }}
-                </h3>
-                <p class="text-body-2 text-md-body-1 text-medium-emphasis">
-                  {{ advantage.description }}
-                </p>
-              </v-card>
-            </v-col>
-          </v-row>
-
-          <v-card elevation="2" rounded="lg" class="cta-card pa-4 pa-md-6 mb-4" color="surface">
-            <v-row align="center" no-gutters>
-              <v-col cols="12" md="8" class="pa-2 pa-md-4">
-                <p class="text-body-1 text-md-h6 mb-0">
-                  همین الان درخواست خودت را ثبت کن و منتظر تماس تامین کنندگان معتبر باش
-                </p>
-              </v-col>
-              <v-col cols="12" md="4" class="pa-2 pa-md-4 text-center text-md-end">
-                <v-btn
-                  color="primary"
-                  size="large"
-                  rounded="lg"
-                  elevation="2"
-                  prepend-icon="mdi-file-document-edit"
-                  @click="handleBuyerCTA"
-                  block
-                  class="cta-button"
-                >
-                  ثبت درخواست
-                </v-btn>
+                <div class="badge-wrapper">
+                  <div class="badge-icon-container mb-3 mx-auto">
+                    <v-icon :icon="badge.icon" size="40" color="primary" />
+                  </div>
+                  <p class="badge-text text-body-2 font-weight-medium">{{ badge.text }}</p>
+                </div>
               </v-col>
             </v-row>
-          </v-card>
-        </v-card-text>
+          </v-col>
+        </v-row>
       </v-card>
     </v-container>
 
-    <v-container class="sellers-section py-8 py-md-12">
-      <v-card elevation="4" rounded="xl" class="section-card sellers-card" color="secondary" variant="tonal">
-        <v-card-title class="section-title text-h4 text-md-h3 text-center pa-6 pa-md-8">
-          <v-icon size="large" class="ml-2">mdi-store</v-icon>
-          ایندکسو برای فروشندگان
-        </v-card-title>
-
-        <v-card-text class="pa-4 pa-md-6">
-          <v-row class="advantages-grid mb-6">
-            <v-col
-              v-for="(advantage, index) in sellerAdvantages"
-              :key="`seller-${index}`"
-              cols="12"
-              sm="6"
-              md="4"
-              class="d-flex justify-center"
-            >
-              <v-card
-                elevation="2"
-                rounded="lg"
-                class="advantage-card pa-4 pa-md-6 text-center"
-                color="surface"
-              >
-                <v-icon :icon="advantage.icon" size="64" :color="advantage.color" class="mb-4" />
-                <h3 class="text-h6 text-md-h5 font-weight-bold mb-3">
-                  {{ advantage.title }}
-                </h3>
-                <p class="text-body-2 text-md-body-1 text-medium-emphasis">
-                  {{ advantage.description }}
-                </p>
-              </v-card>
-            </v-col>
-          </v-row>
-
-          <v-card elevation="2" rounded="lg" class="cta-card pa-4 pa-md-6 mb-4" color="surface">
-            <v-row align="center" no-gutters>
-              <v-col cols="12" md="8" class="pa-2 pa-md-4">
-                <p class="text-body-1 text-md-h6 mb-0">
-                  برای شروع همکاری و بهره بردن از امکانات ایندکسو ثبت نام کنید
-                </p>
-              </v-col>
-              <v-col cols="12" md="4" class="pa-2 pa-md-4 text-center text-md-end">
-                <v-btn
-                  color="primary"
-                  size="large"
-                  rounded="lg"
-                  elevation="2"
-                  prepend-icon="mdi-account-plus"
-                  @click="handleSellerCTA"
-                  block
-                  class="cta-button"
-                >
-                  ثبت نام بعنوان تامین کننده
-                </v-btn>
-              </v-col>
-            </v-row>
+    <!-- Platform Statistics Section -->
+    <v-container class="statistics-section py-8 py-md-12">
+      <h2 class="section-title text-h3 text-md-h2 font-weight-bold mb-8 text-center">آمار پلتفرم</h2>
+      
+      <v-row>
+        <v-col
+          v-for="(stat, index) in statistics"
+          :key="`stat-${index}`"
+          cols="6"
+          sm="6"
+          md="3"
+        >
+          <v-card
+            elevation="2"
+            rounded="lg"
+            class="stat-card pa-6 text-center"
+            color="surface"
+          >
+            <div class="stat-number text-h3 text-md-h2 font-weight-bold mb-2" style="color: rgb(var(--v-theme-primary))">
+              {{ stat.number }}
+            </div>
+            <div class="stat-label text-body-2 text-md-body-1 text-medium-emphasis">
+              {{ stat.label }}
+            </div>
           </v-card>
-        </v-card-text>
-      </v-card>
+        </v-col>
+      </v-row>
     </v-container>
   </div>
 </template>
@@ -300,45 +291,73 @@ const isLoadingSearch = ref(false)
 const isSearchFocused = ref(false)
 const searchContainer = ref<HTMLElement | null>(null)
 
-const buyerAdvantages = [
+// Categories Data
+const categories = [
   {
-    icon: 'mdi-account-switch',
-    title: 'ارتباط مستقیم',
-    description: 'بدون واسطه و اصطکاک، مستقیماً با تامین‌کنندگان معتبر در ارتباط باشید',
-    color: 'primary'
+    icon: 'mdi-hammer-wrench',
+    title: 'تجهیزات ساختمانی',
+    slug: 'construction'
   },
   {
-    icon: 'mdi-shield-check',
-    title: 'تامین‌کنندگان معتبر',
-    description: 'از بین بهترین تولیدکنندگان ماشین‌آلات، تامین‌کننده مناسب خود را پیدا کنید',
-    color: 'secondary'
+    icon: 'mdi-cog',
+    title: 'ماشین‌آلات تولیدی',
+    slug: 'manufacturing'
   },
   {
-    icon: 'mdi-lightning-bolt',
-    title: 'مسیر کوتاه خرید',
-    description: 'فرآیند خرید را کوتاه کرده و سریع‌تر به محصول مورد نظر خود برسید',
-    color: 'accent'
+    icon: 'mdi-tractor',
+    title: 'تجهیزات کشاورزی',
+    slug: 'agriculture'
+  },
+  {
+    icon: 'mdi-forklift',
+    title: 'حمل و نقل مواد',
+    slug: 'material-handling'
+  },
+  {
+    icon: 'mdi-tools',
+    title: 'ابزارآلات صنعتی',
+    slug: 'industrial-tools'
+  },
+  {
+    icon: 'mdi-factory',
+    title: 'تجهیزات فرآوری',
+    slug: 'processing'
   }
 ]
 
-const sellerAdvantages = [
+// Verification Badges
+const verificationBadges = [
   {
-    icon: 'mdi-cash',
-    title: 'هزینه کم',
-    description: 'با حداقل هزینه، محصولات خود را به خریداران هدف معرفی کنید',
-    color: 'secondary'
+    icon: 'mdi-shield-check',
+    text: 'گواهی کیفیت'
   },
   {
-    icon: 'mdi-chart-line',
-    title: 'فروش آسان',
-    description: 'مدل کسب‌وکار بدون زحمت و با حداقل تلاش برای افزایش فروش',
-    color: 'primary'
+    icon: 'mdi-security',
+    text: 'تضمین معامله'
   },
   {
-    icon: 'mdi-handshake',
-    title: 'دسترسی به خریداران',
-    description: 'مستقیماً با خریداران واقعی در صنعت ماشین‌آلات ارتباط برقرار کنید',
-    color: 'accent'
+    icon: 'mdi-clock-check',
+    text: 'تحویل به موقع'
+  }
+]
+
+// Platform Statistics
+const statistics = [
+  {
+    number: '۵۰,۰۰۰+',
+    label: 'تامین‌کننده معتبر'
+  },
+  {
+    number: '۱ میلیون+',
+    label: 'محصولات ماشین‌آلات'
+  },
+  {
+    number: '۳۱',
+    label: 'استان‌های تحت پوشش'
+  },
+  {
+    number: '۹۸٪',
+    label: 'رضایت مشتریان'
   }
 ]
 
@@ -443,10 +462,12 @@ onUnmounted(() => {
   }
 })
 
-const handleBuyerCTA = () => {
-  if (import.meta.client) {
-    window.location.hash = '#rfq'
-  }
+const navigateToProducts = () => {
+  router.push('/products')
+}
+
+const navigateToCategory = (category: { slug: string }) => {
+  router.push(`/categories/${category.slug}`)
 }
 
 const handleSellerCTA = () => {
@@ -457,109 +478,118 @@ const handleSellerCTA = () => {
 <style scoped>
 .home {
   min-height: 100vh;
-  background-color: rgba(var(--v-theme-surface), 0.97);
-  color: rgba(var(--v-theme-on-surface), 0.92);
-}
-
-.hero-section {
-  background: linear-gradient(135deg, rgba(0, 197, 142, 0.22), rgba(0, 111, 82, 0.26));
-  min-height: 400px;
-  display: flex;
-  align-items: center;
-  padding: 60px 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   position: relative;
   overflow: hidden;
-  border-radius: 24px;
-  margin: 16px auto 36px;
-  max-width: 1440px;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
 }
 
-.hero-section::after {
-  content: '';
+/* Background Decorative Shapes */
+.background-shapes {
   position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 60%);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
   pointer-events: none;
+  overflow: hidden;
 }
 
-@media (min-width: 960px) {
-  .hero-section {
-    min-height: 500px;
-  }
+.shape {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.3;
+}
+
+.shape-1 {
+  width: 400px;
+  height: 400px;
+  background-color: rgb(var(--v-theme-primary));
+  top: -100px;
+  left: -100px;
+}
+
+.shape-2 {
+  width: 300px;
+  height: 300px;
+  background-color: rgb(var(--v-theme-secondary));
+  bottom: 20%;
+  right: -100px;
+}
+
+/* Hero Section */
+.hero-section {
+  padding: 80px 0 60px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-card {
+  background: rgba(var(--v-theme-surface), 0.95) !important;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 60px rgba(var(--v-theme-on-surface), 0.1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200px;
+  height: 200px;
+  background: rgb(var(--v-theme-primary));
+  opacity: 0.05;
+  border-radius: 0 0 200px 0;
 }
 
 .hero-content {
-  width: 100%;
   position: relative;
   z-index: 1;
-  color: rgba(var(--v-theme-on-primary), 0.96);
 }
 
+.hero-title {
+  color: rgb(var(--v-theme-primary));
+  line-height: 1.2;
+}
+
+.hero-subtitle {
+  color: rgba(var(--v-theme-on-surface), 0.7);
+}
+
+/* Search Input */
 .search-wrapper {
   position: relative;
   width: 100%;
-  max-width: 100%;
-  margin: 0 auto;
+  margin-bottom: 0;
 }
 
-.search-card {
-  max-width: 100%;
-  margin: 0 auto;
-  position: relative;
-  z-index: 1;
-  background: rgba(var(--v-theme-surface), 0.95) !important;
-  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12) !important;
-}
-
-.home-search-input :deep(.v-field) {
+.hero-search-input :deep(.v-field) {
   font-size: 1.125rem;
   padding: 12px 16px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.2);
 }
 
-@media (min-width: 960px) {
-  .home-search-input :deep(.v-field) {
-    font-size: 1.25rem;
-    padding: 16px 20px;
-  }
-}
-
-.home-search-input :deep(.v-field__input) {
+.hero-search-input :deep(.v-field__input) {
   min-height: 56px;
   text-align: right;
   direction: rtl;
 }
 
-@media (min-width: 960px) {
-  .home-search-input :deep(.v-field__input) {
-    min-height: 64px;
-  }
+.hero-search-input :deep(.v-field):focus-within {
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.1);
 }
 
-.home-search-input :deep(.v-field__append-inner .v-icon) {
-  font-size: 32px !important;
-  width: 32px !important;
-  height: 32px !important;
-  margin-inline-start: 5px !important;
-  margin-inline-end: 10px !important;
+.hero-search-input :deep(.v-field__append-inner .v-icon) {
+  font-size: 28px !important;
+  cursor: pointer;
+  color: rgb(var(--v-theme-primary));
 }
 
-@media (min-width: 960px) {
-  .home-search-input :deep(.v-field__append-inner .v-icon) {
-    font-size: 40px !important;
-    width: 40px !important;
-    height: 40px !important;
-    margin-inline-start: 10px !important;
-  }
-}
-
-.search-subtitle {
-  color: rgba(var(--v-theme-on-primary), 0.9);
-  opacity: 0.95;
-  font-weight: 400;
-  margin-top: 24px;
-}
-
+/* Autocomplete Dropdown */
 .autocomplete-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -595,7 +625,7 @@ const handleSellerCTA = () => {
   border-bottom: none;
 }
 
-.section-title {
+.section-label {
   background-color: rgba(var(--v-theme-surface), 0.97);
   color: rgba(var(--v-theme-on-surface), 0.6);
   border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
@@ -624,7 +654,7 @@ const handleSellerCTA = () => {
 .result-image {
   width: 50px;
   height: 50px;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
   background-color: rgba(var(--v-theme-on-surface), 0.06);
@@ -700,12 +730,6 @@ const handleSellerCTA = () => {
   transform: translateY(-10px);
 }
 
-.autocomplete-dropdown :deep(.v-card-text),
-.autocomplete-dropdown {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(var(--v-theme-primary), 0.4) rgba(var(--v-theme-surface), 0.5);
-}
-
 .autocomplete-dropdown::-webkit-scrollbar {
   width: 6px;
 }
@@ -724,65 +748,121 @@ const handleSellerCTA = () => {
   background: rgba(var(--v-theme-primary), 0.6);
 }
 
-.section-card {
-  max-width: 1200px;
-  margin: 0 auto;
-  background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(var(--v-theme-primary), 0.08);
-  box-shadow: 0 20px 40px rgba(var(--v-theme-on-surface), 0.08);
+/* Hero Buttons */
+.hero-buttons {
+  margin-top: 0;
 }
 
-.buyers-card {
-  background: linear-gradient(
-    135deg,
-    rgba(var(--v-theme-primary), 0.12) 0%,
-    rgba(var(--v-theme-secondary), 0.16) 100%
-  );
-  border-left: 4px solid rgba(var(--v-theme-primary), 0.4);
+/* Section Styles */
+.categories-section,
+.verification-section,
+.statistics-section {
+  position: relative;
+  z-index: 1;
 }
 
-.sellers-card {
-  background: linear-gradient(
-    135deg,
-    rgba(var(--v-theme-secondary), 0.14) 0%,
-    rgba(var(--v-theme-primary), 0.16) 100%
-  );
-  border-left: 4px solid rgba(var(--v-theme-secondary), 0.4);
+.section-title {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 12px;
 }
 
-.advantages-grid {
-  margin-top: 24px;
+.section-title::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 60px;
+  height: 4px;
+  background-color: rgb(var(--v-theme-primary));
+  border-radius: 2px;
 }
 
-.advantage-card {
-  height: 100%;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  border: 1px solid rgba(var(--v-theme-primary), 0.08);
-  background: rgba(var(--v-theme-surface), 0.92);
+/* Category Cards */
+.category-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-.advantage-card:hover {
+.category-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 8px 16px rgba(var(--v-theme-on-surface), 0.15) !important;
+  box-shadow: 0 12px 24px rgba(var(--v-theme-on-surface), 0.15) !important;
+  border-color: rgba(var(--v-theme-primary), 0.3);
 }
 
-.cta-card {
-  background: rgb(var(--v-theme-surface));
+.category-title {
+  color: rgba(var(--v-theme-on-surface), 0.87);
 }
 
-.cta-button {
-  font-weight: 600;
-  letter-spacing: 0.5px;
+/* Verification Card */
+.verification-card {
+  background: rgba(var(--v-theme-surface), 0.98) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.1);
 }
 
+.badge-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.badge-icon-container {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.1), rgba(var(--v-theme-secondary), 0.1));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-text {
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+/* Statistics Cards */
+.stat-card {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+}
+
+.stat-number {
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)), rgb(var(--v-theme-secondary)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stat-label {
+  color: rgba(var(--v-theme-on-surface), 0.7);
+}
+
+/* Mobile Responsive */
 @media (max-width: 959px) {
   .hero-section {
-    padding: 40px 16px;
-    min-height: 350px;
+    padding: 40px 0 30px;
   }
 
-  .search-card {
-    padding: 16px !important;
+  .hero-title {
+    font-size: 1.75rem !important;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem !important;
+  }
+
+  .hero-search-input :deep(.v-field__input) {
+    min-height: 48px;
   }
 
   .autocomplete-dropdown {
@@ -790,21 +870,35 @@ const handleSellerCTA = () => {
   }
 
   .section-title {
-    font-size: 1.75rem !important;
+    font-size: 1.5rem !important;
+  }
+
+  .category-card {
+    min-height: 120px;
+  }
+
+  .badge-icon-container {
+    width: 60px;
+    height: 60px;
+  }
+
+  .badge-icon-container .v-icon {
+    font-size: 30px !important;
+  }
+
+  .hero-buttons {
     flex-direction: column;
-    gap: 8px;
+  }
+}
+
+@media (max-width: 599px) {
+  .shape-1,
+  .shape-2 {
+    display: none;
   }
 
-  .advantage-card {
-    margin-bottom: 16px;
-  }
-
-  .cta-card .v-row {
-    flex-direction: column-reverse;
-  }
-
-  .cta-card .v-col {
-    text-align: center !important;
+  .stat-number {
+    font-size: 1.5rem !important;
   }
 }
 </style>
