@@ -91,7 +91,7 @@
         <div class="department-description-section" v-if="category.description">
           <div class="description-content">
             <h2>درباره این دسته‌بندی</h2>
-          <div class="description rich-text-content" v-html="safeCategoryDescription"></div>
+            <div class="description rich-text-content" v-html="category.description"></div>
           </div>
         </div>
       </div>
@@ -122,47 +122,6 @@ export default {
     const error = ref(null)
     const currentPage = ref(1)
     const itemsPerPage = 12
-
-    const decodeHtmlEntities = (input) => {
-      if (!input) {
-        return ''
-      }
-
-      return input
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-        .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
-        .replace(/&nbsp;/g, ' ')
-    }
-
-    const stripDangerousContent = (input) =>
-      input
-        .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
-        .replace(/on\w+\s*=\s*(['"]).*?\1/gi, '')
-        .replace(/javascript:/gi, '')
-
-    const stripHtmlTags = (input) => input.replace(/<\/?[^>]+(>|$)/g, '')
-
-    const getSafeHtml = (input) => stripDangerousContent(decodeHtmlEntities(input || ''))
-
-    const getSafeText = (input) => stripHtmlTags(getSafeHtml(input)).replace(/\s+/g, ' ').trim()
-
-    const safeCategoryDescription = computed(() =>
-      category.value?.description ? getSafeHtml(category.value.description) : ''
-    )
-
-    const sanitizeForMeta = (value) => {
-      if (!value) {
-        return ''
-      }
-
-      const text = getSafeText(value)
-      return text.length > 160 ? `${text.slice(0, 157)}...` : text
-    }
 
     const breadcrumbItems = computed(() => {
       const items = [
@@ -230,15 +189,12 @@ export default {
       // Prepare script tags for schemas
       const scriptTags = schemas.length > 0 ? prepareSchemaScripts(schemas) : []
 
-      const metaDescriptionSource = category.value.meta_description || category.value.description
-      const metaDescription = sanitizeForMeta(metaDescriptionSource)
-
       return {
         title: category.value.meta_title || category.value.name,
         meta: [
           {
             name: 'description',
-            content: metaDescription
+            content: category.value.meta_description || (category.value.description ? category.value.description.substring(0, 160) : '')
           }
         ],
         ...(scriptTags.length > 0 && { script: scriptTags })
@@ -348,7 +304,6 @@ export default {
       nextPage,
       previousPage,
       goToSubcategoryDetail,
-      safeCategoryDescription,
       fetchCategoryData,
       formatImageUrl
     }

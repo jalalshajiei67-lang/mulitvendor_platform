@@ -21,16 +21,65 @@ const translations: Record<string, string> = {
   tryDifferentFilters: 'فیلترهای متفاوت را امتحان کنید.'
 }
 
-const normaliseCollection = <T>(payload: Paginated<T> | T[]) => {
+const defaultDescription = 'برای این زیردسته هنوز توضیحاتی ثبت نشده است.'
+
+const decodeHtmlEntities = (input: string): string =>
+  input
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&zwnj;/gi, '\u200C')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+
+const sanitizeHtml = (input: string): string =>
+  input
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+    .replace(/\son\w+="[^"]*"/gi, '')
+    .replace(/\son\w+='[^']*'/gi, '')
+    .replace(/javascript:/gi, '')
+
+const buildRichText = (raw: string | null | undefined, fallback = defaultDescription): string => {
+  if (!raw) {
+    return `<p>${fallback}</p>`
+  }
+
+  const decoded = decodeHtmlEntities(raw).trim()
+  if (!decoded) {
+    return `<p>${fallback}</p>`
+  }
+
+  const sanitized = sanitizeHtml(decoded).trim()
+  if (!sanitized) {
+    return `<p>${fallback}</p>`
+  }
+
+  const hasHtmlTags = /<\/?[a-z][\w-]*\b[^>]*>/i.test(sanitized)
+  return hasHtmlTags ? sanitized : `<p>${sanitized}</p>`
+}
+
+const enhanceSubcategory = <T extends Subcategory | null>(entity: T): T => {
+  if (!entity) {
+    return entity
+  }
+
+  return {
+    ...entity,
+    description_html: buildRichText(entity.description, defaultDescription)
+  }
+}
+
+const normaliseCollection = <T extends Subcategory>(payload: Paginated<T> | T[]) => {
   if (Array.isArray(payload)) {
     return {
-      items: payload,
+      items: payload.map((item) => enhanceSubcategory(item)),
       meta: { count: payload.length, next: null, previous: null }
     }
   }
 
   return {
-    items: payload.results ?? [],
+    items: (payload.results ?? []).map((item) => enhanceSubcategory(item)),
     meta: {
       count: payload.count ?? 0,
       next: payload.next ?? null,
@@ -107,8 +156,9 @@ export const useSubcategoryStore = defineStore('subcategories', () => {
 
     try {
       const data = await useApiFetch<Subcategory>(`subcategories/${id}/`)
-      currentSubcategory.value = data
-      return data
+      const enhanced = enhanceSubcategory(data)
+      currentSubcategory.value = enhanced
+      return enhanced
     } catch (err: any) {
       error.value = t('failedToFetch')
       throw err
@@ -143,8 +193,9 @@ export const useSubcategoryStore = defineStore('subcategories', () => {
       })
       const { items } = normaliseCollection(response)
       if (items.length) {
-        currentSubcategory.value = items[0]
-        return items[0]
+        const [first] = items
+        currentSubcategory.value = first
+        return first
       }
       throw new Error('Subcategory not found')
     } catch (err: any) {
@@ -164,8 +215,9 @@ export const useSubcategoryStore = defineStore('subcategories', () => {
         method: 'POST',
         body: payload as any
       })
-      subcategories.value = [...subcategories.value, data]
-      return data
+      const enhanced = enhanceSubcategory(data)
+      subcategories.value = [...subcategories.value, enhanced]
+      return enhanced
     } catch (err: any) {
       error.value = t('failedToCreate')
       console.error('Error creating subcategory:', err)
@@ -184,14 +236,15 @@ export const useSubcategoryStore = defineStore('subcategories', () => {
         method: 'PUT',
         body: payload as any
       })
+      const enhanced = enhanceSubcategory(data)
       const index = subcategories.value.findIndex((subcategory) => subcategory.id === id)
       if (index !== -1) {
-        subcategories.value.splice(index, 1, data)
+        subcategories.value.splice(index, 1, enhanced)
       }
       if (currentSubcategory.value?.id === id) {
-        currentSubcategory.value = data
+        currentSubcategory.value = enhanced
       }
-      return data
+      return enhanced
     } catch (err: any) {
       error.value = t('failedToUpdate')
       console.error('Error updating subcategory:', err)

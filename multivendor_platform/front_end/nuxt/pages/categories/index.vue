@@ -22,9 +22,9 @@
       </v-alert>
 
       <template v-else>
-        <v-row v-if="displayCategories.length" class="ga-4">
+        <v-row v-if="categories.length" class="ga-4">
           <v-col
-            v-for="category in displayCategories"
+            v-for="category in categories"
             :key="category.id"
             cols="12"
             sm="6"
@@ -46,7 +46,7 @@
                   {{ category.name }}
                 </h2>
                 <p class="text-body-2 text-medium-emphasis line-clamp-3">
-                  {{ category.safeDescription || 'بدون توضیحات' }}
+                  {{ category.description || 'بدون توضیحات' }}
                 </p>
                 <v-chip
                   v-if="category.department_name"
@@ -91,36 +91,6 @@ useSeoMeta({
 const categoryStore = useCategoryStore()
 const { categories, loading, error } = storeToRefs(categoryStore)
 const t = categoryStore.t
-
-const decodeHtmlEntities = (input?: string | null): string => {
-  if (!input) {
-    return ''
-  }
-
-  return input
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
-    .replace(/&nbsp;/g, ' ')
-}
-
-const stripHtmlTags = (input: string): string => input.replace(/<\/?[^>]+(>|$)/g, '')
-
-const getSafeDescription = (description?: string | null): string => {
-  const decoded = decodeHtmlEntities(description)
-  return stripHtmlTags(decoded).replace(/\s+/g, ' ').trim()
-}
-
-const displayCategories = computed(() =>
-  (categories.value ?? []).map((category: any) => ({
-    ...category,
-    safeDescription: getSafeDescription(category.description as string | null)
-  }))
-)
 
 const fetchPage = async () => {
   await categoryStore.fetchCategories({ page_size: 100 })

@@ -75,8 +75,12 @@
             </p>
           </div>
         </v-card-title>
-        <v-card-text class="text-body-1 description-text">
-          {{ subcategory.description || 'برای این زیردسته هنوز توضیحاتی ثبت نشده است.' }}
+        <v-card-text class="description-text">
+          <div
+            v-html="subcategory.description_html"
+            class="text-body-1"
+            data-testid="subcategory-description"
+          />
         </v-card-text>
       </v-card>
     </v-container>
@@ -111,8 +115,14 @@ const pageCount = computed(() =>
   Math.max(1, Math.ceil((pagination.value.count || products.value.length || 0) / pageSize))
 )
 
+type BreadcrumbItem = {
+  title: string
+  to?: string
+  disabled?: boolean
+}
+
 const breadcrumbs = computed(() => {
-  const items = [
+  const items: BreadcrumbItem[] = [
     { title: t('home'), to: '/' },
     { title: t('subcategories'), to: '/subcategories' }
   ]

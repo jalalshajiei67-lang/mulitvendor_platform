@@ -20,16 +20,65 @@ const translations: Record<string, string> = {
   home: 'خانه'
 }
 
-const normaliseCollection = <T>(payload: Paginated<T> | T[]) => {
+const defaultDescription = 'برای این دسته هنوز توضیحاتی ثبت نشده است.'
+
+const decodeHtmlEntities = (input: string): string =>
+  input
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&zwnj;/gi, '\u200C')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+
+const sanitizeHtml = (input: string): string =>
+  input
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+    .replace(/\son\w+="[^"]*"/gi, '')
+    .replace(/\son\w+='[^']*'/gi, '')
+    .replace(/javascript:/gi, '')
+
+const buildRichText = (raw: string | null | undefined, fallback = defaultDescription): string => {
+  if (!raw) {
+    return `<p>${fallback}</p>`
+  }
+
+  const decoded = decodeHtmlEntities(raw).trim()
+  if (!decoded) {
+    return `<p>${fallback}</p>`
+  }
+
+  const sanitized = sanitizeHtml(decoded).trim()
+  if (!sanitized) {
+    return `<p>${fallback}</p>`
+  }
+
+  const hasHtmlTags = /<\/?[a-z][\w-]*\b[^>]*>/i.test(sanitized)
+  return hasHtmlTags ? sanitized : `<p>${sanitized}</p>`
+}
+
+const enhanceCategory = <T extends Category | null>(entity: T): T => {
+  if (!entity) {
+    return entity
+  }
+
+  return {
+    ...entity,
+    description_html: buildRichText(entity.description, defaultDescription)
+  }
+}
+
+const normaliseCollection = <T extends Category>(payload: Paginated<T> | T[]) => {
   if (Array.isArray(payload)) {
     return {
-      items: payload,
+      items: payload.map((item) => enhanceCategory(item)),
       meta: { count: payload.length, next: null, previous: null }
     }
   }
 
   return {
-    items: payload.results ?? [],
+    items: (payload.results ?? []).map((item) => enhanceCategory(item)),
     meta: {
       count: payload.count ?? 0,
       next: payload.next ?? null,
@@ -103,8 +152,9 @@ export const useCategoryStore = defineStore('categories', () => {
 
     try {
       const data = await useApiFetch<Category>(`categories/${id}/`)
-      currentCategory.value = data
-      return data
+      const enhanced = enhanceCategory(data)
+      currentCategory.value = enhanced
+      return enhanced
     } catch (err: any) {
       error.value = t('failedToFetch')
       throw err
@@ -139,8 +189,9 @@ export const useCategoryStore = defineStore('categories', () => {
       })
       const { items } = normaliseCollection(response)
       if (items.length) {
-        currentCategory.value = items[0]
-        return items[0]
+        const [first] = items
+        currentCategory.value = first
+        return first
       }
       throw new Error('Category not found')
     } catch (err: any) {
@@ -160,8 +211,9 @@ export const useCategoryStore = defineStore('categories', () => {
         method: 'POST',
         body: payload as any
       })
-      categories.value = [...categories.value, data]
-      return data
+      const enhanced = enhanceCategory(data)
+      categories.value = [...categories.value, enhanced]
+      return enhanced
     } catch (err: any) {
       error.value = t('failedToCreate')
       console.error('Error creating category:', err)
@@ -180,14 +232,15 @@ export const useCategoryStore = defineStore('categories', () => {
         method: 'PUT',
         body: payload as any
       })
+      const enhanced = enhanceCategory(data)
       const index = categories.value.findIndex((category) => category.id === id)
       if (index !== -1) {
-        categories.value.splice(index, 1, data)
+        categories.value.splice(index, 1, enhanced)
       }
       if (currentCategory.value?.id === id) {
-        currentCategory.value = data
+        currentCategory.value = enhanced
       }
-      return data
+      return enhanced
     } catch (err: any) {
       error.value = t('failedToUpdate')
       console.error('Error updating category:', err)

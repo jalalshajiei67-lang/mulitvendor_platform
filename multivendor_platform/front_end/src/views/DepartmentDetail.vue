@@ -124,47 +124,6 @@ export default {
     const currentPage = ref(1)
     const itemsPerPage = 12
 
-    const decodeHtmlEntities = (input) => {
-      if (!input) {
-        return ''
-      }
-
-      return input
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-        .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
-        .replace(/&nbsp;/g, ' ')
-    }
-
-    const stripDangerousContent = (input) =>
-      input
-        .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
-        .replace(/on\w+\s*=\s*(['"]).*?\1/gi, '')
-        .replace(/javascript:/gi, '')
-
-    const stripHtmlTags = (input) => input.replace(/<\/?[^>]+(>|$)/g, '')
-
-    const getSafeHtml = (input) => stripDangerousContent(decodeHtmlEntities(input || ''))
-
-    const getSafeText = (input) => stripHtmlTags(getSafeHtml(input)).replace(/\s+/g, ' ').trim()
-
-    const sanitizeForMeta = (value) => {
-      if (!value) {
-        return ''
-      }
-
-      const text = getSafeText(value)
-      return text.length > 160 ? `${text.slice(0, 157)}...` : text
-    }
-
-    const safeDepartmentDescription = computed(() =>
-      department.value?.description ? getSafeHtml(department.value.description) : ''
-    )
-
     const breadcrumbItems = computed(() => [
       { text: 'خانه', to: '/' },
       { text: 'بخش‌ها', to: '/departments' },
@@ -220,15 +179,12 @@ export default {
       // Prepare script tags for schemas
       const scriptTags = schemas.length > 0 ? prepareSchemaScripts(schemas) : []
 
-      const metaDescriptionSource = department.value.meta_description || department.value.description
-      const metaDescription = sanitizeForMeta(metaDescriptionSource)
-
       return {
         title: department.value.meta_title || department.value.name,
         meta: [
           {
             name: 'description',
-            content: metaDescription
+            content: department.value.meta_description || (department.value.description ? department.value.description.substring(0, 160) : '')
           }
         ],
         ...(scriptTags.length > 0 && { script: scriptTags })
@@ -354,7 +310,6 @@ export default {
       nextPage,
       previousPage,
       goToCategoryDetail,
-      safeDepartmentDescription,
       fetchDepartmentData,
       formatImageUrl
     }

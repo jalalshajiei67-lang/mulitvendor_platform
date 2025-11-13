@@ -107,8 +107,12 @@
             </p>
           </div>
         </v-card-title>
-        <v-card-text class="text-body-1 description-text">
-          {{ category.description || 'برای این دسته هنوز توضیحاتی ثبت نشده است.' }}
+        <v-card-text class="description-text">
+          <div
+            v-html="category.description_html"
+            class="text-body-1"
+            data-testid="category-description"
+          />
         </v-card-text>
       </v-card>
     </v-container>
@@ -137,7 +141,13 @@ const t = categoryStore.t
 
 const category = computed(() => currentCategory.value)
 
-const breadcrumbs = computed(() => [
+type BreadcrumbItem = {
+  title: string
+  to?: string
+  disabled?: boolean
+}
+
+const breadcrumbs = computed((): BreadcrumbItem[] => [
   { title: t('home'), to: '/' },
   { title: t('categories'), to: '/categories' },
   { title: category.value?.name ?? '', disabled: true }
