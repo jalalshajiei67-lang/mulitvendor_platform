@@ -22,7 +22,7 @@
       </v-alert>
 
       <template v-else>
-        <v-row v-if="categories.length" class="ga-4">
+        <v-row v-if="categories.length" class="g-4">
           <v-col
             v-for="category in categories"
             :key="category.id"

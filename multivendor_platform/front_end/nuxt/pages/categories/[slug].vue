@@ -52,7 +52,7 @@
           {{ subError }}
         </v-alert>
 
-        <v-row v-else-if="subcategories.length" class="ga-4">
+        <v-row v-else-if="subcategories.length" class="g-4">
           <v-col
             v-for="sub in subcategories"
             :key="sub.id"
