@@ -42,9 +42,16 @@
             @click="navigateTo(`/departments/${department.slug}`)"
           >
             <v-card-text class="pa-6">
-              <v-avatar size="56" class="mb-4 bg-secondary/10 text-secondary">
-                <v-icon>mdi-domain</v-icon>
-              </v-avatar>
+              <v-img
+                v-if="formatImageUrl(department)"
+                height="200"
+                :src="formatImageUrl(department)"
+                cover
+                class="mb-4 rounded-lg"
+              />
+              <div v-else class="d-flex align-center justify-center mb-4" style="height: 200px; background: rgba(var(--v-theme-primary), 0.1); border-radius: 8px;">
+                <v-icon size="64" color="primary">mdi-domain</v-icon>
+              </div>
               <h2 class="text-h5 font-weight-bold mb-3">{{ department.name }}</h2>
               <p class="text-body-2 text-medium-emphasis line-clamp-3">
                 {{ department.description_plain || 'بدون توضیحات' }}
@@ -73,6 +80,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatImageUrl } from '~/utils/imageUtils'
+
 definePageMeta({
   layout: 'default'
 })

@@ -87,6 +87,10 @@ export const formatImageUrl = (imageData: string | { image_url?: string; image?:
 
   // If already absolute URL, return as is
   if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+    // In development, convert HTTPS localhost URLs to HTTP to avoid mixed content issues
+    if (imageData.startsWith('https://localhost') || imageData.startsWith('https://127.0.0.1')) {
+      return imageData.replace('https://', 'http://')
+    }
     return imageData
   }
 

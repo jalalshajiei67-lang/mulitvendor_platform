@@ -44,9 +44,16 @@
               @click="navigateTo(`/subcategories/${subcategory.slug}`)"
             >
               <v-card-text class="pa-6">
-                <v-avatar size="48" class="mb-4 bg-primary/10 text-primary">
-                  <v-icon>mdi-layers-triple</v-icon>
-                </v-avatar>
+                <v-img
+                  v-if="formatImageUrl(subcategory)"
+                  height="200"
+                  :src="formatImageUrl(subcategory)"
+                  cover
+                  class="mb-4 rounded-lg"
+                />
+                <div v-else class="d-flex align-center justify-center mb-4" style="height: 200px; background: rgba(var(--v-theme-primary), 0.1); border-radius: 8px;">
+                  <v-icon size="64" color="primary">mdi-layers-triple</v-icon>
+                </div>
                 <h2 class="text-h6 font-weight-bold mb-2">
                   {{ subcategory.name }}
                 </h2>
@@ -81,6 +88,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatImageUrl } from '~/utils/imageUtils'
+
 definePageMeta({
   layout: 'default'
 })
