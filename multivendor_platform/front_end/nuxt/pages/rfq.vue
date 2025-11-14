@@ -377,10 +377,10 @@ const loadProducts = async () => {
     const response = await productApi.getProducts({ page_size: 100, ordering: '-created_at' })
     const items = Array.isArray(response?.results) ? response.results : []
     products.value = items
-      .filter((product: any) => product?.id && (product?.title || product?.name))
+      .filter((product: any) => product?.id && product?.name)
       .map((product: any) => ({
         id: Number(product.id),
-        name: product.title ?? product.name ?? `محصول ${product.id}`
+        name: product.name ?? `محصول ${product.id}`
       }))
   } catch (error) {
     console.error('RFQ: failed to load products', error)

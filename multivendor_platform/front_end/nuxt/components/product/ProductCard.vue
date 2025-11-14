@@ -4,7 +4,7 @@
       <v-img
         v-if="product.primary_image"
         :src="product.primary_image"
-        :alt="product.title"
+        :alt="product.name"
         height="220"
         cover
       />
@@ -33,7 +33,7 @@
       </v-chip>
 
       <h3 class="text-h6 font-weight-bold mb-2 line-clamp-2">
-        {{ product.title }}
+        {{ product.name }}
       </h3>
       <p class="text-body-2 text-medium-emphasis line-clamp-2 mb-4">
         {{ product.short_description }}

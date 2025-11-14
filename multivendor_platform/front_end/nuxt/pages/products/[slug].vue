@@ -12,7 +12,7 @@
           </template>
         </v-breadcrumbs>
         <h1 class="text-h3 text-md-h2 font-weight-bold text-white mb-3">
-          {{ product.title }}
+          {{ product.name }}
         </h1>
         <p class="text-body-1 text-white opacity-85 max-w-720">
           {{ product.short_description }}
@@ -27,7 +27,7 @@
             <v-img
               v-if="product.primary_image"
               :src="product.primary_image"
-              :alt="product.title"
+              :alt="product.name"
               height="420"
               class="rounded-lg"
               cover
@@ -44,7 +44,7 @@
               <v-slide-group-item v-for="image in product.images" :key="image.id">
                 <v-img
                   :src="image.image"
-                  :alt="product.title"
+                  :alt="product.name"
                   height="80"
                   width="120"
                   cover
@@ -125,11 +125,11 @@
               >
                 <template #prepend>
                   <v-avatar size="48" rounded="lg">
-                    <v-img :src="item.primary_image" :alt="item.title" cover />
+                    <v-img :src="item.primary_image" :alt="item.name" cover />
                   </v-avatar>
                 </template>
                 <v-list-item-title class="font-weight-medium">
-                  {{ item.title }}
+                  {{ item.name }}
                 </v-list-item-title>
                 <v-list-item-subtitle>
                   {{ item.price ? formatPrice(item.price) : t('contactForPrice') }}
@@ -219,7 +219,7 @@ const getCategoryId = (product: any): number | null => {
 const breadcrumbs = computed(() => [
   { title: t('home'), to: '/' },
   { title: t('products'), to: '/products' },
-  { title: product.value?.title ?? '', disabled: true }
+  { title: product.value?.name ?? '', disabled: true }
 ])
 
 const formatPrice = (value: number | string) => {
@@ -256,9 +256,9 @@ watch(
 )
 
 useSeoMeta({
-  title: () => product.value?.meta_title ?? product.value?.title ?? 'محصول',
+  title: () => product.value?.meta_title ?? product.value?.name ?? 'محصول',
   description: () => product.value?.meta_description ?? product.value?.short_description ?? '',
-  ogTitle: () => product.value?.meta_title ?? product.value?.title ?? '',
+  ogTitle: () => product.value?.meta_title ?? product.value?.name ?? '',
   ogDescription: () => product.value?.meta_description ?? product.value?.short_description ?? '',
   ogType: 'product',
   ogImage: () => product.value?.primary_image ?? ''
