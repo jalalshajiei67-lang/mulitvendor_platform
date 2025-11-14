@@ -1,100 +1,132 @@
 <template>
   <div class="contact-us" dir="rtl">
-    <!-- Hero Section -->
-    <div class="hero-section">
-      <v-container class="py-10 text-center text-white">
-        <div class="hero-content">
-          <h1>تماس با ما</h1>
-          <p>ما اینجا هستیم تا به شما کمک کنیم</p>
-        </div>
+    <!-- Loading State -->
+    <div v-if="pending" class="loading-container">
+      <v-container class="text-center py-16">
+        <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+        <p class="mt-4">در حال بارگذاری...</p>
       </v-container>
     </div>
 
-    <!-- About Us Section -->
-    <div class="about-section">
-      <div class="container">
-        <div class="about-content">
-          <h2>داستان ما</h2>
-          <p class="about-text">
-            همه چیز از یک ایده ساده شروع شد؛ دو کارآفرین جوان که چالش‌های موجود در صنعت ماشین‌آلات را به چشم دیدند و تصمیم گرفتند راه‌حلی نوآورانه ارائه دهند. آن‌ها متوجه شدند که خریداران و فروشندگان ماشین‌آلات با مشکلات متعددی روبرو هستند: عدم دسترسی به اطلاعات دقیق، نبود بستر مناسب برای ارتباط، و فرآیندهای پیچیده و زمان‌بر. با همین انگیزه، پلتفرم چند فروشنده ایندکسو متولد شد تا با استفاده از تکنولوژی‌های پیشرفته، تحولی شگرف در صنعت ماشین‌آلات ایجاد کند. این پلتفرم با ایجاد بستری امن و کارآمد، هم برای خریداران و هم برای فروشندگان، فرصت‌های جدیدی برای رشد و توسعه کسب‌وکارها فراهم کرده است. امروز ایندکسو به عنوان یک محصول تحول‌آفرین و اختلال‌گر در صنعت، راه‌حل‌های جامعی برای ارتباط بهتر، معاملات سریع‌تر و دسترسی آسان‌تر به محصولات و خدمات ارائه می‌دهد.
-          </p>
-        </div>
-      </div>
+    <!-- Error State -->
+    <div v-else-if="error" class="error-container">
+      <v-container class="text-center py-16">
+        <v-alert type="error" variant="tonal" prominent>
+          <v-alert-title>خطا در بارگذاری صفحه</v-alert-title>
+          <p class="mt-2">{{ error }}</p>
+        </v-alert>
+      </v-container>
     </div>
 
-    <!-- Contact Information Section -->
-    <div class="contact-section">
-      <div class="container">
-        <h2>اطلاعات تماس</h2>
-        <div class="contact-grid">
-          <!-- Email -->
-          <div class="contact-card">
-            <div class="contact-icon">
-              <v-icon size="48">mdi-email</v-icon>
-            </div>
-            <h3>ایمیل</h3>
-            <a href="mailto:info@indexo.ir" class="contact-link">info@indexo.ir</a>
+    <!-- Content -->
+    <template v-else-if="page">
+      <!-- Hero Section -->
+      <div class="hero-section">
+        <v-container class="py-10 text-center text-white">
+          <div class="hero-content">
+            <h1>{{ page.title_fa || 'تماس با ما' }}</h1>
+            <p v-if="page.content_fa" class="hero-subtitle" v-html="getExcerpt(page.content_fa)"></p>
+            <p v-else>ما اینجا هستیم تا به شما کمک کنیم</p>
           </div>
+        </v-container>
+      </div>
 
-          <!-- Phone -->
-          <div class="contact-card">
-            <div class="contact-icon">
-              <v-icon size="48">mdi-phone</v-icon>
-            </div>
-            <h3>تلفن ثابت</h3>
-            <a href="tel:+982188311001" class="contact-link">021-88311001</a>
-          </div>
-
-          <!-- Mobile -->
-          <div class="contact-card">
-            <div class="contact-icon">
-              <v-icon size="48">mdi-cellphone</v-icon>
-            </div>
-            <h3>موبایل</h3>
-            <a href="tel:+989123456789" class="contact-link">0912-345-6789</a>
-          </div>
-
-          <!-- WhatsApp -->
-          <div class="contact-card">
-            <div class="contact-icon">
-              <v-icon size="48">mdi-whatsapp</v-icon>
-            </div>
-            <h3>واتساپ</h3>
-            <a href="https://wa.me/989123456789" target="_blank" rel="noopener noreferrer" class="contact-link">0912-345-6789</a>
-          </div>
-
-          <!-- Telegram -->
-          <div class="contact-card">
-            <div class="contact-icon">
-              <v-icon size="48">mdi-send</v-icon>
-            </div>
-            <h3>تلگرام</h3>
-            <a href="https://t.me/indexo_support" target="_blank" rel="noopener noreferrer" class="contact-link">@indexo_support</a>
-          </div>
-
-          <!-- Instagram -->
-          <div class="contact-card">
-            <div class="contact-icon">
-              <v-icon size="48">mdi-instagram</v-icon>
-            </div>
-            <h3>اینستاگرام</h3>
-            <a href="https://instagram.com/indexo.ir" target="_blank" rel="noopener noreferrer" class="contact-link">@indexo.ir</a>
+      <!-- Content Section -->
+      <div v-if="page.content_fa" class="content-section">
+        <div class="container">
+          <div class="content-wrapper">
+            <div class="content-text" v-html="page.content_fa"></div>
           </div>
         </div>
       </div>
-    </div>
+
+      <!-- Contact Information Section -->
+      <div class="contact-section">
+        <div class="container">
+          <h2>اطلاعات تماس</h2>
+          <div class="contact-grid">
+            <!-- Email -->
+            <div v-if="page.email" class="contact-card">
+              <div class="contact-icon">
+                <v-icon size="48">mdi-email</v-icon>
+              </div>
+              <h3>ایمیل</h3>
+              <a :href="`mailto:${page.email}`" class="contact-link">{{ page.email }}</a>
+            </div>
+
+            <!-- Phone -->
+            <div v-if="page.phone" class="contact-card">
+              <div class="contact-icon">
+                <v-icon size="48">mdi-phone</v-icon>
+              </div>
+              <h3>تلفن</h3>
+              <a :href="`tel:${page.phone.replace(/\s/g, '')}`" class="contact-link">{{ page.phone }}</a>
+            </div>
+
+            <!-- Address -->
+            <div v-if="page.address_fa" class="contact-card">
+              <div class="contact-icon">
+                <v-icon size="48">mdi-map-marker</v-icon>
+              </div>
+              <h3>آدرس</h3>
+              <p class="contact-text">{{ page.address_fa }}</p>
+            </div>
+
+            <!-- Working Hours -->
+            <div v-if="page.working_hours_fa" class="contact-card">
+              <div class="contact-icon">
+                <v-icon size="48">mdi-clock-outline</v-icon>
+              </div>
+              <h3>ساعات کاری</h3>
+              <p class="contact-text">{{ page.working_hours_fa }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import { usePagesApi, type ContactPage } from '~/composables/usePagesApi'
+
+const pagesApi = usePagesApi()
+
+// Fetch contact page data
+const { data: page, pending, error } = await useAsyncData<ContactPage>(
+  'contact-page',
+  async () => {
+    try {
+      return await pagesApi.getContactPage()
+    } catch (err: any) {
+      console.error('Error fetching contact page:', err)
+      throw new Error(err?.data?.detail || err?.message || 'خطا در بارگذاری صفحه تماس با ما')
+    }
+  }
+)
+
+// Helper function to get excerpt from HTML content
+const getExcerpt = (html: string, maxLength: number = 100): string => {
+  if (!html) return ''
+  // Remove HTML tags
+  const text = html.replace(/<[^>]*>/g, '')
+  // Return excerpt
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
+}
+
+// Update SEO meta tags (reactive)
 useHead({
-  title: 'تماس با ما',
-  meta: [
+  title: computed(() => page.value?.meta_title_fa || page.value?.title_fa || 'تماس با ما'),
+  meta: computed(() => [
     {
       name: 'description',
-      content: 'راه‌های ارتباط با تیم ایندکسو - ایمیل، تلفن، واتساپ، تلگرام و اینستاگرام'
+      content: page.value?.meta_description_fa || 'راه‌های ارتباط با ما'
+    },
+    {
+      name: 'keywords',
+      content: page.value?.meta_keywords_fa || 'تماس، آدرس، تلفن، ایمیل'
     }
-  ]
+  ])
 })
 </script>
 
@@ -193,6 +225,87 @@ useHead({
   position: relative;
   z-index: 1;
   color: rgba(var(--v-theme-on-surface), 0.9);
+}
+
+/* Loading and Error States */
+.loading-container,
+.error-container {
+  min-height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Content Section */
+.content-section {
+  padding: 80px 20px;
+  background-color: transparent;
+}
+
+.content-wrapper {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.12), rgba(var(--v-theme-secondary), 0.16));
+  padding: 50px 40px;
+  border-radius: 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  color: rgba(var(--v-theme-on-surface), 0.95);
+  position: relative;
+  overflow: hidden;
+}
+
+.content-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(var(--v-theme-surface), 0.65), transparent);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.content-text {
+  font-size: 1.1rem;
+  line-height: 2;
+  position: relative;
+  z-index: 1;
+  color: rgba(var(--v-theme-on-surface), 0.9);
+  direction: rtl;
+  text-align: justify;
+}
+
+.content-text :deep(p) {
+  margin-bottom: 1rem;
+}
+
+.content-text :deep(h1),
+.content-text :deep(h2),
+.content-text :deep(h3) {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.content-text :deep(ul),
+.content-text :deep(ol) {
+  margin: 1rem 0;
+  padding-right: 2rem;
+}
+
+.content-text :deep(li) {
+  margin-bottom: 0.5rem;
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  opacity: 0.95;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.contact-text {
+  color: rgba(var(--v-theme-on-surface), 0.92);
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin: 0;
+  word-break: break-word;
 }
 
 /* Contact Section */
@@ -311,6 +424,15 @@ useHead({
 
   .contact-link {
     font-size: 1rem;
+  }
+
+  .content-wrapper {
+    padding: 30px 20px;
+  }
+
+  .content-text {
+    font-size: 1rem;
+    line-height: 1.8;
   }
 }
 </style>

@@ -98,11 +98,17 @@ class AboutPage(models.Model):
         return f"درباره ما - {self.title_fa}"
 
     def save(self, *args, **kwargs):
-        """Ensure only one instance exists"""
+        """Ensure only one instance exists - update existing instead of creating new"""
         if not self.pk and AboutPage.objects.exists():
             # If trying to create a new instance when one exists, update the existing one
-            existing = AboutPage.objects.first()
-            self.pk = existing.pk
+            # Use the most recently updated instance (in case of duplicates from old bug)
+            existing = AboutPage.objects.order_by('-updated_at').first()
+            # Update all fields from self to existing instance
+            for field in self._meta.fields:
+                if field.name not in ['id', 'pk', 'created_at']:
+                    setattr(existing, field.name, getattr(self, field.name, None))
+            # Save the existing instance instead
+            return existing.save(*args, **kwargs)
         return super().save(*args, **kwargs)
 
 
@@ -245,10 +251,16 @@ class ContactPage(models.Model):
         return f"تماس با ما - {self.title_fa}"
 
     def save(self, *args, **kwargs):
-        """Ensure only one instance exists"""
+        """Ensure only one instance exists - update existing instead of creating new"""
         if not self.pk and ContactPage.objects.exists():
             # If trying to create a new instance when one exists, update the existing one
-            existing = ContactPage.objects.first()
-            self.pk = existing.pk
+            # Use the most recently updated instance (in case of duplicates from old bug)
+            existing = ContactPage.objects.order_by('-updated_at').first()
+            # Update all fields from self to existing instance
+            for field in self._meta.fields:
+                if field.name not in ['id', 'pk', 'created_at']:
+                    setattr(existing, field.name, getattr(self, field.name, None))
+            # Save the existing instance instead
+            return existing.save(*args, **kwargs)
         return super().save(*args, **kwargs)
 

@@ -22,7 +22,8 @@ class AboutPageViewSet(viewsets.ReadOnlyModelViewSet):
         Endpoint: /api/pages/about/current/
         """
         try:
-            page = AboutPage.objects.first()
+            # Get the most recently updated instance (in case of duplicates)
+            page = AboutPage.objects.order_by('-updated_at').first()
             if page:
                 serializer = self.get_serializer(page)
                 return Response(serializer.data)
@@ -53,7 +54,8 @@ class ContactPageViewSet(viewsets.ReadOnlyModelViewSet):
         Endpoint: /api/pages/contact/current/
         """
         try:
-            page = ContactPage.objects.first()
+            # Get the most recently updated instance (in case of duplicates)
+            page = ContactPage.objects.order_by('-updated_at').first()
             if page:
                 serializer = self.get_serializer(page)
                 return Response(serializer.data)

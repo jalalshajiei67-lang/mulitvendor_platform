@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.shortcuts import redirect
+from django.urls import reverse
 from .models import AboutPage, ContactPage
 
 
@@ -35,6 +37,16 @@ class AboutPageAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at')
     
     list_display = ('title_fa', 'updated_at')
+    
+    def changelist_view(self, request, extra_context=None):
+        """
+        Redirect to edit page if instance(s) exist
+        """
+        if AboutPage.objects.exists():
+            # Get the most recently updated instance (in case of duplicates)
+            obj = AboutPage.objects.order_by('-updated_at').first()
+            return redirect(reverse('admin:pages_aboutpage_change', args=[obj.pk]))
+        return super().changelist_view(request, extra_context)
     
     def has_add_permission(self, request):
         """
@@ -88,6 +100,16 @@ class ContactPageAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at')
     
     list_display = ('title_fa', 'phone', 'email', 'updated_at')
+    
+    def changelist_view(self, request, extra_context=None):
+        """
+        Redirect to edit page if instance(s) exist
+        """
+        if ContactPage.objects.exists():
+            # Get the most recently updated instance (in case of duplicates)
+            obj = ContactPage.objects.order_by('-updated_at').first()
+            return redirect(reverse('admin:pages_contactpage_change', args=[obj.pk]))
+        return super().changelist_view(request, extra_context)
     
     def has_add_permission(self, request):
         """

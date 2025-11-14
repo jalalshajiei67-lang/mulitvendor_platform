@@ -17,6 +17,11 @@ import random
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from fake_useragent import UserAgent
 import unicodedata
+import ssl
+import urllib3
+
+# Suppress SSL warnings when verification is disabled
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 
@@ -80,6 +85,15 @@ class UniversalProductScraper:
         self.use_proxy = use_proxy
         self.max_retries = max_retries
         self.platform = None  # Will be detected: woocommerce, shopify, custom, etc.
+        
+        # Handle SSL verification (only for testing/problematic sites)
+        if not self.verify_ssl:
+            logger.warning("SSL verification disabled - Only use for testing or problematic sites")
+            # Create unverified SSL context for this instance only
+            # Note: This doesn't modify the global SSL context
+            self._ssl_context = ssl._create_unverified_context()
+        else:
+            self._ssl_context = None
         
         # Initialize user agent rotator
         self.ua = UserAgent()
@@ -176,6 +190,10 @@ class UniversalProductScraper:
                 if not self._validate_page():
                     return False
                 
+                # Enhanced product page validation
+                if not self.is_valid_product_page():
+                    logger.warning("Page may not be a valid product page, but continuing...")
+                
                 logger.info(f"Successfully fetched page with Selenium: {self.url}")
                 return True
             finally:
@@ -195,34 +213,79 @@ class UniversalProductScraper:
             requests.exceptions.HTTPError
         ))
     )
-    def fetch_page(self):
+    def fetch_page(self, url=None, timeout=10):
         """
         Fetch the HTML content with robust error handling
+        Add timeout, headers, and retry logic
         """
+        if url is None:
+            url = self.url
+        
         # Add random delay to avoid rate limiting
         time.sleep(random.uniform(0.5, 2.0))
         
         if not self.verify_ssl:
-            logger.warning(f"SSL verification disabled for {self.url}")
+            logger.warning(f"SSL verification disabled for {url}")
         
         try:
+            # Get headers with proper User-Agent
             headers = self._get_rotated_headers()
             
+            # Ensure User-Agent is set (fallback if rotation fails)
+            if 'User-Agent' not in headers or not headers['User-Agent']:
+                headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            
+            # Configure proxies
             proxies = None if self.use_proxy else {'http': None, 'https': None}
             
-            self.response = self.session.get(
-                self.url, 
-                headers=headers, 
-                timeout=30, 
-                verify=self.verify_ssl,
-                proxies=proxies,
-                allow_redirects=True
-            )
-            self.response.raise_for_status()
+            # Make request with improved error handling
+            try:
+                self.response = self.session.get(
+                    url,
+                    headers=headers,
+                    timeout=timeout,
+                    verify=self.verify_ssl,
+                    proxies=proxies,
+                    allow_redirects=True,
+                    stream=False  # Don't stream for HTML content
+                )
+                self.response.raise_for_status()
+            except requests.exceptions.SSLError as ssl_error:
+                logger.error(f"SSL error fetching page {url}: {str(ssl_error)}")
+                if self.verify_ssl:
+                    logger.warning("Retrying with SSL verification disabled")
+                    self.response = self.session.get(
+                        url,
+                        headers=headers,
+                        timeout=timeout,
+                        verify=False,
+                        proxies=proxies,
+                        allow_redirects=True
+                    )
+                    self.response.raise_for_status()
+                else:
+                    raise
+            except requests.exceptions.Timeout as timeout_error:
+                logger.error(f"Timeout error fetching page {url}: {str(timeout_error)}")
+                raise Exception(f"Request timed out after {timeout} seconds: {str(timeout_error)}")
+            except requests.exceptions.ConnectionError as conn_error:
+                logger.error(f"Connection error fetching page {url}: {str(conn_error)}")
+                raise Exception(f"Connection failed: {str(conn_error)}")
+            except requests.exceptions.HTTPError as http_error:
+                logger.error(f"HTTP error fetching page {url}: {http_error.response.status_code if http_error.response else 'Unknown'} - {str(http_error)}")
+                raise Exception(f"HTTP error: {str(http_error)}")
+            except requests.exceptions.RequestException as req_error:
+                logger.error(f"Request failed for {url}: {str(req_error)}")
+                raise Exception(f"Request failed: {str(req_error)}")
+            
+            # Check response content
+            if not self.response.text or len(self.response.text) < 100:
+                raise Exception("Response content is empty or too short")
             
             # Enhanced encoding handling for Persian/Arabic sites
             self._handle_persian_encoding()
             
+            # Parse HTML
             self.soup = BeautifulSoup(self.response.text, 'html.parser')
             
             # Detect platform
@@ -230,18 +293,20 @@ class UniversalProductScraper:
             
             # Basic validation
             if not self._validate_page():
-                raise Exception("Page does not appear to be a valid product page")
+                raise Exception("Page does not appear to be a valid page")
             
-            logger.info(f"Successfully fetched page: {self.url} (Platform: {self.platform})")
+            # Enhanced product page validation
+            if not self.is_valid_product_page():
+                logger.warning("Page may not be a valid product page, but continuing...")
+            
+            logger.info(f"Successfully fetched page: {url} (Platform: {self.platform})")
             return True
             
-        except (requests.exceptions.SSLError, requests.exceptions.HTTPError,
-                requests.exceptions.ConnectionError, requests.exceptions.Timeout,
-                requests.exceptions.RequestException) as e:
-            logger.error(f"Error fetching page {self.url}: {str(e)}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Network error fetching page {url}: {str(e)}")
             raise Exception(f"Failed to fetch page: {str(e)}")
         except Exception as e:
-            logger.error(f"Unexpected error while fetching page {self.url}: {str(e)}")
+            logger.error(f"Unexpected error while fetching page {url}: {str(e)}")
             raise Exception(f"Unexpected error: {str(e)}")
 
     def _handle_persian_encoding(self):
@@ -513,6 +578,76 @@ class UniversalProductScraper:
             logger.warning("Page has very little content")
         
         return True
+    
+    def is_valid_product_page(self, soup=None):
+        """
+        Add more robust checks for product pages
+        Look for common product page elements
+        """
+        if soup is None:
+            soup = self.soup
+        
+        if soup is None:
+            return False
+        
+        # Look for common product page indicators
+        product_indicators = [
+            # Price indicators
+            soup.find(class_=re.compile(r'price|product-price', re.IGNORECASE)),
+            soup.find(id=re.compile(r'price|product-price', re.IGNORECASE)),
+            soup.select_one('[itemprop="price"]'),
+            soup.select_one('[itemprop="offers"]'),
+            soup.select_one('meta[property="product:price:amount"]'),
+            
+            # Add to cart indicators
+            soup.find(class_=re.compile(r'add-to-cart|buy-now|add.*cart', re.IGNORECASE)),
+            soup.find(id=re.compile(r'add-to-cart|buy-now|add.*cart', re.IGNORECASE)),
+            soup.select_one('button[class*="cart"]'),
+            soup.select_one('a[class*="cart"]'),
+            
+            # Product title/name indicators
+            soup.find(class_=re.compile(r'product-title|product-name', re.IGNORECASE)),
+            soup.find(id=re.compile(r'product-title|product-name', re.IGNORECASE)),
+            soup.select_one('[itemprop="name"]'),
+            soup.select_one('h1[class*="product"]'),
+            
+            # Product container indicators
+            soup.select_one('.product'),
+            soup.select_one('[class*="product"]'),
+            soup.select_one('[itemtype*="Product"]'),
+            soup.select_one('[data-product-id]'),
+            soup.select_one('[data-product]'),
+            
+            # Schema.org product indicators
+            soup.select_one('script[type="application/ld+json"]'),
+        ]
+        
+        # Check if any indicator is found
+        has_indicator = any(indicator for indicator in product_indicators if indicator is not None)
+        
+        if has_indicator:
+            logger.info("Product page indicators found - appears to be a valid product page")
+            return True
+        
+        # Additional check: Look for schema.org Product type
+        try:
+            scripts = soup.find_all('script', type='application/ld+json')
+            for script in scripts:
+                try:
+                    data = json.loads(script.string)
+                    if isinstance(data, list):
+                        data = data[0] if data else {}
+                    if isinstance(data, dict):
+                        if data.get('@type') in ['Product', 'ProductModel']:
+                            logger.info("Schema.org Product type found")
+                            return True
+                except (json.JSONDecodeError, KeyError, IndexError):
+                    continue
+        except Exception as e:
+            logger.debug(f"Error checking schema.org: {str(e)}")
+        
+        logger.warning("No product page indicators found - may not be a valid product page")
+        return False
     
     def extract_product_name(self):
         """
