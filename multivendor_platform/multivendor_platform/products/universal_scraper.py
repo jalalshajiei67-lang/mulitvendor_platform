@@ -10,7 +10,7 @@ from django.core.files.base import ContentFile
 from django.utils.text import slugify
 import re
 import json
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, quote, urlunparse, parse_qs, urlencode
 import logging
 import time
 import random
@@ -22,6 +22,10 @@ import urllib3
 
 # Suppress SSL warnings when verification is disabled
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Global SSL context - will be set conditionally based on verify_ssl parameter
+# Note: Only modify global context when explicitly requested (for problematic sites)
+_original_ssl_context = None
 
 
 
@@ -78,7 +82,10 @@ class UniversalProductScraper:
     IMAGE_DOWNLOAD_TIMEOUT = 30
     
     def __init__(self, url, verify_ssl=True, use_proxy=False, max_retries=3):
-        self.url = url
+        global _original_ssl_context
+        
+        # Verify and encode URL properly
+        self.url = self._verify_and_encode_url(url)
         self.soup = None
         self.response = None
         self.verify_ssl = verify_ssl
@@ -89,11 +96,15 @@ class UniversalProductScraper:
         # Handle SSL verification (only for testing/problematic sites)
         if not self.verify_ssl:
             logger.warning("SSL verification disabled - Only use for testing or problematic sites")
-            # Create unverified SSL context for this instance only
-            # Note: This doesn't modify the global SSL context
-            self._ssl_context = ssl._create_unverified_context()
+            # Set global SSL context to unverified (for problematic sites)
+            if _original_ssl_context is None:
+                _original_ssl_context = ssl._create_default_https_context
+            ssl._create_default_https_context = ssl._create_unverified_context
         else:
-            self._ssl_context = None
+            # Restore original SSL context if it was changed
+            if _original_ssl_context is not None:
+                ssl._create_default_https_context = _original_ssl_context
+                _original_ssl_context = None
         
         # Initialize user agent rotator
         self.ua = UserAgent()
@@ -103,6 +114,111 @@ class UniversalProductScraper:
         
         # Add circuit breaker
         self.circuit_breaker = CircuitBreaker()
+    
+    def _verify_and_encode_url(self, url):
+        """
+        Verify URL encoding and ensure it's properly formatted
+        Ensures URLs are properly encoded, especially for Persian/Arabic characters
+        """
+        if not url:
+            raise ValueError("URL cannot be empty")
+        
+        # Strip whitespace
+        url = url.strip()
+        
+        # Check if URL is already valid and properly encoded
+        try:
+            parsed = urlparse(url)
+            # If URL parses correctly and has scheme/netloc, it's likely valid
+            if parsed.scheme and parsed.netloc:
+                needs_encoding = False
+                encoded_parts = {}
+                
+                # Check path for non-ASCII or unencoded characters
+                if parsed.path:
+                    # Check if path contains unencoded non-ASCII characters
+                    # If path contains % characters, it's likely already encoded
+                    if '%' not in parsed.path:
+                        # Check for non-ASCII characters or unsafe characters
+                        if any(ord(char) > 127 or char in '<>"|\\^`{}' for char in parsed.path):
+                            # Contains non-ASCII or unsafe chars, encode path segments
+                            path_segments = parsed.path.split('/')
+                            encoded_segments = [quote(seg, safe='') if seg else '' for seg in path_segments]
+                            encoded_parts['path'] = '/'.join(encoded_segments)
+                            needs_encoding = True
+                
+                # Check query string
+                if parsed.query:
+                    # Query strings are usually already encoded, but check for non-ASCII
+                    if '%' not in parsed.query and any(ord(char) > 127 for char in parsed.query):
+                        # Contains unencoded non-ASCII characters
+                        # Split into key=value pairs and encode values
+                        try:
+                            params = parse_qs(parsed.query, keep_blank_values=True)
+                            encoded_params = {}
+                            for key, values in params.items():
+                                encoded_key = quote(key, safe='')
+                                encoded_values = [quote(v, safe='') if isinstance(v, str) else v for v in values]
+                                encoded_params[encoded_key] = encoded_values
+                            encoded_parts['query'] = urlencode(encoded_params, doseq=True)
+                            needs_encoding = True
+                        except:
+                            # Fallback: encode the entire query
+                            encoded_parts['query'] = quote(parsed.query, safe='=&?')
+                            needs_encoding = True
+                
+                # Check fragment
+                if parsed.fragment:
+                    if '%' not in parsed.fragment and any(ord(char) > 127 for char in parsed.fragment):
+                        encoded_parts['fragment'] = quote(parsed.fragment, safe='')
+                        needs_encoding = True
+                
+                # Reconstruct URL with encoded parts if needed
+                if needs_encoding:
+                    encoded_url = urlunparse((
+                        parsed.scheme,
+                        parsed.netloc,
+                        encoded_parts.get('path', parsed.path),
+                        parsed.params,
+                        encoded_parts.get('query', parsed.query),
+                        encoded_parts.get('fragment', parsed.fragment)
+                    ))
+                    logger.info(f"URL encoded: {url[:50]}... -> {encoded_url[:50]}...")
+                    return encoded_url
+                
+                # URL is already properly formatted
+                return url
+                
+        except Exception as e:
+            logger.warning(f"URL parsing error: {str(e)}, attempting to encode: {url[:50]}...")
+        
+        # If parsing fails, try to encode the entire URL (except scheme)
+        try:
+            if '://' in url:
+                scheme, rest = url.split('://', 1)
+                # Split netloc from path/query/fragment
+                if '/' in rest or '?' in rest or '#' in rest:
+                    # Has path/query/fragment, encode more carefully
+                    parts = rest.split('/', 1)
+                    netloc = parts[0]
+                    path_etc = '/' + parts[1] if len(parts) > 1 else ''
+                    # Encode path/query/fragment but preserve structure
+                    encoded_path = quote(path_etc, safe=':/?#[]@!$&\'()*+,;=')
+                    encoded_url = f"{scheme}://{netloc}{encoded_path}"
+                else:
+                    # Only netloc, don't encode it
+                    encoded_url = url
+                logger.info(f"URL encoded (fallback): {url[:50]}... -> {encoded_url[:50]}...")
+                return encoded_url
+            else:
+                # No scheme, encode the entire string but preserve common URL characters
+                encoded_url = quote(url, safe=':/?#[]@!$&\'()*+,;=')
+                logger.info(f"URL encoded (no scheme): {url[:50]}... -> {encoded_url[:50]}...")
+                return encoded_url
+        except Exception as e:
+            logger.error(f"Failed to encode URL: {str(e)}")
+            # Return original URL as fallback
+            return url
 
     def _create_session(self):
         """Create a robust session with retry strategy"""
@@ -120,6 +236,118 @@ class UniversalProductScraper:
         session.mount("https://", adapter)
         
         return session
+    
+    def fetch_with_retry(self, url=None, max_retries=None, timeout=10):
+        """
+        Fetch page with retry logic and exponential backoff
+        Better error reporting and retry handling
+        """
+        global _original_ssl_context
+        
+        if url is None:
+            url = self.url
+        
+        if max_retries is None:
+            max_retries = self.max_retries
+        
+        last_exception = None
+        
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"Fetch attempt {attempt + 1}/{max_retries} for URL: {url}")
+                
+                # Call the actual fetch_page method
+                result = self.fetch_page(url=url, timeout=timeout)
+                
+                if result:
+                    logger.info(f"Successfully fetched page on attempt {attempt + 1}")
+                    return result
+                    
+            except requests.exceptions.SSLError as e:
+                last_exception = e
+                logger.warning(f"SSL error on attempt {attempt + 1}/{max_retries}: {str(e)}")
+                if attempt < max_retries - 1:
+                    # If SSL verification was enabled, disable it and retry
+                    if self.verify_ssl:
+                        logger.warning("Disabling SSL verification and retrying...")
+                        self.verify_ssl = False
+                        # Update global SSL context
+                        if _original_ssl_context is None:
+                            _original_ssl_context = ssl._create_default_https_context
+                        ssl._create_default_https_context = ssl._create_unverified_context
+                    # Exponential backoff
+                    wait_time = 2 ** attempt
+                    logger.info(f"Waiting {wait_time} seconds before retry...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"SSL error after {max_retries} attempts")
+                    
+            except requests.exceptions.Timeout as e:
+                last_exception = e
+                logger.warning(f"Timeout error on attempt {attempt + 1}/{max_retries}: {str(e)}")
+                if attempt < max_retries - 1:
+                    # Exponential backoff
+                    wait_time = 2 ** attempt
+                    logger.info(f"Waiting {wait_time} seconds before retry...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Timeout error after {max_retries} attempts")
+                    
+            except requests.exceptions.ConnectionError as e:
+                last_exception = e
+                logger.warning(f"Connection error on attempt {attempt + 1}/{max_retries}: {str(e)}")
+                if attempt < max_retries - 1:
+                    # Exponential backoff
+                    wait_time = 2 ** attempt
+                    logger.info(f"Waiting {wait_time} seconds before retry...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Connection error after {max_retries} attempts")
+                    
+            except requests.exceptions.HTTPError as e:
+                last_exception = e
+                status_code = e.response.status_code if e.response else 'Unknown'
+                logger.warning(f"HTTP error {status_code} on attempt {attempt + 1}/{max_retries}: {str(e)}")
+                # Don't retry on client errors (4xx) except 429 (rate limit)
+                if status_code != 'Unknown' and 400 <= status_code < 500 and status_code != 429:
+                    logger.error(f"Client error {status_code}, not retrying")
+                    raise
+                if attempt < max_retries - 1:
+                    # Exponential backoff
+                    wait_time = 2 ** attempt
+                    logger.info(f"Waiting {wait_time} seconds before retry...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"HTTP error after {max_retries} attempts")
+                    
+            except requests.exceptions.RequestException as e:
+                last_exception = e
+                logger.warning(f"Request error on attempt {attempt + 1}/{max_retries}: {str(e)}")
+                if attempt < max_retries - 1:
+                    # Exponential backoff
+                    wait_time = 2 ** attempt
+                    logger.info(f"Waiting {wait_time} seconds before retry...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Request error after {max_retries} attempts")
+                    
+            except Exception as e:
+                last_exception = e
+                logger.error(f"Unexpected error on attempt {attempt + 1}/{max_retries}: {str(e)}")
+                if attempt < max_retries - 1:
+                    # Exponential backoff
+                    wait_time = 2 ** attempt
+                    logger.info(f"Waiting {wait_time} seconds before retry...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Unexpected error after {max_retries} attempts")
+        
+        # All attempts failed
+        error_msg = f"Failed to fetch page after {max_retries} attempts"
+        if last_exception:
+            error_msg += f": {str(last_exception)}"
+        logger.error(error_msg)
+        raise Exception(error_msg)
 
     def _get_rotated_headers(self):
         """Get headers with rotated user agent"""
@@ -1319,10 +1547,10 @@ class UniversalProductScraper:
             fetch_success = False
             fetch_method = None
             
-            # Strategy 1: Try regular requests (fastest)
+            # Strategy 1: Try regular requests with retry logic (fastest)
             try:
                 logger.info(f"Attempting to fetch page with requests: {self.url}")
-                self.fetch_page()
+                self.fetch_with_retry(url=self.url, max_retries=self.max_retries)
                 fetch_success = True
                 fetch_method = "requests"
             except Exception as e:
