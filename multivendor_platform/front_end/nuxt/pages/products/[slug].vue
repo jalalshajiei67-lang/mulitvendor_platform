@@ -74,7 +74,7 @@
               </div>
             </div>
 
-            <v-btn block color="primary" size="large">
+            <v-btn block color="primary" size="large" @click="showRFQDialog = true">
               {{ t('requestQuote') }}
             </v-btn>
           </v-card>
@@ -146,9 +146,39 @@
     <v-progress-circular indeterminate color="primary" size="64" class="mb-4" />
     <p class="text-body-1 text-medium-emphasis">{{ t('loading') }}</p>
   </v-container>
+
+  <!-- RFQ Form Dialog -->
+  <RFQForm
+    v-model="showRFQDialog"
+    :product-id="product?.id"
+    :category-id="getCategoryId(product)"
+    @submitted="handleRFQSubmitted"
+    @error="handleRFQError"
+  />
+
+  <!-- Success/Error Messages -->
+  <v-snackbar
+    v-model="showSuccess"
+    color="success"
+    :timeout="3000"
+    location="top"
+  >
+    درخواست استعلام قیمت با موفقیت ارسال شد
+  </v-snackbar>
+
+  <v-snackbar
+    v-model="showError"
+    color="error"
+    :timeout="5000"
+    location="top"
+  >
+    {{ errorMessage }}
+  </v-snackbar>
 </template>
 
 <script setup lang="ts">
+import RFQForm from '~/components/RFQForm.vue'
+
 definePageMeta({
   layout: 'default'
 })
@@ -161,6 +191,30 @@ const { currentProduct } = storeToRefs(productStore)
 const t = productStore.t
 
 const product = computed(() => currentProduct.value)
+
+const showRFQDialog = ref(false)
+const showSuccess = ref(false)
+const showError = ref(false)
+const errorMessage = ref('')
+
+const handleRFQSubmitted = () => {
+  showSuccess.value = true
+  showRFQDialog.value = false
+  showError.value = false
+}
+
+const handleRFQError = (message: string) => {
+  errorMessage.value = message || 'خطا در ارسال درخواست. لطفاً دوباره تلاش کنید.'
+  showError.value = true
+}
+
+const getCategoryId = (product: any): number | null => {
+  if (!product) return null
+  const category = product.primary_category
+  if (!category) return null
+  // Handle both object and ID cases
+  return typeof category === 'object' ? category.id : category
+}
 
 const breadcrumbs = computed(() => [
   { title: t('home'), to: '/' },

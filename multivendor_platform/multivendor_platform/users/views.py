@@ -281,7 +281,11 @@ def buyer_dashboard_view(request):
     completed_orders = orders.filter(status='delivered').count()
     
     # Get recent orders
-    recent_orders = orders[:5]
+    recent_orders = orders.select_related(
+        'buyer', 'category'
+    ).prefetch_related(
+        'items__product', 'images', 'payments'
+    )[:5]
     
     # Get reviews
     reviews = ProductComment.objects.filter(author=user)
@@ -291,7 +295,7 @@ def buyer_dashboard_view(request):
         'pending_orders': pending_orders,
         'completed_orders': completed_orders,
         'total_reviews': reviews.count(),
-        'recent_orders': OrderSerializer(recent_orders, many=True).data,
+        'recent_orders': OrderSerializer(recent_orders, many=True, context={'request': request}).data,
     }
     
     return Response(dashboard_data)
@@ -300,8 +304,12 @@ def buyer_dashboard_view(request):
 @permission_classes([IsAuthenticated])
 def buyer_orders_view(request):
     """Get all buyer orders"""
-    orders = Order.objects.filter(buyer=request.user)
-    serializer = OrderSerializer(orders, many=True)
+    orders = Order.objects.filter(buyer=request.user).select_related(
+        'buyer', 'category'
+    ).prefetch_related(
+        'items__product', 'images', 'payments'
+    ).order_by('-created_at')
+    serializer = OrderSerializer(orders, many=True, context={'request': request})
     return Response(serializer.data)
 
 @api_view(['GET'])
@@ -332,14 +340,20 @@ def seller_dashboard_view(request):
     total_products = products.count()
     active_products = products.filter(is_active=True).count()
     
-    # Get orders for seller's products
-    order_items = OrderItem.objects.filter(seller=user)
+    # Get orders for seller's products (check both seller field and product vendor for backward compatibility)
+    order_items = OrderItem.objects.filter(
+        Q(seller=user) | Q(product__vendor=user)
+    )
     total_sales = order_items.aggregate(total=Sum('subtotal'))['total'] or 0
     total_orders = order_items.values('order').distinct().count()
     
     # Get recent orders
     recent_order_ids = order_items.values_list('order', flat=True).distinct()[:5]
-    recent_orders = Order.objects.filter(id__in=recent_order_ids)
+    recent_orders = Order.objects.filter(id__in=recent_order_ids).select_related(
+        'buyer', 'category'
+    ).prefetch_related(
+        'items__product', 'images', 'payments'
+    )
     
     # Get ads
     ads = SellerAd.objects.filter(seller=user)
@@ -359,7 +373,7 @@ def seller_dashboard_view(request):
         'total_orders': total_orders,
         'product_views': product_views,
         'total_reviews': reviews.count(),
-        'recent_orders': OrderSerializer(recent_orders, many=True).data,
+        'recent_orders': OrderSerializer(recent_orders, many=True, context={'request': request}).data,
     }
     
     return Response(dashboard_data)
@@ -368,10 +382,17 @@ def seller_dashboard_view(request):
 @permission_classes([IsAuthenticated])
 def seller_orders_view(request):
     """Get all orders for seller's products"""
-    order_items = OrderItem.objects.filter(seller=request.user)
+    # Get order items where seller matches OR product vendor matches (for backward compatibility)
+    order_items = OrderItem.objects.filter(
+        Q(seller=request.user) | Q(product__vendor=request.user)
+    )
     order_ids = order_items.values_list('order', flat=True).distinct()
-    orders = Order.objects.filter(id__in=order_ids)
-    serializer = OrderSerializer(orders, many=True)
+    orders = Order.objects.filter(id__in=order_ids).select_related(
+        'buyer', 'category'
+    ).prefetch_related(
+        'items__product', 'images', 'payments'
+    ).order_by('-created_at')
+    serializer = OrderSerializer(orders, many=True, context={'request': request})
     return Response(serializer.data)
 
 @api_view(['GET'])

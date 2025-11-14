@@ -1,108 +1,56 @@
-export default defineNuxtPlugin((nuxtApp) => {
-  // Extend Persian locale with missing translations
-  const vuetifyLocale = {
-    input: {
-      appendAction: 'عملیات اضافی',
-      prependAction: 'عملیات اولیه',
-      clear: 'پاک کردن',
-      otp: 'لطفاً کد OTP خود را وارد کنید'
-    },
-    close: 'بستن',
-    loading: 'در حال بارگذاری...',
-    dataIterator: {
-      noResultsText: 'نتیجه‌ای یافت نشد',
-      loadingText: 'در حال بارگذاری...'
-    },
-    dataTable: {
-      itemsPerPageText: 'ردیف در هر صفحه:',
-      ariaLabel: {
-        sortDescending: 'مرتب‌سازی نزولی',
-        sortAscending: 'مرتب‌سازی صعودی',
-        sortNone: 'بدون مرتب‌سازی',
-        activateNone: 'غیرفعال کردن مرتب‌سازی',
-        activateDescending: 'فعال کردن مرتب‌سازی نزولی',
-        activateAscending: 'فعال کردن مرتب‌سازی صعودی'
-      },
-      sortBy: 'مرتب‌سازی بر اساس'
-    },
-    dataFooter: {
-      itemsPerPageText: 'ردیف در هر صفحه:',
-      itemsPerPageAll: 'همه',
-      nextPage: 'صفحه بعد',
-      prevPage: 'صفحه قبل',
-      firstPage: 'صفحه اول',
-      lastPage: 'صفحه آخر',
-      pageText: '{0}-{1} از {2}'
-    },
-    dateRangeInput: {
-      divider: 'تا'
-    },
-    datePicker: {
-      itemsSelected: '{0} انتخاب شده',
-      range: {
-        title: 'تاریخ‌ها را انتخاب کنید',
-        header: 'تاریخ‌ها را وارد کنید'
-      },
-      title: 'تاریخ را انتخاب کنید',
-      header: 'تاریخ را وارد کنید',
-      input: {
-        placeholder: 'تاریخ را وارد کنید'
+// Deep merge utility function
+function deepMerge(target: any, source: any): any {
+  const output = { ...target }
+  if (isObject(target) && isObject(source)) {
+    Object.keys(source).forEach(key => {
+      if (isObject(source[key])) {
+        if (!(key in target)) {
+          Object.assign(output, { [key]: source[key] })
+        } else {
+          output[key] = deepMerge(target[key], source[key])
+        }
+      } else {
+        Object.assign(output, { [key]: source[key] })
       }
-    },
-    noDataText: 'داده‌ای موجود نیست',
-    carousel: {
-      prev: 'اسلاید قبلی',
-      next: 'اسلاید بعدی',
-      ariaLabel: {
-        delimiter: 'اسلاید {0} از {1}'
-      }
-    },
-    calendar: {
-      moreEvents: '{0} مورد دیگر',
-      today: 'امروز'
-    },
-    fileInput: {
-      counter: '{0} فایل',
-      counterSize: '{0} فایل ({1} در کل)'
-    },
-    timePicker: {
-      am: 'قبل از ظهر',
-      pm: 'بعد از ظهر',
-      title: 'زمان را انتخاب کنید'
-    },
-    pagination: {
-      ariaLabel: {
-        root: 'صفحه‌بندی',
-        first: 'صفحه اول',
-        previous: 'صفحه قبل',
-        next: 'صفحه بعد',
-        last: 'صفحه آخر',
-        page: 'رفتن به صفحه {0}',
-        currentPage: 'صفحه فعلی، صفحه {0}',
-        wrapper: 'صفحه‌بندی'
-      }
-    },
-    stepper: {
-      next: 'بعدی',
-      prev: 'قبلی'
-    },
-    rating: {
-      ariaLabel: {
-        item: 'امتیاز {0} از {1}'
-      }
-    },
-    infiniteScroll: {
-      loadMore: 'بارگذاری بیشتر',
-      empty: 'داده‌ای موجود نیست'
-    }
+    })
   }
+  return output
+}
 
-  // Merge with Vuetify's locale
-  if (nuxtApp.$vuetify?.locale) {
-    nuxtApp.$vuetify.locale.messages.value.fa = {
-      ...nuxtApp.$vuetify.locale.messages.value.fa,
-      $vuetify: vuetifyLocale
+function isObject(item: any): boolean {
+  return item && typeof item === 'object' && !Array.isArray(item)
+}
+
+export default defineNuxtPlugin({
+  name: 'vuetify-locale',
+  enforce: 'post', // Run after Vuetify plugin
+  setup(nuxtApp) {
+    // Ensure translations are properly set (fallback in case config didn't apply)
+    if (nuxtApp.$vuetify?.locale) {
+      const currentMessages = nuxtApp.$vuetify.locale.messages.value.fa || {}
+      const currentVuetify = currentMessages.$vuetify || {}
+      
+      // Ensure critical missing keys are present
+      const requiredKeys = {
+        open: 'باز کردن',
+        close: 'بستن',
+        input: {
+          clear: 'پاک کردن',
+          appendAction: 'عملیات اضافی',
+          prependAction: 'عملیات اولیه'
+        }
+      }
+      
+      // Deep merge to ensure all keys are present
+      const mergedVuetify = deepMerge(currentVuetify, requiredKeys)
+      
+      // Only update if we actually merged something new
+      if (JSON.stringify(mergedVuetify) !== JSON.stringify(currentVuetify)) {
+        nuxtApp.$vuetify.locale.messages.value.fa = {
+          ...currentMessages,
+          $vuetify: mergedVuetify
+        }
+      }
     }
   }
 })
-

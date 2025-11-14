@@ -60,13 +60,17 @@ export const useAdminApi = () => {
 
     // RFQs
     async getRFQs(params: Record<string, any> = {}) {
-      return useApiFetch<{ results: any[]; count: number }>('auth/admin/rfqs/', {
+      return useApiFetch<any[]>('orders/admin/rfq/', {
         params
       })
     },
 
+    async getRFQDetail(id: number) {
+      return useApiFetch<any>(`orders/admin/rfq/${id}/`)
+    },
+
     async updateRFQStatus(id: number, status: string) {
-      return useApiFetch(`auth/admin/rfqs/${id}/status/`, {
+      return useApiFetch(`orders/admin/rfq/${id}/status/`, {
         method: 'PATCH',
         body: { status }
       })

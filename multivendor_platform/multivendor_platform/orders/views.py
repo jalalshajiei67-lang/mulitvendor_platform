@@ -67,7 +67,7 @@ def admin_rfq_list_view(request):
     """
     Get all RFQ orders for admin dashboard
     """
-    rfqs = Order.objects.filter(is_rfq=True).select_related('buyer', 'category').prefetch_related('items__product', 'images')
+    rfqs = Order.objects.filter(is_rfq=True).select_related('buyer', 'category').prefetch_related('items__product', 'images').order_by('-created_at')
     
     # Filter by status if provided
     status_filter = request.query_params.get('status', None)

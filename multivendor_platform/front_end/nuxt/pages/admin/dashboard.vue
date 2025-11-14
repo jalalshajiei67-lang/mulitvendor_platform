@@ -200,15 +200,250 @@
               :loading="loadingRFQs"
               item-value="id"
             >
+              <template v-slot:item.order_number="{ item }">
+                <strong>{{ item.order_number }}</strong>
+              </template>
+              <template v-slot:item.buyer_info="{ item }">
+                <div>
+                  <div class="font-weight-bold">{{ item.first_name }} {{ item.last_name }}</div>
+                  <div class="text-caption text-grey">{{ item.company_name }}</div>
+                  <div class="text-caption text-grey">{{ item.phone_number }}</div>
+                </div>
+              </template>
+              <template v-slot:item.product_name="{ item }">
+                <div>
+                  <div class="font-weight-bold">{{ item.product_name || 'نامشخص' }}</div>
+                  <div v-if="item.category_name" class="text-caption text-grey">
+                    دسته‌بندی: {{ item.category_name }}
+                  </div>
+                </div>
+              </template>
+              <template v-slot:item.images="{ item }">
+                <div v-if="item.images && item.images.length > 0" class="d-flex gap-2">
+                  <v-avatar
+                    v-for="(img, idx) in item.images.slice(0, 3)"
+                    :key="idx"
+                    size="40"
+                    @click="viewImage(img.image_url || img.image)"
+                  >
+                    <v-img :src="img.image_url || img.image" cover></v-img>
+                  </v-avatar>
+                  <v-chip v-if="item.images.length > 3" size="small" color="primary">
+                    +{{ item.images.length - 3 }}
+                  </v-chip>
+                </div>
+                <span v-else class="text-grey">بدون تصویر</span>
+              </template>
               <template v-slot:item.status="{ item }">
                 <v-chip size="small" :color="getRFQStatusColor(item.status)">
                   {{ getRFQStatusText(item.status) }}
                 </v-chip>
               </template>
+              <template v-slot:item.created_at="{ item }">
+                {{ formatDate(item.created_at) }}
+              </template>
+              <template v-slot:item.actions="{ item }">
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  @click="viewRFQDetail(item)"
+                >
+                  <v-icon>mdi-eye</v-icon>
+                </v-btn>
+                <v-menu>
+                  <template v-slot:activator="{ props }">
+                    <v-btn icon size="small" variant="text" v-bind="props">
+                      <v-icon>mdi-dots-vertical</v-icon>
+                    </v-btn>
+                  </template>
+                  <v-list>
+                    <v-list-item @click="updateRFQStatus(item, 'confirmed')">
+                      <v-list-item-title>تأیید</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="updateRFQStatus(item, 'rejected')">
+                      <v-list-item-title>رد</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="updateRFQStatus(item, 'processing')">
+                      <v-list-item-title>در حال پردازش</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </template>
             </v-data-table>
           </v-card-text>
         </v-card>
       </div>
+
+      <!-- RFQ Detail Dialog -->
+      <v-dialog v-model="showRFQDetailDialog" max-width="900px" scrollable>
+        <v-card v-if="selectedRFQ">
+          <v-card-title class="d-flex justify-space-between align-center pa-4" style="background: rgb(var(--v-theme-primary)); color: white;">
+            <div>
+              <div class="text-h6">جزئیات درخواست استعلام قیمت</div>
+              <div class="text-caption">{{ selectedRFQ.order_number }}</div>
+            </div>
+            <v-btn icon variant="text" color="white" @click="showRFQDetailDialog = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+
+          <v-divider></v-divider>
+
+          <v-card-text class="pa-6">
+            <v-row>
+              <!-- Buyer Information -->
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" class="pa-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-account</v-icon>
+                    اطلاعات خریدار
+                  </div>
+                  <v-list density="compact">
+                    <v-list-item>
+                      <v-list-item-title>نام و نام خانوادگی</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedRFQ.first_name }} {{ selectedRFQ.last_name }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>نام شرکت</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedRFQ.company_name }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>شماره تماس</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedRFQ.phone_number }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item v-if="selectedRFQ.buyer_username">
+                      <v-list-item-title>نام کاربری</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedRFQ.buyer_username }}</v-list-item-subtitle>
+                    </v-list-item>
+                  </v-list>
+                </v-card>
+              </v-col>
+
+              <!-- Order Information -->
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" class="pa-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-information</v-icon>
+                    اطلاعات درخواست
+                  </div>
+                  <v-list density="compact">
+                    <v-list-item>
+                      <v-list-item-title>وضعیت</v-list-item-title>
+                      <v-list-item-subtitle>
+                        <v-chip size="small" :color="getRFQStatusColor(selectedRFQ.status)">
+                          {{ getRFQStatusText(selectedRFQ.status) }}
+                        </v-chip>
+                      </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>تاریخ ایجاد</v-list-item-title>
+                      <v-list-item-subtitle>{{ formatDate(selectedRFQ.created_at) }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item v-if="selectedRFQ.product_name">
+                      <v-list-item-title>محصول</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedRFQ.product_name }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item v-if="selectedRFQ.category_name">
+                      <v-list-item-title>دسته‌بندی</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedRFQ.category_name }}</v-list-item-subtitle>
+                    </v-list-item>
+                  </v-list>
+                </v-card>
+              </v-col>
+
+              <!-- Description -->
+              <v-col cols="12">
+                <v-card variant="outlined" class="pa-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-text-box</v-icon>
+                    نیازهای خاص
+                  </div>
+                  <p class="text-body-1">{{ selectedRFQ.unique_needs || 'توضیحی ارائه نشده است' }}</p>
+                </v-card>
+              </v-col>
+
+              <!-- Images -->
+              <v-col cols="12" v-if="selectedRFQ.images && selectedRFQ.images.length > 0">
+                <v-card variant="outlined" class="pa-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-image</v-icon>
+                    تصاویر ({{ selectedRFQ.images.length }})
+                  </div>
+                  <v-row>
+                    <v-col
+                      v-for="(img, idx) in selectedRFQ.images"
+                      :key="idx"
+                      cols="6"
+                      sm="4"
+                      md="3"
+                    >
+                      <v-card
+                        class="image-card"
+                        @click="viewImage(img.image_url || img.image)"
+                      >
+                        <v-img
+                          :src="img.image_url || img.image"
+                          aspect-ratio="1"
+                          cover
+                          class="cursor-pointer"
+                        >
+                          <template v-slot:placeholder>
+                            <div class="d-flex align-center justify-center fill-height">
+                              <v-progress-circular
+                                indeterminate
+                                color="primary"
+                              ></v-progress-circular>
+                            </div>
+                          </template>
+                        </v-img>
+                        <v-card-actions class="pa-2">
+                          <v-btn
+                            icon
+                            size="small"
+                            variant="text"
+                            @click.stop="viewImage(img.image_url || img.image)"
+                          >
+                            <v-icon>mdi-magnify</v-icon>
+                          </v-btn>
+                        </v-card-actions>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-card-text>
+
+          <v-divider></v-divider>
+
+          <v-card-actions class="pa-4">
+            <v-spacer></v-spacer>
+            <v-btn variant="text" @click="showRFQDetailDialog = false">
+              بستن
+            </v-btn>
+            <v-menu>
+              <template v-slot:activator="{ props }">
+                <v-btn color="primary" v-bind="props">
+                  تغییر وضعیت
+                  <v-icon class="ms-2">mdi-menu-down</v-icon>
+                </v-btn>
+              </template>
+              <v-list>
+                <v-list-item @click="updateRFQStatus(selectedRFQ, 'confirmed')">
+                  <v-list-item-title>تأیید</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="updateRFQStatus(selectedRFQ, 'rejected')">
+                  <v-list-item-title>رد</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="updateRFQStatus(selectedRFQ, 'processing')">
+                  <v-list-item-title>در حال پردازش</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-container>
   </div>
 </template>
@@ -238,6 +473,9 @@ const loadingProducts = ref(false)
 const loadingActivities = ref(false)
 const loadingBlog = ref(false)
 const loadingRFQs = ref(false)
+const showRFQDetailDialog = ref(false)
+const selectedRFQ = ref<any>(null)
+const loadingRFQDetail = ref(false)
 
 const userHeaders = [
   { title: 'نام کاربری', key: 'username' },
@@ -268,8 +506,12 @@ const blogHeaders = [
 
 const rfqHeaders = [
   { title: 'شماره درخواست', key: 'order_number' },
-  { title: 'نام', key: 'first_name' },
-  { title: 'وضعیت', key: 'status' }
+  { title: 'اطلاعات خریدار', key: 'buyer_info' },
+  { title: 'محصول', key: 'product_name' },
+  { title: 'تصاویر', key: 'images' },
+  { title: 'وضعیت', key: 'status' },
+  { title: 'تاریخ', key: 'created_at' },
+  { title: 'عملیات', key: 'actions' }
 ]
 
 const loadDashboardData = async () => {
@@ -337,6 +579,7 @@ const loadRFQs = async () => {
   try {
     const data = await adminApi.getRFQs()
     rfqs.value = Array.isArray(data) ? data : data.results || []
+    console.log('Loaded RFQs:', rfqs.value)
   } catch (error) {
     console.error('Failed to load RFQs:', error)
   } finally {
@@ -395,6 +638,54 @@ const getRFQStatusText = (status: string) => {
   return texts[status] || status
 }
 
+const formatDate = (dateString: string) => {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('fa-IR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
+}
+
+const viewRFQDetail = async (rfq: any) => {
+  loadingRFQDetail.value = true
+  try {
+    // Fetch full details from API
+    const detail = await adminApi.getRFQDetail(rfq.id)
+    selectedRFQ.value = detail
+    showRFQDetailDialog.value = true
+  } catch (error) {
+    console.error('Failed to load RFQ detail:', error)
+    // Fallback to using the data we already have
+    selectedRFQ.value = rfq
+    showRFQDetailDialog.value = true
+  } finally {
+    loadingRFQDetail.value = false
+  }
+}
+
+const viewImage = (imageUrl: string) => {
+  // Open image in a new window or dialog
+  window.open(imageUrl, '_blank')
+}
+
+const updateRFQStatus = async (rfq: any, newStatus: string) => {
+  try {
+    await adminApi.updateRFQStatus(rfq.id, newStatus)
+    // Update the selected RFQ if dialog is open
+    if (selectedRFQ.value && selectedRFQ.value.id === rfq.id) {
+      selectedRFQ.value.status = newStatus
+    }
+    await loadRFQs()
+    await loadDashboardData()
+  } catch (error) {
+    console.error('Failed to update RFQ status:', error)
+  }
+}
+
 const handleNavigate = (view: string) => {
   activeView.value = view
   navigateTo({
@@ -443,6 +734,19 @@ onMounted(() => {
 
 .stat-card:hover {
   transform: translateY(-4px);
+}
+
+.image-card {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.image-card:hover {
+  transform: scale(1.05);
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }
 </style>
 
