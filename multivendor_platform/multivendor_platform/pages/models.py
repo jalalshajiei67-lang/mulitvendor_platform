@@ -107,8 +107,8 @@ class AboutPage(models.Model):
             for field in self._meta.fields:
                 if field.name not in ['id', 'pk', 'created_at']:
                     setattr(existing, field.name, getattr(self, field.name, None))
-            # Save the existing instance instead
-            return existing.save(*args, **kwargs)
+            # Save the existing instance with force_update to avoid insert
+            return super(AboutPage, existing).save(force_update=True, *args, **kwargs)
         return super().save(*args, **kwargs)
 
 
@@ -260,7 +260,7 @@ class ContactPage(models.Model):
             for field in self._meta.fields:
                 if field.name not in ['id', 'pk', 'created_at']:
                     setattr(existing, field.name, getattr(self, field.name, None))
-            # Save the existing instance instead
-            return existing.save(*args, **kwargs)
+            # Save the existing instance with force_update to avoid insert
+            return super(ContactPage, existing).save(force_update=True, *args, **kwargs)
         return super().save(*args, **kwargs)
 
