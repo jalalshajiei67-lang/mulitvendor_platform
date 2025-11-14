@@ -108,6 +108,8 @@ class AboutPage(models.Model):
                 if field.name not in ['id', 'pk', 'created_at']:
                     setattr(existing, field.name, getattr(self, field.name, None))
             # Save the existing instance with force_update to avoid insert
+            # Remove force_insert from kwargs to avoid conflict
+            kwargs.pop('force_insert', None)
             return super(AboutPage, existing).save(force_update=True, *args, **kwargs)
         return super().save(*args, **kwargs)
 
@@ -261,6 +263,8 @@ class ContactPage(models.Model):
                 if field.name not in ['id', 'pk', 'created_at']:
                     setattr(existing, field.name, getattr(self, field.name, None))
             # Save the existing instance with force_update to avoid insert
+            # Remove force_insert from kwargs to avoid conflict
+            kwargs.pop('force_insert', None)
             return super(ContactPage, existing).save(force_update=True, *args, **kwargs)
         return super().save(*args, **kwargs)
 
