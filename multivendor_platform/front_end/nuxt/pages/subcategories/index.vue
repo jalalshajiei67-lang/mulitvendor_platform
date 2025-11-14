@@ -57,9 +57,6 @@
                 <h2 class="text-h6 font-weight-bold mb-2">
                   {{ subcategory.name }}
                 </h2>
-                <p class="text-body-2 text-medium-emphasis line-clamp-3">
-                  {{ subcategory.description_plain || 'بدون توضیحات' }}
-                </p>
                 <v-chip
                   v-if="subcategory.category_name"
                   size="small"
