@@ -43,7 +43,7 @@
                     <v-icon size="small" class="mr-1">mdi-text</v-icon>
                     {{ t('postContent') }} <span class="text-error">*</span>
                   </label>
-                  <TiptapEditor v-model="form.content" class="content-editor" />
+                  <LazyTiptapEditor v-model="form.content" class="content-editor" />
                   <div v-if="!contentValid && contentTouched" class="text-error text-caption mt-1">
                     محتوای پست الزامی است
                   </div>

@@ -1,16 +1,7 @@
 <template>
   <v-container fluid dir="rtl" class="supplier-detail-container">
     <!-- Loading State -->
-    <v-row v-if="loading" justify="center" class="my-16">
-      <v-col cols="12" class="text-center">
-        <v-progress-circular
-          indeterminate
-          color="primary"
-          size="64"
-        ></v-progress-circular>
-        <p class="text-h6 mt-4">در حال بارگذاری اطلاعات تامین‌کننده...</p>
-      </v-col>
-    </v-row>
+    <SupplierDetailSkeleton v-if="loading" />
 
     <!-- Error State -->
     <v-alert
@@ -50,7 +41,15 @@
                 :size="display.xs.value ? 120 : 180"
                 rounded="lg"
               >
-                <v-img :src="getSupplierLogo(supplier)" cover></v-img>
+                <v-img
+                  :src="getSupplierLogo(supplier)"
+                  cover
+                  loading="lazy"
+                >
+                  <template v-slot:placeholder>
+                    <v-skeleton-loader type="avatar" />
+                  </template>
+                </v-img>
               </v-avatar>
             </v-col>
             <v-col cols="12" md="9">
@@ -247,7 +246,14 @@
                         :src="getProductImage(product)"
                         height="200"
                         cover
-                      ></v-img>
+                        loading="lazy"
+                      >
+                        <template v-slot:placeholder>
+                          <div class="d-flex align-center justify-center fill-height">
+                            <v-skeleton-loader type="image" width="100%" height="100%" />
+                          </div>
+                        </template>
+                      </v-img>
                       <v-card-text>
                         <h3 class="text-subtitle-1 font-weight-bold mb-2">{{ product.name }}</h3>
                         <div class="text-h6 text-primary font-weight-bold">{{ formatPrice(product.price) }} تومان</div>

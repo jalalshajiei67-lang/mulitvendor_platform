@@ -55,7 +55,7 @@
                     <v-icon size="small" class="mr-1">mdi-text</v-icon>
                     {{ t('description') }} <span class="text-error">*</span>
                   </label>
-                  <TiptapEditor v-model="product.description" class="description-editor" />
+                  <LazyTiptapEditor v-model="product.description" class="description-editor" />
                   <div v-if="!descriptionValid && descriptionTouched" class="text-error text-caption mt-1">
                     توضیحات الزامی است
                   </div>

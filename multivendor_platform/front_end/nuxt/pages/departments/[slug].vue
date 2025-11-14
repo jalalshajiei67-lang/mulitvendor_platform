@@ -94,10 +94,7 @@
     </v-container>
   </div>
 
-  <v-container v-else class="py-16 text-center">
-    <v-progress-circular indeterminate color="primary" size="64" class="mb-4" />
-    <p class="text-body-1 text-medium-emphasis">در حال بارگذاری دپارتمان...</p>
-  </v-container>
+  <ProductDetailSkeleton v-else />
 </template>
 
 <script setup lang="ts">

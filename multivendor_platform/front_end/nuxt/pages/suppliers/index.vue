@@ -48,16 +48,16 @@
     </v-card>
 
     <!-- Loading State -->
-    <v-row v-if="loading" justify="center" class="my-16">
-      <v-col cols="12" class="text-center">
-        <v-progress-circular
-          indeterminate
-          color="primary"
-          size="64"
-        ></v-progress-circular>
-        <p class="text-h6 mt-4">در حال بارگذاری تامین‌کنندگان...</p>
-      </v-col>
-    </v-row>
+    <ListSkeleton
+      v-if="loading"
+      type="supplier"
+      variant="grid"
+      :count="8"
+      :cols="12"
+      :sm="6"
+      :md="4"
+      :lg="3"
+    />
 
     <!-- Error State -->
     <v-alert
@@ -106,18 +106,12 @@
             :height="display.xs.value ? 200 : 250"
             cover
             class="cursor-pointer"
+            loading="lazy"
           >
             <template v-slot:placeholder>
-              <v-row
-                class="fill-height ma-0"
-                align="center"
-                justify="center"
-              >
-                <v-progress-circular
-                  indeterminate
-                  color="primary"
-                ></v-progress-circular>
-              </v-row>
+              <div class="d-flex align-center justify-center fill-height">
+                <v-skeleton-loader type="image" width="100%" height="100%" />
+              </div>
             </template>
           </v-img>
 

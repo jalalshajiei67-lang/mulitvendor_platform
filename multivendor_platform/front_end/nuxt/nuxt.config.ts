@@ -259,5 +259,25 @@ export default defineNuxtConfig({
     ssr: {
       noExternal: ['vuetify']
     }
+  },
+  experimental: {
+    payloadExtraction: false,
+    viewTransition: true
+  },
+  routeRules: {
+    // Disable prefetching for non-critical routes
+    '/admin/**': { prerender: false, index: false },
+    '/api-test': { prerender: false, index: false },
+    // Enable prefetching for likely next pages
+    '/products/**': { prerender: false },
+    '/blog/**': { prerender: false },
+    '/suppliers/**': { prerender: false }
+  },
+  nitro: {
+    compressPublicAssets: true,
+    minify: true
+  },
+  features: {
+    inlineStyles: false
   }
 })

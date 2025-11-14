@@ -51,7 +51,14 @@
               class="rounded-xl mb-8"
               height="420"
               cover
-            />
+              loading="lazy"
+            >
+              <template v-slot:placeholder>
+                <div class="d-flex align-center justify-center fill-height">
+                  <v-skeleton-loader type="image" width="100%" height="100%" />
+                </div>
+              </template>
+            </v-img>
             <article class="content" v-html="post.content" />
           </v-card>
 
@@ -166,10 +173,7 @@
     </v-container>
   </div>
 
-  <v-container v-else class="py-16 text-center">
-    <v-progress-circular indeterminate color="primary" size="64" class="mb-4" />
-    <p class="text-body-1 text-medium-emphasis">{{ t('loadingPost') }}</p>
-  </v-container>
+  <BlogDetailSkeleton v-else />
 </template>
 
 <script setup lang="ts">

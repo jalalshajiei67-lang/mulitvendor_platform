@@ -7,7 +7,14 @@
         :alt="post.title"
         height="200"
         cover
-      />
+        loading="lazy"
+      >
+        <template v-slot:placeholder>
+          <div class="d-flex align-center justify-center fill-height">
+            <v-skeleton-loader type="image" width="100%" height="100%" />
+          </div>
+        </template>
+      </v-img>
       <div v-else class="no-image">
         <v-icon size="48" color="grey-lighten-1">mdi-image-broken</v-icon>
       </div>

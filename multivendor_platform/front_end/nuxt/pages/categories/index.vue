@@ -17,10 +17,16 @@
     </section>
 
     <v-container class="py-8">
-      <div v-if="loading" class="text-center py-14">
-        <v-progress-circular indeterminate color="primary" size="64" class="mb-4" />
-        <p class="text-body-1 text-medium-emphasis">{{ t('loading') }}</p>
-      </div>
+      <ListSkeleton
+        v-if="loading"
+        type="product"
+        variant="grid"
+        :count="8"
+        :cols="12"
+        :sm="6"
+        :md="4"
+        :lg="3"
+      />
 
       <v-alert v-else-if="error" type="error" variant="tonal" class="mb-6">
         {{ error }}
@@ -47,10 +53,17 @@
               <v-img
                 v-if="formatImageUrl(category)"
                 height="200"
-                :src="formatImageUrl(category)"
+                :src="formatImageUrl(category) || ''"
                 cover
                 class="mb-4 rounded-lg"
-              />
+                loading="lazy"
+              >
+                <template v-slot:placeholder>
+                  <div class="d-flex align-center justify-center fill-height">
+                    <v-skeleton-loader type="image" width="100%" height="100%" />
+                  </div>
+                </template>
+              </v-img>
               <div v-else class="d-flex align-center justify-center mb-4" style="height: 200px; background: rgba(var(--v-theme-primary), 0.1); border-radius: 8px;">
                 <v-icon size="64" color="primary">mdi-shape</v-icon>
               </div>

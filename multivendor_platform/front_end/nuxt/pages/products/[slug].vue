@@ -31,7 +31,14 @@
               height="420"
               class="rounded-lg"
               cover
-            />
+              loading="lazy"
+            >
+              <template v-slot:placeholder>
+                <div class="d-flex align-center justify-center fill-height">
+                  <v-skeleton-loader type="image" width="100%" height="100%" />
+                </div>
+              </template>
+            </v-img>
             <div v-else class="no-image">
               <v-icon size="64" color="grey-lighten-1">mdi-cube-outline</v-icon>
             </div>
@@ -49,8 +56,15 @@
                   width="120"
                   cover
                   class="rounded-lg mx-2"
+                  loading="lazy"
                   @click="setPrimary(image.image)"
-                />
+                >
+                  <template v-slot:placeholder>
+                    <div class="d-flex align-center justify-center fill-height">
+                      <v-skeleton-loader type="image" width="100%" height="100%" />
+                    </div>
+                  </template>
+                </v-img>
               </v-slide-group-item>
             </v-slide-group>
           </v-sheet>
@@ -125,7 +139,16 @@
               >
                 <template #prepend>
                   <v-avatar size="48" rounded="lg">
-                    <v-img :src="item.primary_image" :alt="item.name" cover />
+                    <v-img
+                      :src="item.primary_image"
+                      :alt="item.name"
+                      cover
+                      loading="lazy"
+                    >
+                      <template v-slot:placeholder>
+                        <v-skeleton-loader type="avatar" />
+                      </template>
+                    </v-img>
                   </v-avatar>
                 </template>
                 <v-list-item-title class="font-weight-medium">
@@ -142,13 +165,11 @@
     </v-container>
   </div>
 
-  <v-container v-else class="py-16 text-center">
-    <v-progress-circular indeterminate color="primary" size="64" class="mb-4" />
-    <p class="text-body-1 text-medium-emphasis">{{ t('loading') }}</p>
-  </v-container>
+  <ProductDetailSkeleton v-else />
 
   <!-- RFQ Form Dialog -->
-  <RFQForm
+  <LazyRFQForm
+    v-if="showRFQDialog"
     v-model="showRFQDialog"
     :product-id="product?.id"
     :category-id="getCategoryId(product)"
@@ -177,7 +198,6 @@
 </template>
 
 <script setup lang="ts">
-import RFQForm from '~/components/RFQForm.vue'
 
 definePageMeta({
   layout: 'default'

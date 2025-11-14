@@ -86,10 +86,16 @@
           </div>
         </header>
 
-        <div v-if="loading" class="text-center py-10">
-          <v-progress-circular indeterminate color="primary" size="56" class="mb-4" />
-          <p class="text-body-1 text-medium-emphasis">{{ t('loadingPosts') }}</p>
-        </div>
+        <ListSkeleton
+          v-if="loading"
+          type="blog"
+          :variant="viewMode"
+          :count="viewMode === 'grid' ? 6 : 3"
+          :cols="viewMode === 'grid' ? 12 : 12"
+          :sm="viewMode === 'grid' ? 6 : 12"
+          :md="viewMode === 'grid' ? 4 : 12"
+          :lg="viewMode === 'grid' ? 4 : 12"
+        />
 
         <v-alert v-else-if="error" type="error" variant="tonal" class="mb-6">
           {{ error }}

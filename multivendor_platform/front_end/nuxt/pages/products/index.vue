@@ -53,12 +53,16 @@
         </v-col>
       </v-row>
 
-      <div v-if="loading" class="text-center py-14">
-        <v-progress-circular indeterminate color="primary" size="64" class="mb-4" />
-        <p class="text-body-1 text-medium-emphasis">
-          {{ t('loading') }}
-        </p>
-      </div>
+      <ListSkeleton
+        v-if="loading"
+        type="product"
+        variant="grid"
+        :count="12"
+        :cols="12"
+        :sm="6"
+        :md="4"
+        :lg="3"
+      />
 
       <v-alert v-else-if="error" type="error" variant="tonal" class="mb-6">
         {{ error }}

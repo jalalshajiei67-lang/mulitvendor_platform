@@ -1,6 +1,6 @@
 <template>
   <v-app class="admin-layout" dir="rtl">
-    <AdminSidebar
+    <LazyAdminSidebar
       :drawer="drawer"
       :rail="rail"
       :is-mobile="isMobile"

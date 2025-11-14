@@ -248,7 +248,7 @@
       </v-col>
     </v-row>
 
-    <RFQForm
+    <LazyRFQForm
       v-model="showForm"
       :products="products"
       @submitted="handleRFQSubmitted"
