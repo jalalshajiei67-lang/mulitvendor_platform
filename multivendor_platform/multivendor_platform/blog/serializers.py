@@ -97,7 +97,7 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
     category_id = serializers.IntegerField(write_only=True)
     comments = BlogCommentSerializer(many=True, read_only=True)
     comment_count = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = BlogPost
         fields = [
@@ -108,15 +108,10 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
             'comments', 'created_at', 'updated_at', 'published_at'
         ]
         read_only_fields = ['slug', 'view_count', 'created_at', 'updated_at', 'published_at']
-    
+
     def get_comment_count(self, obj):
         """Get count of approved comments"""
         return obj.comments.filter(is_approved=True).count()
-    
-    def create(self, validated_data):
-        """Set author to current user"""
-        validated_data['author'] = self.context['request'].user
-        return super().create(validated_data)
 
 class BlogPostCreateSerializer(serializers.ModelSerializer):
     """
@@ -129,11 +124,6 @@ class BlogPostCreateSerializer(serializers.ModelSerializer):
             'category', 'status', 'is_featured',
             'meta_title', 'meta_description'
         ]
-    
-    def create(self, validated_data):
-        """Set author to current user"""
-        validated_data['author'] = self.context['request'].user
-        return super().create(validated_data)
 
 class BlogCommentCreateSerializer(serializers.ModelSerializer):
     """
@@ -142,8 +132,3 @@ class BlogCommentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlogComment
         fields = ['content', 'parent']
-    
-    def create(self, validated_data):
-        """Set author to current user"""
-        validated_data['author'] = self.context['request'].user
-        return super().create(validated_data)
