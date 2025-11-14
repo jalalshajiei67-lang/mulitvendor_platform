@@ -5,6 +5,8 @@ export interface BuyerDashboardData {
   pending_orders: number
   completed_orders: number
   total_reviews: number
+  total_rfqs?: number
+  pending_rfqs?: number
 }
 
 export interface BuyerOrder {
@@ -14,6 +16,8 @@ export interface BuyerOrder {
   total_amount: string
   is_paid: boolean
   created_at: string
+  is_rfq?: boolean
+  items?: Array<{ product?: { name: string } }>
 }
 
 export interface BuyerReview {
@@ -22,6 +26,13 @@ export interface BuyerReview {
   rating: number
   comment: string
   created_at: string
+}
+
+export interface BuyerRFQ extends BuyerOrder {
+  is_rfq: true
+  product?: { name: string; id: number }
+  company_name?: string
+  unique_needs?: string
 }
 
 export const useBuyerApi = () => {
@@ -43,10 +54,20 @@ export const useBuyerApi = () => {
     return Array.isArray(response) ? response : response.results || []
   }
 
+  const getBuyerRFQs = async (): Promise<BuyerRFQ[]> => {
+    const response = await useApiFetch<{ results?: BuyerOrder[] } | BuyerOrder[]>(
+      'auth/buyer/orders/'
+    )
+    const orders = Array.isArray(response) ? response : response.results || []
+    // Filter RFQs from orders
+    return orders.filter((order: BuyerOrder) => order.is_rfq) as BuyerRFQ[]
+  }
+
   return {
     getBuyerDashboard,
     getBuyerOrders,
-    getBuyerReviews
+    getBuyerReviews,
+    getBuyerRFQs
   }
 }
 

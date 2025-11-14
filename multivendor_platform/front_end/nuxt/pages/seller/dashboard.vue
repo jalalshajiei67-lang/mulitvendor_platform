@@ -1,59 +1,21 @@
 <template>
-  <v-container fluid dir="rtl">
+  <v-container fluid dir="rtl" class="seller-dashboard pt-6">
+    <!-- Main Content Tabs -->
     <v-row>
       <v-col cols="12">
-        <h1 class="text-h4 mb-4">
-          <v-icon left>mdi-store</v-icon>
-          داشبورد فروشنده
-        </h1>
-      </v-col>
-    </v-row>
-
-    <!-- Stats Cards -->
-    <v-row>
-      <v-col cols="12" sm="6" md="3">
-        <v-card color="primary" dark>
-          <v-card-text>
-            <div class="text-h6">کل محصولات</div>
-            <div class="text-h3">{{ dashboardData.total_products || 0 }}</div>
-            <div class="text-caption">فعال: {{ dashboardData.active_products || 0 }}</div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <v-card color="success" dark>
-          <v-card-text>
-            <div class="text-h6">کل فروش</div>
-            <div class="text-h3">{{ formatPrice(dashboardData.total_sales || 0) }} تومان</div>
-            <div class="text-caption">{{ dashboardData.total_orders || 0 }} سفارش</div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <v-card color="info" dark>
-          <v-card-text>
-            <div class="text-h6">بازدید محصولات</div>
-            <div class="text-h3">{{ dashboardData.product_views || 0 }}</div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <v-card color="warning" dark>
-          <v-card-text>
-            <div class="text-h6">کل نظرات</div>
-            <div class="text-h3">{{ dashboardData.total_reviews || 0 }}</div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <!-- Tabs -->
-    <v-row class="mt-4">
-      <v-col cols="12">
-        <v-card>
-          <v-tabs v-model="tab" bg-color="primary">
+        <v-card elevation="2">
+          <v-tabs
+            v-model="tab"
+            bg-color="primary"
+            color="white"
+            align-tabs="start"
+          >
+            <v-tab value="home">
+              <v-icon start>mdi-home</v-icon>
+              صفحه اصلی
+            </v-tab>
             <v-tab value="profile">
-              <v-icon left>mdi-account</v-icon>
+              <v-icon start>mdi-account</v-icon>
               پروفایل
             </v-tab>
             <v-tab value="products">
@@ -78,84 +40,312 @@
             </v-tab>
           </v-tabs>
 
-          <v-card-text>
+          <v-card-text class="pa-4">
             <v-window v-model="tab">
+              <!-- Home Tab -->
+              <v-window-item value="home">
+                <div class="py-4">
+                  <!-- Welcome Section -->
+                  <v-row class="mb-4">
+                    <v-col cols="12">
+                      <div class="d-flex align-center justify-space-between flex-wrap gap-3">
+                        <div>
+                          <h2 class="text-h5 mb-2">
+                            خوش آمدید {{ authStore.user?.vendor_profile?.store_name || authStore.user?.first_name || authStore.user?.username }}!
+                          </h2>
+                          <p class="text-body-1 text-medium-emphasis">
+                            خلاصه فعالیت‌ها و فروش‌های شما
+                          </p>
+                        </div>
+                        <!-- Quick Actions -->
+                        <div class="d-flex gap-2 flex-wrap">
+                          <v-btn
+                            color="primary"
+                            variant="elevated"
+                            prepend-icon="mdi-plus-circle"
+                            :to="'/admin/dashboard/products/new'"
+                            size="default"
+                          >
+                            افزودن محصول جدید
+                          </v-btn>
+                          <v-btn
+                            color="secondary"
+                            variant="outlined"
+                            prepend-icon="mdi-package-variant"
+                            :to="'/products'"
+                            size="default"
+                          >
+                            مشاهده همه محصولات
+                          </v-btn>
+                        </div>
+                      </div>
+                    </v-col>
+                  </v-row>
+
+                  <!-- Enhanced Stats Cards -->
+                  <v-row class="mb-4">
+                    <v-col cols="12" sm="6" md="3">
+                      <v-card
+                        class="stat-card stat-card-primary"
+                        elevation="2"
+                        :loading="loading"
+                      >
+                        <v-card-text>
+                          <div class="d-flex align-center justify-space-between">
+                            <div>
+                              <div class="text-caption text-medium-emphasis mb-1">
+                                کل محصولات
+                              </div>
+                              <div class="text-h3 font-weight-bold">
+                                {{ dashboardData.total_products || 0 }}
+                              </div>
+                              <div class="text-caption mt-1">
+                                فعال: {{ dashboardData.active_products || 0 }}
+                              </div>
+                            </div>
+                            <v-avatar
+                              size="56"
+                              color="primary"
+                              class="stat-icon"
+                            >
+                              <v-icon size="28">mdi-package-variant</v-icon>
+                            </v-avatar>
+                          </div>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                    
+                    <v-col cols="12" sm="6" md="3">
+                      <v-card
+                        class="stat-card stat-card-success"
+                        elevation="2"
+                        :loading="loading"
+                      >
+                        <v-card-text>
+                          <div class="d-flex align-center justify-space-between">
+                            <div>
+                              <div class="text-caption text-medium-emphasis mb-1">
+                                کل فروش
+                              </div>
+                              <div class="text-h3 font-weight-bold">
+                                {{ formatPrice(dashboardData.total_sales || 0) }}
+                              </div>
+                              <div class="text-caption mt-1">
+                                {{ dashboardData.total_orders || 0 }} سفارش
+                              </div>
+                            </div>
+                            <v-avatar
+                              size="56"
+                              color="success"
+                              class="stat-icon"
+                            >
+                              <v-icon size="28">mdi-currency-usd</v-icon>
+                            </v-avatar>
+                          </div>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                    
+                    <v-col cols="12" sm="6" md="3">
+                      <v-card
+                        class="stat-card stat-card-info"
+                        elevation="2"
+                        :loading="loading"
+                      >
+                        <v-card-text>
+                          <div class="d-flex align-center justify-space-between">
+                            <div>
+                              <div class="text-caption text-medium-emphasis mb-1">
+                                بازدید محصولات
+                              </div>
+                              <div class="text-h3 font-weight-bold">
+                                {{ dashboardData.product_views || 0 }}
+                              </div>
+                            </div>
+                            <v-avatar
+                              size="56"
+                              color="info"
+                              class="stat-icon"
+                            >
+                              <v-icon size="28">mdi-eye</v-icon>
+                            </v-avatar>
+                          </div>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                    
+                    <v-col cols="12" sm="6" md="3">
+                      <v-card
+                        class="stat-card stat-card-warning"
+                        elevation="2"
+                        :loading="loading"
+                      >
+                        <v-card-text>
+                          <div class="d-flex align-center justify-space-between">
+                            <div>
+                              <div class="text-caption text-medium-emphasis mb-1">
+                                کل نظرات
+                              </div>
+                              <div class="text-h3 font-weight-bold">
+                                {{ dashboardData.total_reviews || 0 }}
+                              </div>
+                            </div>
+                            <v-avatar
+                              size="56"
+                              color="warning"
+                              class="stat-icon"
+                            >
+                              <v-icon size="28">mdi-star</v-icon>
+                            </v-avatar>
+                          </div>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+
+                  <!-- Recent Orders Section -->
+                  <v-row class="mb-4" v-if="recentOrders.length > 0">
+                    <v-col cols="12">
+                      <v-card elevation="1">
+                        <v-card-title class="d-flex align-center justify-space-between">
+                          <span>سفارشات اخیر</span>
+                          <v-btn
+                            variant="text"
+                            size="small"
+                            @click="tab = 'orders'"
+                          >
+                            مشاهده همه
+                            <v-icon end>mdi-chevron-left</v-icon>
+                          </v-btn>
+                        </v-card-title>
+                        <v-card-text>
+                          <v-list>
+                            <v-list-item
+                              v-for="order in recentOrders"
+                              :key="order.id"
+                              :title="`سفارش ${order.order_number}`"
+                              :subtitle="`خریدار: ${order.buyer_username || 'نامشخص'} - مبلغ: ${formatPrice(order.total_amount)} تومان`"
+                            >
+                              <template v-slot:append>
+                                <v-chip
+                                  :color="getStatusColor(order.status)"
+                                  size="small"
+                                  variant="flat"
+                                >
+                                  {{ getStatusLabel(order.status) }}
+                                </v-chip>
+                              </template>
+                            </v-list-item>
+                          </v-list>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+                </div>
+              </v-window-item>
+              
               <!-- Profile Tab -->
               <v-window-item value="profile">
-                <v-form ref="profileForm" @submit.prevent="updateProfile">
-                  <h3 class="text-h6 mb-3">اطلاعات شخصی</h3>
-                  <v-row>
-                    <v-col cols="12" md="6">
-                      <v-text-field
-                        v-model="profileData.first_name"
-                        label="نام"
-                        prepend-icon="mdi-account"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" md="6">
-                      <v-text-field
-                        v-model="profileData.last_name"
-                        label="نام خانوادگی"
-                        prepend-icon="mdi-account"
-                      ></v-text-field>
-                    </v-col>
-                  </v-row>
-                  <v-row>
-                    <v-col cols="12" md="6">
-                      <v-text-field
-                        v-model="profileData.email"
-                        label="ایمیل"
-                        prepend-icon="mdi-email"
-                        type="email"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" md="6">
-                      <v-text-field
-                        v-model="profileData.phone"
-                        label="تلفن"
-                        prepend-icon="mdi-phone"
-                      ></v-text-field>
-                    </v-col>
-                  </v-row>
-                  
-                  <v-divider class="my-4"></v-divider>
-                  <h3 class="text-h6 mb-3">اطلاعات فروشگاه</h3>
-                  <v-text-field
-                    v-model="profileData.store_name"
-                    label="نام فروشگاه"
-                    prepend-icon="mdi-store"
-                  ></v-text-field>
-                  <v-textarea
-                    v-model="profileData.description"
-                    label="توضیحات فروشگاه"
-                    prepend-icon="mdi-text"
-                    rows="3"
-                  ></v-textarea>
-                  <v-row>
-                    <v-col cols="12" md="6">
-                      <v-text-field
-                        v-model="profileData.contact_email"
-                        label="ایمیل تماس"
-                        prepend-icon="mdi-email-outline"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" md="6">
-                      <v-text-field
-                        v-model="profileData.contact_phone"
-                        label="تلفن تماس"
-                        prepend-icon="mdi-phone-outline"
-                      ></v-text-field>
-                    </v-col>
-                  </v-row>
-                  <v-text-field
-                    v-model="profileData.website"
-                    label="وب‌سایت"
-                    prepend-icon="mdi-web"
-                  ></v-text-field>
-                  <v-btn color="primary" type="submit" :loading="saving">
-                    به‌روزرسانی پروفایل
-                  </v-btn>
-                </v-form>
+                <div class="py-4">
+                  <h3 class="text-h6 mb-4">اطلاعات شخصی</h3>
+                  <v-form ref="profileForm" @submit.prevent="updateProfile">
+                    <v-row>
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                          v-model="profileData.first_name"
+                          label="نام"
+                          prepend-inner-icon="mdi-account"
+                          variant="outlined"
+                          density="comfortable"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                          v-model="profileData.last_name"
+                          label="نام خانوادگی"
+                          prepend-inner-icon="mdi-account"
+                          variant="outlined"
+                          density="comfortable"
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                    <v-row>
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                          v-model="profileData.email"
+                          label="ایمیل"
+                          prepend-inner-icon="mdi-email"
+                          type="email"
+                          variant="outlined"
+                          density="comfortable"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                          v-model="profileData.phone"
+                          label="تلفن"
+                          prepend-inner-icon="mdi-phone"
+                          variant="outlined"
+                          density="comfortable"
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                    
+                    <v-divider class="my-4"></v-divider>
+                    <h3 class="text-h6 mb-3">اطلاعات فروشگاه</h3>
+                    <v-text-field
+                      v-model="profileData.store_name"
+                      label="نام فروشگاه"
+                      prepend-inner-icon="mdi-store"
+                      variant="outlined"
+                      density="comfortable"
+                    ></v-text-field>
+                    <v-textarea
+                      v-model="profileData.description"
+                      label="توضیحات فروشگاه"
+                      prepend-inner-icon="mdi-text"
+                      rows="3"
+                      variant="outlined"
+                      density="comfortable"
+                    ></v-textarea>
+                    <v-row>
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                          v-model="profileData.contact_email"
+                          label="ایمیل تماس"
+                          prepend-inner-icon="mdi-email-outline"
+                          variant="outlined"
+                          density="comfortable"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                          v-model="profileData.contact_phone"
+                          label="تلفن تماس"
+                          prepend-inner-icon="mdi-phone-outline"
+                          variant="outlined"
+                          density="comfortable"
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                    <v-text-field
+                      v-model="profileData.website"
+                      label="وب‌سایت"
+                      prepend-inner-icon="mdi-web"
+                      variant="outlined"
+                      density="comfortable"
+                    ></v-text-field>
+                    <v-btn
+                      color="primary"
+                      type="submit"
+                      :loading="saving"
+                      size="large"
+                      prepend-icon="mdi-content-save"
+                    >
+                      به‌روزرسانی پروفایل
+                    </v-btn>
+                  </v-form>
+                </div>
               </v-window-item>
 
               <!-- Products Tab -->
@@ -206,79 +396,114 @@
 
               <!-- Orders Tab -->
               <v-window-item value="orders">
-                <v-data-table
-                  :headers="orderHeaders"
-                  :items="orders"
-                  :loading="loadingOrders"
-                  item-value="id"
-                >
-                  <template v-slot:item.order_number="{ item }">
-                    <strong>{{ item.order_number }}</strong>
-                  </template>
-                  <template v-slot:item.status="{ item }">
-                    <v-chip :color="getStatusColor(item.status)" small>
-                      {{ item.status }}
-                    </v-chip>
-                  </template>
-                  <template v-slot:item.total_amount="{ item }">
-                    {{ formatPrice(item.total_amount) }} تومان
-                  </template>
-                  <template v-slot:item.created_at="{ item }">
-                    {{ formatDate(item.created_at) }}
-                  </template>
-                </v-data-table>
+                <div class="py-4">
+                  <h3 class="text-h6 mb-4">سفارشات من</h3>
+                  <v-data-table
+                    :headers="orderHeaders"
+                    :items="orders"
+                    :loading="loadingOrders"
+                    item-value="id"
+                    class="elevation-1"
+                    :items-per-page="10"
+                  >
+                    <template v-slot:item.order_number="{ item }">
+                      <strong class="text-primary">{{ item.order_number }}</strong>
+                    </template>
+                    <template v-slot:item.status="{ item }">
+                      <v-chip
+                        :color="getStatusColor(item.status)"
+                        size="small"
+                        variant="flat"
+                      >
+                        {{ getStatusLabel(item.status) }}
+                      </v-chip>
+                    </template>
+                    <template v-slot:item.total_amount="{ item }">
+                      <span class="font-weight-bold">
+                        {{ formatPrice(item.total_amount) }} تومان
+                      </span>
+                    </template>
+                    <template v-slot:item.created_at="{ item }">
+                      {{ formatDate(item.created_at) }}
+                    </template>
+                    <template v-slot:no-data>
+                      <div class="text-center py-8">
+                        <v-icon size="64" color="grey-lighten-1">mdi-cart</v-icon>
+                        <p class="text-body-1 mt-4 text-grey">سفارشی یافت نشد</p>
+                      </div>
+                    </template>
+                  </v-data-table>
+                </div>
               </v-window-item>
 
               <!-- Reviews Tab -->
               <v-window-item value="reviews">
-                <v-data-table
-                  :headers="reviewHeaders"
-                  :items="reviews"
-                  :loading="loadingReviews"
-                  item-value="id"
-                >
-                  <template v-slot:item.product="{ item }">
-                    {{ item.product?.name || 'محصول حذف شده' }}
-                  </template>
-                  <template v-slot:item.buyer="{ item }">
-                    {{ item.author?.username || 'نامشخص' }}
-                  </template>
-                  <template v-slot:item.rating="{ item }">
-                    <v-rating
-                      :model-value="item.rating"
-                      readonly
-                      size="small"
-                      density="compact"
-                    ></v-rating>
-                  </template>
-                  <template v-slot:item.created_at="{ item }">
-                    {{ formatDate(item.created_at) }}
-                  </template>
-                </v-data-table>
+                <div class="py-4">
+                  <h3 class="text-h6 mb-4">نظرات مشتریان</h3>
+                  <v-data-table
+                    :headers="reviewHeaders"
+                    :items="reviews"
+                    :loading="loadingReviews"
+                    item-value="id"
+                    class="elevation-1"
+                    :items-per-page="10"
+                  >
+                    <template v-slot:item.product="{ item }">
+                      <strong>{{ item.product?.name || 'محصول حذف شده' }}</strong>
+                    </template>
+                    <template v-slot:item.buyer="{ item }">
+                      {{ item.author?.username || 'نامشخص' }}
+                    </template>
+                    <template v-slot:item.rating="{ item }">
+                      <v-rating
+                        :model-value="item.rating"
+                        readonly
+                        size="small"
+                        density="compact"
+                        color="warning"
+                      ></v-rating>
+                    </template>
+                    <template v-slot:item.comment="{ item }">
+                      <span class="text-body-2">{{ item.comment || '-' }}</span>
+                    </template>
+                    <template v-slot:item.created_at="{ item }">
+                      {{ formatDate(item.created_at) }}
+                    </template>
+                    <template v-slot:no-data>
+                      <div class="text-center py-8">
+                        <v-icon size="64" color="grey-lighten-1">mdi-star</v-icon>
+                        <p class="text-body-1 mt-4 text-grey">نظری ثبت نشده است</p>
+                      </div>
+                    </template>
+                  </v-data-table>
+                </div>
               </v-window-item>
 
               <!-- Analytics Tab -->
               <v-window-item value="analytics">
-                <v-row>
-                  <v-col cols="12" md="6">
-                    <v-card>
-                      <v-card-title>عملکرد محصولات</v-card-title>
-                      <v-card-text>
-                        <div class="text-h4">{{ dashboardData.product_views || 0 }}</div>
-                        <div class="text-caption">کل بازدید محصولات</div>
-                      </v-card-text>
-                    </v-card>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <v-card>
-                      <v-card-title>آمار سفارشات</v-card-title>
-                      <v-card-text>
-                        <div>کل سفارشات: <strong>{{ dashboardData.total_orders || 0 }}</strong></div>
-                        <div>کل درآمد: <strong>{{ formatPrice(dashboardData.total_sales || 0) }} تومان</strong></div>
-                      </v-card-text>
-                    </v-card>
-                  </v-col>
-                </v-row>
+                <div class="py-4">
+                  <h3 class="text-h6 mb-4">آمار و تحلیل</h3>
+                  <v-row>
+                    <v-col cols="12" md="6">
+                      <v-card elevation="1">
+                        <v-card-title>عملکرد محصولات</v-card-title>
+                        <v-card-text>
+                          <div class="text-h4">{{ dashboardData.product_views || 0 }}</div>
+                          <div class="text-caption">کل بازدید محصولات</div>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                    <v-col cols="12" md="6">
+                      <v-card elevation="1">
+                        <v-card-title>آمار سفارشات</v-card-title>
+                        <v-card-text>
+                          <div>کل سفارشات: <strong>{{ dashboardData.total_orders || 0 }}</strong></div>
+                          <div>کل درآمد: <strong>{{ formatPrice(dashboardData.total_sales || 0) }} تومان</strong></div>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+                </div>
               </v-window-item>
             </v-window>
           </v-card-text>
@@ -325,26 +550,37 @@
     </v-dialog>
 
     <!-- Success Snackbar -->
-    <v-snackbar v-model="snackbar" :color="snackbarColor" :timeout="3000">
+    <v-snackbar v-model="snackbar" :color="snackbarColor" :timeout="3000" location="top">
       {{ snackbarMessage }}
     </v-snackbar>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useSellerApi } from '~/composables/useSellerApi'
 import type { SellerOrder, SellerReview, SellerAd } from '~/composables/useSellerApi'
 
 definePageMeta({
-  middleware: 'authenticated'
+  middleware: 'authenticated',
+  layout: 'dashboard'
 })
 
 const authStore = useAuthStore()
 const sellerApi = useSellerApi()
+const route = useRoute()
 
-const tab = ref('profile')
+// Check for tab query parameter - default to 'home'
+const tabQuery = computed(() => route.query.tab as string || 'home')
+const tab = ref(tabQuery.value)
+
+// Watch for route query changes
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && typeof newTab === 'string') {
+    tab.value = newTab
+  }
+})
 const dashboardData = ref({
   total_products: 0,
   active_products: 0,
@@ -468,6 +704,11 @@ const updateProfile = async () => {
   try {
     await authStore.updateProfile(profileData.value)
     showSnackbar('پروفایل با موفقیت به‌روزرسانی شد', 'success')
+    // Redirect to home tab after successful update
+    setTimeout(() => {
+      tab.value = 'home'
+      navigateTo('/seller/dashboard?tab=home', { replace: true })
+    }, 1000)
   } catch (error) {
     console.error('Failed to update profile:', error)
     showSnackbar('خطا در به‌روزرسانی پروفایل', 'error')
@@ -475,6 +716,30 @@ const updateProfile = async () => {
     saving.value = false
   }
 }
+
+const getStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    pending: 'در انتظار',
+    confirmed: 'تایید شده',
+    processing: 'در حال پردازش',
+    shipped: 'ارسال شده',
+    delivered: 'تحویل داده شده',
+    cancelled: 'لغو شده',
+    rejected: 'رد شده'
+  }
+  return labels[status] || status
+}
+
+// Computed for recent orders
+const recentOrders = computed(() => {
+  return orders.value.slice(0, 5)
+})
+
+// Watch tab changes to load data
+watch(tab, (newTab) => {
+  // Update URL query when tab changes
+  navigateTo(`/seller/dashboard?tab=${newTab}`, { replace: true })
+})
 
 const saveAd = async () => {
   savingAd.value = true
@@ -582,4 +847,66 @@ onMounted(() => {
   loadAds()
 })
 </script>
+
+<style scoped>
+.seller-dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-top: 80px !important;
+}
+
+.stat-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+  border-radius: 12px;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+.stat-icon {
+  opacity: 0.9;
+}
+
+.stat-card-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.stat-card-warning {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.stat-card-success {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+.stat-card-info {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: white;
+}
+
+.stat-card-primary :deep(.text-caption),
+.stat-card-primary :deep(.text-h3) {
+  color: white !important;
+}
+
+.stat-card-warning :deep(.text-caption),
+.stat-card-warning :deep(.text-h3) {
+  color: white !important;
+}
+
+.stat-card-success :deep(.text-caption),
+.stat-card-success :deep(.text-h3) {
+  color: white !important;
+}
+
+.stat-card-info :deep(.text-caption),
+.stat-card-info :deep(.text-h3) {
+  color: white !important;
+}
+</style>
 

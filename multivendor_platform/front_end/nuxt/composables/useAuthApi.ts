@@ -9,13 +9,17 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
-  username: string
-  email: string
+  username: string  // Mobile number used as username
   password: string
-  password2?: string
-  first_name?: string
-  last_name?: string
-  role?: 'buyer' | 'seller'
+  first_name: string
+  last_name: string
+  role: 'buyer' | 'seller' | 'both'
+  // Optional fields (can be added later in profile)
+  email?: string
+  phone?: string
+  address?: string
+  store_name?: string
+  store_description?: string
 }
 
 export interface User {

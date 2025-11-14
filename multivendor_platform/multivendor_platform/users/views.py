@@ -204,17 +204,20 @@ def register_view(request):
         profile = user.profile
         vendor_profile = None
         if profile.is_seller():
-            vendor_profile = {
-                'store_name': user.vendor_profile.store_name,
-                'logo': user.vendor_profile.logo.url if user.vendor_profile.logo else None
-            }
+            try:
+                vendor_profile = {
+                    'store_name': user.vendor_profile.store_name if user.vendor_profile.store_name else None,
+                    'logo': user.vendor_profile.logo.url if user.vendor_profile.logo else None
+                }
+            except VendorProfile.DoesNotExist:
+                vendor_profile = None
         
         return Response({
             'token': token.key,
             'user': {
                 'id': user.id,
                 'username': user.username,
-                'email': user.email,
+                'email': user.email if user.email and '@placeholder.local' not in user.email else '',
                 'first_name': user.first_name,
                 'last_name': user.last_name,
                 'role': profile.role,
@@ -274,11 +277,16 @@ def buyer_dashboard_view(request):
     """Get buyer dashboard data"""
     user = request.user
     
-    # Get orders summary
-    orders = Order.objects.filter(buyer=user)
+    # Get orders summary (excluding RFQs)
+    orders = Order.objects.filter(buyer=user, is_rfq=False)
     total_orders = orders.count()
     pending_orders = orders.filter(status='pending').count()
     completed_orders = orders.filter(status='delivered').count()
+    
+    # Get RFQs summary
+    rfqs = Order.objects.filter(buyer=user, is_rfq=True)
+    total_rfqs = rfqs.count()
+    pending_rfqs = rfqs.filter(status='pending').count()
     
     # Get recent orders
     recent_orders = orders.select_related(
@@ -295,6 +303,8 @@ def buyer_dashboard_view(request):
         'pending_orders': pending_orders,
         'completed_orders': completed_orders,
         'total_reviews': reviews.count(),
+        'total_rfqs': total_rfqs,
+        'pending_rfqs': pending_rfqs,
         'recent_orders': OrderSerializer(recent_orders, many=True, context={'request': request}).data,
     }
     
@@ -303,7 +313,7 @@ def buyer_dashboard_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def buyer_orders_view(request):
-    """Get all buyer orders"""
+    """Get all buyer orders (including RFQs - filter on frontend)"""
     orders = Order.objects.filter(buyer=request.user).select_related(
         'buyer', 'category'
     ).prefetch_related(

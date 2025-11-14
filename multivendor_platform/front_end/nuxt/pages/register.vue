@@ -1,63 +1,120 @@
 <template>
   <v-container fluid class="fill-height auth-container">
-    <v-row align="center" justify="center">
-      <v-col cols="12" sm="10" md="7">
-        <v-card class="elevation-12" rounded="lg">
-          <v-toolbar color="primary" dark prominent>
-            <v-toolbar-title class="text-h5">ایجاد حساب کاربری</v-toolbar-title>
-          </v-toolbar>
+    <v-row align="center" justify="center" class="ma-0">
+      <v-col cols="12" sm="10" md="8" lg="6" class="pa-0">
+        <v-card class="elevation-0 auth-card" rounded="xl">
+          <!-- Header -->
+          <v-card-text class="pa-6 pb-4 text-center">
+            <h1 class="text-h4 font-weight-bold mb-2">ایجاد حساب کاربری</h1>
+            <p class="text-body-2 text-medium-emphasis">لطفاً نوع حساب کاربری خود را انتخاب کنید</p>
+          </v-card-text>
 
-          <v-card-text class="pa-6">
+          <!-- Role Selection Cards -->
+          <v-card-text class="pa-6 pt-2">
+            <v-row class="ma-0">
+              <v-col
+                v-for="role in roleOptions"
+                :key="role.value"
+                cols="12"
+                sm="4"
+                class="pa-2"
+              >
+                <v-card
+                  :class="[
+                    'role-card',
+                    { 'role-card-selected': form.role === role.value }
+                  ]"
+                  :color="form.role === role.value ? 'primary' : 'surface-variant'"
+                  :variant="form.role === role.value ? 'flat' : 'outlined'"
+                  rounded="lg"
+                  elevation="0"
+                  @click="selectRole(role.value)"
+                  class="cursor-pointer transition-all"
+                >
+                  <v-card-text class="text-center pa-4">
+                    <v-icon
+                      :icon="role.icon"
+                      :color="form.role === role.value ? 'white' : 'primary'"
+                      size="48"
+                      class="mb-3"
+                    />
+                    <h3
+                      :class="[
+                        'text-h6 font-weight-bold mb-2',
+                        form.role === role.value ? 'text-white' : 'text-primary'
+                      ]"
+                    >
+                      {{ role.label }}
+                    </h3>
+                    <p
+                      :class="[
+                        'text-body-2 mb-0',
+                        form.role === role.value ? 'text-white' : 'text-medium-emphasis'
+                      ]"
+                    >
+                      {{ role.description }}
+                    </p>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-card-text>
+
+          <!-- Registration Form -->
+          <v-card-text class="pa-6 pt-2">
             <v-form ref="formRef" v-model="isValid" @submit.prevent="submit">
-              <v-row>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="form.username"
-                    label="نام کاربری *"
-                    prepend-inner-icon="mdi-account"
-                    variant="outlined"
-                    rounded="lg"
-                    :rules="usernameRules"
-                    required
-                  />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="form.email"
-                    label="ایمیل *"
-                    prepend-inner-icon="mdi-email"
-                    variant="outlined"
-                    rounded="lg"
-                    type="email"
-                    :rules="emailRules"
-                    required
-                  />
-                </v-col>
-              </v-row>
-
-              <v-row>
-                <v-col cols="12" md="6">
+              <v-row class="ma-0">
+                <!-- First Name -->
+                <v-col cols="12" sm="6" class="pa-2">
                   <v-text-field
                     v-model="form.first_name"
-                    label="نام"
+                    label="نام *"
                     prepend-inner-icon="mdi-account-outline"
                     variant="outlined"
                     rounded="lg"
+                    :rules="firstNameRules"
+                    required
+                    density="comfortable"
+                    dir="rtl"
                   />
                 </v-col>
-                <v-col cols="12" md="6">
+
+                <!-- Last Name -->
+                <v-col cols="12" sm="6" class="pa-2">
                   <v-text-field
                     v-model="form.last_name"
-                    label="نام خانوادگی"
+                    label="نام خانوادگی *"
                     prepend-inner-icon="mdi-account-outline"
                     variant="outlined"
                     rounded="lg"
+                    :rules="lastNameRules"
+                    required
+                    density="comfortable"
+                    dir="rtl"
                   />
                 </v-col>
-              </v-row>
 
-              <v-row>
-                <v-col cols="12" md="6">
+                <!-- Mobile Number (Username) -->
+                <v-col cols="12" class="pa-2">
+                  <v-text-field
+                    v-model="form.username"
+                    label="شماره موبایل *"
+                    prepend-inner-icon="mdi-phone"
+                    variant="outlined"
+                    rounded="lg"
+                    :rules="mobileRules"
+                    required
+                    density="comfortable"
+                    dir="rtl"
+                    type="tel"
+                    placeholder="09123456789"
+                    hint="شماره موبایل شما به عنوان نام کاربری استفاده می‌شود"
+                    persistent-hint
+                  />
+                </v-col>
+
+                <!-- Password -->
+                <v-col cols="12" sm="6" class="pa-2">
                   <v-text-field
                     v-model="form.password"
                     label="رمز عبور *"
@@ -69,9 +126,13 @@
                     @click:append-inner="showPassword = !showPassword"
                     :rules="passwordRules"
                     required
+                    density="comfortable"
+                    dir="rtl"
                   />
                 </v-col>
-                <v-col cols="12" md="6">
+
+                <!-- Confirm Password -->
+                <v-col cols="12" sm="6" class="pa-2">
                   <v-text-field
                     v-model="confirmPassword"
                     label="تکرار رمز عبور *"
@@ -81,92 +142,50 @@
                     :type="showPassword ? 'text' : 'password'"
                     :rules="confirmPasswordRules"
                     required
+                    density="comfortable"
+                    dir="rtl"
                   />
                 </v-col>
               </v-row>
 
-              <v-row>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="form.phone"
-                    label="شماره تماس"
-                    prepend-inner-icon="mdi-phone"
-                    variant="outlined"
-                    rounded="lg"
-                  />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-select
-                    v-model="form.role"
-                    label="نقش کاربری *"
-                    prepend-inner-icon="mdi-account-group"
-                    variant="outlined"
-                    rounded="lg"
-                    :items="roleOptions"
-                    item-title="label"
-                    item-value="value"
-                    :rules="roleRules"
-                    required
-                  />
-                </v-col>
-              </v-row>
-
-              <v-text-field
-                v-model="form.address"
-                label="آدرس"
-                prepend-inner-icon="mdi-map-marker"
-                variant="outlined"
+              <!-- Error Message -->
+              <v-alert
+                v-if="error"
+                type="error"
+                variant="tonal"
                 rounded="lg"
-              />
-
-              <v-expand-transition>
-                <div v-if="form.role === 'seller' || form.role === 'both'">
-                  <v-divider class="my-4" />
-                  <h3 class="text-h6 mb-3">اطلاعات فروشگاه</h3>
-                  <v-text-field
-                    v-model="form.store_name"
-                    label="نام فروشگاه *"
-                    prepend-inner-icon="mdi-store"
-                    variant="outlined"
-                    rounded="lg"
-                    :rules="storeNameRules"
-                  />
-                  <v-textarea
-                    v-model="form.store_description"
-                    label="توضیحات فروشگاه"
-                    prepend-inner-icon="mdi-text"
-                    variant="outlined"
-                    rounded="lg"
-                    rows="3"
-                  />
-                </div>
-              </v-expand-transition>
-
-              <v-alert v-if="error" type="error" variant="tonal" class="mt-3">
+                class="mt-4"
+                closable
+                @click:close="error = null"
+              >
                 {{ error }}
               </v-alert>
             </v-form>
           </v-card-text>
 
+          <!-- Submit Button -->
           <v-card-actions class="pa-6 pt-0">
             <v-btn
               color="primary"
               block
-              size="large"
+              size="x-large"
               rounded="lg"
               :loading="loading"
-              :disabled="!isValid"
+              :disabled="!isValid || !form.role"
               @click="submit"
+              class="font-weight-bold"
             >
               ثبت‌نام
             </v-btn>
           </v-card-actions>
 
+          <!-- Login Link -->
           <v-divider />
-
           <v-card-text class="text-center pa-4">
-            از قبل حساب دارید؟
-            <NuxtLink to="/login" class="text-primary font-weight-bold">ورود</NuxtLink>
+            <span class="text-body-2">از قبل حساب دارید؟</span>
+            <NuxtLink to="/login" class="text-primary font-weight-bold mr-2">
+              ورود
+            </NuxtLink>
           </v-card-text>
         </v-card>
       </v-col>
@@ -207,36 +226,78 @@ const loading = computed(() => authStore.loading)
 
 const form = reactive({
   username: '',
-  email: '',
   first_name: '',
   last_name: '',
   password: '',
-  phone: '',
-  role: null as string | null,
-  address: '',
-  store_name: '',
-  store_description: ''
+  role: null as string | null
 })
 
 const roleOptions = [
-  { label: 'خریدار', value: 'buyer' },
-  { label: 'فروشنده', value: 'seller' },
-  { label: 'خریدار و فروشنده', value: 'both' }
+  {
+    label: 'خریدار',
+    value: 'buyer',
+    icon: 'mdi-cart',
+    description: 'برای خرید محصولات'
+  },
+  {
+    label: 'فروشنده',
+    value: 'seller',
+    icon: 'mdi-store',
+    description: 'برای فروش محصولات'
+  },
+  {
+    label: 'خریدار و فروشنده',
+    value: 'both',
+    icon: 'mdi-account-multiple',
+    description: 'هم خرید و هم فروش'
+  }
 ]
 
-const usernameRules = [(value: string) => Boolean(value) || 'نام کاربری الزامی است']
-const emailRules = [
-  (value: string) => Boolean(value) || 'ایمیل الزامی است',
-  (value: string) => /.+@.+\..+/.test(value) || 'ایمیل معتبر نیست'
+const selectRole = (role: string) => {
+  form.role = role
+  // Clear any previous errors
+  error.value = null
+}
+
+// Validation rules
+const firstNameRules = [
+  (value: string) => Boolean(value?.trim()) || 'نام الزامی است',
+  (value: string) => (value?.trim()?.length >= 2) || 'نام باید حداقل ۲ کاراکتر باشد'
 ]
-const passwordRules = [(value: string) => Boolean(value) || 'رمز عبور الزامی است']
+
+const lastNameRules = [
+  (value: string) => Boolean(value?.trim()) || 'نام خانوادگی الزامی است',
+  (value: string) => (value?.trim()?.length >= 2) || 'نام خانوادگی باید حداقل ۲ کاراکتر باشد'
+]
+
+const mobileRules = [
+  (value: string) => Boolean(value?.trim()) || 'شماره موبایل الزامی است',
+  (value: string) => {
+    // Remove spaces, dashes, and parentheses for validation
+    const cleaned = value?.replace(/[\s\-()]/g, '') || ''
+    // Check if it starts with a valid Iranian mobile prefix
+    // Accept: 09XXXXXXXXX, +98XXXXXXXXXX, 0098XXXXXXXXXX, 98XXXXXXXXXX, 9XXXXXXXXX
+    const mobileRegex = /^(\+98|0098|98|0)?9\d{9}$/
+    if (!mobileRegex.test(cleaned)) {
+      return 'شماره موبایل معتبر نیست. لطفاً شماره را به صورت صحیح وارد کنید (مثال: 09123456789)'
+    }
+    // Check minimum length (should be at least 10 digits after cleaning)
+    const digitsOnly = cleaned.replace(/\D/g, '')
+    if (digitsOnly.length < 10 || digitsOnly.length > 13) {
+      return 'شماره موبایل باید ۱۰ رقم باشد (مثال: 09123456789)'
+    }
+    return true
+  }
+]
+
+const passwordRules = [
+  (value: string) => Boolean(value) || 'رمز عبور الزامی است',
+  (value: string) => (value?.length >= 6) || 'رمز عبور باید حداقل ۶ کاراکتر باشد'
+]
+
 const confirmPasswordRules = [
   (value: string) => Boolean(value) || 'تکرار رمز عبور الزامی است',
   (value: string) => value === form.password || 'رمز عبور مطابقت ندارد'
-]
-const roleRules = [(value: string) => Boolean(value) || 'انتخاب نقش کاربری الزامی است']
-const storeNameRules = [
-  (value: string) => (form.role === 'seller' || form.role === 'both' ? Boolean(value) : true) || 'نام فروشگاه الزامی است'
 ]
 
 const submit = async () => {
@@ -245,10 +306,24 @@ const submit = async () => {
   const result = await formRef.value.validate()
   if (!result.valid) return
 
+  if (!form.role) {
+    error.value = 'لطفاً نوع حساب کاربری خود را انتخاب کنید'
+    return
+  }
+
   error.value = null
 
   try {
-    const payload = { ...form, confirmPassword: undefined }
+    // Prepare payload - mobile number is username
+    // Backend will normalize the mobile number format
+    const payload = {
+      username: form.username.trim(), // Backend will clean and normalize
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      password: form.password,
+      role: form.role
+    }
+
     const response = await authStore.register(payload)
 
     if (response?.user?.is_staff || response?.user?.is_superuser) {
@@ -261,10 +336,27 @@ const submit = async () => {
     router.push('/buyer/dashboard')
   } catch (err: any) {
     console.error('Registration failed', err)
-    error.value =
-      authStore.error ??
-      err?.data?.error ??
-      'خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.'
+    // Handle backend validation errors
+    if (err?.data) {
+      const errors = err.data
+      if (typeof errors === 'object') {
+        // Get first error message
+        const firstError = Object.values(errors)[0]
+        if (Array.isArray(firstError)) {
+          error.value = firstError[0]
+        } else if (typeof firstError === 'string') {
+          error.value = firstError
+        } else {
+          error.value = 'خطا در ثبت‌نام. لطفاً اطلاعات را بررسی کنید.'
+        }
+      } else if (typeof errors === 'string') {
+        error.value = errors
+      } else {
+        error.value = authStore.error ?? 'خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.'
+      }
+    } else {
+      error.value = authStore.error ?? 'خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.'
+    }
   }
 }
 </script>
@@ -272,15 +364,94 @@ const submit = async () => {
 <style scoped>
 .fill-height {
   min-height: 100vh;
+  padding: 16px;
 }
 
 .auth-container {
   direction: rtl;
   text-align: right;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+}
+
+.role-card {
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.role-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+.role-card-selected {
+  border-color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3) !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.transition-all {
+  transition: all 0.3s ease;
 }
 
 :deep(.v-field__input) {
   text-align: right;
+  direction: rtl;
+}
+
+:deep(.v-field__prepend-inner) {
+  padding-left: 12px;
+  padding-right: 0;
+}
+
+:deep(.v-field__append-inner) {
+  padding-right: 12px;
+  padding-left: 0;
+}
+
+:deep(.v-label) {
+  right: 0;
+  left: auto;
+}
+
+/* Mobile optimizations */
+@media (max-width: 600px) {
+  .fill-height {
+    padding: 8px;
+  }
+
+  .auth-card {
+    border-radius: 16px !important;
+  }
+
+  .role-card {
+    min-height: 140px;
+  }
+
+  :deep(.v-card-text) {
+    padding: 16px !important;
+  }
+}
+
+/* RTL support for icons */
+:deep(.v-icon) {
+  direction: ltr;
+}
+
+/* Focus styles */
+:deep(.v-field--focused) {
+  border-color: rgb(var(--v-theme-primary)) !important;
 }
 </style>
-
