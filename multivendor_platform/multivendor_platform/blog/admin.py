@@ -12,7 +12,26 @@ class BlogCategoryAdmin(admin.ModelAdmin):
     search_fields = ['name', 'description']
     prepopulated_fields = {'slug': ('name',)}
     readonly_fields = ['created_at', 'updated_at']
+    filter_horizontal = ['linked_subcategories']  # Better UI for ManyToMany fields
     actions = ['delete_selected']  # Include delete action
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'description', 'color', 'is_active')
+        }),
+        ('Product Category Link', {
+            'fields': ('linked_product_category',),
+            'description': 'Optional: Link this blog category to a product category'
+        }),
+        ('Subcategories', {
+            'fields': ('linked_subcategories',),
+            'description': 'Select multiple subcategories to link this blog category to product subcategories'
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
     
     def color_display(self, obj):
         return format_html(
@@ -58,11 +77,16 @@ class BlogPostAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('title',)}
     readonly_fields = ['view_count', 'created_at', 'updated_at', 'published_at']
     raw_id_fields = ['author']
+    filter_horizontal = ['linked_subcategories']  # Better UI for ManyToMany fields
     actions = ['delete_selected']  # Include delete action
     
     fieldsets = (
         ('Basic Information', {
             'fields': ('title', 'slug', 'author', 'category', 'status')
+        }),
+        ('Subcategories', {
+            'fields': ('linked_subcategories',),
+            'description': 'Select multiple subcategories to link this blog post to product subcategories'
         }),
         ('Content', {
             'fields': ('excerpt', 'content', 'featured_image')

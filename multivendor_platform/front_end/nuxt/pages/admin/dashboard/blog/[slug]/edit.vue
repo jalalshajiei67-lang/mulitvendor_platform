@@ -123,6 +123,44 @@
                   class="mb-4"
                 ></v-select>
 
+                <!-- Subcategory Selection -->
+                <v-autocomplete
+                  v-model="form.linked_subcategory_ids"
+                  label="زیردسته‌ها"
+                  :items="subcategories"
+                  item-title="name"
+                  item-value="id"
+                  variant="outlined"
+                  rounded="lg"
+                  multiple
+                  chips
+                  closable-chips
+                  :loading="loadingSubcategories"
+                  class="mb-4"
+                  hint="انتخاب زیردسته‌ها برای مرتبط کردن پست با دسته‌های فرعی"
+                  persistent-hint
+                >
+                  <template v-slot:prepend-item>
+                    <v-list-item
+                      title="همه زیردسته‌ها"
+                      @click="selectAllSubcategories"
+                    >
+                      <template v-slot:prepend>
+                        <v-checkbox
+                          :model-value="allSubcategoriesSelected"
+                          @update:model-value="toggleAllSubcategories"
+                        ></v-checkbox>
+                      </template>
+                    </v-list-item>
+                    <v-divider></v-divider>
+                  </template>
+                  <template v-slot:no-data>
+                    <v-list-item>
+                      <v-list-item-title>هیچ زیردسته‌ای یافت نشد</v-list-item-title>
+                    </v-list-item>
+                  </template>
+                </v-autocomplete>
+
                 <v-switch
                   v-model="form.is_featured"
                   :label="t('isFeatured')"
@@ -206,18 +244,21 @@ definePageMeta({
 const route = useRoute()
 const router = useRouter()
 const blogStore = useBlogStore()
+const subcategoryStore = useSubcategoryStore()
 
 const slug = computed(() => route.params.slug as string)
 const formRef = ref()
 const submitting = ref(false)
 const imagePreview = ref<string | null>(null)
 const contentTouched = ref(false)
+const loadingSubcategories = ref(false)
 
 const form = ref({
   title: '',
   excerpt: '',
   content: '',
   category: '',
+  linked_subcategory_ids: [] as number[],
   status: 'draft',
   is_featured: false,
   meta_title: '',
@@ -227,7 +268,13 @@ const form = ref({
 
 const loading = computed(() => blogStore.loading)
 const categories = computed(() => blogStore.categories || [])
+const subcategories = computed(() => subcategoryStore.subcategories || [])
 const t = computed(() => blogStore.t)
+
+const allSubcategoriesSelected = computed(() => {
+  return subcategories.value.length > 0 &&
+         form.value.linked_subcategory_ids.length === subcategories.value.length
+})
 
 const contentValid = computed(() => {
   if (!form.value.content) return false
@@ -270,6 +317,18 @@ const removeImage = () => {
   imagePreview.value = null
 }
 
+const selectAllSubcategories = () => {
+  form.value.linked_subcategory_ids = subcategories.value.map(s => s.id)
+}
+
+const toggleAllSubcategories = (value: boolean) => {
+  if (value) {
+    selectAllSubcategories()
+  } else {
+    form.value.linked_subcategory_ids = []
+  }
+}
+
 const loadPost = async () => {
   try {
     await blogStore.fetchPost(slug.value)
@@ -280,6 +339,7 @@ const loadPost = async () => {
         excerpt: post.excerpt || '',
         content: post.content || '',
         category: post.category || '',
+        linked_subcategory_ids: post.linked_subcategory_ids || [],
         status: post.status || 'draft',
         is_featured: post.is_featured || false,
         meta_title: post.meta_title || '',
@@ -330,6 +390,12 @@ const submitForm = async () => {
           formData.append(key, String(parseInt(String(value))))
         } else if (key === 'is_featured') {
           formData.append(key, value ? 'true' : 'false')
+        } else if (key === 'linked_subcategory_ids') {
+          // Handle array of subcategory IDs
+          const subcategoryIds = value as number[]
+          subcategoryIds.forEach(id => {
+            formData.append('linked_subcategory_ids', String(id))
+          })
         } else {
           formData.append(key, String(value))
         }
@@ -347,10 +413,16 @@ const submitForm = async () => {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    blogStore.fetchCategories(),
-    loadPost()
-  ])
+  loadingSubcategories.value = true
+  try {
+    await Promise.all([
+      blogStore.fetchCategories(),
+      subcategoryStore.fetchSubcategories({ page_size: 1000 }),
+      loadPost()
+    ])
+  } finally {
+    loadingSubcategories.value = false
+  }
 })
 </script>
 

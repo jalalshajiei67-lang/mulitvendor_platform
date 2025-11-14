@@ -9,6 +9,13 @@ class BlogCategorySerializer(serializers.ModelSerializer):
     # Import CategorySerializer locally to avoid circular import issues
     linked_product_category = serializers.SerializerMethodField()
     linked_product_category_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    linked_subcategories = serializers.SerializerMethodField()
+    linked_subcategory_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
     post_count = serializers.SerializerMethodField()
     
     def get_linked_product_category(self, obj):
@@ -25,15 +32,50 @@ class BlogCategorySerializer(serializers.ModelSerializer):
                     'slug': obj.linked_product_category.slug,
                 }
         return None
+
+    def get_linked_subcategories(self, obj):
+        """Get linked subcategories data"""
+        try:
+            from products.serializers import SubcategorySerializer
+            return SubcategorySerializer(
+                obj.linked_subcategories.all(),
+                many=True,
+                context=self.context
+            ).data
+        except Exception:
+            # Fallback to basic data if serializer fails
+            return [
+                {
+                    'id': sub.id,
+                    'name': sub.name,
+                    'slug': sub.slug,
+                }
+                for sub in obj.linked_subcategories.all()
+            ]
     
     class Meta:
         model = BlogCategory
         fields = [
             'id', 'name', 'slug', 'description', 'color', 'is_active',
             'linked_product_category', 'linked_product_category_id',
+            'linked_subcategories', 'linked_subcategory_ids',
             'post_count', 'created_at', 'updated_at'
         ]
         read_only_fields = ['slug', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        subcategory_ids = validated_data.pop('linked_subcategory_ids', [])
+        instance = super().create(validated_data)
+        if subcategory_ids:
+            instance.linked_subcategories.set(subcategory_ids)
+        return instance
+
+    def update(self, instance, validated_data):
+        subcategory_ids = validated_data.pop('linked_subcategory_ids', None)
+        instance = super().update(instance, validated_data)
+        if subcategory_ids is not None:
+            instance.linked_subcategories.set(subcategory_ids)
+        return instance
     
     def get_post_count(self, obj):
         """Get count of published posts in this category"""
@@ -95,6 +137,13 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
     author_email = serializers.EmailField(source='author.email', read_only=True)
     category = BlogCategorySerializer(read_only=True)
     category_id = serializers.IntegerField(write_only=True)
+    linked_subcategories = serializers.SerializerMethodField()
+    linked_subcategory_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
     comments = BlogCommentSerializer(many=True, read_only=True)
     comment_count = serializers.SerializerMethodField()
 
@@ -103,6 +152,7 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'slug', 'excerpt', 'content', 'featured_image',
             'author', 'author_name', 'author_email', 'category', 'category_id',
+            'linked_subcategories', 'linked_subcategory_ids',
             'status', 'is_featured', 'view_count', 'comment_count',
             'reading_time', 'meta_title', 'meta_description',
             'comments', 'created_at', 'updated_at', 'published_at'
@@ -113,17 +163,65 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
         """Get count of approved comments"""
         return obj.comments.filter(is_approved=True).count()
 
+    def get_linked_subcategories(self, obj):
+        """Get linked subcategories data"""
+        try:
+            from products.serializers import SubcategorySerializer
+            return SubcategorySerializer(
+                obj.linked_subcategories.all(),
+                many=True,
+                context=self.context
+            ).data
+        except Exception:
+            # Fallback to basic data if serializer fails
+            return [
+                {
+                    'id': sub.id,
+                    'name': sub.name,
+                    'slug': sub.slug,
+                }
+                for sub in obj.linked_subcategories.all()
+            ]
+
+    def create(self, validated_data):
+        subcategory_ids = validated_data.pop('linked_subcategory_ids', [])
+        instance = super().create(validated_data)
+        if subcategory_ids:
+            instance.linked_subcategories.set(subcategory_ids)
+        return instance
+
+    def update(self, instance, validated_data):
+        subcategory_ids = validated_data.pop('linked_subcategory_ids', None)
+        instance = super().update(instance, validated_data)
+        if subcategory_ids is not None:
+            instance.linked_subcategories.set(subcategory_ids)
+        return instance
+
 class BlogPostCreateSerializer(serializers.ModelSerializer):
     """
     Serializer for creating blog posts
     """
+    linked_subcategory_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+
     class Meta:
         model = BlogPost
         fields = [
             'title', 'excerpt', 'content', 'featured_image',
-            'category', 'status', 'is_featured',
+            'category', 'linked_subcategory_ids', 'status', 'is_featured',
             'meta_title', 'meta_description'
         ]
+
+    def create(self, validated_data):
+        subcategory_ids = validated_data.pop('linked_subcategory_ids', [])
+        instance = super().create(validated_data)
+        if subcategory_ids:
+            instance.linked_subcategories.set(subcategory_ids)
+        return instance
 
 class BlogCommentCreateSerializer(serializers.ModelSerializer):
     """

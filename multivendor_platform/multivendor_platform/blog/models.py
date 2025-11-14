@@ -3,7 +3,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils.text import slugify
-from products.models import Category as ProductCategory
+from products.models import Category as ProductCategory, Subcategory
 
 User = get_user_model()
 
@@ -21,12 +21,20 @@ class BlogCategory(models.Model):
     
     # Optional link to product category
     linked_product_category = models.ForeignKey(
-        ProductCategory, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        ProductCategory,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
         related_name='blog_categories',
         help_text='Optional: Link this blog category to a product category'
+    )
+
+    # Optional link to multiple subcategories
+    linked_subcategories = models.ManyToManyField(
+        Subcategory,
+        related_name='blog_categories',
+        blank=True,
+        help_text='Select multiple subcategories for this blog category'
     )
     
     class Meta:
@@ -56,6 +64,12 @@ class BlogPost(models.Model):
     
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blog_posts')
     category = models.ForeignKey(BlogCategory, on_delete=models.CASCADE, related_name='blog_posts')
+    linked_subcategories = models.ManyToManyField(
+        Subcategory,
+        related_name='blog_posts',
+        blank=True,
+        help_text='Select subcategories for this blog post'
+    )
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True, blank=True)
     excerpt = models.TextField(max_length=500, help_text='Short description for blog listing')
