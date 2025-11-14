@@ -146,10 +146,10 @@ export default defineNuxtConfig({
           light: {
             dark: false,
             colors: {
-              // Pink Color Palette
-              primary: '#E91E63',           // pink
-              secondary: '#C2185B',         // pink-darken-2
-              accent: '#FF4081',            // pink-accent-2
+              // Green Color Palette
+              primary: '#4CAF50',           // green
+              secondary: '#388E3C',         // green-darken-2
+              accent: '#69F0AE',            // green-accent-2
               error: '#D32F2F',
               info: '#0277BD',
               success: '#2E7D32',
@@ -163,30 +163,30 @@ export default defineNuxtConfig({
               'on-success': '#FFFFFF',
               'on-background': '#212121',
               'on-surface': '#212121',
-              // Additional pink variants
-              'pink': '#E91E63',
-              'pink-lighten-5': '#FCE4EC',
-              'pink-lighten-4': '#F8BBD0',
-              'pink-lighten-3': '#F48FB1',
-              'pink-lighten-2': '#F06292',
-              'pink-lighten-1': '#EC407A',
-              'pink-darken-1': '#D81B60',
-              'pink-darken-2': '#C2185B',
-              'pink-darken-3': '#AD1457',
-              'pink-darken-4': '#880E4F',
-              'pink-accent-1': '#FF80AB',
-              'pink-accent-2': '#FF4081',
-              'pink-accent-3': '#F50057',
-              'pink-accent-4': '#C51162'
+              // Additional green variants
+              'green': '#4CAF50',
+              'green-lighten-5': '#E8F5E9',
+              'green-lighten-4': '#C8E6C9',
+              'green-lighten-3': '#A5D6A7',
+              'green-lighten-2': '#81C784',
+              'green-lighten-1': '#BBC863',
+              'green-darken-1': '#658C58',
+              'green-darken-2': '#388E3C',
+              'green-darken-3': '#2E7D32',
+              'green-darken-4': '#31694E',
+              'green-accent-1': '#B9F6CA',
+              'green-accent-2': '#69F0AE',
+              'green-accent-3': '#00E676',
+              'green-accent-4': '#00C853'
             }
           },
           dark: {
             dark: true,
             colors: {
-              // Pink Color Palette for Dark Theme
-              primary: '#F06292',           // pink-lighten-2 (lighter for dark theme)
-              secondary: '#F48FB1',         // pink-lighten-3
-              accent: '#FF80AB',            // pink-accent-1
+              // Green Color Palette for Dark Theme
+              primary: '#81C784',           // green-lighten-2 (lighter for dark theme)
+              secondary: '#A5D6A7',         // green-lighten-3
+              accent: '#B9F6CA',            // green-accent-1
               error: '#EF5350',
               info: '#42A5F5',
               success: '#66BB6A',
@@ -200,21 +200,21 @@ export default defineNuxtConfig({
               'on-success': '#FFFFFF',
               'on-background': '#E1E1E1',
               'on-surface': '#E1E1E1',
-              // Additional pink variants
-              'pink': '#E91E63',
-              'pink-lighten-5': '#FCE4EC',
-              'pink-lighten-4': '#F8BBD0',
-              'pink-lighten-3': '#F48FB1',
-              'pink-lighten-2': '#F06292',
-              'pink-lighten-1': '#EC407A',
-              'pink-darken-1': '#D81B60',
-              'pink-darken-2': '#C2185B',
-              'pink-darken-3': '#AD1457',
-              'pink-darken-4': '#880E4F',
-              'pink-accent-1': '#FF80AB',
-              'pink-accent-2': '#FF4081',
-              'pink-accent-3': '#F50057',
-              'pink-accent-4': '#C51162'
+              // Additional green variants
+              'green': '#4CAF50',
+              'green-lighten-5': '#E8F5E9',
+              'green-lighten-4': '#C8E6C9',
+              'green-lighten-3': '#A5D6A7',
+              'green-lighten-2': '#81C784',
+              'green-lighten-1': '#BBC863',
+              'green-darken-1': '#658C58',
+              'green-darken-2': '#388E3C',
+              'green-darken-3': '#2E7D32',
+              'green-darken-4': '#31694E',
+              'green-accent-1': '#B9F6CA',
+              'green-accent-2': '#69F0AE',
+              'green-accent-3': '#00E676',
+              'green-accent-4': '#00C853'
             }
           }
         }
