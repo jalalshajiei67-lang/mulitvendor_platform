@@ -320,7 +320,7 @@ export default {
         pending: 'warning',
         confirmed: 'info',
         processing: 'primary',
-        shipped: 'cyan',
+        shipped: 'pink',
         delivered: 'success',
         cancelled: 'error',
         rejected: 'error'

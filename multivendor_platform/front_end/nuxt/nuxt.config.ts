@@ -146,10 +146,10 @@ export default defineNuxtConfig({
           light: {
             dark: false,
             colors: {
-              // Cyan Color Palette
-              primary: '#00BCD4',           // cyan
-              secondary: '#0097A7',         // cyan-darken-2
-              accent: '#18FFFF',            // cyan-accent-2
+              // Pink Color Palette
+              primary: '#E91E63',           // pink
+              secondary: '#C2185B',         // pink-darken-2
+              accent: '#FF4081',            // pink-accent-2
               error: '#D32F2F',
               info: '#0277BD',
               success: '#2E7D32',
@@ -158,63 +158,63 @@ export default defineNuxtConfig({
               surface: '#FFFFFF',
               'on-primary': '#FFFFFF',
               'on-secondary': '#FFFFFF',
-              'on-accent': '#212121',
+              'on-accent': '#FFFFFF',
               'on-error': '#FFFFFF',
               'on-success': '#FFFFFF',
               'on-background': '#212121',
               'on-surface': '#212121',
-              // Additional cyan variants
-              'cyan': '#00BCD4',
-              'cyan-lighten-5': '#E0F7FA',
-              'cyan-lighten-4': '#B2EBF2',
-              'cyan-lighten-3': '#80DEEA',
-              'cyan-lighten-2': '#4DD0E1',
-              'cyan-lighten-1': '#26C6DA',
-              'cyan-darken-1': '#00ACC1',
-              'cyan-darken-2': '#0097A7',
-              'cyan-darken-3': '#00838F',
-              'cyan-darken-4': '#006064',
-              'cyan-accent-1': '#84FFFF',
-              'cyan-accent-2': '#18FFFF',
-              'cyan-accent-3': '#00E5FF',
-              'cyan-accent-4': '#00B8D4'
+              // Additional pink variants
+              'pink': '#E91E63',
+              'pink-lighten-5': '#FCE4EC',
+              'pink-lighten-4': '#F8BBD0',
+              'pink-lighten-3': '#F48FB1',
+              'pink-lighten-2': '#F06292',
+              'pink-lighten-1': '#EC407A',
+              'pink-darken-1': '#D81B60',
+              'pink-darken-2': '#C2185B',
+              'pink-darken-3': '#AD1457',
+              'pink-darken-4': '#880E4F',
+              'pink-accent-1': '#FF80AB',
+              'pink-accent-2': '#FF4081',
+              'pink-accent-3': '#F50057',
+              'pink-accent-4': '#C51162'
             }
           },
           dark: {
             dark: true,
             colors: {
-              // Cyan Color Palette for Dark Theme
-              primary: '#4DD0E1',           // cyan-lighten-2 (lighter for dark theme)
-              secondary: '#80DEEA',         // cyan-lighten-3
-              accent: '#84FFFF',            // cyan-accent-1
+              // Pink Color Palette for Dark Theme
+              primary: '#F06292',           // pink-lighten-2 (lighter for dark theme)
+              secondary: '#F48FB1',         // pink-lighten-3
+              accent: '#FF80AB',            // pink-accent-1
               error: '#EF5350',
               info: '#42A5F5',
               success: '#66BB6A',
               warning: '#FFA726',
               background: '#121212',
               surface: '#1E1E1E',
-              'on-primary': '#212121',
-              'on-secondary': '#212121',
-              'on-accent': '#212121',
+              'on-primary': '#FFFFFF',
+              'on-secondary': '#FFFFFF',
+              'on-accent': '#FFFFFF',
               'on-error': '#FFFFFF',
               'on-success': '#FFFFFF',
               'on-background': '#E1E1E1',
               'on-surface': '#E1E1E1',
-              // Additional cyan variants
-              'cyan': '#00BCD4',
-              'cyan-lighten-5': '#E0F7FA',
-              'cyan-lighten-4': '#B2EBF2',
-              'cyan-lighten-3': '#80DEEA',
-              'cyan-lighten-2': '#4DD0E1',
-              'cyan-lighten-1': '#26C6DA',
-              'cyan-darken-1': '#00ACC1',
-              'cyan-darken-2': '#0097A7',
-              'cyan-darken-3': '#00838F',
-              'cyan-darken-4': '#006064',
-              'cyan-accent-1': '#84FFFF',
-              'cyan-accent-2': '#18FFFF',
-              'cyan-accent-3': '#00E5FF',
-              'cyan-accent-4': '#00B8D4'
+              // Additional pink variants
+              'pink': '#E91E63',
+              'pink-lighten-5': '#FCE4EC',
+              'pink-lighten-4': '#F8BBD0',
+              'pink-lighten-3': '#F48FB1',
+              'pink-lighten-2': '#F06292',
+              'pink-lighten-1': '#EC407A',
+              'pink-darken-1': '#D81B60',
+              'pink-darken-2': '#C2185B',
+              'pink-darken-3': '#AD1457',
+              'pink-darken-4': '#880E4F',
+              'pink-accent-1': '#FF80AB',
+              'pink-accent-2': '#FF4081',
+              'pink-accent-3': '#F50057',
+              'pink-accent-4': '#C51162'
             }
           }
         }

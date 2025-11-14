@@ -30,10 +30,20 @@
             density="comfortable"
             variant="outlined"
             placeholder="ایمیل شما"
-            append-inner-icon="mdi-send"
             hide-details
             class="mt-3"
-          />
+            @keyup.enter="submitNewsletter"
+          >
+            <template #prepend-inner>
+              <v-btn
+                icon="mdi-send"
+                variant="text"
+                size="small"
+                @click="submitNewsletter"
+                class="mr-2"
+              />
+            </template>
+          </v-text-field>
         </v-col>
       </v-row>
 
@@ -57,6 +67,26 @@ const quickLinks = [
 ]
 
 const currentYear = new Date().getFullYear()
+
+const submitNewsletter = async () => {
+  if (!newsletter.value || !newsletter.value.trim()) {
+    return
+  }
+
+  try {
+    // TODO: Implement newsletter subscription API call
+    console.log('Subscribing email:', newsletter.value)
+    // Example: await $fetch('/api/newsletter/subscribe', { method: 'POST', body: { email: newsletter.value } })
+    
+    // Clear input after successful submission
+    newsletter.value = ''
+    
+    // TODO: Show success message (e.g., using snackbar)
+  } catch (error) {
+    console.error('Newsletter subscription error:', error)
+    // TODO: Show error message
+  }
+}
 </script>
 
 <style scoped>

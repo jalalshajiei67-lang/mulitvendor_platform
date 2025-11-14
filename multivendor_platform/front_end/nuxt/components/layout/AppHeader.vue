@@ -3,6 +3,9 @@
     <v-app-bar density="comfortable" color="white" elevation="1" class="app-header">
       <v-container class="d-flex align-center justify-space-between py-2" fluid>
         <div class="d-flex align-center gap-3">
+          <v-btn icon variant="text" class="d-md-none" @click="toggleDrawer">
+            <v-icon>mdi-menu</v-icon>
+          </v-btn>
           <NuxtLink to="/" class="d-flex align-center text-decoration-none logo">
             <v-avatar size="40" class="bg-primary/10">
               <span class="text-primary text-h6 font-weight-bold">ای</span>
@@ -42,9 +45,6 @@
               ثبت‌نام
             </v-btn>
           </template>
-          <v-btn icon variant="text" class="d-md-none" @click="toggleDrawer">
-            <v-icon>mdi-menu</v-icon>
-          </v-btn>
         </div>
       </v-container>
     </v-app-bar>
