@@ -90,7 +90,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(primary_category=category_id)
         
         # Filter by subcategory (using M2M relationship)
-        subcategory_id = self.request.query_params.get('subcategories', None)
+        # Support both 'subcategory' (singular) and 'subcategories' (plural) parameter names
+        subcategory_id = self.request.query_params.get('subcategories') or self.request.query_params.get('subcategory')
         if subcategory_id is not None:
             queryset = queryset.filter(subcategories__id=subcategory_id)
         
