@@ -7,10 +7,10 @@
             <v-icon>mdi-chevron-left</v-icon>
           </template>
         </v-breadcrumbs>
-        <h1 class="text-h3 text-md-h2 font-weight-bold mb-4 text-center">
+        <h1 class="text-h3 text-md-h2 font-weight-bold mb-4 text-center readable-heading">
           {{ t('blog') }}
         </h1>
-        <p class="text-subtitle-1 text-md-h5 opacity-90 mx-auto max-w-600 text-center">
+        <p class="text-subtitle-1 text-md-h5 opacity-90 mx-auto max-w-600 text-center readable-text">
           {{ t('discoverInsights') }}
         </p>
       </v-container>
@@ -45,7 +45,7 @@
 
       <section v-if="!selectedCategory && featuredPosts.length" class="mb-12">
         <header class="d-flex justify-space-between align-center mb-5">
-          <h2 class="text-h4 font-weight-bold mb-0">{{ t('featuredPosts') }}</h2>
+          <h2 class="text-h4 font-weight-bold mb-0 readable-heading">{{ t('featuredPosts') }}</h2>
           <v-btn variant="text" color="primary" @click="goToFirstFeatured">
             {{ t('view') }}
             <v-icon class="mr-2">mdi-arrow-left</v-icon>
@@ -65,7 +65,7 @@
 
       <section>
         <header class="d-flex flex-column flex-md-row-reverse justify-space-between align-center gap-4 mb-6">
-          <h2 class="text-h4 font-weight-bold mb-0">
+          <h2 class="text-h4 font-weight-bold mb-0 readable-heading">
             {{ selectedCategory ? `${selectedCategory.name} ${t('posts')}` : t('allPosts') }}
           </h2>
           <div class="d-flex gap-2">
@@ -120,8 +120,8 @@
 
           <v-card v-else elevation="1" rounded="xl" class="pa-10 text-center">
             <v-icon size="56" color="primary" class="mb-4">mdi-notebook</v-icon>
-            <h3 class="text-h6 mb-2">{{ t('noBlogPostsAvailable') }}</h3>
-            <p class="text-body-2 text-medium-emphasis mb-6">
+            <h3 class="text-h6 mb-2 readable-heading">{{ t('noBlogPostsAvailable') }}</h3>
+            <p class="text-body-2 text-medium-emphasis mb-6 readable-text">
               {{ t('discoverInsights') }}
             </p>
             <v-btn color="primary" @click="fetchInitial">
@@ -260,6 +260,43 @@ watch(
 
 .max-w-600 {
   max-width: 600px;
+}
+
+/* Typography improvements for readability */
+.readable-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.readable-heading {
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+}
+
+.readable-heading h1,
+.readable-heading h2,
+.readable-heading h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+/* Section spacing */
+section {
+  margin-bottom: 2rem;
+}
+
+section header {
+  margin-bottom: 1.5rem;
+}
+
+/* Empty state text */
+.v-card .readable-text {
+  max-width: 65ch;
+  margin: 0 auto;
+  text-align: center;
 }
 </style>
 

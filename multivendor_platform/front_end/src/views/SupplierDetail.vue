@@ -64,14 +64,14 @@
               </v-avatar>
             </v-col>
             <v-col cols="12" md="9">
-              <h1 class="text-h4 text-sm-h3 font-weight-bold mb-2">
+              <h1 class="text-h4 text-sm-h3 font-weight-bold mb-2 readable-heading">
                 {{ supplier.store_name }}
               </h1>
-              <p v-if="supplier.user && (supplier.user.first_name || supplier.user.last_name)" class="text-subtitle-1 text-medium-emphasis mb-1">
+              <p v-if="supplier.user && (supplier.user.first_name || supplier.user.last_name)" class="text-subtitle-1 text-medium-emphasis mb-1 meta-text">
                   <v-icon size="small" class="me-1">mdi-account</v-icon>
                 مالک: {{ supplier.user.first_name }} {{ supplier.user.last_name }}
               </p>
-              <p class="text-body-1 text-medium-emphasis mb-3">
+              <p class="text-body-1 text-medium-emphasis mb-3 readable-text">
                 {{ supplier.description }}
               </p>
               
@@ -154,7 +154,7 @@
             <!-- About Tab -->
             <v-window-item value="about">
               <div class="content-section">
-                <h2 class="text-h5 font-weight-bold mb-4">درباره {{ supplier.store_name }}</h2>
+                <h2 class="text-h5 font-weight-bold mb-4 readable-heading">درباره {{ supplier.store_name }}</h2>
                 
                 <!-- User Profile Information -->
                 <v-card v-if="supplier.user" elevation="0" color="grey-lighten-4" class="mb-4" rounded="lg">
@@ -183,17 +183,17 @@
                 </v-card>
                 
                 <!-- About Content -->
-                <p class="text-body-1" style="white-space: pre-line;">
+                <p class="text-body-1 description-text" style="white-space: pre-line;">
                   {{ supplier.about || 'اطلاعاتی در دسترس نیست.' }}
                 </p>
                 
                 <!-- Address -->
                 <div v-if="supplier.address" class="mt-4">
-                  <h3 class="text-h6 font-weight-bold mb-2">
+                  <h3 class="text-h6 font-weight-bold mb-2 readable-heading">
                     <v-icon color="primary">mdi-map-marker</v-icon>
                     آدرس
                   </h3>
-                  <p class="text-body-1">{{ supplier.address }}</p>
+                  <p class="text-body-1 readable-text">{{ supplier.address }}</p>
                 </div>
               </div>
             </v-window-item>
@@ -201,8 +201,8 @@
             <!-- Work Resume Tab -->
             <v-window-item value="resume">
               <div class="content-section">
-                <h2 class="text-h5 font-weight-bold mb-4">رزومه کاری</h2>
-                <p class="text-body-1" style="white-space: pre-line;">
+                <h2 class="text-h5 font-weight-bold mb-4 readable-heading">رزومه کاری</h2>
+                <p class="text-body-1 description-text" style="white-space: pre-line;">
                   {{ supplier.work_resume || 'اطلاعاتی در دسترس نیست.' }}
                 </p>
               </div>
@@ -211,8 +211,8 @@
             <!-- Successful Projects Tab -->
             <v-window-item value="projects">
               <div class="content-section">
-                <h2 class="text-h5 font-weight-bold mb-4">پروژه‌های موفق</h2>
-                <p class="text-body-1" style="white-space: pre-line;">
+                <h2 class="text-h5 font-weight-bold mb-4 readable-heading">پروژه‌های موفق</h2>
+                <p class="text-body-1 description-text" style="white-space: pre-line;">
                   {{ supplier.successful_projects || 'اطلاعاتی در دسترس نیست.' }}
                 </p>
               </div>
@@ -221,8 +221,8 @@
             <!-- History Tab -->
             <v-window-item value="history">
               <div class="content-section">
-                <h2 class="text-h5 font-weight-bold mb-4">تاریخچه</h2>
-                <p class="text-body-1" style="white-space: pre-line;">
+                <h2 class="text-h5 font-weight-bold mb-4 readable-heading">تاریخچه</h2>
+                <p class="text-body-1 description-text" style="white-space: pre-line;">
                   {{ supplier.history || 'اطلاعاتی در دسترس نیست.' }}
                 </p>
               </div>
@@ -231,7 +231,7 @@
             <!-- Products Tab -->
             <v-window-item value="products">
               <div class="content-section">
-                <h2 class="text-h5 font-weight-bold mb-4">محصولات</h2>
+                <h2 class="text-h5 font-weight-bold mb-4 readable-heading">محصولات</h2>
                 
                 <!-- Products Loading -->
                 <v-row v-if="productsLoading" justify="center" class="my-8">
@@ -278,7 +278,7 @@
             <!-- Comments Tab -->
             <v-window-item value="comments">
               <div class="content-section">
-                <h2 class="text-h5 font-weight-bold mb-4">نظرات کاربران</h2>
+                <h2 class="text-h5 font-weight-bold mb-4 readable-heading">نظرات کاربران</h2>
 
                 <!-- Comment Form -->
                 <v-card elevation="1" rounded="lg" class="mb-6" v-if="authStore.isAuthenticated">
@@ -379,10 +379,10 @@
                           ></v-rating>
                         </div>
                         
-                        <h4 v-if="comment.title" class="text-subtitle-1 font-weight-bold mb-2">
+                        <h4 v-if="comment.title" class="text-subtitle-1 font-weight-bold mb-2 readable-heading">
                           {{ comment.title }}
                         </h4>
-                        <p class="text-body-2">{{ comment.comment }}</p>
+                        <p class="text-body-2 comment-text">{{ comment.comment }}</p>
 
                         <!-- Supplier Reply -->
                         <v-alert
@@ -636,6 +636,49 @@ export default {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* Typography improvements */
+.readable-heading {
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+}
+
+.readable-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.meta-text {
+  line-height: 1.6;
+  color: rgba(var(--v-theme-on-surface), 0.72);
+  font-size: 0.875rem;
+}
+
+.description-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  white-space: pre-line;
+}
+
+.comment-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.content-section h2 {
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+}
+
+.content-section p {
+  line-height: 1.75;
 }
 </style>
 

@@ -5,10 +5,10 @@
       <v-container fluid class="pa-0">
         <v-row no-gutters justify="center" align="center" class="hero-content">
           <v-col cols="12" class="text-center pa-8 pa-md-12">
-            <h1 class="text-h3 text-md-h2 text-lg-h1 font-weight-bold mb-4 text-white">
+            <h1 class="text-h3 text-md-h2 text-lg-h1 font-weight-bold mb-4 text-white readable-heading">
               {{ t('blog') }}
             </h1>
-            <p class="text-h6 text-md-h5 text-white opacity-90 max-width-600 mx-auto">
+            <p class="text-h6 text-md-h5 text-white opacity-90 max-width-600 mx-auto readable-text">
               {{ t('discoverInsights') }}
             </p>
           </v-col>
@@ -57,7 +57,7 @@
     <v-container class="py-8 py-md-12">
       <!-- Featured Posts Section -->
       <section v-if="!selectedCategory && featuredPosts.length > 0" class="mb-12">
-        <h2 class="text-h4 text-md-h3 font-weight-bold mb-6">{{ t('featuredPosts') }}</h2>
+        <h2 class="text-h4 text-md-h3 font-weight-bold mb-6 readable-heading">{{ t('featuredPosts') }}</h2>
         <v-row>
           <v-col
             v-for="post in featuredPosts.slice(0, 3)"
@@ -95,10 +95,10 @@
                   {{ post.category_name }}
                 </v-chip>
                 
-                <h3 class="text-h6 text-md-h5 font-weight-bold mb-3">{{ post.title }}</h3>
-                <p class="text-body-2 text-medium-emphasis mb-4">{{ post.excerpt }}</p>
+                <h3 class="text-h6 text-md-h5 font-weight-bold mb-3 readable-heading">{{ post.title }}</h3>
+                <p class="text-body-2 text-medium-emphasis mb-4 excerpt-text">{{ post.excerpt }}</p>
                 
-                <div class="d-flex align-center flex-wrap ga-3 text-caption text-medium-emphasis">
+                <div class="d-flex align-center flex-wrap ga-3 text-caption text-medium-emphasis meta-text">
                   <span class="d-flex align-center">
                     <v-icon size="small" class="ml-1">mdi-account</v-icon>
                     {{ post.author_name }}
@@ -121,7 +121,7 @@
       <!-- Posts Section -->
       <section class="posts-section">
         <div class="d-flex justify-space-between align-center mb-6 flex-column-reverse flex-md-row-reverse ga-4">
-          <h2 class="text-h4 text-md-h3 font-weight-bold mb-0">
+          <h2 class="text-h4 text-md-h3 font-weight-bold mb-0 readable-heading">
             {{ selectedCategory ? `${selectedCategory.name} ${t('posts')}` : t('allPosts') }}
           </h2>
           <div class="d-flex ga-2">
@@ -224,10 +224,10 @@
                   </div>
                 </div>
                 
-                <h3 class="text-h6 font-weight-bold mb-2">{{ post.title }}</h3>
-                <p class="text-body-2 text-medium-emphasis mb-4">{{ post.excerpt }}</p>
+                <h3 class="text-h6 font-weight-bold mb-2 readable-heading">{{ post.title }}</h3>
+                <p class="text-body-2 text-medium-emphasis mb-4 excerpt-text">{{ post.excerpt }}</p>
                 
-                <div class="d-flex justify-space-between align-center flex-wrap ga-2 text-caption text-medium-emphasis">
+                <div class="d-flex justify-space-between align-center flex-wrap ga-2 text-caption text-medium-emphasis meta-text">
                   <div class="d-flex align-center flex-wrap ga-2">
                     <span>{{ post.author_name }}</span>
                     <span>•</span>
@@ -298,10 +298,10 @@
                       </div>
                     </div>
                     
-                    <h3 class="text-h6 text-md-h5 font-weight-bold mb-2">{{ post.title }}</h3>
-                    <p class="text-body-2 text-medium-emphasis mb-4">{{ post.excerpt }}</p>
+                    <h3 class="text-h6 text-md-h5 font-weight-bold mb-2 readable-heading">{{ post.title }}</h3>
+                    <p class="text-body-2 text-medium-emphasis mb-4 excerpt-text">{{ post.excerpt }}</p>
                     
-                    <div class="d-flex justify-space-between align-center flex-wrap ga-2 text-caption text-medium-emphasis">
+                    <div class="d-flex justify-space-between align-center flex-wrap ga-2 text-caption text-medium-emphasis meta-text">
                       <div class="d-flex align-center flex-wrap ga-2">
                         <span class="d-flex align-center">
                           <v-icon size="x-small" class="ml-1">mdi-account</v-icon>
@@ -328,8 +328,8 @@
         <!-- Empty State -->
         <v-card v-else elevation="2" rounded="lg" class="pa-12 text-center">
           <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-newspaper-variant</v-icon>
-          <h3 class="text-h6 mb-2">{{ t('noPostsFound') }}</h3>
-          <p class="text-body-2 text-medium-emphasis">
+          <h3 class="text-h6 mb-2 readable-heading">{{ t('noPostsFound') }}</h3>
+          <p class="text-body-2 text-medium-emphasis readable-text">
             {{ selectedCategory ? t('noPostsInCategory') : t('noBlogPostsAvailable') }}
           </p>
         </v-card>
@@ -576,6 +576,46 @@ export default {
 
 .no-image {
   background-color: #f5f5f5;
+}
+
+/* Typography improvements */
+.readable-heading {
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+}
+
+.readable-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.meta-text {
+  line-height: 1.6;
+  color: rgba(var(--v-theme-on-surface), 0.72);
+  font-size: 0.875rem;
+}
+
+.excerpt-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+/* Card text improvements */
+.post-card h3,
+.post-card-list h3,
+.featured-card h3 {
+  line-height: 1.4;
+}
+
+.post-card p,
+.post-card-list p,
+.featured-card p {
+  line-height: 1.75;
 }
 
 /* Mobile Responsive */

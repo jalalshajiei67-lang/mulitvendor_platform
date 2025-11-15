@@ -29,7 +29,7 @@
     </div>
 
     <v-card-text :class="variant === 'list' ? 'pa-6' : 'pa-5'">
-      <div class="d-flex gap-3 align-center mb-3 text-caption text-medium-emphasis flex-wrap">
+      <div class="d-flex gap-3 align-center mb-3 text-caption text-medium-emphasis flex-wrap meta-text">
         <span class="d-flex align-center">
           <v-icon size="16" class="ml-1">mdi-account</v-icon>
           {{ post.author_name }}
@@ -44,10 +44,10 @@
         </span>
       </div>
 
-      <h3 class="text-h6 text-md-h5 font-weight-bold mb-3">
+      <h3 class="text-h6 text-md-h5 font-weight-bold mb-3 readable-heading">
         {{ post.title }}
       </h3>
-      <p class="text-body-2 text-medium-emphasis line-clamp-3">
+      <p class="text-body-2 text-medium-emphasis line-clamp-3 excerpt-text">
         {{ post.excerpt }}
       </p>
 
@@ -142,6 +142,27 @@ const formatDate = (value: string) =>
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Typography improvements */
+.readable-heading {
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+}
+
+.meta-text {
+  line-height: 1.6;
+  color: rgba(var(--v-theme-on-surface), 0.72);
+  font-size: 0.875rem;
+}
+
+.excerpt-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  margin-bottom: 0.5rem;
 }
 </style>
 

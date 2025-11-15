@@ -11,14 +11,14 @@
           <v-chip v-if="post.category_name" class="mb-4" size="small" color="rgba(255,255,255,0.24)">
             {{ post.category_name }}
           </v-chip>
-          <h1 class="text-h3 text-md-h1 font-weight-bold mb-4">
+          <h1 class="text-h3 text-md-h1 font-weight-bold mb-4 readable-heading">
             {{ post.title }}
           </h1>
-          <p class="text-body-1 text-md-h5 opacity-90">
+          <p class="text-body-1 text-md-h5 opacity-90 readable-text">
             {{ post.excerpt }}
           </p>
 
-          <div class="d-flex flex-wrap gap-4 mt-6 text-body-2 text-md-subtitle-2">
+          <div class="d-flex flex-wrap gap-4 mt-6 text-body-2 text-md-subtitle-2 meta-text">
             <span class="d-flex align-center">
               <v-icon size="18" class="ml-2">mdi-account</v-icon>
               {{ post.author_name }}
@@ -59,12 +59,12 @@
                 </div>
               </template>
             </v-img>
-            <article class="content" v-html="post.content" />
+            <article class="content content-body" v-html="post.content" />
           </v-card>
 
           <section class="mb-12">
             <div class="d-flex align-center justify-space-between mb-6">
-              <h2 class="text-h5 font-weight-bold">{{ t('comments') }}</h2>
+              <h2 class="text-h5 font-weight-bold readable-heading">{{ t('comments') }}</h2>
               <v-btn
                 v-if="!isAuthenticated"
                 color="primary"
@@ -114,10 +114,10 @@
                 <v-list-item-title class="font-weight-medium mb-1">
                   {{ comment.author_name || 'کاربر' }}
                 </v-list-item-title>
-                <v-list-item-subtitle class="text-caption text-medium-emphasis mb-3">
+                <v-list-item-subtitle class="text-caption text-medium-emphasis mb-3 meta-text">
                   {{ formatDate(comment.created_at) }}
                 </v-list-item-subtitle>
-                <div class="text-body-2">
+                <div class="text-body-2 comment-text">
                   {{ comment.content }}
                 </div>
               </v-list-item>
@@ -127,7 +127,7 @@
 
         <v-col cols="12" md="4">
           <v-card elevation="2" rounded="xl" class="pa-6 mb-8">
-            <h3 class="text-subtitle-1 font-weight-bold mb-4">{{ t('recentPosts') }}</h3>
+            <h3 class="text-subtitle-1 font-weight-bold mb-4 readable-heading">{{ t('recentPosts') }}</h3>
             <v-list lines="one" density="comfortable">
               <v-list-item
                 v-for="item in recentPosts.slice(0, 5)"
@@ -151,7 +151,7 @@
             rounded="xl"
             class="pa-6"
           >
-            <h3 class="text-subtitle-1 font-weight-bold mb-4">{{ t('relatedPosts') }}</h3>
+            <h3 class="text-subtitle-1 font-weight-bold mb-4 readable-heading">{{ t('relatedPosts') }}</h3>
             <v-list lines="two" density="comfortable">
               <v-list-item
                 v-for="item in relatedPosts"
@@ -289,27 +289,133 @@ useSeoMeta({
   pointer-events: none;
 }
 
-.blog-detail .content :deep(img) {
+/* Typography improvements */
+.readable-heading {
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+}
+
+.readable-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.meta-text {
+  line-height: 1.6;
+  color: rgba(var(--v-theme-on-surface), 0.72);
+  font-size: 0.875rem;
+}
+
+/* Content body styling */
+.content-body {
+  max-width: 100%;
+  line-height: 1.8;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+}
+
+.blog-detail .content-body :deep(img) {
   max-width: 100%;
   border-radius: 16px;
   margin: 2rem 0;
+  box-shadow: 0 4px 12px rgba(var(--v-theme-on-surface), 0.1);
 }
 
-.blog-detail .content :deep(h2),
-.blog-detail .content :deep(h3),
-.blog-detail .content :deep(h4) {
+.blog-detail .content-body :deep(h1),
+.blog-detail .content-body :deep(h2),
+.blog-detail .content-body :deep(h3),
+.blog-detail .content-body :deep(h4),
+.blog-detail .content-body :deep(h5),
+.blog-detail .content-body :deep(h6) {
   margin-top: 2.5rem;
   margin-bottom: 1rem;
   font-weight: 700;
+  line-height: 1.4;
+  color: rgba(var(--v-theme-on-surface), 0.96);
 }
 
-.blog-detail .content :deep(p) {
-  line-height: 2.2;
-  margin-bottom: 1rem;
+.blog-detail .content-body :deep(h1) {
+  font-size: 2.5rem;
+}
+
+.blog-detail .content-body :deep(h2) {
+  font-size: 2rem;
+}
+
+.blog-detail .content-body :deep(h3) {
+  font-size: 1.75rem;
+}
+
+.blog-detail .content-body :deep(h4) {
+  font-size: 1.5rem;
+}
+
+.blog-detail .content-body :deep(p) {
+  line-height: 1.8;
+  margin-bottom: 1.5rem;
   color: rgba(var(--v-theme-on-surface), 0.87);
   font-size: 1.05rem;
+  text-align: justify;
+  max-width: 65ch;
 }
 
+.blog-detail .content-body :deep(ul),
+.blog-detail .content-body :deep(ol) {
+  margin: 1.5rem 0;
+  padding-right: 2rem;
+  line-height: 1.8;
+}
+
+.blog-detail .content-body :deep(li) {
+  margin-bottom: 0.75rem;
+  line-height: 1.8;
+}
+
+.blog-detail .content-body :deep(blockquote) {
+  border-right: 4px solid rgba(var(--v-theme-primary), 0.5);
+  padding-right: 1.5rem;
+  margin: 2rem 0;
+  font-style: italic;
+  color: rgba(var(--v-theme-on-surface), 0.75);
+  line-height: 1.8;
+}
+
+.blog-detail .content-body :deep(a) {
+  color: rgb(var(--v-theme-primary));
+  text-decoration: underline;
+  transition: opacity 0.2s ease;
+}
+
+.blog-detail .content-body :deep(a:hover) {
+  opacity: 0.8;
+}
+
+.blog-detail .content-body :deep(code) {
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'Courier New', monospace;
+}
+
+.blog-detail .content-body :deep(pre) {
+  background-color: rgba(var(--v-theme-on-surface), 0.05);
+  padding: 1.5rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 2rem 0;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+}
+
+.blog-detail .content-body :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
+}
+
+/* Comments styling */
 .comment-list {
   background-color: transparent;
 }
@@ -318,6 +424,25 @@ useSeoMeta({
   border-radius: 16px;
   border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   margin-bottom: 16px;
+  padding: 1rem;
+}
+
+.comment-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  margin-top: 0.5rem;
+}
+
+/* Sidebar text improvements */
+.v-list-item-title {
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.v-list-item-subtitle {
+  line-height: 1.4;
+  color: rgba(var(--v-theme-on-surface), 0.68);
 }
 </style>
 

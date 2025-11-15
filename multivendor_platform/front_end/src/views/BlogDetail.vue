@@ -51,7 +51,7 @@
             >
               {{ post.category_name }}
             </v-chip>
-            <div class="d-flex align-center flex-wrap ga-4 text-body-2 text-medium-emphasis">
+            <div class="d-flex align-center flex-wrap ga-4 text-body-2 text-medium-emphasis meta-text">
               <span class="d-flex align-center">
                 <v-icon size="small" class="ml-1">mdi-eye</v-icon>
                 {{ post.view_count }} {{ t('views') }}
@@ -68,10 +68,10 @@
           </div>
 
           <!-- Post Title -->
-          <h1 class="text-h4 text-md-h3 text-lg-h2 font-weight-bold mb-4">{{ post.title }}</h1>
+          <h1 class="text-h4 text-md-h3 text-lg-h2 font-weight-bold mb-4 readable-heading">{{ post.title }}</h1>
 
           <!-- Post Excerpt -->
-          <p v-if="post.excerpt" class="text-h6 text-md-h5 text-medium-emphasis mb-6">
+          <p v-if="post.excerpt" class="text-h6 text-md-h5 text-medium-emphasis mb-6 readable-text">
             {{ post.excerpt }}
           </p>
 
@@ -149,7 +149,7 @@
 
             <!-- Comments Section -->
             <v-card elevation="2" rounded="xl" class="pa-6 pa-md-8">
-              <h3 class="text-h5 font-weight-bold mb-6">
+              <h3 class="text-h5 font-weight-bold mb-6 readable-heading">
                 {{ t('comments') }} ({{ post.comment_count }})
               </h3>
 
@@ -211,7 +211,7 @@
                           {{ formatDate(comment.created_at) }}
                         </span>
                       </div>
-                      <div class="text-body-2 mb-2">{{ comment.content }}</div>
+                      <div class="text-body-2 mb-2 comment-text">{{ comment.content }}</div>
                       <v-btn
                         v-if="isAuthenticated"
                         @click="replyToComment(comment)"
@@ -245,7 +245,7 @@
                 rounded="xl"
                 class="pa-4 pa-md-6 mb-6"
               >
-                <h3 class="text-h6 font-weight-bold mb-4">{{ t('relatedPosts') }}</h3>
+                <h3 class="text-h6 font-weight-bold mb-4 readable-heading">{{ t('relatedPosts') }}</h3>
                 <div class="related-posts">
                   <div
                     v-for="relatedPost in relatedPosts"
@@ -287,7 +287,7 @@
                 rounded="xl"
                 class="pa-4 pa-md-6"
               >
-                <h3 class="text-h6 font-weight-bold mb-4">{{ t('popularPosts') }}</h3>
+                <h3 class="text-h6 font-weight-bold mb-4 readable-heading">{{ t('popularPosts') }}</h3>
                 <div class="popular-posts">
                   <div
                     v-for="popularPost in popularPosts.slice(0, 5)"
@@ -592,14 +592,45 @@ export default {
   width: 100%;
 }
 
+/* Typography improvements */
+.readable-heading {
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+}
+
+.readable-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.meta-text {
+  line-height: 1.6;
+  color: rgba(var(--v-theme-on-surface), 0.72);
+  font-size: 0.875rem;
+}
+
+.comment-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
 .content-body {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   line-height: 1.8;
-  color: #212121;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  max-width: 100%;
 }
 
 .content-body :deep(p) {
   margin-bottom: 1.5rem;
+  text-align: justify;
+  max-width: 65ch;
 }
 
 .content-body :deep(h1),
@@ -608,51 +639,83 @@ export default {
 .content-body :deep(h4),
 .content-body :deep(h5),
 .content-body :deep(h6) {
-  margin-top: 2rem;
+  margin-top: 2.5rem;
   margin-bottom: 1rem;
-  font-weight: 600;
-  color: #212121;
+  font-weight: 700;
+  line-height: 1.4;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+}
+
+.content-body :deep(h1) {
+  font-size: 2.5rem;
+}
+
+.content-body :deep(h2) {
+  font-size: 2rem;
+}
+
+.content-body :deep(h3) {
+  font-size: 1.75rem;
+}
+
+.content-body :deep(h4) {
+  font-size: 1.5rem;
 }
 
 .content-body :deep(ul),
 .content-body :deep(ol) {
-  margin-bottom: 1.5rem;
+  margin: 1.5rem 0;
   padding-right: 2rem;
+  line-height: 1.8;
 }
 
 .content-body :deep(li) {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.8;
 }
 
 .content-body :deep(blockquote) {
-  border-right: 4px solid #1565C0;
-  padding-right: 1rem;
-  margin: 1.5rem 0;
+  border-right: 4px solid rgba(var(--v-theme-primary), 0.5);
+  padding-right: 1.5rem;
+  margin: 2rem 0;
   font-style: italic;
-  color: #666;
+  color: rgba(var(--v-theme-on-surface), 0.75);
+  line-height: 1.8;
 }
 
 .content-body :deep(img) {
   max-width: 100%;
   height: auto;
   border-radius: 8px;
-  margin: 1.5rem 0;
+  margin: 2rem 0;
+  box-shadow: 0 4px 12px rgba(var(--v-theme-on-surface), 0.1);
+}
+
+.content-body :deep(a) {
+  color: rgb(var(--v-theme-primary));
+  text-decoration: underline;
+  transition: opacity 0.2s ease;
+}
+
+.content-body :deep(a:hover) {
+  opacity: 0.8;
 }
 
 .content-body :deep(pre) {
-  background-color: #f5f7fa;
-  padding: 1em;
+  background-color: rgba(var(--v-theme-on-surface), 0.05);
+  padding: 1.5rem;
   border-radius: 8px;
   overflow-x: auto;
-  margin: 1.5rem 0;
-  border: 1px solid #e0e0e0;
+  margin: 2rem 0;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
 }
 
 .content-body :deep(code) {
-  background-color: #f5f7fa;
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
   padding: 0.2em 0.4em;
   border-radius: 4px;
   font-size: 0.9em;
+  font-family: 'Courier New', monospace;
 }
 
 .content-body :deep(pre code) {
@@ -675,6 +738,17 @@ export default {
 .related-post:hover,
 .popular-post:hover {
   opacity: 0.8;
+}
+
+.related-post h4,
+.popular-post h4 {
+  line-height: 1.5;
+}
+
+.related-post .text-caption,
+.popular-post .text-caption {
+  line-height: 1.4;
+  color: rgba(var(--v-theme-on-surface), 0.68);
 }
 
 .line-clamp-2 {

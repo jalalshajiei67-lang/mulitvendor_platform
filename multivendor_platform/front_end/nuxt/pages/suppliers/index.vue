@@ -6,10 +6,10 @@
     <!-- Header Section -->
     <v-row class="page-hero align-center mb-4 mb-md-6" align="center">
       <v-col cols="12" md="6">
-        <h1 class="text-h4 text-sm-h3 font-weight-bold">
+        <h1 class="text-h4 text-sm-h3 font-weight-bold readable-heading">
           تامین‌کنندگان
         </h1>
-        <p class="text-body-2 text-sm-body-1 text-medium-emphasis mt-2">
+        <p class="text-body-2 text-sm-body-1 text-medium-emphasis mt-2 readable-text">
           لیست تامین‌کنندگان و فروشندگان معتبر
         </p>
       </v-col>
@@ -117,17 +117,17 @@
 
           <v-card-text class="pa-3 pa-sm-4 pb-2">
             <!-- Supplier Name -->
-            <h3 class="text-subtitle-1 text-sm-h6 font-weight-bold mb-2">
+            <h3 class="text-subtitle-1 text-sm-h6 font-weight-bold mb-2 readable-heading">
               {{ supplier.store_name }}
             </h3>
 
             <!-- Description -->
-            <p class="text-caption text-sm-body-2 text-medium-emphasis mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+            <p class="text-caption text-sm-body-2 text-medium-emphasis mb-2 description-text" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
               {{ supplier.description || 'بدون توضیحات' }}
             </p>
 
             <!-- Rating and Product Count -->
-            <div class="d-flex justify-space-between align-center mt-2 mt-sm-3">
+            <div class="d-flex justify-space-between align-center mt-2 mt-sm-3 meta-text">
               <div class="d-flex align-center">
                 <v-icon color="amber" size="small" class="me-1">mdi-star</v-icon>
                 <span class="text-body-2 font-weight-bold">{{ supplier.rating_average || 0 }}</span>
@@ -182,8 +182,8 @@
     <v-row v-else justify="center" class="my-8 my-md-16">
       <v-col cols="12" class="text-center px-4">
         <v-icon :size="display.xs.value ? 80 : 120" color="grey-lighten-2">mdi-store-off</v-icon>
-        <h3 class="text-h6 text-sm-h5 font-weight-bold mt-3 mt-sm-4">تامین‌کننده‌ای یافت نشد</h3>
-        <p class="text-body-2 text-sm-body-1 text-medium-emphasis mt-2">هیچ تامین‌کننده‌ای در حال حاضر موجود نیست</p>
+        <h3 class="text-h6 text-sm-h5 font-weight-bold mt-3 mt-sm-4 readable-heading">تامین‌کننده‌ای یافت نشد</h3>
+        <p class="text-body-2 text-sm-body-1 text-medium-emphasis mt-2 readable-text">هیچ تامین‌کننده‌ای در حال حاضر موجود نیست</p>
       </v-col>
     </v-row>
   </v-container>
@@ -457,6 +457,41 @@ onMounted(() => {
   .supplier-grid > .v-col {
     padding: 12px;
   }
+}
+
+/* Typography improvements */
+.readable-heading {
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+}
+
+.readable-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.meta-text {
+  line-height: 1.6;
+  color: rgba(var(--v-theme-on-surface), 0.72);
+  font-size: 0.875rem;
+}
+
+.description-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.supplier-card h3 {
+  line-height: 1.4;
+}
+
+.supplier-card p {
+  line-height: 1.75;
 }
 </style>
 
