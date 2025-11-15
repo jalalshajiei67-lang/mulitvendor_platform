@@ -1,15 +1,37 @@
 <template>
   <div v-if="category" class="category-detail">
-    <section class="hero">
+    <section class="hero" :class="{ 'has-image': formatImageUrl(category) }" :style="heroImageStyle">
       <v-container class="py-10">
-        <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0">
+        <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
           <template #divider>
             <v-icon>mdi-chevron-left</v-icon>
           </template>
         </v-breadcrumbs>
-        <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
-          {{ category.name }}
-        </h1>
+        <v-row align="center" class="text-white">
+          <v-col cols="12" md="8">
+            <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
+              {{ category.name }}
+            </h1>
+            <p v-if="category.description" class="text-subtitle-1 opacity-90 line-clamp-2">
+              {{ category.description }}
+            </p>
+          </v-col>
+          <v-col v-if="formatImageUrl(category)" cols="12" md="4" class="text-center">
+            <v-img
+              :src="formatImageUrl(category) || ''"
+              max-width="200"
+              max-height="200"
+              class="mx-auto rounded-xl hero-category-image"
+              cover
+            >
+              <template v-slot:placeholder>
+                <div class="d-flex align-center justify-center fill-height">
+                  <v-skeleton-loader type="image" width="100%" height="100%" />
+                </div>
+              </template>
+            </v-img>
+          </v-col>
+        </v-row>
       </v-container>
     </section>
 
@@ -35,11 +57,16 @@
       </v-row>
 
       <section class="mb-12">
-        <header class="d-flex align-center justify-space-between mb-4">
-          <h2 class="text-h5 font-weight-bold">زیردسته‌های مرتبط</h2>
-          <v-btn variant="text" color="primary" @click="refreshSubcategories">
+        <header class="section-header d-flex align-center justify-space-between mb-6">
+          <div>
+            <h2 class="text-h5 text-md-h4 font-weight-bold mb-1">زیردسته‌های مرتبط</h2>
+            <p v-if="!subLoading && subcategories.length" class="text-body-2 text-medium-emphasis mb-0">
+              {{ subcategories.length }} زیردسته موجود است
+            </p>
+          </div>
+          <v-btn variant="text" color="primary" @click="refreshSubcategories" size="small" :disabled="subLoading">
             بروزرسانی
-            <v-icon class="mr-2">mdi-refresh</v-icon>
+            <v-icon class="mr-2" size="18">mdi-refresh</v-icon>
           </v-btn>
         </header>
 
@@ -68,13 +95,30 @@
               hover
               @click="navigateTo(`/subcategories/${sub.slug}`)"
             >
-              <v-card-text class="pa-6">
-                <h3 class="text-h6 font-weight-bold mb-2">{{ sub.name }}</h3>
-                <div class="d-flex align-center justify-space-between mt-4">
+              <v-card-text class="pa-6 d-flex flex-column h-100">
+                <v-img
+                  v-if="formatImageUrl(sub)"
+                  height="180"
+                  :src="formatImageUrl(sub) || ''"
+                  cover
+                  class="mb-4 rounded-lg"
+                  loading="lazy"
+                >
+                  <template v-slot:placeholder>
+                    <div class="d-flex align-center justify-center fill-height">
+                      <v-skeleton-loader type="image" width="100%" height="100%" />
+                    </div>
+                  </template>
+                </v-img>
+                <div v-else class="d-flex align-center justify-center mb-4 subcategory-placeholder">
+                  <v-icon size="56" color="primary">mdi-tag-multiple</v-icon>
+                </div>
+                <h3 class="text-h6 font-weight-bold mb-2 flex-grow-1">{{ sub.name }}</h3>
+                <div class="d-flex align-center justify-space-between mt-auto pt-2">
                   <span class="text-primary text-body-2 font-weight-medium">
                     مشاهده محصولات
                   </span>
-                  <v-icon color="primary">mdi-arrow-left</v-icon>
+                  <v-icon color="primary" size="20">mdi-arrow-left</v-icon>
                 </div>
               </v-card-text>
             </v-card>
@@ -119,6 +163,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatImageUrl } from '~/utils/imageUtils'
+
 definePageMeta({
   layout: 'default'
 })
@@ -134,6 +180,16 @@ const { subcategories, loading: subLoading, error: subError } = storeToRefs(subc
 const t = categoryStore.t
 
 const category = computed(() => currentCategory.value)
+
+const heroImageStyle = computed(() => {
+  const imageUrl = formatImageUrl(category.value)
+  if (imageUrl) {
+    return {
+      '--hero-bg-image': `url(${imageUrl})`
+    } as Record<string, string>
+  }
+  return {}
+})
 
 type BreadcrumbItem = {
   title: string
@@ -199,6 +255,24 @@ useSeoMeta({
   position: relative;
   overflow: hidden;
   box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12);
+  border-radius: 24px;
+  margin-top: 12px;
+  margin-bottom: 32px;
+}
+
+.hero.has-image {
+  background-image: var(--hero-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hero.has-image::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.75), rgba(var(--v-theme-secondary), 0.75));
+  z-index: 0;
 }
 
 .hero::after {
@@ -207,6 +281,19 @@ useSeoMeta({
   inset: 0;
   background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.24), transparent 60%);
   pointer-events: none;
+  z-index: 1;
+}
+
+.hero :deep(.v-container),
+.hero :deep(.v-row),
+.hero :deep(.v-col) {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-category-image {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+  border: 3px solid rgba(255, 255, 255, 0.3);
 }
 
 .subcategory-card {
@@ -217,11 +304,27 @@ useSeoMeta({
   cursor: pointer;
   border: 1px solid rgba(var(--v-theme-primary), 0.08);
   background: rgb(var(--v-theme-surface));
+  overflow: hidden;
 }
 
 .subcategory-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 16px 32px rgba(var(--v-theme-on-surface), 0.12);
+  box-shadow: 0 18px 36px rgba(var(--v-theme-on-surface), 0.15);
+  border-color: rgba(var(--v-theme-primary), 0.2);
+}
+
+.subcategory-placeholder {
+  height: 180px;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08), rgba(var(--v-theme-secondary), 0.08));
+  border-radius: 8px;
+  border: 2px dashed rgba(var(--v-theme-primary), 0.2);
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .line-clamp-3 {
@@ -229,6 +332,11 @@ useSeoMeta({
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.section-header {
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(var(--v-theme-primary), 0.1);
 }
 
 .subcategory-card :deep(.text-medium-emphasis) {

@@ -49,36 +49,44 @@
               hover
               @click="navigateTo(`/categories/${category.slug}`)"
             >
-              <v-card-text class="pa-6">
-              <v-img
-                v-if="formatImageUrl(category)"
-                height="200"
-                :src="formatImageUrl(category) || ''"
-                cover
-                class="mb-4 rounded-lg"
-                loading="lazy"
-              >
-                <template v-slot:placeholder>
-                  <div class="d-flex align-center justify-center fill-height">
-                    <v-skeleton-loader type="image" width="100%" height="100%" />
-                  </div>
-                </template>
-              </v-img>
-              <div v-else class="d-flex align-center justify-center mb-4" style="height: 200px; background: rgba(var(--v-theme-primary), 0.1); border-radius: 8px;">
-                <v-icon size="64" color="primary">mdi-shape</v-icon>
-              </div>
-                <h2 class="text-h6 font-weight-bold mb-2">
+              <v-card-text class="pa-6 d-flex flex-column h-100">
+                <v-img
+                  v-if="formatImageUrl(category)"
+                  height="200"
+                  :src="formatImageUrl(category) || ''"
+                  cover
+                  class="mb-4 rounded-lg"
+                  loading="lazy"
+                >
+                  <template v-slot:placeholder>
+                    <div class="d-flex align-center justify-center fill-height">
+                      <v-skeleton-loader type="image" width="100%" height="100%" />
+                    </div>
+                  </template>
+                </v-img>
+                <div v-else class="d-flex align-center justify-center mb-4 category-placeholder">
+                  <v-icon size="64" color="primary">mdi-shape</v-icon>
+                </div>
+                <h2 class="text-h6 font-weight-bold mb-2 flex-grow-1">
                   {{ category.name }}
                 </h2>
-                <v-chip
-                  v-if="category.department_name"
-                  size="small"
-                  color="secondary"
-                  variant="tonal"
-                  class="mt-4"
-                >
-                  {{ category.department_name }}
-                </v-chip>
+                <div class="mt-auto">
+                  <v-chip
+                    v-if="category.department_name"
+                    size="small"
+                    color="secondary"
+                    variant="tonal"
+                    class="mb-2"
+                  >
+                    {{ category.department_name }}
+                  </v-chip>
+                  <div class="d-flex align-center justify-space-between mt-2">
+                    <span class="text-primary text-body-2 font-weight-medium">
+                      مشاهده دسته‌بندی
+                    </span>
+                    <v-icon color="primary" size="20">mdi-arrow-left</v-icon>
+                  </div>
+                </div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -155,11 +163,23 @@ await useAsyncData('category-list-page', fetchPage)
 .category-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
+  border: 1px solid rgba(var(--v-theme-primary), 0.08);
+  background: rgb(var(--v-theme-surface));
+  overflow: hidden;
+  height: 100%;
 }
 
 .category-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 18px 36px rgba(var(--v-theme-on-surface), 0.15);
+  border-color: rgba(var(--v-theme-primary), 0.2);
+}
+
+.category-placeholder {
+  height: 200px;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.1), rgba(var(--v-theme-secondary), 0.1));
+  border-radius: 8px;
+  border: 2px dashed rgba(var(--v-theme-primary), 0.2);
 }
 
 .line-clamp-3 {

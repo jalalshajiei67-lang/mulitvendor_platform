@@ -31,22 +31,54 @@ const setClientStorage = (token: string | null, user: AuthUser | null) => {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const tokenCookie = useCookie<string | null>(AUTH_TOKEN_COOKIE, {
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production'
-  })
-  const userCookie = useCookie<string | null>(AUTH_USER_COOKIE, {
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production'
-  })
+  // Lazy initialization for cookies - only access when needed
+  let tokenCookie: ReturnType<typeof useCookie<string | null>> | null = null
+  let userCookie: ReturnType<typeof useCookie<string | null>> | null = null
 
-  let initialToken: string | null = tokenCookie.value ?? null
-  let initialUser = parseUser(userCookie.value)
+  const getTokenCookie = () => {
+    if (!tokenCookie) {
+      try {
+        tokenCookie = useCookie<string | null>(AUTH_TOKEN_COOKIE, {
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production'
+        })
+      } catch (error) {
+        // Nuxt context not available yet
+        console.warn('Unable to access token cookie:', error)
+        return null
+      }
+    }
+    return tokenCookie
+  }
+
+  const getUserCookie = () => {
+    if (!userCookie) {
+      try {
+        userCookie = useCookie<string | null>(AUTH_USER_COOKIE, {
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production'
+        })
+      } catch (error) {
+        // Nuxt context not available yet
+        console.warn('Unable to access user cookie:', error)
+        return null
+      }
+    }
+    return userCookie
+  }
+
+  // Initialize from localStorage first (client-side only)
+  // Cookies will be accessed lazily when needed (not during initialization)
+  let initialToken: string | null = null
+  let initialUser: AuthUser | null = null
 
   if (process.client) {
-    initialToken = initialToken ?? localStorage.getItem('authToken')
-    initialUser = initialUser ?? parseUser(localStorage.getItem('user'))
+    initialToken = localStorage.getItem('authToken')
+    initialUser = parseUser(localStorage.getItem('user'))
   }
+  
+  // Note: We don't access cookies during initialization to avoid context issues
+  // Cookies will be accessed lazily when persistSession is called or when needed
 
   const token = ref<string | null>(initialToken)
   const user = ref<AuthUser | null>(initialUser)
@@ -64,8 +96,15 @@ export const useAuthStore = defineStore('auth', () => {
   const persistSession = (nextToken: string | null, nextUser: AuthUser | null) => {
     token.value = nextToken
     user.value = nextUser
-    tokenCookie.value = nextToken
-    userCookie.value = nextUser ? JSON.stringify(nextUser) : null
+    // Lazy access to cookies - only set when needed
+    const tokenCookie = getTokenCookie()
+    const userCookie = getUserCookie()
+    if (tokenCookie) {
+      tokenCookie.value = nextToken
+    }
+    if (userCookie) {
+      userCookie.value = nextUser ? JSON.stringify(nextUser) : null
+    }
     setClientStorage(nextToken, nextUser)
   }
 
