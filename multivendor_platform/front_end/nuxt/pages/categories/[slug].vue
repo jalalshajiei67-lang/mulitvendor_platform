@@ -12,9 +12,6 @@
             <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
               {{ category.name }}
             </h1>
-            <p v-if="category.description" class="text-subtitle-1 opacity-90 line-clamp-2">
-              {{ category.description }}
-            </p>
           </v-col>
           <v-col v-if="formatImageUrl(category)" cols="12" md="4" class="text-center">
             <v-img
