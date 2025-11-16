@@ -100,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 
 const props = defineProps<{
   product: Record<string, any>
@@ -246,30 +246,38 @@ const getSegmentProgress = (index: number): number => {
 }
 
 // Lifecycle hooks - only run on client
-onMounted(() => {
+onMounted(async () => {
+  // Wait for DOM to be ready
+  await nextTick()
+  
   // Set up Intersection Observer for viewport visibility
   if (typeof window !== 'undefined' && cardElement.value) {
-    observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          isVisible.value = entry.isIntersecting
-          
-          if (entry.isIntersecting && hasMultipleImages.value) {
-            // Card entered viewport - start animation
-            startAutoAdvance()
-          } else {
-            // Card left viewport - stop animation
-            stopAutoAdvance()
-          }
-        })
-      },
-      {
-        threshold: 0.5, // Trigger when 50% of card is visible
-        rootMargin: '50px' // Start slightly before entering viewport
-      }
-    )
+    // Access the actual DOM element from the Vue component
+    const element = (cardElement.value as any)?.$el || cardElement.value
     
-    observer.observe(cardElement.value)
+    if (element && element instanceof Element) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            isVisible.value = entry.isIntersecting
+            
+            if (entry.isIntersecting && hasMultipleImages.value) {
+              // Card entered viewport - start animation
+              startAutoAdvance()
+            } else {
+              // Card left viewport - stop animation
+              stopAutoAdvance()
+            }
+          })
+        },
+        {
+          threshold: 0.5, // Trigger when 50% of card is visible
+          rootMargin: '50px' // Start slightly before entering viewport
+        }
+      )
+      
+      observer.observe(element)
+    }
   }
 
   // Watch for gallery changes only on client
@@ -287,8 +295,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   // Clean up observer
-  if (observer && cardElement.value) {
-    observer.unobserve(cardElement.value)
+  if (observer) {
     observer.disconnect()
     observer = null
   }

@@ -7,9 +7,11 @@
             <v-icon>mdi-menu</v-icon>
           </v-btn>
           <NuxtLink to="/" class="d-flex align-center text-decoration-none logo">
-            <v-avatar size="40" class="bg-primary/10">
-              <span class="text-primary text-h6 font-weight-bold">ای</span>
-            </v-avatar>
+            <img 
+              src="/indexo.jpg" 
+              alt="لوگو ایندکسو" 
+              class="logo-image"
+            />
             <div class="mr-3">
               <strong class="text-primary text-subtitle-1">ایندکسو</strong>
               <div class="text-caption text-medium-emphasis">بازار چندفروشنده</div>
@@ -241,7 +243,6 @@ const dashboardLink = computed(() => {
 const navigationLinks = [
   { to: '/', label: 'خانه', icon: 'mdi-home' },
   { to: '/products', label: 'محصولات', icon: 'mdi-package-variant' },
-  { to: '/categories', label: 'دسته‌بندی', icon: 'mdi-shape' },
   { to: '/suppliers', label: 'فروشندگان', icon: 'mdi-store' },
   { to: '/rfq', label: 'درخواست قیمت', icon: 'mdi-file-document-edit' },
   { to: '/blog', label: 'مجله', icon: 'mdi-post' },
@@ -286,6 +287,13 @@ watch(
   backdrop-filter: blur(8px);
 }
 
+.logo-image {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
 .logo span {
   letter-spacing: -2px;
 }
@@ -311,6 +319,13 @@ watch(
 
 .notification-item:hover {
   background-color: rgba(var(--v-theme-on-surface), 0.04);
+}
+
+/* Mobile responsive logo */
+@media (max-width: 600px) {
+  .logo-image {
+    height: 40px;
+  }
 }
 </style>
 
