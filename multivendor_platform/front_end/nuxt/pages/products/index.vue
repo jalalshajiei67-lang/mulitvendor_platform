@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { usePreferredReducedMotion } from '@vueuse/core'
+import { usePrefersReducedMotion } from '@/composables/usePrefersReducedMotion'
 
 definePageMeta({
   layout: 'default'
@@ -137,7 +137,7 @@ const productStore = useProductStore()
 const { products, loading, error, pagination } = storeToRefs(productStore)
 const t = productStore.t
 
-const prefersReducedMotion = usePreferredReducedMotion()
+const prefersReducedMotion = usePrefersReducedMotion()
 
 const productRefs = ref<HTMLElement[]>([])
 const {

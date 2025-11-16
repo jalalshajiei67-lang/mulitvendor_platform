@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { usePreferredReducedMotion } from '@vueuse/core'
+import { usePrefersReducedMotion } from '@/composables/usePrefersReducedMotion'
 
 type GalleryImage = { src: string; alt?: string; productId?: number }
 
@@ -62,7 +62,7 @@ const emit = defineEmits<{
   (e: 'manual-select', index: number): void
 }>()
 
-const prefersReducedMotion = usePreferredReducedMotion()
+const prefersReducedMotion = usePrefersReducedMotion()
 
 const normalizedImages = computed<GalleryImage[]>(() =>
   props.images.map((item, idx) => {

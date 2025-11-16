@@ -1,5 +1,5 @@
 import { computed, onScopeDispose, ref, watch } from 'vue'
-import { usePreferredReducedMotion } from '@vueuse/core'
+import { usePrefersReducedMotion } from './usePrefersReducedMotion'
 
 export type ScrollGalleryItem = {
   el: HTMLElement
@@ -9,7 +9,7 @@ export type ScrollGalleryItem = {
 export const useScrollActivatedGallery = () => {
   const activeIndex = ref(0)
   const isPaused = ref(false)
-  const prefersReducedMotion = usePreferredReducedMotion()
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   let observer: IntersectionObserver | null = null
   let trackedElements: HTMLElement[] = []
