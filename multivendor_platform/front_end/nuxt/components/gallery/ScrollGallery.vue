@@ -26,6 +26,25 @@
       </Transition>
     </div>
 
+    <div class="progress" aria-hidden="true">
+      <div class="progress-track">
+        <div
+          class="progress-bar"
+          :class="{ 'no-motion': prefersReducedMotion }"
+          :style="{ width: progressWidth }"
+        ></div>
+        <div
+          v-for="(image, index) in normalizedImages"
+          :key="image.src + index"
+          class="progress-stop"
+          :style="{ right: `${(index / Math.max(normalizedImages.length - 1, 1)) * 100}%` }"
+        ></div>
+      </div>
+      <div class="progress-label">
+        تصویر {{ safeActiveIndex + 1 }} از {{ normalizedImages.length }}
+      </div>
+    </div>
+
     <div class="thumbnail-row" role="tablist" aria-label="تصاویر محصولات">
       <button
         v-for="(image, index) in normalizedImages"
@@ -83,6 +102,13 @@ const safeActiveIndex = computed(() =>
 )
 
 const activeImage = computed(() => normalizedImages.value[safeActiveIndex.value])
+
+const progressWidth = computed(() => {
+  if (!normalizedImages.value.length) return '0%'
+
+  const percent = ((safeActiveIndex.value + 1) / normalizedImages.value.length) * 100
+  return `${percent}%`
+})
 
 const preloadImages = () => {
   if (prefersReducedMotion.value) return
@@ -234,6 +260,45 @@ onMounted(preloadImages)
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.progress {
+  margin-top: 10px;
+}
+
+.progress-track {
+  position: relative;
+  height: 6px;
+  background: rgba(var(--v-theme-on-surface), 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  position: absolute;
+  inset: 0 0 0 auto;
+  background: linear-gradient(90deg, rgba(var(--v-theme-primary), 0.7), rgba(var(--v-theme-secondary), 0.6));
+  transition: width 0.35s ease;
+}
+
+.progress-bar.no-motion {
+  transition: none;
+}
+
+.progress-stop {
+  position: absolute;
+  top: 0;
+  transform: translateX(50%);
+  width: 1px;
+  height: 100%;
+  background: rgba(var(--v-theme-on-surface), 0.18);
+}
+
+.progress-label {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(var(--v-theme-on-surface), 0.72);
+  text-align: right;
 }
 
 @media (min-width: 960px) {
