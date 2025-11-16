@@ -21,27 +21,25 @@
 
       <div v-if="hasMultipleImages" class="gallery-nav">
         <v-btn
-          icon
           size="small"
           variant="tonal"
           class="gallery-arrow gallery-arrow-left"
-          color="white"
+          color="primary"
           elevation="2"
+          :icon="prevArrowIcon"
+          aria-label="قبلی"
           @click.stop="prevImage"
-        >
-          <v-icon size="20">{{ prevArrowIcon }}</v-icon>
-        </v-btn>
+        />
         <v-btn
-          icon
           size="small"
           variant="tonal"
           class="gallery-arrow gallery-arrow-right"
-          color="white"
+          color="primary"
           elevation="2"
+          :icon="nextArrowIcon"
+          aria-label="بعدی"
           @click.stop="nextImage"
-        >
-          <v-icon size="20">{{ nextArrowIcon }}</v-icon>
-        </v-btn>
+        />
       </div>
 
       <v-chip
@@ -124,8 +122,8 @@ const hasGallery = computed(() => galleryImages.value.length > 0)
 const hasMultipleImages = computed(() => galleryImages.value.length > 1)
 
 const isRtl = computed(() => {
-  if (process.client && document?.documentElement) {
-    return document.documentElement.dir === 'rtl'
+  if (typeof window !== 'undefined' && window.document.documentElement) {
+    return window.document.documentElement.dir === 'rtl'
   }
   return true
 })
@@ -247,6 +245,7 @@ const openProduct = () => {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  line-clamp: 2;
   overflow: hidden;
 }
 </style>
