@@ -2,8 +2,8 @@
   <v-card rounded="xl" elevation="2" class="product-card" hover @click="openProduct">
     <div class="image-wrapper">
       <v-img
-        v-if="product.primary_image"
-        :src="product.primary_image"
+        v-if="hasGallery && currentImage"
+        :src="currentImage"
         :alt="product.name"
         height="220"
         cover
@@ -18,6 +18,32 @@
       <div v-else class="no-image">
         <v-icon size="48" color="grey-lighten-1">mdi-cube-outline</v-icon>
       </div>
+
+      <div v-if="hasMultipleImages" class="gallery-nav">
+        <v-btn
+          icon
+          size="small"
+          variant="tonal"
+          class="gallery-arrow gallery-arrow-left"
+          color="white"
+          elevation="2"
+          @click.stop="prevImage"
+        >
+          <v-icon size="20">{{ prevArrowIcon }}</v-icon>
+        </v-btn>
+        <v-btn
+          icon
+          size="small"
+          variant="tonal"
+          class="gallery-arrow gallery-arrow-right"
+          color="white"
+          elevation="2"
+          @click.stop="nextImage"
+        >
+          <v-icon size="20">{{ nextArrowIcon }}</v-icon>
+        </v-btn>
+      </div>
+
       <v-chip
         v-if="product.is_featured"
         size="small"
@@ -62,12 +88,87 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+
 const props = defineProps<{
   product: Record<string, any>
 }>()
 
 const productStore = useProductStore()
 const t = productStore.t
+
+const galleryImages = computed(() => {
+  const images: string[] = []
+
+  const primary = props.product.primary_image ?? props.product.image
+  if (primary) {
+    images.push(primary)
+  }
+
+  const gallery = Array.isArray(props.product.images) ? props.product.images : []
+  gallery.forEach((image) => {
+    const url = image?.image_url ?? image?.image
+    if (url && !images.includes(url)) {
+      images.push(url)
+    }
+  })
+
+  return images
+})
+
+const currentImageIndex = ref(0)
+
+const currentImage = computed(() => galleryImages.value[currentImageIndex.value] ?? galleryImages.value[0] ?? null)
+
+const hasGallery = computed(() => galleryImages.value.length > 0)
+const hasMultipleImages = computed(() => galleryImages.value.length > 1)
+
+const isRtl = computed(() => {
+  if (process.client && document?.documentElement) {
+    return document.documentElement.dir === 'rtl'
+  }
+  return true
+})
+
+const prevArrowIcon = computed(() => (isRtl.value ? 'mdi-chevron-right' : 'mdi-chevron-left'))
+const nextArrowIcon = computed(() => (isRtl.value ? 'mdi-chevron-left' : 'mdi-chevron-right'))
+
+const resetImageIndex = (length: number) => {
+  if (length === 0) {
+    currentImageIndex.value = 0
+    return
+  }
+
+  if (currentImageIndex.value >= length) {
+    currentImageIndex.value = 0
+  }
+}
+
+watch(
+  () => galleryImages.value,
+  (images) => {
+    resetImageIndex(images.length)
+  },
+  { immediate: true }
+)
+
+const prevImage = () => {
+  if (!hasGallery.value) {
+    return
+  }
+
+  const length = galleryImages.value.length
+  currentImageIndex.value = (currentImageIndex.value - 1 + length) % length
+}
+
+const nextImage = () => {
+  if (!hasGallery.value) {
+    return
+  }
+
+  const length = galleryImages.value.length
+  currentImageIndex.value = (currentImageIndex.value + 1) % length
+}
 
 const formatPrice = (value: number | string) => {
   const amount = Number(value)
@@ -113,6 +214,33 @@ const openProduct = () => {
   position: absolute;
   top: 14px;
   right: 14px;
+}
+
+.gallery-nav {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.gallery-arrow {
+  pointer-events: auto;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background-color: rgba(var(--v-theme-surface), 0.92);
+  color: rgba(var(--v-theme-on-surface), 0.95);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.gallery-arrow:hover {
+  background-color: rgba(var(--v-theme-surface), 0.98);
 }
 
 .line-clamp-2 {
