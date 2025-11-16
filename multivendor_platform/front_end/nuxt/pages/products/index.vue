@@ -1,5 +1,5 @@
 <template>
-  <div class="products-page">
+  <div class="products-page" dir="rtl">
     <section class="hero">
       <v-container class="py-10 text-white">
         <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
@@ -16,8 +16,18 @@
       </v-container>
     </section>
 
-    <v-container class="py-8">
-      <v-row class="mb-6" align="center">
+    <v-container class="py-4 pt-sm-8">
+      <div class="gallery-wrapper mb-6">
+        <ScrollGallery
+          v-if="galleryImages.length"
+          :images="galleryImages"
+          :active-index="galleryActiveIndex"
+          :is-auto-active="isAutoActive"
+          @manual-select="handleManualSelect"
+        />
+      </div>
+
+      <v-row class="mb-6 filters" align="center">
         <v-col cols="12" md="4">
           <v-text-field
             v-model="search"
@@ -70,8 +80,17 @@
 
       <template v-else>
         <v-row v-if="products.length" class="products-grid">
-          <v-col v-for="product in products" :key="product.id" cols="12" sm="6" md="4" xl="3">
-            <ProductCard :product="product" />
+          <v-col
+            v-for="(product, index) in products"
+            :key="product.id"
+            cols="12"
+            sm="6"
+            md="4"
+            xl="3"
+          >
+            <div class="product-section" :ref="(el: HTMLElement | null) => setProductRef(el, index)">
+              <ProductCard :product="product" />
+            </div>
           </v-col>
         </v-row>
 
@@ -100,6 +119,8 @@
 </template>
 
 <script setup lang="ts">
+import { usePreferredReducedMotion } from '@vueuse/core'
+
 definePageMeta({
   layout: 'default'
 })
@@ -116,11 +137,30 @@ const productStore = useProductStore()
 const { products, loading, error, pagination } = storeToRefs(productStore)
 const t = productStore.t
 
+const prefersReducedMotion = usePreferredReducedMotion()
+
+const productRefs = ref<HTMLElement[]>([])
+const {
+  activeIndex: galleryActiveIndex,
+  isAutoActive,
+  setItems: setObservedItems,
+  pause: pauseGallery,
+  resume: resumeGallery
+} = useScrollActivatedGallery()
+let resumeTimer: ReturnType<typeof setTimeout> | null = null
+
 const search = ref('')
 const selectedCategory = ref<number | null>(null)
 const ordering = ref<string | null>(null)
 const page = ref(1)
 const pageSize = 12
+
+const galleryImages = computed(() =>
+  products.value.map((product) => ({
+    src: product.primary_image || '/hero-abstract.svg',
+    alt: product.name || 'تصویر محصول'
+  }))
+)
 
 const categoryOptions = ref<any[]>([])
 
@@ -138,6 +178,46 @@ const breadcrumbs = computed(() => [
   { title: t('home'), to: '/' },
   { title: t('products'), disabled: true }
 ])
+
+const setProductRef = (el: HTMLElement | null, index: number) => {
+  if (el) {
+    productRefs.value[index] = el
+  }
+}
+
+const syncObservedItems = async () => {
+  await nextTick()
+  setObservedItems(productRefs.value.slice(0, products.value.length).filter(Boolean) as HTMLElement[])
+}
+
+const scrollToProduct = (index: number) => {
+  const target = productRefs.value[index]
+  if (!target) return
+
+  target.scrollIntoView({
+    behavior: prefersReducedMotion.value ? 'auto' : 'smooth',
+    block: 'start',
+    inline: 'nearest'
+  })
+}
+
+const handleManualSelect = (index: number) => {
+  pauseGallery()
+  galleryActiveIndex.value = index
+  scrollToProduct(index)
+
+  if (resumeTimer) {
+    clearTimeout(resumeTimer)
+  }
+
+  resumeTimer = setTimeout(() => {
+    resumeGallery()
+  }, 4000)
+}
+
+onMounted(() => {
+  syncObservedItems()
+})
 
 const fetchCategories = async () => {
   try {
@@ -179,6 +259,21 @@ const resetFilters = async () => {
   page.value = 1
   await fetchPage()
 }
+
+watch(
+  () => products.value,
+  () => {
+    galleryActiveIndex.value = 0
+    syncObservedItems()
+  },
+  { immediate: true }
+)
+
+onBeforeUnmount(() => {
+  if (resumeTimer) {
+    clearTimeout(resumeTimer)
+  }
+})
 </script>
 
 <style scoped>
@@ -205,6 +300,15 @@ const resetFilters = async () => {
   inset: 0;
   background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.28), transparent 60%);
   pointer-events: none;
+}
+
+.gallery-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+.product-section {
+  scroll-margin-top: 140px;
 }
 
 .max-w-640 {
@@ -234,6 +338,10 @@ const resetFilters = async () => {
   .products-grid {
     --v-gutter-x: 16px;
     --v-gutter-y: 18px;
+  }
+
+  .product-section {
+    scroll-margin-top: 48px;
   }
 }
 
