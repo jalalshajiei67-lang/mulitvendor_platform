@@ -183,14 +183,15 @@ const nextImage = () => {
 
 // Timeline auto-advance logic
 const startAutoAdvance = () => {
-  if (!hasMultipleImages.value) {
+  // Only run on client side
+  if (typeof window === 'undefined' || !hasMultipleImages.value) {
     return
   }
 
   stopAutoAdvance()
 
   // Start progress animation
-  progressTimer = setInterval(() => {
+  progressTimer = window.setInterval(() => {
     progress.value += (PROGRESS_INTERVAL / SLIDE_DURATION) * 100
     if (progress.value >= 100) {
       progress.value = 100
@@ -198,18 +199,18 @@ const startAutoAdvance = () => {
   }, PROGRESS_INTERVAL)
 
   // Auto-advance to next image
-  autoAdvanceTimer = setTimeout(() => {
+  autoAdvanceTimer = window.setTimeout(() => {
     nextImage()
   }, SLIDE_DURATION)
 }
 
 const stopAutoAdvance = () => {
   if (progressTimer) {
-    clearInterval(progressTimer)
+    window.clearInterval(progressTimer)
     progressTimer = null
   }
   if (autoAdvanceTimer) {
-    clearTimeout(autoAdvanceTimer)
+    window.clearTimeout(autoAdvanceTimer)
     autoAdvanceTimer = null
   }
 }
@@ -239,24 +240,20 @@ const getSegmentProgress = (index: number): number => {
   }
 }
 
-// Watch for gallery changes
-watch(
-  () => hasMultipleImages.value,
-  (hasMultiple) => {
-    if (hasMultiple) {
-      startAutoAdvance()
-    } else {
-      stopAutoAdvance()
-    }
-  },
-  { immediate: true }
-)
-
-// Lifecycle hooks
+// Lifecycle hooks - only run on client
 onMounted(() => {
-  if (hasMultipleImages.value) {
-    startAutoAdvance()
-  }
+  // Watch for gallery changes only on client
+  watch(
+    () => hasMultipleImages.value,
+    (hasMultiple) => {
+      if (hasMultiple) {
+        startAutoAdvance()
+      } else {
+        stopAutoAdvance()
+      }
+    },
+    { immediate: true }
+  )
 })
 
 onBeforeUnmount(() => {
