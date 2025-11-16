@@ -47,16 +47,15 @@
       </p>
 
       <div class="d-flex align-center justify-space-between">
-        <div>
+        <v-btn color="primary" variant="tonal" prepend-icon="mdi-arrow-right">
+          {{ t('view') }}
+        </v-btn>
+        <div class="text-right">
           <div class="text-caption text-medium-emphasis">{{ t('price') }}</div>
           <div class="text-h6 font-weight-bold">
             {{ product.price ? formatPrice(product.price) : t('contactForPrice') }}
           </div>
         </div>
-        <v-btn color="primary" variant="tonal">
-          {{ t('view') }}
-          <v-icon class="mr-2">mdi-arrow-left</v-icon>
-        </v-btn>
       </div>
     </v-card-text>
   </v-card>

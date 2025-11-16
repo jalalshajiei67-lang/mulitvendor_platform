@@ -69,7 +69,7 @@
       </v-alert>
 
       <template v-else>
-        <v-row v-if="products.length" class="ga-4">
+        <v-row v-if="products.length" class="products-grid">
           <v-col v-for="product in products" :key="product.id" cols="12" sm="6" md="4" xl="3">
             <ProductCard :product="product" />
           </v-col>
@@ -221,6 +221,27 @@ const resetFilters = async () => {
 
 :deep(.v-field__input::placeholder) {
   color: rgba(var(--v-theme-on-surface), 0.56);
+}
+
+/* Grid spacing adjustments for desktop to fit 3 rows comfortably */
+.products-grid {
+  /* default (mobile/tablet) */
+  --v-gutter-x: 12px;
+  --v-gutter-y: 16px;
+}
+
+@media (min-width: 960px) {
+  .products-grid {
+    --v-gutter-x: 16px;
+    --v-gutter-y: 18px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .products-grid {
+    --v-gutter-x: 18px;
+    --v-gutter-y: 20px;
+  }
 }
 </style>
 
