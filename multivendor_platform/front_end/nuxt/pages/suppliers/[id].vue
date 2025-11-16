@@ -663,13 +663,55 @@ onMounted(() => {
   color: rgba(var(--v-theme-on-surface), 0.87);
 }
 
-.content-section h2 {
-  line-height: 1.4;
+/* Medium.com-inspired spacing for content sections */
+.content-section h1,
+.content-section h2,
+.content-section h3,
+.content-section h4,
+.content-section h5,
+.content-section h6 {
+  font-weight: 700;
+  line-height: 1.3;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+  margin-bottom: 0;
+}
+
+.content-section h1 {
+  margin-top: 3rem;
   margin-bottom: 1.5rem;
+}
+
+.content-section h1:first-child {
+  margin-top: 0;
+}
+
+.content-section h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.content-section h3 {
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.content-section h4 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.875rem;
 }
 
 .content-section p {
   line-height: 1.75;
+  margin-top: 0;
+  margin-bottom: 1.75rem;
+}
+
+/* First paragraph after heading */
+.content-section h1 + p,
+.content-section h2 + p,
+.content-section h3 + p,
+.content-section h4 + p {
+  margin-top: 0.5rem;
 }
 </style>
 

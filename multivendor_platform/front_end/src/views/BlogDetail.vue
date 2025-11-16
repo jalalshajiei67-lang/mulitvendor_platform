@@ -639,55 +639,94 @@ export default {
 .content-body :deep(h4),
 .content-body :deep(h5),
 .content-body :deep(h6) {
-  margin-top: 2.5rem;
-  margin-bottom: 1rem;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.3;
   color: rgba(var(--v-theme-on-surface), 0.96);
+  margin-bottom: 0;
 }
 
+/* Medium.com-inspired heading spacing */
 .content-body :deep(h1) {
   font-size: 2.5rem;
+  margin-top: 3rem;
+  margin-bottom: 1.5rem;
+}
+
+.content-body :deep(h1:first-child) {
+  margin-top: 0;
 }
 
 .content-body :deep(h2) {
   font-size: 2rem;
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .content-body :deep(h3) {
   font-size: 1.75rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
 }
 
 .content-body :deep(h4) {
   font-size: 1.5rem;
+  margin-top: 1.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.content-body :deep(h5) {
+  font-size: 1.25rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.content-body :deep(h6) {
+  font-size: 1.125rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .content-body :deep(ul),
 .content-body :deep(ol) {
-  margin: 1.5rem 0;
+  margin-top: 1.5rem;
+  margin-bottom: 1.75rem;
   padding-right: 2rem;
   line-height: 1.8;
 }
 
 .content-body :deep(li) {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.875rem;
   line-height: 1.8;
+}
+
+.content-body :deep(li:last-child) {
+  margin-bottom: 0;
 }
 
 .content-body :deep(blockquote) {
   border-right: 4px solid rgba(var(--v-theme-primary), 0.5);
   padding-right: 1.5rem;
-  margin: 2rem 0;
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
   font-style: italic;
   color: rgba(var(--v-theme-on-surface), 0.75);
   line-height: 1.8;
+}
+
+.content-body :deep(blockquote p) {
+  margin-bottom: 1rem;
+}
+
+.content-body :deep(blockquote p:last-child) {
+  margin-bottom: 0;
 }
 
 .content-body :deep(img) {
   max-width: 100%;
   height: auto;
   border-radius: 8px;
-  margin: 2rem 0;
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
   box-shadow: 0 4px 12px rgba(var(--v-theme-on-surface), 0.1);
 }
 
@@ -706,7 +745,8 @@ export default {
   padding: 1.5rem;
   border-radius: 8px;
   overflow-x: auto;
-  margin: 2rem 0;
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
   border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
 }
 
