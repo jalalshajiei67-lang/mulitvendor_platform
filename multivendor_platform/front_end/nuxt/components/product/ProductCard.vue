@@ -42,6 +42,20 @@
         />
       </div>
 
+      <!-- Timeline Progress Indicator -->
+      <div v-if="hasMultipleImages" class="gallery-timeline">
+        <div
+          v-for="(image, index) in galleryImages"
+          :key="index"
+          class="timeline-segment"
+        >
+          <div
+            class="timeline-fill"
+            :style="{ width: getSegmentProgress(index) + '%' }"
+          ></div>
+        </div>
+      </div>
+
       <v-chip
         v-if="product.is_featured"
         size="small"
@@ -86,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps<{
   product: Record<string, any>
@@ -94,6 +108,13 @@ const props = defineProps<{
 
 const productStore = useProductStore()
 const t = productStore.t
+
+// Timeline auto-advance configuration
+const SLIDE_DURATION = 4000 // 4 seconds per image
+const PROGRESS_INTERVAL = 50 // Update progress every 50ms
+const progress = ref(0)
+let progressTimer: ReturnType<typeof setInterval> | null = null
+let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null
 
 const galleryImages = computed(() => {
   const images: string[] = []
@@ -150,15 +171,6 @@ watch(
   { immediate: true }
 )
 
-const prevImage = () => {
-  if (!hasGallery.value) {
-    return
-  }
-
-  const length = galleryImages.value.length
-  currentImageIndex.value = (currentImageIndex.value - 1 + length) % length
-}
-
 const nextImage = () => {
   if (!hasGallery.value) {
     return
@@ -166,7 +178,90 @@ const nextImage = () => {
 
   const length = galleryImages.value.length
   currentImageIndex.value = (currentImageIndex.value + 1) % length
+  resetProgress()
 }
+
+// Timeline auto-advance logic
+const startAutoAdvance = () => {
+  if (!hasMultipleImages.value) {
+    return
+  }
+
+  stopAutoAdvance()
+
+  // Start progress animation
+  progressTimer = setInterval(() => {
+    progress.value += (PROGRESS_INTERVAL / SLIDE_DURATION) * 100
+    if (progress.value >= 100) {
+      progress.value = 100
+    }
+  }, PROGRESS_INTERVAL)
+
+  // Auto-advance to next image
+  autoAdvanceTimer = setTimeout(() => {
+    nextImage()
+  }, SLIDE_DURATION)
+}
+
+const stopAutoAdvance = () => {
+  if (progressTimer) {
+    clearInterval(progressTimer)
+    progressTimer = null
+  }
+  if (autoAdvanceTimer) {
+    clearTimeout(autoAdvanceTimer)
+    autoAdvanceTimer = null
+  }
+}
+
+const resetProgress = () => {
+  progress.value = 0
+  startAutoAdvance()
+}
+
+const prevImage = () => {
+  if (!hasGallery.value) {
+    return
+  }
+
+  const length = galleryImages.value.length
+  currentImageIndex.value = (currentImageIndex.value - 1 + length) % length
+  resetProgress()
+}
+
+const getSegmentProgress = (index: number): number => {
+  if (index < currentImageIndex.value) {
+    return 100 // Completed segments
+  } else if (index === currentImageIndex.value) {
+    return progress.value // Current segment with progress
+  } else {
+    return 0 // Future segments
+  }
+}
+
+// Watch for gallery changes
+watch(
+  () => hasMultipleImages.value,
+  (hasMultiple) => {
+    if (hasMultiple) {
+      startAutoAdvance()
+    } else {
+      stopAutoAdvance()
+    }
+  },
+  { immediate: true }
+)
+
+// Lifecycle hooks
+onMounted(() => {
+  if (hasMultipleImages.value) {
+    startAutoAdvance()
+  }
+})
+
+onBeforeUnmount(() => {
+  stopAutoAdvance()
+})
 
 const formatPrice = (value: number | string) => {
   const amount = Number(value)
@@ -247,6 +342,34 @@ const openProduct = () => {
   -webkit-box-orient: vertical;
   line-clamp: 2;
   overflow: hidden;
+}
+
+/* Timeline Progress Indicator */
+.gallery-timeline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.timeline-segment {
+  flex: 1;
+  height: 3px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.timeline-fill {
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.95);
+  transition: width 0.05s linear;
+  border-radius: 2px;
 }
 </style>
 
