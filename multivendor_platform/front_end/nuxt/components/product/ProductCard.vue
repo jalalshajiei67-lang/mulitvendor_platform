@@ -1,5 +1,5 @@
 <template>
-  <v-card rounded="xl" elevation="2" class="product-card" hover @click="openProduct">
+  <v-card ref="cardElement" rounded="xl" elevation="2" class="product-card" hover @click="openProduct">
     <div class="image-wrapper">
       <v-img
         v-if="hasGallery && currentImage"
@@ -116,6 +116,11 @@ const progress = ref(0)
 let progressTimer: ReturnType<typeof setInterval> | null = null
 let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null
 
+// Lazy loading and visibility
+const cardElement = ref<HTMLElement | null>(null)
+const isVisible = ref(false)
+const preloadedImages = new Set<string>()
+
 const galleryImages = computed(() => {
   const images: string[] = []
 
@@ -181,14 +186,41 @@ const nextImage = () => {
   resetProgress()
 }
 
+// Image preloading
+const preloadImage = (url: string) => {
+  if (!url || preloadedImages.has(url)) {
+    return
+  }
+  
+  const img = new Image()
+  img.src = url
+  preloadedImages.add(url)
+}
+
+const preloadAdjacentImages = () => {
+  const length = galleryImages.value.length
+  if (length <= 1) return
+
+  // Preload next image
+  const nextIndex = (currentImageIndex.value + 1) % length
+  preloadImage(galleryImages.value[nextIndex])
+
+  // Preload previous image
+  const prevIndex = (currentImageIndex.value - 1 + length) % length
+  preloadImage(galleryImages.value[prevIndex])
+}
+
 // Timeline auto-advance logic
 const startAutoAdvance = () => {
-  // Only run on client side
-  if (typeof window === 'undefined' || !hasMultipleImages.value) {
+  // Only run on client side and when visible
+  if (typeof window === 'undefined' || !hasMultipleImages.value || !isVisible.value) {
     return
   }
 
   stopAutoAdvance()
+
+  // Preload adjacent images for smooth transitions
+  preloadAdjacentImages()
 
   // Start progress animation
   progressTimer = window.setInterval(() => {
@@ -227,6 +259,7 @@ const prevImage = () => {
 
   const length = galleryImages.value.length
   currentImageIndex.value = (currentImageIndex.value - 1 + length) % length
+  preloadAdjacentImages()
   resetProgress()
 }
 
@@ -242,17 +275,50 @@ const getSegmentProgress = (index: number): number => {
 
 // Lifecycle hooks - only run on client
 onMounted(() => {
+  // Setup Intersection Observer for lazy loading and visibility detection
+  if (typeof window !== 'undefined' && cardElement.value) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isVisible.value = entry.isIntersecting
+          
+          if (entry.isIntersecting) {
+            // Card is visible - start auto-advance
+            if (hasMultipleImages.value) {
+              startAutoAdvance()
+            }
+          } else {
+            // Card is not visible - pause auto-advance
+            stopAutoAdvance()
+            progress.value = 0
+          }
+        })
+      },
+      {
+        threshold: 0.5, // Trigger when 50% of card is visible
+        rootMargin: '50px' // Start loading slightly before card enters viewport
+      }
+    )
+
+    observer.observe(cardElement.value)
+
+    // Cleanup observer on unmount
+    onBeforeUnmount(() => {
+      observer.disconnect()
+      stopAutoAdvance()
+    })
+  }
+
   // Watch for gallery changes only on client
   watch(
     () => hasMultipleImages.value,
     (hasMultiple) => {
-      if (hasMultiple) {
+      if (hasMultiple && isVisible.value) {
         startAutoAdvance()
       } else {
         stopAutoAdvance()
       }
-    },
-    { immediate: true }
+    }
   )
 })
 
