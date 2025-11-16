@@ -116,12 +116,10 @@ const progress = ref(0)
 let progressTimer: ReturnType<typeof setInterval> | null = null
 let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null
 
-// Lazy loading and visibility
+// Intersection Observer for viewport visibility
 const cardElement = ref<HTMLElement | null>(null)
 const isVisible = ref(false)
-const isHovered = ref(false)
-const isMobile = ref(false)
-const preloadedImages = new Set<string>()
+let observer: IntersectionObserver | null = null
 
 const galleryImages = computed(() => {
   const images: string[] = []
@@ -188,46 +186,14 @@ const nextImage = () => {
   resetProgress()
 }
 
-// Image preloading
-const preloadImage = (url: string) => {
-  if (!url || preloadedImages.has(url)) {
-    return
-  }
-  
-  const img = new Image()
-  img.src = url
-  preloadedImages.add(url)
-}
-
-const preloadAdjacentImages = () => {
-  const length = galleryImages.value.length
-  if (length <= 1) return
-
-  // Preload next image
-  const nextIndex = (currentImageIndex.value + 1) % length
-  preloadImage(galleryImages.value[nextIndex])
-
-  // Preload previous image
-  const prevIndex = (currentImageIndex.value - 1 + length) % length
-  preloadImage(galleryImages.value[prevIndex])
-}
-
 // Timeline auto-advance logic
 const startAutoAdvance = () => {
-  // Only run on client side and when visible
+  // Only run on client side and when card is visible
   if (typeof window === 'undefined' || !hasMultipleImages.value || !isVisible.value) {
     return
   }
 
-  // On desktop, only start on hover; on mobile, auto-start when visible
-  if (!isMobile.value && !isHovered.value) {
-    return
-  }
-
   stopAutoAdvance()
-
-  // Preload adjacent images for smooth transitions
-  preloadAdjacentImages()
 
   // Start progress animation
   progressTimer = window.setInterval(() => {
@@ -266,7 +232,6 @@ const prevImage = () => {
 
   const length = galleryImages.value.length
   currentImageIndex.value = (currentImageIndex.value - 1 + length) % length
-  preloadAdjacentImages()
   resetProgress()
 }
 
@@ -282,71 +247,29 @@ const getSegmentProgress = (index: number): number => {
 
 // Lifecycle hooks - only run on client
 onMounted(() => {
-  if (typeof window === 'undefined') return
-
-  // Detect if device is mobile
-  isMobile.value = window.matchMedia('(max-width: 768px)').matches || 
-                   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-
-  // Setup hover listeners for desktop
-  if (!isMobile.value && cardElement.value) {
-    const handleMouseEnter = () => {
-      isHovered.value = true
-      if (hasMultipleImages.value && isVisible.value) {
-        startAutoAdvance()
-      }
-    }
-
-    const handleMouseLeave = () => {
-      isHovered.value = false
-      stopAutoAdvance()
-      progress.value = 0
-    }
-
-    cardElement.value.addEventListener('mouseenter', handleMouseEnter)
-    cardElement.value.addEventListener('mouseleave', handleMouseLeave)
-
-    onBeforeUnmount(() => {
-      cardElement.value?.removeEventListener('mouseenter', handleMouseEnter)
-      cardElement.value?.removeEventListener('mouseleave', handleMouseLeave)
-    })
-  }
-
-  // Setup Intersection Observer for lazy loading and visibility detection
-  if (cardElement.value) {
-    const observer = new IntersectionObserver(
+  // Set up Intersection Observer for viewport visibility
+  if (typeof window !== 'undefined' && cardElement.value) {
+    observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           isVisible.value = entry.isIntersecting
           
-          if (entry.isIntersecting) {
-            // Card is visible
-            if (hasMultipleImages.value) {
-              // Mobile: auto-start, Desktop: wait for hover
-              if (isMobile.value) {
-                startAutoAdvance()
-              }
-            }
+          if (entry.isIntersecting && hasMultipleImages.value) {
+            // Card entered viewport - start animation
+            startAutoAdvance()
           } else {
-            // Card is not visible - pause auto-advance
+            // Card left viewport - stop animation
             stopAutoAdvance()
-            progress.value = 0
           }
         })
       },
       {
         threshold: 0.5, // Trigger when 50% of card is visible
-        rootMargin: '50px' // Start loading slightly before card enters viewport
+        rootMargin: '50px' // Start slightly before entering viewport
       }
     )
-
+    
     observer.observe(cardElement.value)
-
-    // Cleanup observer on unmount
-    onBeforeUnmount(() => {
-      observer.disconnect()
-      stopAutoAdvance()
-    })
   }
 
   // Watch for gallery changes only on client
@@ -354,10 +277,7 @@ onMounted(() => {
     () => hasMultipleImages.value,
     (hasMultiple) => {
       if (hasMultiple && isVisible.value) {
-        // On mobile, auto-start; on desktop, only if hovered
-        if (isMobile.value || isHovered.value) {
-          startAutoAdvance()
-        }
+        startAutoAdvance()
       } else {
         stopAutoAdvance()
       }
@@ -366,6 +286,13 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  // Clean up observer
+  if (observer && cardElement.value) {
+    observer.unobserve(cardElement.value)
+    observer.disconnect()
+    observer = null
+  }
+  
   stopAutoAdvance()
 })
 
