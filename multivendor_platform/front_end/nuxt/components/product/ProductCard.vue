@@ -119,6 +119,8 @@ let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null
 // Lazy loading and visibility
 const cardElement = ref<HTMLElement | null>(null)
 const isVisible = ref(false)
+const isHovered = ref(false)
+const isMobile = ref(false)
 const preloadedImages = new Set<string>()
 
 const galleryImages = computed(() => {
@@ -217,6 +219,11 @@ const startAutoAdvance = () => {
     return
   }
 
+  // On desktop, only start on hover; on mobile, auto-start when visible
+  if (!isMobile.value && !isHovered.value) {
+    return
+  }
+
   stopAutoAdvance()
 
   // Preload adjacent images for smooth transitions
@@ -275,17 +282,50 @@ const getSegmentProgress = (index: number): number => {
 
 // Lifecycle hooks - only run on client
 onMounted(() => {
+  if (typeof window === 'undefined') return
+
+  // Detect if device is mobile
+  isMobile.value = window.matchMedia('(max-width: 768px)').matches || 
+                   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
+  // Setup hover listeners for desktop
+  if (!isMobile.value && cardElement.value) {
+    const handleMouseEnter = () => {
+      isHovered.value = true
+      if (hasMultipleImages.value && isVisible.value) {
+        startAutoAdvance()
+      }
+    }
+
+    const handleMouseLeave = () => {
+      isHovered.value = false
+      stopAutoAdvance()
+      progress.value = 0
+    }
+
+    cardElement.value.addEventListener('mouseenter', handleMouseEnter)
+    cardElement.value.addEventListener('mouseleave', handleMouseLeave)
+
+    onBeforeUnmount(() => {
+      cardElement.value?.removeEventListener('mouseenter', handleMouseEnter)
+      cardElement.value?.removeEventListener('mouseleave', handleMouseLeave)
+    })
+  }
+
   // Setup Intersection Observer for lazy loading and visibility detection
-  if (typeof window !== 'undefined' && cardElement.value) {
+  if (cardElement.value) {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           isVisible.value = entry.isIntersecting
           
           if (entry.isIntersecting) {
-            // Card is visible - start auto-advance
+            // Card is visible
             if (hasMultipleImages.value) {
-              startAutoAdvance()
+              // Mobile: auto-start, Desktop: wait for hover
+              if (isMobile.value) {
+                startAutoAdvance()
+              }
             }
           } else {
             // Card is not visible - pause auto-advance
@@ -314,7 +354,10 @@ onMounted(() => {
     () => hasMultipleImages.value,
     (hasMultiple) => {
       if (hasMultiple && isVisible.value) {
-        startAutoAdvance()
+        // On mobile, auto-start; on desktop, only if hovered
+        if (isMobile.value || isHovered.value) {
+          startAutoAdvance()
+        }
       } else {
         stopAutoAdvance()
       }
