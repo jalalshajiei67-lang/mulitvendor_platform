@@ -122,7 +122,22 @@ await useAsyncData('subcategory-list-page', fetchPage)
 }
 
 .hero {
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.25), rgba(var(--v-theme-secondary), 0.25));
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.85), rgba(var(--v-theme-secondary), 0.9));
+  color: rgba(var(--v-theme-on-primary), 0.98);
+  border-radius: 24px;
+  margin: 16px auto 36px;
+  max-width: 1440px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.28), transparent 60%);
+  pointer-events: none;
 }
 
 .subcategory-card {

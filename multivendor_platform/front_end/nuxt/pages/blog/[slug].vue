@@ -205,7 +205,7 @@ const breadcrumbs = computed(() => [
 const heroStyle = computed(() => {
   const gradient = post.value?.category_color
     ? `linear-gradient(135deg, ${post.value.category_color}, rgba(0,0,0,0.45))`
-    : `linear-gradient(135deg, rgba(var(--v-theme-primary), 0.9), rgba(var(--v-theme-secondary), 0.9))`
+    : `linear-gradient(135deg, rgba(var(--v-theme-primary), 0.85), rgba(var(--v-theme-secondary), 0.9))`
 
   return {
     background: gradient

@@ -240,7 +240,7 @@ watch(
 }
 
 .hero {
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.22), rgba(var(--v-theme-secondary), 0.26));
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.85), rgba(var(--v-theme-secondary), 0.9));
   color: rgba(var(--v-theme-on-primary), 0.98);
   border-radius: 24px;
   margin: 16px auto 36px;
