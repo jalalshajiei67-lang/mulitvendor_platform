@@ -10,8 +10,21 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import path
 from django.contrib import messages
 from django.utils import timezone
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from tinymce.widgets import TinyMCE
-from .models import Department, Category, Subcategory, Product, ProductImage, ProductComment, ProductScrapeJob, ScrapeJobBatch
+from .models import (
+    Department,
+    Category,
+    Subcategory,
+    Product,
+    ProductImage,
+    ProductComment,
+    ProductScrapeJob,
+    ScrapeJobBatch,
+    Label,
+    LabelGroup,
+    LabelComboSeoPage,
+)
 from .scraper import WordPressScraper
 from .universal_scraper import UniversalProductScraper, create_product_from_scraped_data
 import threading
@@ -155,6 +168,204 @@ class ProductAdminForm(forms.ModelForm):
         
         return instance
 
+class LabelInline(admin.TabularInline):
+    model = Label
+    extra = 0
+    fields = ['name', 'slug', 'is_active', 'is_promotional', 'is_seo_page']
+    readonly_fields = ['slug']
+    show_change_link = True
+    can_delete = False
+
+class LabelGroupForm(forms.ModelForm):
+    subcategories = forms.ModelMultipleChoiceField(
+        queryset=Subcategory.objects.filter(is_active=True),
+        required=False,
+        widget=FilteredSelectMultiple('subcategories', is_stacked=False)
+    )
+
+    class Meta:
+        model = LabelGroup
+        fields = '__all__'
+
+@admin.register(LabelGroup)
+class LabelGroupAdmin(admin.ModelAdmin):
+    form = LabelGroupForm
+    list_display = ['name', 'slug', 'is_active', 'display_order', 'label_count', 'get_subcategories']
+    prepopulated_fields = {'slug': ('name',)}
+    list_filter = ['is_active', 'subcategories']
+    search_fields = ['name']
+    ordering = ['display_order', 'name']
+    autocomplete_fields = ['subcategories']
+    inlines = [LabelInline]
+    actions = ['activate_groups', 'deactivate_groups']
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'description', 'display_order', 'is_active')
+        }),
+        ('Subcategory Assignment', {
+            'fields': ('subcategories',),
+            'description': 'Leave empty for a global group. Assign specific subcategories to show this group when those subcategories are selected.'
+        }),
+    )
+
+    def label_count(self, obj):
+        return obj.labels.filter(is_active=True).count()
+    label_count.short_description = 'Active Labels'
+
+    def get_subcategories(self, obj):
+        return ", ".join([sc.name for sc in obj.subcategories.all()]) or '-'
+    get_subcategories.short_description = 'Subcategories'
+
+    @admin.action(description='Activate selected label groups')
+    def activate_groups(self, request, queryset):
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated} group(s) activated.')
+
+    @admin.action(description='Deactivate selected label groups')
+    def deactivate_groups(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated} group(s) deactivated.')
+
+class LabelAdminForm(forms.ModelForm):
+    departments = forms.ModelMultipleChoiceField(
+        queryset=Department.objects.filter(is_active=True),
+        required=False,
+        widget=FilteredSelectMultiple('departments', is_stacked=False),
+        help_text='اختیاری: این لیبل را به دپارتمان‌های مشخص محدود کنید.'
+    )
+    categories = forms.ModelMultipleChoiceField(
+        queryset=Category.objects.filter(is_active=True),
+        required=False,
+        widget=FilteredSelectMultiple('categories', is_stacked=False),
+        help_text='اختیاری: این لیبل را به دسته‌بندی‌های مشخص محدود کنید.'
+    )
+    subcategories = forms.ModelMultipleChoiceField(
+        queryset=Subcategory.objects.filter(is_active=True),
+        required=False,
+        widget=FilteredSelectMultiple('subcategories', is_stacked=False),
+        help_text='اختیاری: این لیبل را به زیرشاخه‌های مشخص محدود کنید.'
+    )
+    seo_faq = forms.JSONField(required=False, widget=forms.Textarea(attrs={'rows': 4}), help_text='JSON array of FAQ objects')
+
+    class Meta:
+        model = Label
+        fields = '__all__'
+
+@admin.register(Label)
+class LabelAdmin(admin.ModelAdmin):
+    form = LabelAdminForm
+    list_display = ['name', 'slug', 'label_group', 'type_badges', 'get_departments', 'get_categories', 'get_subcategories', 'product_count', 'is_active']
+    list_filter = ['label_group', 'is_promotional', 'is_filterable', 'is_seo_page', 'is_active', 'departments', 'categories', 'subcategories']
+    search_fields = ['name', 'description']
+    prepopulated_fields = {'slug': ('name',)}
+    ordering = ['display_order', 'name']
+    readonly_fields = ['product_count']
+    autocomplete_fields = ['departments', 'categories', 'subcategories']
+    actions = ['refresh_counts', 'mark_as_seo', 'unmark_seo']
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'label_group', 'description', 'color')
+        }),
+        ('Type & Behavior', {
+            'fields': ('is_promotional', 'is_filterable', 'is_seo_page', 'display_order', 'is_active')
+        }),
+        ('Scope in Catalog', {
+            'fields': ('departments', 'categories', 'subcategories'),
+            'description': 'اگر هیچ گزینه‌ای انتخاب نشود، این لیبل برای تمام سایت در دسترس است. در غیر این صورت فقط در بخش‌های انتخاب شده نمایش داده می‌شود.'
+        }),
+        ('Product Data', {
+            'fields': ('product_count',),
+            'classes': ('collapse',)
+        }),
+        ('SEO Settings', {
+            'fields': ('seo_title', 'seo_description', 'seo_h1', 'seo_intro_text', 'seo_faq', 'og_image', 'schema_markup'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    @admin.display(description='Types')
+    def type_badges(self, obj):
+        badges = []
+        if obj.is_promotional:
+            badges.append('<span style="color: #1e88e5;">Promotional</span>')
+        if obj.is_filterable:
+            badges.append('<span style="color: #43a047;">Filterable</span>')
+        if obj.is_seo_page:
+            badges.append('<span style="color: #fb8c00;">SEO</span>')
+        return format_html(' | '.join(badges)) if badges else '-'
+
+    def get_departments(self, obj):
+        names = [dept.name for dept in obj.departments.all()]
+        return ", ".join(names) or '-'
+    get_departments.short_description = 'Departments'
+
+    def get_categories(self, obj):
+        names = [cat.name for cat in obj.categories.all()]
+        return ", ".join(names) or '-'
+    get_categories.short_description = 'Categories'
+
+    def get_subcategories(self, obj):
+        return ", ".join([sc.name for sc in obj.subcategories.all()]) or '-'
+    get_subcategories.short_description = 'Subcategories'
+
+    @admin.action(description='Refresh product counts for selected labels')
+    def refresh_counts(self, request, queryset):
+        for label in queryset:
+            label.update_product_count()
+        self.message_user(request, f'Refreshed counts for {queryset.count()} label(s).')
+
+    @admin.action(description='Mark selected labels as SEO pages')
+    def mark_as_seo(self, request, queryset):
+        updated = queryset.update(is_seo_page=True)
+        self.message_user(request, f'{updated} label(s) marked as SEO pages.')
+
+    @admin.action(description='Unmark selected labels as SEO pages')
+    def unmark_seo(self, request, queryset):
+        updated = queryset.update(is_seo_page=False)
+        self.message_user(request, f'{updated} label(s) removed from SEO pages.')
+
+class LabelComboSeoPageForm(forms.ModelForm):
+    seo_faq = forms.JSONField(required=False, widget=forms.Textarea(attrs={'rows': 4}), help_text='FAQ JSON array')
+
+    class Meta:
+        model = LabelComboSeoPage
+        fields = '__all__'
+
+@admin.register(LabelComboSeoPage)
+class LabelComboSeoPageAdmin(admin.ModelAdmin):
+    form = LabelComboSeoPageForm
+    list_display = ['name', 'slug', 'is_indexable', 'labels_list']
+    list_filter = ['is_indexable']
+    search_fields = ['name', 'slug']
+    filter_horizontal = ['labels']
+    prepopulated_fields = {'slug': ('name',)}
+    actions = ['mark_indexable', 'unmark_indexable']
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'labels', 'display_order')
+        }),
+        ('SEO Settings', {
+            'fields': ('seo_title', 'seo_description', 'seo_h1', 'seo_intro_text', 'seo_faq', 'og_image', 'schema_markup'),
+            'classes': ('collapse',),
+        }),
+        ('Indexing', {
+            'fields': ('is_indexable',),
+        }),
+    )
+
+    def labels_list(self, obj):
+        return ", ".join([label.name for label in obj.labels.all()])
+    labels_list.short_description = 'Labels'
+
+    @admin.action(description='Mark selected combos as indexable')
+    def mark_indexable(self, request, queryset):
+        updated = queryset.update(is_indexable=True)
+        self.message_user(request, f'{updated} combo page(s) marked indexable.')
+
+    @admin.action(description='Unmark selected combos as indexable')
+    def unmark_indexable(self, request, queryset):
+        updated = queryset.update(is_indexable=False)
+        self.message_user(request, f'{updated} combo page(s) marked non-indexable.')
 class DepartmentAdminForm(forms.ModelForm):
     description = forms.CharField(
         widget=TinyMCE(attrs={'cols': 80, 'rows': 30}),
@@ -362,11 +573,11 @@ class ProductCommentInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
-    list_display = ['name', 'slug', 'vendor', 'supplier', 'primary_category', 'get_subcategories', 'get_category_path', 'price', 'stock', 'image_count', 'comment_count', 'is_active', 'created_at']
-    list_filter = ['is_active', 'primary_category', 'subcategories', 'created_at']
+    list_display = ['name', 'slug', 'vendor', 'supplier', 'primary_category', 'get_subcategories', 'get_labels', 'price', 'stock', 'image_count', 'comment_count', 'is_active', 'created_at']
+    list_filter = ['is_active', 'primary_category', 'subcategories', 'labels', 'created_at']
     search_fields = ['name', 'description', 'vendor__username', 'vendor__email']
     prepopulated_fields = {'slug': ('name',)}
-    filter_horizontal = ['subcategories']
+    filter_horizontal = ['subcategories', 'labels']
     inlines = [ProductImageInline, ProductCommentInline]
     actions = ['make_active', 'make_inactive', 'delete_selected']  # Enable bulk actions with delete
     fieldsets = (
@@ -379,6 +590,10 @@ class ProductAdmin(admin.ModelAdmin):
         }),
         ('Category, Supplier & Vendor', {
             'fields': ('supplier', 'subcategories', 'primary_category', 'vendor')
+        }),
+        ('Labels & Tags', {
+            'fields': ('labels',),
+            'description': 'Add labels for filtering, promotional badges, and SEO. Select multiple labels using the selection widget below.'
         }),
         ('Pricing & Inventory', {
             'fields': ('price', 'stock')
@@ -449,6 +664,26 @@ class ProductAdmin(admin.ModelAdmin):
         except Exception as e:
             return format_html('<span style="color: orange;">Error</span>')
     comment_count.short_description = 'Comments'
+    
+    def get_labels(self, obj):
+        """Display labels as colored badges"""
+        try:
+            labels = obj.labels.filter(is_active=True)[:5]  # Show max 5 labels
+            if labels.exists():
+                badges = []
+                for label in labels:
+                    color = label.color if label.color else '#1976d2'
+                    badges.append(
+                        f'<span style="background-color: {color}1a; color: {color}; '
+                        f'padding: 2px 8px; border-radius: 12px; margin: 2px; '
+                        f'display: inline-block; font-size: 11px; font-weight: 500;">'
+                        f'{label.name}</span>'
+                    )
+                return format_html(' '.join(badges))
+            return '-'
+        except Exception as e:
+            return format_html('<span style="color: orange;">Error</span>')
+    get_labels.short_description = 'Labels'
     
     # Bulk actions
     def make_active(self, request, queryset):

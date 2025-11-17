@@ -271,8 +271,8 @@ const stats = ref({
 
 // Sitemap XML URL
 const sitemapXmlUrl = computed(() => {
-  const apiBase = config.public.apiBase.replace('/api', '')
-  return `${apiBase}/sitemap.xml`
+  const siteUrl = config.public.siteUrl.replace(/\/$/, '')
+  return `${siteUrl}/sitemap.xml`
 })
 
 // Methods

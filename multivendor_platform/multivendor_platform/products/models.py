@@ -121,6 +121,8 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    # NOTE: labels field is defined after Label model is created (see below)
+    
     class Meta:
         ordering = ['-created_at']
     
@@ -445,3 +447,249 @@ class ProductScrapeJob(models.Model):
         if self.scraped_data and 'scraping_metadata' in self.scraped_data:
             return self.scraped_data['scraping_metadata'].get('warnings_count', 0)
         return 0
+
+
+class LabelGroup(models.Model):
+    """Group for organizing labels (e.g., Industry, Size, Status)"""
+    name = models.CharField(max_length=120, unique=True)
+    slug = models.SlugField(max_length=140, unique=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    display_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    subcategories = models.ManyToManyField(
+        Subcategory,
+        related_name='label_groups',
+        blank=True,
+        help_text='Assign this group to subcategories; leave empty to keep it global.'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', 'name']
+        verbose_name = 'Label Group'
+        verbose_name_plural = 'Label Groups'
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+    def is_global(self):
+        return not self.subcategories.exists()
+
+    def applies_to_subcategory(self, subcategory_id: int | None):
+        if not subcategory_id:
+            return True
+        if self.is_global():
+            return True
+        return self.subcategories.filter(id=subcategory_id).exists()
+
+    def get_labels_for_subcategory(self, subcategory_id: int | None):
+        """
+        Return labels that should be displayed for `subcategory_id`.
+        Global labels always show; others must explicitly attach to the subcategory.
+        """
+        labels = self.labels.filter(is_active=True)
+        if not subcategory_id:
+            return labels
+        return labels.filter(
+            models.Q(subcategories__id=subcategory_id) | models.Q(subcategories__isnull=True)
+        ).distinct()
+
+
+class Label(models.Model):
+    """Product label for filtering, badges, and SEO landing pages"""
+    name = models.CharField(max_length=120)
+    slug = models.SlugField(max_length=140, unique=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    # Optional scoping by catalog hierarchy
+    departments = models.ManyToManyField(
+        Department,
+        related_name='labels',
+        blank=True,
+        help_text='Limit this label to specific departments (leave empty for all departments).'
+    )
+    categories = models.ManyToManyField(
+        Category,
+        related_name='labels',
+        blank=True,
+        help_text='Limit this label to specific categories (leave empty for all categories).'
+    )
+    label_group = models.ForeignKey(
+        LabelGroup,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='labels'
+    )
+    subcategories = models.ManyToManyField(Subcategory, related_name='labels', blank=True)
+    color = models.CharField(
+        max_length=7,
+        blank=True,
+        null=True,
+        help_text='Hex color code for badge (include #)'
+    )
+    
+    # Type flags
+    is_promotional = models.BooleanField(default=False)
+    is_filterable = models.BooleanField(default=True)
+    is_seo_page = models.BooleanField(
+        default=False,
+        help_text='Controls whether this label gets a dedicated landing page'
+    )
+    
+    # SEO fields
+    seo_title = models.CharField(max_length=70, blank=True, null=True)
+    seo_description = models.CharField(max_length=160, blank=True, null=True)
+    seo_h1 = models.CharField(max_length=140, blank=True, null=True)
+    seo_intro_text = models.TextField(blank=True, null=True)
+    seo_faq = models.JSONField(
+        blank=True,
+        null=True,
+        help_text='Optional FAQ JSON array (list of {"question": "", "answer": ""})'
+    )
+    og_image = models.ImageField(
+        upload_to='label_og_images/',
+        blank=True,
+        null=True,
+        help_text='OpenGraph image for SEO pages'
+    )
+    schema_markup = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Optional JSON-LD markup'
+    )
+    
+    # Meta
+    product_count = models.PositiveIntegerField(default=0)
+    display_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', 'name']
+        verbose_name = 'Label'
+        verbose_name_plural = 'Labels'
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+    def update_product_count(self):
+        """Update the cached product count"""
+        self.product_count = self.products.filter(is_active=True).count()
+        self.save(update_fields=['product_count'])
+
+    def applies_to_subcategory(self, subcategory_id: int | None):
+        if not subcategory_id:
+            return True
+        if not self.subcategories.exists():
+            return True
+        return self.subcategories.filter(id=subcategory_id).exists()
+
+    def is_global(self) -> bool:
+        """Return True when the label applies to every subcategory."""
+        return not self.subcategories.exists()
+
+    def is_relevant_for_subcategory(self, subcategory_id: int | None) -> bool:
+        if not subcategory_id:
+            return True
+        if self.is_global():
+            return True
+        return self.subcategories.filter(id=subcategory_id).exists()
+
+    def get_breadcrumb_hierarchy(self):
+        """Return breadcrumb data for SEO pages"""
+        breadcrumbs = [
+            {'type': 'home', 'name': 'Home', 'slug': '/'},
+            {'type': 'products', 'name': 'Products', 'slug': '/products'},
+        ]
+        if self.label_group:
+            breadcrumbs.append({
+                'type': 'label_group',
+                'name': self.label_group.name,
+                'slug': self.label_group.slug
+            })
+        breadcrumbs.append({
+            'type': 'label',
+            'name': self.name,
+            'slug': self.slug
+        })
+        return breadcrumbs
+
+
+class LabelComboSeoPage(models.Model):
+    """SEO page for combination of multiple labels"""
+    name = models.CharField(max_length=140)
+    slug = models.SlugField(max_length=180, unique=True)
+    labels = models.ManyToManyField(Label, related_name='combo_pages')
+    
+    # SEO fields
+    seo_title = models.CharField(max_length=70, blank=True, null=True)
+    seo_description = models.CharField(max_length=160, blank=True, null=True)
+    seo_h1 = models.CharField(max_length=140, blank=True, null=True)
+    seo_intro_text = models.TextField(blank=True, null=True)
+    seo_faq = models.JSONField(
+        blank=True,
+        null=True,
+        help_text='FAQ entries for combo page'
+    )
+    og_image = models.ImageField(
+        upload_to='label_combo_og_images/',
+        blank=True,
+        null=True
+    )
+    schema_markup = models.TextField(blank=True, null=True)
+    
+    # Meta
+    is_indexable = models.BooleanField(default=False)
+    display_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', 'name']
+        verbose_name = 'Label Combo SEO Page'
+        verbose_name_plural = 'Label Combo SEO Pages'
+
+    def __str__(self):
+        return self.name
+
+    def get_filtered_products(self):
+        """Return products that match ALL labels in this combo"""
+        label_ids = list(self.labels.values_list('id', flat=True))
+        if not label_ids:
+            return Product.objects.none()
+        
+        # Get products that have ALL the labels
+        products = Product.objects.filter(is_active=True)
+        for label_id in label_ids:
+            products = products.filter(labels__id=label_id)
+        
+        return products.distinct()
+
+
+# Add labels field to Product model after Label is defined
+Product.add_to_class(
+    'labels',
+    models.ManyToManyField(Label, related_name='products', blank=True)
+)
+
+def get_promotional_labels(self):
+    """Get promotional labels for badge display (limit 2)"""
+    return self.labels.filter(
+        is_promotional=True,
+        is_active=True
+    ).order_by('display_order')[:2]
+
+# Add method to Product class
+Product.add_to_class('get_promotional_labels', get_promotional_labels)

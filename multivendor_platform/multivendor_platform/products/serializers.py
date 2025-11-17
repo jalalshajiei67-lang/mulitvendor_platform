@@ -1,6 +1,16 @@
 # products/serializers.py
 from rest_framework import serializers
-from .models import Product, Category, Subcategory, Department, ProductImage, ProductComment
+from .models import (
+    Product,
+    Category,
+    Subcategory,
+    Department,
+    ProductImage,
+    ProductComment,
+    Label,
+    LabelGroup,
+    LabelComboSeoPage,
+)
 from .utils import build_absolute_uri
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -119,6 +129,11 @@ class SubcategorySerializer(serializers.ModelSerializer):
         departments = obj.get_departments()
         return DepartmentSerializer(departments, many=True, context=self.context).data
 
+class LabelSubcategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subcategory
+        fields = ['id', 'name', 'slug']
+
 class ProductImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField(read_only=True)
     
@@ -140,6 +155,67 @@ class ProductImageSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         return build_absolute_uri(request, image_field.url)
 
+class LabelMinimalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Label
+        fields = ['id', 'name', 'slug', 'color', 'is_promotional', 'is_filterable', 'is_seo_page', 'is_active']
+
+class LabelSerializer(serializers.ModelSerializer):
+    label_group = serializers.StringRelatedField()
+    departments = DepartmentSerializer(many=True, read_only=True)
+    categories = CategorySerializer(many=True, read_only=True)
+    subcategories = LabelSubcategorySerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Label
+        fields = [
+            'id', 'name', 'slug', 'description', 'label_group', 'color',
+            'is_promotional', 'is_filterable', 'is_seo_page',
+            'departments', 'categories',
+            'subcategories',
+            'seo_title', 'seo_description', 'seo_h1', 'seo_intro_text',
+            'seo_faq', 'og_image', 'schema_markup', 'product_count',
+            'display_order', 'is_active', 'created_at', 'updated_at'
+        ]
+
+class LabelGroupSerializer(serializers.ModelSerializer):
+    label_count = serializers.SerializerMethodField()
+    labels = serializers.SerializerMethodField()
+    subcategories = LabelSubcategorySerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = LabelGroup
+        fields = [
+            'id', 'name', 'slug', 'description', 'display_order', 'is_active',
+            'label_count', 'labels', 'subcategories'
+        ]
+
+    def _filter_labels(self, obj):
+        subcategory_id = self.context.get('subcategory_id')
+        return obj.get_labels_for_subcategory(subcategory_id)
+
+    def get_label_count(self, obj):
+        return self._filter_labels(obj).count()
+
+    def get_labels(self, obj):
+        return LabelMinimalSerializer(
+            self._filter_labels(obj),
+            many=True,
+            context=self.context
+        ).data
+
+class LabelComboSeoPageSerializer(serializers.ModelSerializer):
+    labels = LabelMinimalSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = LabelComboSeoPage
+        fields = [
+            'id', 'name', 'slug', 'labels',
+            'seo_title', 'seo_description', 'seo_h1', 'seo_intro_text',
+            'seo_faq', 'og_image', 'schema_markup', 'is_indexable',
+            'display_order', 'created_at', 'updated_at'
+        ]
+
 class ProductSerializer(serializers.ModelSerializer):
     vendor_name = serializers.CharField(source='vendor.username', read_only=True)
     subcategory_name = serializers.CharField(source='primary_subcategory.name', read_only=True)
@@ -151,6 +227,8 @@ class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     primary_image = serializers.SerializerMethodField(read_only=True)
     og_image_url = serializers.SerializerMethodField(read_only=True)
+    labels = LabelMinimalSerializer(many=True, read_only=True)
+    promotional_labels = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
@@ -160,7 +238,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'name', 'slug', 'description', 'price', 'stock', 'image', 'images', 'primary_image',
             'image_alt_text', 'og_image', 'og_image_url', 'meta_title', 'meta_description',
             'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
-            'created_at', 'updated_at'
+            'labels', 'promotional_labels', 'created_at', 'updated_at'
         ]
 
     def __init__(self, *args, **kwargs):
@@ -201,6 +279,13 @@ class ProductSerializer(serializers.ModelSerializer):
         
         request = self.context.get('request')
         return build_absolute_uri(request, og_image_field.url)
+
+    def get_promotional_labels(self, obj):
+        return LabelMinimalSerializer(
+            obj.get_promotional_labels(),
+            many=True,
+            context=self.context
+        ).data
     
     def create(self, validated_data):
         # Set the vendor to the current authenticated user, unless it's an admin specifying a different vendor
@@ -290,6 +375,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     comments = ProductCommentSerializer(many=True, read_only=True)
     comment_count = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
+    labels = LabelMinimalSerializer(many=True, read_only=True)
+    promotional_labels = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
@@ -300,6 +387,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'image_alt_text', 'og_image', 'og_image_url', 'meta_title', 'meta_description',
             'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
             'comments', 'comment_count', 'average_rating',
+            'labels', 'promotional_labels',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['vendor', 'created_at', 'updated_at']
@@ -328,6 +416,9 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         
         request = self.context.get('request')
         return build_absolute_uri(request, og_image_field.url)
+
+    def get_promotional_labels(self, obj):
+        return LabelMinimalSerializer(obj.get_promotional_labels(), many=True, context=self.context).data
     
     def get_comment_count(self, obj):
         """Get count of approved comments"""

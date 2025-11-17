@@ -19,6 +19,20 @@
         <v-icon size="48" color="grey-lighten-1">mdi-cube-outline</v-icon>
       </div>
 
+      <div v-if="promotionalLabels.length" class="promotional-labels">
+        <v-chip
+          v-for="label in promotionalLabels"
+          :key="label.slug"
+          size="small"
+          variant="tonal"
+          class="promotional-label"
+          elevation="0"
+          :style="getPromotionStyle(label)"
+        >
+          {{ label.name }}
+        </v-chip>
+      </div>
+
       <div v-if="hasMultipleImages" class="gallery-nav">
         <v-btn
           size="small"
@@ -146,6 +160,7 @@ const currentImage = computed(() => galleryImages.value[currentImageIndex.value]
 
 const hasGallery = computed(() => galleryImages.value.length > 0)
 const hasMultipleImages = computed(() => galleryImages.value.length > 1)
+const promotionalLabels = computed(() => props.product.promotional_labels ?? [])
 
 const isRtl = computed(() => {
   if (typeof window !== 'undefined' && window.document.documentElement) {
@@ -242,6 +257,18 @@ const getSegmentProgress = (index: number): number => {
     return progress.value // Current segment with progress
   } else {
     return 0 // Future segments
+  }
+}
+
+const getPromotionStyle = (label: Record<string, any>) => {
+  if (!label.color) {
+    return {}
+  }
+
+  return {
+    backgroundColor: label.color,
+    color: '#fff',
+    borderColor: label.color
   }
 }
 
@@ -374,6 +401,21 @@ const openProduct = () => {
 
 .gallery-arrow:hover {
   background-color: rgba(var(--v-theme-surface), 0.98);
+}
+
+.promotional-labels {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  z-index: 4;
+}
+
+.promotional-label {
+  font-weight: 600;
+  border: 1px solid transparent;
 }
 
 .line-clamp-2 {

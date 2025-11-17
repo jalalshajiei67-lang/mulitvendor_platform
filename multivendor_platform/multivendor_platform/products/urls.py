@@ -2,8 +2,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    ProductViewSet, CategoryViewSet, SubcategoryViewSet, DepartmentViewSet, 
-    MyProductsView, ProductCommentViewSet, global_search
+    ProductViewSet, CategoryViewSet, SubcategoryViewSet, DepartmentViewSet,
+    MyProductsView, ProductCommentViewSet, global_search,
+    LabelGroupViewSet, LabelViewSet, LabelComboSeoPageViewSet
 )
 from .test_scraper_api import test_scraper_connection, test_network_access
 
@@ -13,6 +14,9 @@ router.register(r'subcategories', SubcategoryViewSet, basename='subcategory')
 router.register(r'departments', DepartmentViewSet, basename='department')
 router.register(r'products', ProductViewSet, basename='product')
 router.register(r'product-comments', ProductCommentViewSet, basename='product-comment')
+router.register(r'label-groups', LabelGroupViewSet, basename='label-group')
+router.register(r'labels', LabelViewSet, basename='label')
+router.register(r'label-combos', LabelComboSeoPageViewSet, basename='label-combo')
 
 urlpatterns = [
     # Put specific routes FIRST before router

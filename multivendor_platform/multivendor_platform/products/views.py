@@ -14,12 +14,30 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from django_filters.rest_framework import DjangoFilterBackend
 
 # Local imports
-from .models import Product, Category, Subcategory, Department, ProductImage, ProductComment
+from .models import (
+    Product,
+    Category,
+    Subcategory,
+    Department,
+    ProductImage,
+    ProductComment,
+    Label,
+    LabelGroup,
+    LabelComboSeoPage,
+)
 from .forms import ProductForm
 from .serializers import (
-    ProductSerializer, CategorySerializer, SubcategorySerializer, 
-    DepartmentSerializer, ProductImageSerializer, ProductCommentSerializer,
-    ProductCommentCreateSerializer, ProductDetailSerializer
+    ProductSerializer,
+    CategorySerializer,
+    SubcategorySerializer,
+    DepartmentSerializer,
+    ProductImageSerializer,
+    ProductCommentSerializer,
+    ProductCommentCreateSerializer,
+    ProductDetailSerializer,
+    LabelSerializer,
+    LabelGroupSerializer,
+    LabelComboSeoPageSerializer,
 )
 
 # --- DJANGO DASHBOARD VIEWS ---
@@ -94,6 +112,13 @@ class ProductViewSet(viewsets.ModelViewSet):
         subcategory_id = self.request.query_params.get('subcategories') or self.request.query_params.get('subcategory')
         if subcategory_id is not None:
             queryset = queryset.filter(subcategories__id=subcategory_id)
+
+        # Filter by labels (AND logic, accepts comma-separated slugs)
+        label_slugs = self.request.query_params.get('labels')
+        if label_slugs:
+            slugs = [slug.strip() for slug in label_slugs.split(',') if slug.strip()]
+            for slug in slugs:
+                queryset = queryset.filter(labels__slug=slug)
         
         return queryset.distinct()  # Use distinct to avoid duplicates from M2M
     
@@ -362,6 +387,80 @@ class ProductCommentViewSet(viewsets.ModelViewSet):
         Set author to current user
         """
         serializer.save(author=self.request.user)
+
+class LabelGroupViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Provides read-only access to label groups for filter UI.
+    """
+    serializer_class = LabelGroupSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        subcategory_id = self.request.query_params.get('subcategory')
+        queryset = LabelGroup.objects.filter(is_active=True).order_by('display_order', 'name')
+        if subcategory_id:
+            queryset = queryset.filter(
+                models.Q(subcategories__id=subcategory_id) | models.Q(subcategories__isnull=True)
+            )
+        return queryset.distinct()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['subcategory_id'] = self.request.query_params.get('subcategory')
+        return context
+
+class LabelViewSet(viewsets.ModelViewSet):
+    """
+    CRUD for labels + convenience endpoints for promotional/SEO labels.
+    """
+    queryset = Label.objects.all().order_by('display_order', 'name')
+    serializer_class = LabelSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['label_group__slug', 'is_promotional', 'is_seo_page', 'is_filterable', 'is_active']
+    search_fields = ['name', 'description']
+    ordering_fields = ['display_order', 'name', 'product_count']
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [AllowAny]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        subcategory_id = self.request.query_params.get('subcategory')
+        queryset = super().get_queryset()
+        if subcategory_id:
+            queryset = queryset.filter(
+                models.Q(subcategories__id=subcategory_id) | models.Q(subcategories__isnull=True)
+            )
+        return queryset.distinct()
+
+    @action(detail=False, methods=['get'], url_path='promotional', permission_classes=[AllowAny])
+    def promotional_labels(self, request):
+        queryset = self.get_queryset().filter(is_promotional=True, is_active=True)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='seo', permission_classes=[AllowAny])
+    def seo_labels(self, request):
+        queryset = self.get_queryset().filter(is_seo_page=True, is_active=True)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='seo-content', permission_classes=[AllowAny])
+    def seo_content(self, request, pk=None):
+        label = self.get_object()
+        serializer = self.get_serializer(label)
+        return Response(serializer.data)
+
+class LabelComboSeoPageViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only endpoints for SEO landing pages defined by label combinations.
+    """
+    queryset = LabelComboSeoPage.objects.all().order_by('display_order', 'name')
+    serializer_class = LabelComboSeoPageSerializer
+    permission_classes = [AllowAny]
 
 # --- GLOBAL SEARCH API ---
 
