@@ -34,9 +34,9 @@
               <v-icon left>mdi-star</v-icon>
               نظرات مشتریان
             </v-tab>
-            <v-tab value="analytics">
-              <v-icon left>mdi-chart-line</v-icon>
-              آمار و تحلیل
+            <v-tab value="miniwebsite">
+              <v-icon left>mdi-web</v-icon>
+              وب‌سایت مینی
             </v-tab>
           </v-tabs>
 
@@ -49,21 +49,21 @@
                   <v-row class="mb-4">
                     <v-col cols="12">
                       <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-                        <div>
-                          <h2 class="text-h5 mb-2">
-                            خوش آمدید {{ authStore.user?.vendor_profile?.store_name || authStore.user?.first_name || authStore.user?.username }}!
-                          </h2>
-                          <p class="text-body-1 text-medium-emphasis">
-                            خلاصه فعالیت‌ها و فروش‌های شما
-                          </p>
-                        </div>
+                      <div>
+                        <h2 class="text-h5 mb-2">
+                          خوش آمدید {{ getUserFullName() }}!
+                        </h2>
+                        <p class="text-body-1 text-medium-emphasis">
+                          خلاصه فعالیت‌ها و فروش‌های شما
+                        </p>
+                      </div>
                         <!-- Quick Actions -->
                         <div class="d-flex gap-2 flex-wrap">
                           <v-btn
                             color="primary"
                             variant="elevated"
                             prepend-icon="mdi-plus-circle"
-                            :to="'/admin/dashboard/products/new'"
+                            @click="tab = 'products'; openProductForm()"
                             size="default"
                           >
                             افزودن محصول جدید
@@ -72,10 +72,10 @@
                             color="secondary"
                             variant="outlined"
                             prepend-icon="mdi-package-variant"
-                            :to="'/products'"
+                            @click="tab = 'products'"
                             size="default"
                           >
-                            مشاهده همه محصولات
+                            مدیریت محصولات
                           </v-btn>
                         </div>
                       </div>
@@ -350,14 +350,38 @@
 
               <!-- Products Tab -->
               <v-window-item value="products">
-                <v-btn color="primary" class="mb-4" @click="navigateTo('/admin/dashboard/products/new')">
-                  <v-icon left>mdi-plus</v-icon>
-                  افزودن محصول جدید
-                </v-btn>
-                <v-btn color="secondary" class="mb-4 mr-2" @click="navigateTo('/products')">
-                  <v-icon left>mdi-eye</v-icon>
-                  مشاهده همه محصولات
-                </v-btn>
+                <div class="py-4">
+                  <!-- Show Product Form when adding/editing -->
+                  <div v-if="showProductForm">
+                    <div class="d-flex align-center mb-4">
+                      <v-btn
+                        icon
+                        size="small"
+                        @click="closeProductForm"
+                        class="ml-2"
+                      >
+                        <v-icon>mdi-arrow-right</v-icon>
+                      </v-btn>
+                      <h3 class="text-h6">
+                        {{ editingProduct ? 'ویرایش محصول' : 'افزودن محصول جدید' }}
+                      </h3>
+                    </div>
+                    <SupplierProductForm
+                      :product-data="editingProduct"
+                      :edit-mode="!!editingProduct"
+                      @saved="onProductSaved"
+                      @cancel="closeProductForm"
+                    />
+                  </div>
+                  
+                  <!-- Show Product List by default -->
+                  <SupplierProductList
+                    v-else
+                    ref="productListRef"
+                    @add-product="openProductForm"
+                    @edit-product="openEditProductForm"
+                  />
+                </div>
               </v-window-item>
 
               <!-- Ads Tab -->
@@ -479,30 +503,55 @@
                 </div>
               </v-window-item>
 
-              <!-- Analytics Tab -->
-              <v-window-item value="analytics">
+              <!-- Mini Website Tab -->
+              <v-window-item value="miniwebsite">
                 <div class="py-4">
-                  <h3 class="text-h6 mb-4">آمار و تحلیل</h3>
-                  <v-row>
-                    <v-col cols="12" md="6">
-                      <v-card elevation="1">
-                        <v-card-title>عملکرد محصولات</v-card-title>
-                        <v-card-text>
-                          <div class="text-h4">{{ dashboardData.product_views || 0 }}</div>
-                          <div class="text-caption">کل بازدید محصولات</div>
-                        </v-card-text>
-                      </v-card>
-                    </v-col>
-                    <v-col cols="12" md="6">
-                      <v-card elevation="1">
-                        <v-card-title>آمار سفارشات</v-card-title>
-                        <v-card-text>
-                          <div>کل سفارشات: <strong>{{ dashboardData.total_orders || 0 }}</strong></div>
-                          <div>کل درآمد: <strong>{{ formatPrice(dashboardData.total_sales || 0) }} تومان</strong></div>
-                        </v-card-text>
-                      </v-card>
-                    </v-col>
-                  </v-row>
+                  <v-tabs
+                    v-model="miniWebsiteTab"
+                    bg-color="grey-lighten-4"
+                    color="primary"
+                    align-tabs="start"
+                    class="mb-4"
+                  >
+                    <v-tab value="settings">
+                      <v-icon start size="small">mdi-palette</v-icon>
+                      تنظیمات
+                    </v-tab>
+                    <v-tab value="portfolio">
+                      <v-icon start size="small">mdi-briefcase</v-icon>
+                      نمونه کارها
+                    </v-tab>
+                    <v-tab value="team">
+                      <v-icon start size="small">mdi-account-group</v-icon>
+                      تیم
+                    </v-tab>
+                    <v-tab value="messages">
+                      <v-icon start size="small">mdi-email</v-icon>
+                      پیام‌ها
+                    </v-tab>
+                  </v-tabs>
+
+                  <v-window v-model="miniWebsiteTab">
+                    <!-- Settings Sub-Tab -->
+                    <v-window-item value="settings">
+                      <MiniWebsiteSettings />
+                    </v-window-item>
+
+                    <!-- Portfolio Sub-Tab -->
+                    <v-window-item value="portfolio">
+                      <PortfolioManager />
+                    </v-window-item>
+
+                    <!-- Team Sub-Tab -->
+                    <v-window-item value="team">
+                      <TeamManager />
+                    </v-window-item>
+
+                    <!-- Messages Sub-Tab -->
+                    <v-window-item value="messages">
+                      <ContactMessagesInbox />
+                    </v-window-item>
+                  </v-window>
                 </div>
               </v-window-item>
             </v-window>
@@ -561,6 +610,10 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useSellerApi } from '~/composables/useSellerApi'
 import type { SellerOrder, SellerReview, SellerAd } from '~/composables/useSellerApi'
+import MiniWebsiteSettings from '~/components/supplier/MiniWebsiteSettings.vue'
+import PortfolioManager from '~/components/supplier/PortfolioManager.vue'
+import TeamManager from '~/components/supplier/TeamManager.vue'
+import ContactMessagesInbox from '~/components/supplier/ContactMessagesInbox.vue'
 
 definePageMeta({
   middleware: 'authenticated',
@@ -574,6 +627,7 @@ const route = useRoute()
 // Check for tab query parameter - default to 'home'
 const tabQuery = computed(() => route.query.tab as string || 'home')
 const tab = ref(tabQuery.value)
+const miniWebsiteTab = ref('settings')
 
 // Watch for route query changes
 watch(() => route.query.tab, (newTab) => {
@@ -603,6 +657,9 @@ const snackbarMessage = ref('')
 const snackbarColor = ref('success')
 const showAdDialog = ref(false)
 const editingAd = ref(false)
+const showProductForm = ref(false)
+const editingProduct = ref<any>(null)
+const productListRef = ref<any>(null)
 
 const profileData = ref({
   first_name: '',
@@ -821,10 +878,59 @@ const formatPrice = (price: string | number) => {
   return new Intl.NumberFormat('fa-IR').format(numPrice)
 }
 
+const getUserFullName = () => {
+  const user = authStore.user
+  if (!user) return 'کاربر'
+  
+  // Try to get first name and last name
+  const firstName = user.first_name || ''
+  const lastName = user.last_name || ''
+  
+  // If both exist, return full name
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`
+  }
+  
+  // If only one exists, return it
+  if (firstName) return firstName
+  if (lastName) return lastName
+  
+  // Fallback to username
+  return user.username || 'کاربر'
+}
+
 const showSnackbar = (message: string, color = 'success') => {
   snackbarMessage.value = message
   snackbarColor.value = color
   snackbar.value = true
+}
+
+const openProductForm = () => {
+  editingProduct.value = null
+  showProductForm.value = true
+}
+
+const openEditProductForm = (product: any) => {
+  editingProduct.value = product
+  showProductForm.value = true
+}
+
+const closeProductForm = () => {
+  showProductForm.value = false
+  editingProduct.value = null
+}
+
+const onProductSaved = async (product: any) => {
+  showSnackbar(`محصول "${product.name}" با موفقیت ذخیره شد`, 'success')
+  closeProductForm()
+  
+  // Refresh product list
+  if (productListRef.value) {
+    await productListRef.value.loadProducts()
+  }
+  
+  // Refresh dashboard data to update stats
+  await loadDashboardData()
 }
 
 onMounted(() => {

@@ -1,5 +1,9 @@
 from django.contrib import admin
-from .models import UserProfile, BuyerProfile, VendorProfile, Supplier, SellerAd, SellerAdImage, ProductReview, SupplierComment, UserActivity
+from .models import (
+    UserProfile, BuyerProfile, VendorProfile, Supplier, SellerAd, SellerAdImage, 
+    ProductReview, SupplierComment, UserActivity, SupplierPortfolioItem, 
+    SupplierTeamMember, SupplierContactMessage
+)
 
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'role', 'is_verified', 'is_blocked', 'created_at']
@@ -36,11 +40,60 @@ class BuyerProfileAdmin(admin.ModelAdmin):
             'all': ('admin/css/force_action_button.css',)
         }
     
+class SupplierPortfolioItemInline(admin.TabularInline):
+    model = SupplierPortfolioItem
+    extra = 1
+    fields = ['title', 'image', 'project_date', 'category', 'sort_order', 'is_featured']
+    verbose_name = "Portfolio Item"
+    verbose_name_plural = "Portfolio Items"
+
+class SupplierTeamMemberInline(admin.TabularInline):
+    model = SupplierTeamMember
+    extra = 1
+    fields = ['name', 'position', 'photo', 'sort_order']
+    verbose_name = "Team Member"
+    verbose_name_plural = "Team Members"
+
 class VendorProfileAdmin(admin.ModelAdmin):
     list_display = ['store_name', 'user', 'is_approved', 'contact_email', 'created_at']
     list_filter = ['is_approved']
     search_fields = ['store_name', 'user__username', 'contact_email']
     actions = ['approve_vendors', 'delete_selected']  # Include delete action
+    inlines = [SupplierPortfolioItemInline, SupplierTeamMemberInline]
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('user', 'store_name', 'logo', 'description', 'slogan')
+        }),
+        ('Contact Information', {
+            'fields': ('contact_email', 'contact_phone', 'website', 'address')
+        }),
+        ('Company Details', {
+            'fields': ('about', 'work_resume', 'successful_projects', 'history', 
+                      'year_established', 'employee_count')
+        }),
+        ('Mini Website Branding', {
+            'fields': ('banner_image', 'brand_color_primary', 'brand_color_secondary', 
+                      'video_url'),
+            'classes': ('collapse',)
+        }),
+        ('Certifications & Awards', {
+            'fields': ('certifications', 'awards'),
+            'classes': ('collapse',)
+        }),
+        ('Social Media', {
+            'fields': ('social_media',),
+            'classes': ('collapse',)
+        }),
+        ('SEO', {
+            'fields': ('meta_title', 'meta_description'),
+            'classes': ('collapse',)
+        }),
+        ('Status', {
+            'fields': ('is_approved', 'created_at', 'updated_at'),
+        }),
+    )
+    readonly_fields = ['created_at', 'updated_at']
     
     def approve_vendors(self, request, queryset):
         queryset.update(is_approved=True)
@@ -160,6 +213,61 @@ class SupplierAdmin(admin.ModelAdmin):
             'all': ('admin/css/force_action_button.css',)
         }
 
+class SupplierPortfolioItemAdmin(admin.ModelAdmin):
+    list_display = ['title', 'vendor_profile', 'project_date', 'category', 'is_featured', 'sort_order']
+    list_filter = ['is_featured', 'category', 'project_date']
+    search_fields = ['title', 'description', 'vendor_profile__store_name', 'client_name']
+    readonly_fields = ['created_at', 'updated_at']
+    actions = ['mark_featured', 'unmark_featured', 'delete_selected']
+    
+    def mark_featured(self, request, queryset):
+        queryset.update(is_featured=True)
+    mark_featured.short_description = "Mark as featured"
+    
+    def unmark_featured(self, request, queryset):
+        queryset.update(is_featured=False)
+    unmark_featured.short_description = "Unmark as featured"
+    
+    class Media:
+        js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
+
+class SupplierTeamMemberAdmin(admin.ModelAdmin):
+    list_display = ['name', 'position', 'vendor_profile', 'sort_order']
+    list_filter = ['position']
+    search_fields = ['name', 'position', 'vendor_profile__store_name', 'bio']
+    readonly_fields = ['created_at', 'updated_at']
+    actions = ['delete_selected']
+    
+    class Media:
+        js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
+
+class SupplierContactMessageAdmin(admin.ModelAdmin):
+    list_display = ['sender_name', 'vendor_profile', 'subject', 'is_read', 'created_at']
+    list_filter = ['is_read', 'created_at']
+    search_fields = ['sender_name', 'sender_email', 'subject', 'message', 'vendor_profile__store_name']
+    readonly_fields = ['vendor_profile', 'sender_name', 'sender_email', 'sender_phone', 'subject', 'message', 'created_at', 'updated_at']
+    actions = ['mark_read', 'mark_unread', 'delete_selected']
+    
+    def mark_read(self, request, queryset):
+        queryset.update(is_read=True)
+    mark_read.short_description = "Mark as read"
+    
+    def mark_unread(self, request, queryset):
+        queryset.update(is_read=False)
+    mark_unread.short_description = "Mark as unread"
+    
+    class Media:
+        js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
+
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(BuyerProfile, BuyerProfileAdmin)
 admin.site.register(VendorProfile, VendorProfileAdmin)
@@ -167,3 +275,6 @@ admin.site.register(SellerAd, SupplierAdAdmin)
 admin.site.register(ProductReview, ProductReviewAdmin)
 admin.site.register(SupplierComment, SupplierCommentAdmin)
 admin.site.register(UserActivity, UserActivityAdmin)
+admin.site.register(SupplierPortfolioItem, SupplierPortfolioItemAdmin)
+admin.site.register(SupplierTeamMember, SupplierTeamMemberAdmin)
+admin.site.register(SupplierContactMessage, SupplierContactMessageAdmin)

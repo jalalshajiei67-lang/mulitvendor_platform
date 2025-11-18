@@ -67,6 +67,20 @@ class VendorProfile(models.Model):
     history = models.TextField(blank=True, null=True, help_text="Company history and background")
     about = models.TextField(blank=True, null=True, help_text="About the supplier/company")
     
+    # Mini website branding fields
+    banner_image = models.ImageField(upload_to='vendor_banners/', blank=True, null=True, help_text="Hero banner for supplier page")
+    brand_color_primary = models.CharField(max_length=7, blank=True, null=True, help_text="Primary brand color (hex)")
+    brand_color_secondary = models.CharField(max_length=7, blank=True, null=True, help_text="Secondary brand color (hex)")
+    slogan = models.CharField(max_length=200, blank=True, null=True, help_text="Company slogan/tagline")
+    year_established = models.PositiveIntegerField(blank=True, null=True, help_text="Year company was founded")
+    employee_count = models.PositiveIntegerField(blank=True, null=True, help_text="Number of employees")
+    certifications = models.JSONField(blank=True, null=True, help_text="List of certifications")
+    awards = models.JSONField(blank=True, null=True, help_text="List of awards/achievements")
+    social_media = models.JSONField(blank=True, null=True, help_text="Social media links")
+    video_url = models.URLField(blank=True, null=True, help_text="Company introduction video URL")
+    meta_title = models.CharField(max_length=200, blank=True, null=True, help_text="SEO meta title")
+    meta_description = models.TextField(blank=True, null=True, help_text="SEO meta description")
+    
     is_approved = models.BooleanField(default=False, help_text="Approved by admin as supplier")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -237,3 +251,64 @@ class UserActivity(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.get_action_display()} at {self.created_at}"
+
+class SupplierPortfolioItem(models.Model):
+    """Portfolio items/projects for supplier mini websites"""
+    vendor_profile = models.ForeignKey(VendorProfile, on_delete=models.CASCADE, related_name='portfolio_items')
+    title = models.CharField(max_length=200, help_text="Project/portfolio title")
+    description = models.TextField(help_text="Project description")
+    image = models.ImageField(upload_to='portfolio_images/', help_text="Project image")
+    project_date = models.DateField(blank=True, null=True, help_text="Date of project")
+    client_name = models.CharField(max_length=200, blank=True, null=True, help_text="Client name (optional)")
+    category = models.CharField(max_length=100, blank=True, null=True, help_text="Portfolio category")
+    sort_order = models.PositiveIntegerField(default=0, help_text="Display order")
+    is_featured = models.BooleanField(default=False, help_text="Featured project flag")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['sort_order', '-project_date', '-created_at']
+        verbose_name = "Portfolio Item"
+        verbose_name_plural = "Portfolio Items"
+    
+    def __str__(self):
+        return f"{self.vendor_profile.store_name} - {self.title}"
+
+class SupplierTeamMember(models.Model):
+    """Team members for supplier mini websites"""
+    vendor_profile = models.ForeignKey(VendorProfile, on_delete=models.CASCADE, related_name='team_members')
+    name = models.CharField(max_length=200, help_text="Member name")
+    position = models.CharField(max_length=200, help_text="Job title")
+    photo = models.ImageField(upload_to='team_photos/', blank=True, null=True, help_text="Member photo")
+    bio = models.TextField(blank=True, null=True, help_text="Short bio")
+    sort_order = models.PositiveIntegerField(default=0, help_text="Display order")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['sort_order', 'name']
+        verbose_name = "Team Member"
+        verbose_name_plural = "Team Members"
+    
+    def __str__(self):
+        return f"{self.name} - {self.position} at {self.vendor_profile.store_name}"
+
+class SupplierContactMessage(models.Model):
+    """Contact messages sent to suppliers through their mini websites"""
+    vendor_profile = models.ForeignKey(VendorProfile, on_delete=models.CASCADE, related_name='contact_messages')
+    sender_name = models.CharField(max_length=200, help_text="Sender's name")
+    sender_email = models.EmailField(help_text="Sender's email")
+    sender_phone = models.CharField(max_length=20, blank=True, null=True, help_text="Sender's phone")
+    subject = models.CharField(max_length=200, help_text="Message subject")
+    message = models.TextField(help_text="Message content")
+    is_read = models.BooleanField(default=False, help_text="Read status")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Contact Message"
+        verbose_name_plural = "Contact Messages"
+    
+    def __str__(self):
+        return f"Message from {self.sender_name} to {self.vendor_profile.store_name}"

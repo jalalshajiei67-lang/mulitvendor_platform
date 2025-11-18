@@ -1,7 +1,11 @@
 import re
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import UserProfile, BuyerProfile, VendorProfile, SellerAd, SellerAdImage, ProductReview, SupplierComment, UserActivity
+from .models import (
+    UserProfile, BuyerProfile, VendorProfile, SellerAd, SellerAdImage, 
+    ProductReview, SupplierComment, UserActivity, SupplierPortfolioItem, 
+    SupplierTeamMember, SupplierContactMessage
+)
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,9 +35,16 @@ class VendorProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = VendorProfile
-        fields = ['id', 'user', 'store_name', 'logo', 'description', 'contact_email', 'contact_phone', 
-                  'website', 'address', 'work_resume', 'successful_projects', 'history', 'about', 
-                  'is_approved', 'product_count', 'rating_average', 'created_at', 'updated_at']
+        fields = [
+            'id', 'user', 'store_name', 'logo', 'description', 'contact_email', 'contact_phone', 
+            'website', 'address', 'work_resume', 'successful_projects', 'history', 'about',
+            # Mini website branding fields
+            'banner_image', 'brand_color_primary', 'brand_color_secondary', 'slogan',
+            'year_established', 'employee_count', 'certifications', 'awards', 'social_media',
+            'video_url', 'meta_title', 'meta_description',
+            # Computed and status fields
+            'is_approved', 'product_count', 'rating_average', 'created_at', 'updated_at'
+        ]
         read_only_fields = ['is_approved', 'product_count', 'rating_average', 'created_at', 'updated_at']
     
     def get_product_count(self, obj):
@@ -218,4 +229,38 @@ class PasswordChangeSerializer(serializers.Serializer):
         if not User.objects.filter(id=value).exists():
             raise serializers.ValidationError("User does not exist")
         return value
+
+class SupplierPortfolioItemSerializer(serializers.ModelSerializer):
+    vendor_name = serializers.CharField(source='vendor_profile.store_name', read_only=True)
+    
+    class Meta:
+        model = SupplierPortfolioItem
+        fields = [
+            'id', 'vendor_profile', 'vendor_name', 'title', 'description', 'image',
+            'project_date', 'client_name', 'category', 'sort_order', 'is_featured',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['vendor_profile', 'created_at', 'updated_at']
+
+class SupplierTeamMemberSerializer(serializers.ModelSerializer):
+    vendor_name = serializers.CharField(source='vendor_profile.store_name', read_only=True)
+    
+    class Meta:
+        model = SupplierTeamMember
+        fields = [
+            'id', 'vendor_profile', 'vendor_name', 'name', 'position', 'photo',
+            'bio', 'sort_order', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['vendor_profile', 'created_at', 'updated_at']
+
+class SupplierContactMessageSerializer(serializers.ModelSerializer):
+    vendor_name = serializers.CharField(source='vendor_profile.store_name', read_only=True)
+    
+    class Meta:
+        model = SupplierContactMessage
+        fields = [
+            'id', 'vendor_profile', 'vendor_name', 'sender_name', 'sender_email',
+            'sender_phone', 'subject', 'message', 'is_read', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
 

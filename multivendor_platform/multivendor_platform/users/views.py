@@ -9,11 +9,15 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from .models import UserProfile, VendorProfile, SellerAd, SellerAdImage, SupplierComment, UserActivity
+from .models import (
+    UserProfile, VendorProfile, SellerAd, SellerAdImage, SupplierComment, UserActivity,
+    SupplierPortfolioItem, SupplierTeamMember, SupplierContactMessage
+)
 from .serializers import (
     UserSerializer, UserProfileSerializer, VendorProfileSerializer, 
     SellerAdSerializer, SellerAdImageSerializer, SupplierCommentSerializer, UserActivitySerializer,
-    RegisterSerializer, UserDetailSerializer, PasswordChangeSerializer
+    RegisterSerializer, UserDetailSerializer, PasswordChangeSerializer,
+    SupplierPortfolioItemSerializer, SupplierTeamMemberSerializer, SupplierContactMessageSerializer
 )
 from orders.models import Order, OrderItem
 from orders.serializers import OrderSerializer
@@ -130,6 +134,7 @@ def login_view(request):
             if profile.is_seller():
                 try:
                     vendor_profile = {
+                        'id': user.vendor_profile.id,
                         'store_name': user.vendor_profile.store_name,
                         'logo': user.vendor_profile.logo.url if user.vendor_profile.logo else None
                     }
@@ -257,7 +262,28 @@ def update_profile_view(request):
         if profile.is_seller():
             try:
                 vendor_profile = user.vendor_profile
-                vendor_serializer = VendorProfileSerializer(vendor_profile, data=request.data, partial=True)
+                # Handle FormData - parse JSON fields if they're strings
+                vendor_data = dict(request.data)
+                if 'certifications' in vendor_data and isinstance(vendor_data['certifications'], str):
+                    import json
+                    try:
+                        vendor_data['certifications'] = json.loads(vendor_data['certifications'])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                if 'awards' in vendor_data and isinstance(vendor_data['awards'], str):
+                    import json
+                    try:
+                        vendor_data['awards'] = json.loads(vendor_data['awards'])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                if 'social_media' in vendor_data and isinstance(vendor_data['social_media'], str):
+                    import json
+                    try:
+                        vendor_data['social_media'] = json.loads(vendor_data['social_media'])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                
+                vendor_serializer = VendorProfileSerializer(vendor_profile, data=vendor_data, partial=True)
                 if vendor_serializer.is_valid():
                     vendor_serializer.save()
             except VendorProfile.DoesNotExist:
@@ -1066,6 +1092,22 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
         comments = supplier.comments.filter(is_approved=True)
         serializer = SupplierCommentSerializer(comments, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def portfolio(self, request, pk=None):
+        """Get all portfolio items for a specific supplier"""
+        supplier = self.get_object()
+        portfolio_items = supplier.portfolio_items.all().order_by('sort_order', '-project_date')
+        serializer = SupplierPortfolioItemSerializer(portfolio_items, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def team(self, request, pk=None):
+        """Get all team members for a specific supplier"""
+        supplier = self.get_object()
+        team_members = supplier.team_members.all().order_by('sort_order', 'name')
+        serializer = SupplierTeamMemberSerializer(team_members, many=True)
+        return Response(serializer.data)
 
 
 class SupplierCommentViewSet(viewsets.ModelViewSet):
@@ -1096,6 +1138,151 @@ class SupplierCommentViewSet(viewsets.ModelViewSet):
         
         # Log activity
         log_activity(self.request.user, 'other', 'User created a supplier comment', self.request)
+
+
+class SupplierPortfolioItemViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for supplier portfolio items
+    - List and retrieve: Public (only approved suppliers)
+    - Create/Update/Delete: Only supplier owner
+    """
+    serializer_class = SupplierPortfolioItemSerializer
+    
+    def get_queryset(self):
+        """
+        Return portfolio items filtered by vendor_profile
+        If user is authenticated and a supplier, return their portfolio items
+        Otherwise, return public portfolio items for approved suppliers
+        """
+        if self.request.user.is_authenticated:
+            try:
+                vendor_profile = self.request.user.vendor_profile
+                return SupplierPortfolioItem.objects.filter(vendor_profile=vendor_profile).order_by('sort_order', '-project_date')
+            except VendorProfile.DoesNotExist:
+                pass
+        
+        # Public view: only show portfolio items for approved suppliers
+        return SupplierPortfolioItem.objects.filter(vendor_profile__is_approved=True).order_by('sort_order', '-project_date')
+    
+    def get_permissions(self):
+        """
+        List and retrieve are public
+        Create, update, delete require authentication
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = []
+        return [permission() for permission in permission_classes]
+    
+    def perform_create(self, serializer):
+        """Set the vendor_profile to the current user's vendor profile"""
+        try:
+            vendor_profile = self.request.user.vendor_profile
+            serializer.save(vendor_profile=vendor_profile)
+            log_activity(self.request.user, 'other', 'Added portfolio item', self.request)
+        except VendorProfile.DoesNotExist:
+            raise Response({'error': 'User does not have a vendor profile'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SupplierTeamMemberViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for supplier team members
+    - List and retrieve: Public (only approved suppliers)
+    - Create/Update/Delete: Only supplier owner
+    """
+    serializer_class = SupplierTeamMemberSerializer
+    
+    def get_queryset(self):
+        """
+        Return team members filtered by vendor_profile
+        If user is authenticated and a supplier, return their team members
+        Otherwise, return public team members for approved suppliers
+        """
+        if self.request.user.is_authenticated:
+            try:
+                vendor_profile = self.request.user.vendor_profile
+                return SupplierTeamMember.objects.filter(vendor_profile=vendor_profile).order_by('sort_order', 'name')
+            except VendorProfile.DoesNotExist:
+                pass
+        
+        # Public view: only show team members for approved suppliers
+        return SupplierTeamMember.objects.filter(vendor_profile__is_approved=True).order_by('sort_order', 'name')
+    
+    def get_permissions(self):
+        """
+        List and retrieve are public
+        Create, update, delete require authentication
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = []
+        return [permission() for permission in permission_classes]
+    
+    def perform_create(self, serializer):
+        """Set the vendor_profile to the current user's vendor profile"""
+        try:
+            vendor_profile = self.request.user.vendor_profile
+            serializer.save(vendor_profile=vendor_profile)
+            log_activity(self.request.user, 'other', 'Added team member', self.request)
+        except VendorProfile.DoesNotExist:
+            raise Response({'error': 'User does not have a vendor profile'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SupplierContactMessageViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for supplier contact messages
+    - Create: Public (anyone can send a message)
+    - List/Retrieve/Update/Delete: Only supplier owner (to manage their messages)
+    """
+    serializer_class = SupplierContactMessageSerializer
+    
+    def get_queryset(self):
+        """
+        Return messages only for the authenticated supplier
+        """
+        if self.request.user.is_authenticated:
+            try:
+                vendor_profile = self.request.user.vendor_profile
+                return SupplierContactMessage.objects.filter(vendor_profile=vendor_profile).order_by('-created_at')
+            except VendorProfile.DoesNotExist:
+                return SupplierContactMessage.objects.none()
+        return SupplierContactMessage.objects.none()
+    
+    def get_permissions(self):
+        """
+        Create is public (anyone can send a message)
+        List, retrieve, update, delete require authentication
+        """
+        if self.action == 'create':
+            permission_classes = []
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+    
+    def perform_create(self, serializer):
+        """
+        When creating a message, vendor_profile should be passed in the request
+        """
+        # The vendor_profile will be sent from the frontend in the request data
+        serializer.save()
+    
+    @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated])
+    def mark_read(self, request, pk=None):
+        """Mark a message as read"""
+        message = self.get_object()
+        message.is_read = True
+        message.save()
+        return Response({'status': 'Message marked as read'})
+    
+    @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated])
+    def mark_unread(self, request, pk=None):
+        """Mark a message as unread"""
+        message = self.get_object()
+        message.is_read = False
+        message.save()
+        return Response({'status': 'Message marked as unread'})
 
 
 # ===== ADMIN BLOG MANAGEMENT =====

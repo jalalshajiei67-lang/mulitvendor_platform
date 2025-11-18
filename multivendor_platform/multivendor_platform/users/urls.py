@@ -17,13 +17,17 @@ from .views import (
     admin_subcategories_view, admin_subcategory_detail_view, admin_create_subcategory_view,
     admin_update_subcategory_view, admin_delete_subcategory_view,
     admin_blog_posts_view, admin_blog_categories_view,
-    SupplierViewSet, SupplierCommentViewSet
+    SupplierViewSet, SupplierCommentViewSet,
+    SupplierPortfolioItemViewSet, SupplierTeamMemberViewSet, SupplierContactMessageViewSet
 )
 
 router = DefaultRouter()
 router.register(r'ads', SellerAdViewSet, basename='sellerad')
 router.register(r'suppliers', SupplierViewSet, basename='supplier')
 router.register(r'supplier-comments', SupplierCommentViewSet, basename='suppliercomment')
+router.register(r'supplier-portfolio', SupplierPortfolioItemViewSet, basename='supplierportfolio')
+router.register(r'supplier-team', SupplierTeamMemberViewSet, basename='supplierteam')
+router.register(r'supplier-contact', SupplierContactMessageViewSet, basename='suppliercontact')
 
 urlpatterns = [
     # Authentication
