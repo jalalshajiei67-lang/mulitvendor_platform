@@ -698,7 +698,8 @@ const profileMetrics = computed(() => [
     tip: 'چند جمله درباره تجربه و تخصص خود بنویسید.',
     weight: 0.2,
     passed: Boolean(vendorProfile.value?.description && vendorProfile.value?.description.length > 80)
-  })
+  }
+])
 
 const profileScore = computed(() => {
   const metrics = profileMetrics.value
