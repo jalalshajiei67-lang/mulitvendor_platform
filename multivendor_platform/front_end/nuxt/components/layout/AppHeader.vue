@@ -242,7 +242,6 @@ const dashboardLink = computed(() => {
 
 const navigationLinks = [
   { to: '/', label: 'خانه', icon: 'mdi-home' },
-  { to: '/products', label: 'محصولات', icon: 'mdi-package-variant' },
   { to: '/suppliers', label: 'فروشندگان', icon: 'mdi-store' },
   { to: '/rfq', label: 'درخواست قیمت', icon: 'mdi-file-document-edit' },
   { to: '/blog', label: 'مجله', icon: 'mdi-post' },
