@@ -78,49 +78,85 @@
               دسته‌بندی
             </v-card-title>
             <v-card-text class="pa-4">
-              <v-select
-                v-model="selectedDepartment"
-                :items="departments"
-                item-title="name"
-                item-value="id"
-                label="دپارتمان"
-                prepend-inner-icon="mdi-sitemap"
-                variant="outlined"
-                @update:model-value="onDepartmentChange"
-                class="mb-2"
-              ></v-select>
-
-              <v-select
-                v-model="selectedCategory"
-                :items="filteredCategories"
-                item-title="name"
-                item-value="id"
-                label="دسته‌بندی"
-                prepend-inner-icon="mdi-folder"
-                variant="outlined"
-                :disabled="!selectedDepartment"
-                @update:model-value="onCategoryChange"
-                class="mb-2"
-              ></v-select>
-
-              <v-select
+              <!-- Searchable Subcategory Selector -->
+              <v-autocomplete
                 v-model="product.subcategory"
-                :items="filteredSubcategories"
-                item-title="name"
+                :items="filteredSearchableSubcategories"
+                :search="subcategorySearch"
+                item-title="label"
                 item-value="id"
-                label="زیردسته"
-                prepend-inner-icon="mdi-folder-open"
+                label="جستجو و انتخاب زیردسته"
+                prepend-inner-icon="mdi-magnify"
                 variant="outlined"
-                :disabled="!selectedCategory"
                 :rules="[v => !!v || 'زیردسته الزامی است']"
                 required
-              ></v-select>
+                clearable
+                @update:model-value="onSubcategorySelect"
+                @update:search="onSubcategorySearch"
+              >
+                <template #item="{ props, item }">
+                  <v-list-item v-bind="props">
+                    <template #title>
+                      <div class="d-flex flex-column">
+                        <span class="font-weight-bold">{{ item.raw.name }}</span>
+                        <span class="text-caption text-medium-emphasis">{{ item.raw.path }}</span>
+                      </div>
+                    </template>
+                    <template #prepend>
+                      <v-icon>mdi-folder-open</v-icon>
+                    </template>
+                  </v-list-item>
+                </template>
+                <template #no-data>
+                  <v-list-item>
+                    <v-list-item-title>
+                      {{ subcategorySearch ? 'نتیجه‌ای یافت نشد' : 'شروع به تایپ کنید...' }}
+                    </v-list-item-title>
+                  </v-list-item>
+                </template>
+              </v-autocomplete>
 
-              <!-- Breadcrumb Display -->
-              <v-alert v-if="product.subcategory" type="info" variant="tonal" class="mt-3">
-                <strong>مسیر انتخاب شده:</strong>
-                <div class="mt-1">{{ getCategoryBreadcrumb() }}</div>
+              <!-- Full Path Display -->
+              <v-alert 
+                v-if="product.subcategory && selectedSubcategoryPath" 
+                type="success" 
+                variant="tonal" 
+                class="mt-3"
+              >
+                <div class="d-flex align-center">
+                  <v-icon class="ml-2">mdi-check-circle</v-icon>
+                  <div>
+                    <strong class="d-block mb-1">مسیر انتخاب شده:</strong>
+                    <div class="text-body-2">{{ selectedSubcategoryPath }}</div>
+                  </div>
+                </div>
               </v-alert>
+
+              <!-- Optional: Show Department and Category for reference -->
+              <v-row v-if="product.subcategory && selectedSubcategoryPath" class="mt-2">
+                <v-col cols="12" sm="6">
+                  <v-text-field
+                    :model-value="selectedDepartmentName"
+                    label="دپارتمان"
+                    prepend-inner-icon="mdi-sitemap"
+                    variant="outlined"
+                    readonly
+                    density="compact"
+                    :placeholder="selectedDepartment ? '' : 'در حال بارگذاری...'"
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <v-text-field
+                    :model-value="selectedCategoryName"
+                    label="دسته‌بندی"
+                    prepend-inner-icon="mdi-folder"
+                    variant="outlined"
+                    readonly
+                    density="compact"
+                    :placeholder="selectedCategory ? '' : 'در حال بارگذاری...'"
+                  ></v-text-field>
+                </v-col>
+              </v-row>
             </v-card-text>
           </v-card>
 
@@ -348,6 +384,8 @@ const filteredCategories = ref<any[]>([])
 const filteredSubcategories = ref<any[]>([])
 const selectedDepartment = ref<number | null>(null)
 const selectedCategory = ref<number | null>(null)
+const subcategorySearch = ref('')
+const searchableSubcategories = ref<Array<{ id: number; name: string; label: string; path: string; category: number; department: number }>>([])
 
 const uploadedImages = ref<any[]>([])
 const existingImageCount = ref(props.productData?.images?.length ?? 0)
@@ -502,11 +540,152 @@ const removeImage = (index: number) => {
   uploadedImages.value.splice(index, 1)
 }
 
+// Build searchable subcategories with full path
+const buildSearchableSubcategories = () => {
+  const searchable: Array<{ id: number; name: string; label: string; path: string; category: number; department: number }> = []
+  
+  subcategories.value.forEach(sub => {
+    // Handle both 'category' (singular) and 'categories' (plural/array)
+    let categoryId: number | null = null
+    let category: any = null
+    
+    // Check if subcategory has 'categories' array (ManyToMany)
+    if (sub.categories && Array.isArray(sub.categories) && sub.categories.length > 0) {
+      // Use first category from the array
+      const firstCategory = sub.categories[0]
+      categoryId = typeof firstCategory === 'object' ? firstCategory?.id : firstCategory
+      category = categories.value.find(c => c.id === categoryId)
+    } 
+    // Fallback to 'category' (singular) field
+    else if (sub.category) {
+      categoryId = typeof sub.category === 'object' ? sub.category?.id : sub.category
+      category = categories.value.find(c => c.id === categoryId)
+    }
+    
+    // Get department - handle both object and ID
+    let departmentId: number | null = null
+    let department: any = null
+    
+    if (category) {
+      // Handle both 'department' (singular) and 'departments' (array)
+      if (category.departments && Array.isArray(category.departments) && category.departments.length > 0) {
+        const firstDept = category.departments[0]
+        departmentId = typeof firstDept === 'object' ? firstDept?.id : firstDept
+        department = departments.value.find(d => d.id === departmentId)
+      } else if (category.department) {
+        departmentId = typeof category.department === 'object' ? category.department?.id : category.department
+        department = departments.value.find(d => d.id === departmentId)
+      }
+    }
+    
+    // Also check if subcategory has departments directly
+    if (!department && sub.departments && Array.isArray(sub.departments) && sub.departments.length > 0) {
+      const firstDept = sub.departments[0]
+      departmentId = typeof firstDept === 'object' ? firstDept?.id : firstDept
+      department = departments.value.find(d => d.id === departmentId)
+    }
+    
+    // Build path
+    const pathParts: string[] = []
+    if (department) pathParts.push(department.name)
+    if (category) pathParts.push(category.name)
+    pathParts.push(sub.name)
+    const path = pathParts.join(' ← ')
+    
+    // Only add if we have valid category and department
+    if (categoryId && departmentId) {
+      searchable.push({
+        id: sub.id,
+        name: sub.name,
+        label: sub.name,
+        path: path,
+        category: categoryId,
+        department: departmentId
+      })
+    } else {
+      // Still add but with null values - will be handled in selection
+      searchable.push({
+        id: sub.id,
+        name: sub.name,
+        label: sub.name,
+        path: path,
+        category: categoryId || 0,
+        department: departmentId || 0
+      })
+    }
+  })
+  
+  searchableSubcategories.value = searchable
+}
+
+const onSubcategorySearch = (value: string) => {
+  subcategorySearch.value = value
+}
+
+const onSubcategorySelect = (subcategoryId: number | null) => {
+  if (!subcategoryId) {
+    selectedDepartment.value = null
+    selectedCategory.value = null
+    return
+  }
+  
+  const subcategory = searchableSubcategories.value.find(s => s.id === subcategoryId)
+  if (subcategory) {
+    // Set category and department from the searchable subcategory
+    selectedCategory.value = subcategory.category || null
+    selectedDepartment.value = subcategory.department || null
+    
+    // Debug logging
+    console.log('Subcategory selected:', {
+      subcategoryId,
+      category: subcategory.category,
+      department: subcategory.department,
+      path: subcategory.path
+    })
+  } else {
+    console.warn('Subcategory not found in searchable list:', subcategoryId)
+  }
+}
+
+const selectedSubcategoryPath = computed(() => {
+  if (!product.value.subcategory) return null
+  const sub = searchableSubcategories.value.find(s => s.id === product.value.subcategory)
+  return sub?.path || null
+})
+
+const selectedDepartmentName = computed(() => {
+  if (!selectedDepartment.value || selectedDepartment.value === 0) return ''
+  const dept = departments.value.find(d => d.id === selectedDepartment.value)
+  return dept?.name || ''
+})
+
+const selectedCategoryName = computed(() => {
+  if (!selectedCategory.value || selectedCategory.value === 0) return ''
+  const cat = categories.value.find(c => c.id === selectedCategory.value)
+  return cat?.name || ''
+})
+
+// Filter searchable subcategories based on search term
+const filteredSearchableSubcategories = computed(() => {
+  if (!subcategorySearch.value) {
+    return searchableSubcategories.value
+  }
+  
+  const searchLower = subcategorySearch.value.toLowerCase()
+  return searchableSubcategories.value.filter(sub => {
+    return (
+      sub.name.toLowerCase().includes(searchLower) ||
+      sub.path.toLowerCase().includes(searchLower)
+    )
+  })
+})
+
 const onDepartmentChange = () => {
   if (selectedDepartment.value) {
-    filteredCategories.value = categories.value.filter(
-      cat => cat.department === selectedDepartment.value
-    )
+    filteredCategories.value = categories.value.filter(cat => {
+      const deptId = typeof cat.department === 'object' ? cat.department?.id : cat.department
+      return deptId === selectedDepartment.value
+    })
     selectedCategory.value = null
     product.value.subcategory = null
     filteredSubcategories.value = []
@@ -515,28 +694,12 @@ const onDepartmentChange = () => {
 
 const onCategoryChange = () => {
   if (selectedCategory.value) {
-    filteredSubcategories.value = subcategories.value.filter(
-      sub => sub.category === selectedCategory.value
-    )
+    filteredSubcategories.value = subcategories.value.filter(sub => {
+      const catId = typeof sub.category === 'object' ? sub.category?.id : sub.category
+      return catId === selectedCategory.value
+    })
     product.value.subcategory = null
   }
-}
-
-const getCategoryBreadcrumb = () => {
-  if (!product.value.subcategory) return ''
-  
-  const subcategory = subcategories.value.find(s => s.id === product.value.subcategory)
-  if (!subcategory) return ''
-  
-  const category = categories.value.find(c => c.id === subcategory.category)
-  const department = departments.value.find(d => d.id === category?.department)
-  
-  const parts = []
-  if (department) parts.push(department.name)
-  if (category) parts.push(category.name)
-  if (subcategory) parts.push(subcategory.name)
-  
-  return parts.join(' ← ')
 }
 
 const fetchFormData = async () => {
@@ -553,6 +716,9 @@ const fetchFormData = async () => {
 
     filteredCategories.value = categories.value
     filteredSubcategories.value = subcategories.value
+    
+    // Build searchable subcategories after data is loaded
+    buildSearchableSubcategories()
   } catch (error) {
     console.error('Error fetching form data:', error)
   }
@@ -596,13 +762,13 @@ const saveProduct = async () => {
       }
     })
 
-    let response
+    let response: any
     if (props.editMode && props.productData?.id) {
       response = await productApi.updateProduct(props.productData.id, formData)
-      successMessage.value = `محصول "${response.name}" با موفقیت به‌روزرسانی شد!`
+      successMessage.value = `محصول "${response?.name || 'محصول'}" با موفقیت به‌روزرسانی شد!`
     } else {
       response = await productApi.createProduct(formData)
-      successMessage.value = `محصول "${response.name}" با موفقیت ایجاد شد!`
+      successMessage.value = `محصول "${response?.name || 'محصول'}" با موفقیت ایجاد شد!`
     }
 
     showSuccessSnackbar.value = true
@@ -628,14 +794,22 @@ onMounted(async () => {
     
     // Set selected values for dropdowns
     if (props.productData.subcategory) {
-      const subcategory = subcategories.value.find(s => s.id === props.productData.subcategory)
-      if (subcategory) {
-        selectedCategory.value = subcategory.category
-        const category = categories.value.find(c => c.id === subcategory.category)
-        if (category) {
-          selectedDepartment.value = category.department
-          onDepartmentChange()
-          onCategoryChange()
+      // Find subcategory in searchable list
+      const sub = searchableSubcategories.value.find(s => s.id === props.productData.subcategory)
+      if (sub) {
+        selectedCategory.value = sub.category
+        selectedDepartment.value = sub.department
+      } else {
+        // Fallback: find in subcategories array
+        const subcategory = subcategories.value.find(s => s.id === props.productData.subcategory)
+        if (subcategory) {
+          const categoryId = typeof subcategory.category === 'object' ? subcategory.category?.id : subcategory.category
+          selectedCategory.value = categoryId
+          const category = categories.value.find(c => c.id === categoryId)
+          if (category) {
+            const deptId = typeof category.department === 'object' ? category.department?.id : category.department
+            selectedDepartment.value = deptId
+          }
         }
       }
     }

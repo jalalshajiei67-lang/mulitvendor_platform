@@ -321,6 +321,11 @@ const fetchSupplier = async () => {
   try {
     const id = route.params.id
 
+    // Initialize auth if needed (for new tabs/windows)
+    if (process.client && !authStore.user && authStore.token) {
+      await authStore.fetchCurrentUser()
+    }
+
     // Check if current user is the owner of this supplier profile
     const isOwner = authStore.user?.vendor_profile?.id === parseInt(id as string)
 
@@ -336,7 +341,8 @@ const fetchSupplier = async () => {
         fetchComments(id as string)
       ])
     } else {
-      // For public access, use the regular API (only approved suppliers)
+      // For public access or if owner check failed, use the API
+      // The backend will allow owners to view their own profile even if not approved
       supplier.value = await supplierApi.getSupplier(id as string)
 
       // Fetch related data
@@ -349,7 +355,7 @@ const fetchSupplier = async () => {
     }
   } catch (err: any) {
     console.error('Error fetching supplier:', err)
-    if (err?.response?.status === 404) {
+    if (err?.response?.status === 404 || err?.statusCode === 404) {
       error.value = 'صفحه تامین‌کننده یافت نشد یا هنوز تایید نشده است.'
     } else {
       error.value = 'خطا در بارگذاری اطلاعات تامین‌کننده'

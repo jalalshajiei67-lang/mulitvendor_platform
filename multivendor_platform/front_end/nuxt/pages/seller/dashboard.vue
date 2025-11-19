@@ -601,6 +601,7 @@ import MiniWebsiteSettings from '~/components/supplier/MiniWebsiteSettings.vue'
 import PortfolioManager from '~/components/supplier/PortfolioManager.vue'
 import TeamManager from '~/components/supplier/TeamManager.vue'
 import ContactMessagesInbox from '~/components/supplier/ContactMessagesInbox.vue'
+import SupplierProductForm from '~/components/supplier/ProductForm.vue'
 import EngagementWidget from '~/components/gamification/EngagementWidget.vue'
 import BadgeDisplay from '~/components/gamification/BadgeDisplay.vue'
 import LeaderboardWidget from '~/components/gamification/LeaderboardWidget.vue'
@@ -954,6 +955,7 @@ const showSnackbar = (message: string, color = 'success') => {
 const openProductForm = () => {
   editingProduct.value = null
   showProductForm.value = true
+  tab.value = 'products'
 }
 
 const openEditProductForm = (product: any) => {

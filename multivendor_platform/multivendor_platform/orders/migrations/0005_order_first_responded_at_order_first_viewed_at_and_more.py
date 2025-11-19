@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("orders", "0003_increase_price_field_precision"),
+        ("orders", "0004_add_lead_source_and_suppliers"),
     ]
 
     operations = [

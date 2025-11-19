@@ -127,33 +127,20 @@ def login_view(request):
         # Log login activity
         log_activity(user, 'login', f'User {username} logged in', request)
         
-        # Get user profile info
+        # Get user profile info using serializer for consistent data structure
         try:
+            # Use UserDetailSerializer to get complete user data including full vendor_profile
+            user_serializer = UserDetailSerializer(user)
+            user_data = user_serializer.data
+            
+            # Extract role and is_verified from profile for backward compatibility
             profile = user.profile
-            vendor_profile = None
-            if profile.is_seller():
-                try:
-                    vendor_profile = {
-                        'id': user.vendor_profile.id,
-                        'store_name': user.vendor_profile.store_name,
-                        'logo': user.vendor_profile.logo.url if user.vendor_profile.logo else None
-                    }
-                except VendorProfile.DoesNotExist:
-                    pass
+            user_data['role'] = profile.role
+            user_data['is_verified'] = profile.is_verified
             
             return Response({
                 'token': token.key,
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'is_staff': user.is_staff,
-                    'role': profile.role,
-                    'is_verified': profile.is_verified,
-                    'vendor_profile': vendor_profile
-                }
+                'user': user_data
             })
         except UserProfile.DoesNotExist:
             return Response({
@@ -253,8 +240,16 @@ def update_profile_view(request):
     user.email = request.data.get('email', user.email)
     user.save()
     
-    # Update profile
-    serializer = UserProfileSerializer(profile, data=request.data, partial=True)
+    # Filter out vendor profile fields before validating UserProfile
+    # UserProfileSerializer only accepts: role, phone, address, avatar
+    user_profile_data = {}
+    user_profile_fields = ['role', 'phone', 'address', 'avatar']
+    for field in user_profile_fields:
+        if field in request.data:
+            user_profile_data[field] = request.data[field]
+    
+    # Update profile (only with UserProfile fields)
+    serializer = UserProfileSerializer(profile, data=user_profile_data, partial=True)
     if serializer.is_valid():
         serializer.save()
         
@@ -264,30 +259,80 @@ def update_profile_view(request):
                 vendor_profile = user.vendor_profile
                 # Handle FormData - parse JSON fields if they're strings
                 vendor_data = dict(request.data)
+                
+                # Remove fields that don't belong to vendor profile
+                user_fields = ['first_name', 'last_name', 'email']
+                for field in user_fields:
+                    vendor_data.pop(field, None)
+                
+                # Parse JSON fields if they're strings
                 if 'certifications' in vendor_data and isinstance(vendor_data['certifications'], str):
                     import json
                     try:
                         vendor_data['certifications'] = json.loads(vendor_data['certifications'])
                     except (json.JSONDecodeError, TypeError):
-                        pass
+                        vendor_data['certifications'] = []
                 if 'awards' in vendor_data and isinstance(vendor_data['awards'], str):
                     import json
                     try:
                         vendor_data['awards'] = json.loads(vendor_data['awards'])
                     except (json.JSONDecodeError, TypeError):
-                        pass
+                        vendor_data['awards'] = []
                 if 'social_media' in vendor_data and isinstance(vendor_data['social_media'], str):
                     import json
                     try:
                         vendor_data['social_media'] = json.loads(vendor_data['social_media'])
                     except (json.JSONDecodeError, TypeError):
-                        pass
+                        vendor_data['social_media'] = {}
+                
+                # Clean up social_media: convert empty strings to None or remove them
+                if 'social_media' in vendor_data and isinstance(vendor_data['social_media'], dict):
+                    cleaned_social = {}
+                    for key, value in vendor_data['social_media'].items():
+                        if value and value.strip():  # Only keep non-empty values
+                            cleaned_social[key] = value
+                    vendor_data['social_media'] = cleaned_social if cleaned_social else None
+                
+                # Convert empty strings to None for optional fields that allow null
+                # Fields that allow null=True: contact_email, contact_phone, website, slogan, 
+                # video_url, meta_title, meta_description
+                # Fields that only allow blank=True (must be empty string, not None): description
+                nullable_fields = ['contact_email', 'contact_phone', 'website', 
+                                 'slogan', 'video_url', 'meta_title', 'meta_description']
+                for field in nullable_fields:
+                    if field in vendor_data and vendor_data[field] == '':
+                        vendor_data[field] = None
+                
+                # For description, keep empty string (it doesn't allow null)
+                if 'description' in vendor_data and vendor_data['description'] is None:
+                    vendor_data['description'] = ''
                 
                 vendor_serializer = VendorProfileSerializer(vendor_profile, data=vendor_data, partial=True)
                 if vendor_serializer.is_valid():
                     vendor_serializer.save()
+                    # Refresh vendor_profile from database to get updated data
+                    vendor_profile.refresh_from_db()
+                    # Also refresh user to ensure relationships are updated
+                    user.refresh_from_db()
+                else:
+                    # Log validation errors for debugging
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f'Vendor profile serializer validation failed: {vendor_serializer.errors}')
+                    logger.error(f'Vendor data sent: {vendor_data}')
+                    # Return error response if vendor profile validation fails
+                    return Response({
+                        'error': 'Vendor profile validation failed',
+                        'vendor_profile_errors': vendor_serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
             except VendorProfile.DoesNotExist:
-                pass
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f'VendorProfile does not exist for user {user.id}')
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'Error updating vendor profile: {str(e)}', exc_info=True)
         
         # Log activity
         log_activity(user, 'profile_update', f'User {user.username} updated profile', request)
@@ -1066,6 +1111,7 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for listing and retrieving suppliers (vendors)
     Public access - read only
+    Owners can view their own supplier profile even if not approved
     """
     queryset = VendorProfile.objects.filter(is_approved=True).order_by('store_name')
     serializer_class = VendorProfileSerializer
@@ -1073,6 +1119,45 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
     def get_permissions(self):
         """All actions are public (read-only)"""
         return []
+    
+    def get_queryset(self):
+        """
+        Return approved suppliers for list view.
+        For detail view, get_object handles owner access.
+        """
+        return VendorProfile.objects.filter(is_approved=True).order_by('store_name')
+    
+    def get_object(self):
+        """
+        Allow owners to view their own supplier profile even if not approved.
+        For public access, only return approved suppliers.
+        """
+        # Get the pk from URL
+        pk = self.kwargs.get('pk')
+        
+        # Try to get the object from all VendorProfiles (not just approved ones)
+        try:
+            obj = VendorProfile.objects.get(pk=pk)
+        except VendorProfile.DoesNotExist:
+            from rest_framework.exceptions import NotFound
+            raise NotFound("Supplier not found")
+        
+        # Check if user is authenticated and is the owner of this supplier profile
+        if self.request.user.is_authenticated:
+            try:
+                user_vendor_profile = self.request.user.vendor_profile
+                if user_vendor_profile.id == obj.id:
+                    # Owner can view their own profile even if not approved
+                    return obj
+            except VendorProfile.DoesNotExist:
+                pass
+        
+        # For public access or non-owners, only return if approved
+        if not obj.is_approved:
+            from rest_framework.exceptions import NotFound
+            raise NotFound("Supplier not found or not approved")
+        
+        return obj
     
     @action(detail=True, methods=['get'])
     def products(self, request, pk=None):

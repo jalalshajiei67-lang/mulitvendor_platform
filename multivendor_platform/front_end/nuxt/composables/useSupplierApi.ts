@@ -105,11 +105,13 @@ export const useSupplierApi = () => {
     return Array.isArray(response) ? response : response.results || []
   }
 
-  const updateSupplierProfile = async (data: Partial<Supplier & { banner_image?: File | string }>): Promise<Supplier> => {
+  const updateSupplierProfile = async (data: Partial<Supplier & { banner_image?: File | string }>): Promise<any> => {
     // Check if there's a file upload (banner_image)
     const bannerImage = data.banner_image
     // Check if banner_image is a File object
     const hasFile = bannerImage && typeof bannerImage === 'object' && 'size' in bannerImage && 'type' in bannerImage
+    
+    console.log('updateSupplierProfile called with:', { data, hasFile })
     
     if (hasFile) {
       // Use FormData for file uploads
@@ -120,6 +122,7 @@ export const useSupplierApi = () => {
           if (key === 'banner_image' && value instanceof File) {
             formData.append(key, value as File)
           } else if (typeof value === 'object' && !(value instanceof File)) {
+            // Stringify objects (certifications, awards, social_media)
             formData.append(key, JSON.stringify(value))
           } else {
             formData.append(key, value.toString())
@@ -127,16 +130,31 @@ export const useSupplierApi = () => {
         }
       })
       
-      return await useApiFetch<Supplier>('users/profile/update/', {
+      // Log FormData contents for debugging
+      console.log('Sending FormData with fields:')
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`  ${key}: [File] ${value.name} (${value.size} bytes)`)
+        } else {
+          console.log(`  ${key}:`, value)
+        }
+      }
+      
+      const response = await useApiFetch<any>('users/profile/update/', {
         method: 'PATCH',
         body: formData
       })
+      console.log('FormData response:', response)
+      return response
     } else {
       // Use JSON for regular updates
-      return await useApiFetch<Supplier>('users/profile/update/', {
+      console.log('Sending JSON data:', data)
+      const response = await useApiFetch<any>('users/profile/update/', {
         method: 'PATCH',
         body: data
       })
+      console.log('JSON response:', response)
+      return response
     }
   }
 

@@ -14,7 +14,7 @@
               :href="fullPreviewUrl" 
               target="_blank" 
               class="text-decoration-none text-primary"
-              @click.stop
+              @click.stop.prevent="previewWebsite"
             >
               {{ previewUrl }}
             </a>
@@ -161,6 +161,7 @@
                     density="comfortable"
                     hint="ایمیلی که مشتریان می‌توانند با شما تماس بگیرند"
                     placeholder="info@example.com"
+                    :rules="emailRules"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
@@ -172,6 +173,7 @@
                     density="comfortable"
                     hint="شماره تلفن یا موبایل برای تماس مشتریان"
                     placeholder="09123456789"
+                    :rules="phoneRules"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12">
@@ -183,21 +185,32 @@
                     density="comfortable"
                     placeholder="https://example.com"
                     hint="اگر وب‌سایت جداگانه‌ای دارید، آدرس آن را اینجا وارد کنید (اختیاری)"
+                    :rules="urlRules"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model.number="formData.year_established"
+                  <v-select
+                    v-model="formData.year_established"
+                    :items="persianYears"
                     label="سال تاسیس"
                     prepend-icon="mdi-calendar"
-                    type="number"
                     variant="outlined"
                     density="comfortable"
-                    :min="1900"
-                    :max="new Date().getFullYear()"
-                    placeholder="مثال: 1395"
-                    hint="سال شروع فعالیت شرکت یا فروشگاه"
-                  ></v-text-field>
+                    placeholder="سال را انتخاب کنید"
+                    hint="سال شروع فعالیت شرکت یا فروشگاه (تقویم شمسی)"
+                    :rules="yearRules"
+                    clearable
+                    item-title="label"
+                    item-value="value"
+                  >
+                    <template #item="{ props, item }">
+                      <v-list-item v-bind="props" :title="item.raw.label">
+                        <template #prepend>
+                          <v-icon>mdi-calendar</v-icon>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </v-select>
                 </v-col>
 
                 <v-col cols="12" md="6">
@@ -211,6 +224,7 @@
                     :min="1"
                     placeholder="مثال: 50"
                     hint="تعداد کارمندان شرکت (اختیاری)"
+                    :rules="employeeCountRules"
                   ></v-text-field>
                 </v-col>
 
@@ -223,6 +237,7 @@
                     density="comfortable"
                     placeholder="لینک ویدیو از یوتیوب یا آپارات"
                     hint="اگر ویدیوی معرفی شرکت دارید، لینک آن را اینجا وارد کنید (اختیاری)"
+                    :rules="videoUrlRules"
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -401,6 +416,7 @@
                     density="comfortable"
                     placeholder="https://linkedin.com/company/..."
                     hint="آدرس صفحه لینکدین شرکت"
+                    :rules="socialMediaUrlRules"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
@@ -412,6 +428,7 @@
                     density="comfortable"
                     placeholder="https://instagram.com/..."
                     hint="آدرس صفحه اینستاگرام"
+                    :rules="socialMediaUrlRules"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
@@ -423,6 +440,7 @@
                     density="comfortable"
                     placeholder="https://t.me/..."
                     hint="آدرس کانال یا گروه تلگرام"
+                    :rules="socialMediaUrlRules"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
@@ -434,6 +452,7 @@
                     density="comfortable"
                     placeholder="https://wa.me/..."
                     hint="لینک واتساپ برای تماس مستقیم"
+                    :rules="socialMediaUrlRules"
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -535,11 +554,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useSupplierApi } from '~/composables/useSupplierApi'
 import { useGamificationStore } from '~/stores/gamification'
 import FormQualityScore from '~/components/gamification/FormQualityScore.vue'
+import { toJalaali } from 'jalaali-js'
 
 const authStore = useAuthStore()
 const supplierApi = useSupplierApi()
@@ -557,6 +577,7 @@ const supplierId = ref<number | null>(null)
 const bannerFile = ref<File[]>([])
 const previewBanner = ref<string>('')
 const isMounted = ref(false)
+const hasLoadedData = ref(false)
 
 const formData = ref({
   store_name: '',
@@ -567,7 +588,7 @@ const formData = ref({
   brand_color_primary: '#1976D2',
   brand_color_secondary: '#424242',
   slogan: '',
-  year_established: null as number | null,
+  year_established: 1405 as number | null,
   employee_count: null as number | null,
   video_url: '',
   meta_title: '',
@@ -583,6 +604,123 @@ const socialMedia = ref({
   whatsapp: ''
 })
 const socialLinksCount = computed(() => Object.values(socialMedia.value).filter(Boolean).length)
+
+// Persian year picker - generate years from 1200 to 1405
+const persianYears = computed(() => {
+  // Generate years from 1200 to 1405
+  const years: Array<{ label: string; value: number }> = []
+  const startYear = 1200
+  const endYear = 1405
+  
+  for (let year = endYear; year >= startYear; year--) {
+    years.push({
+      label: `${year}`,
+      value: year
+    })
+  }
+  
+  return years
+})
+
+// Validation rules
+const emailRules = [
+  (value: string) => {
+    if (!value) return true // Optional field
+    const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return pattern.test(value) || 'ایمیل معتبر نیست (مثال: info@example.com)'
+  }
+]
+
+const phoneRules = [
+  (value: string) => {
+    if (!value) return true // Optional field
+    // Remove spaces, dashes, and parentheses for validation
+    const cleaned = value?.replace(/[\s\-()]/g, '') || ''
+    // Check if it starts with a valid Iranian mobile prefix
+    // Accept: 09XXXXXXXXX, +98XXXXXXXXXX, 0098XXXXXXXXXX, 98XXXXXXXXXX, 9XXXXXXXXX
+    const mobileRegex = /^(\+98|0098|98|0)?9\d{9}$/
+    if (!mobileRegex.test(cleaned)) {
+      return 'شماره تماس معتبر نیست. لطفاً شماره را صحیح وارد کنید (مثال: 09123456789)'
+    }
+    // Check minimum length (should be at least 10 digits after cleaning)
+    const digitsOnly = cleaned.replace(/\D/g, '')
+    if (digitsOnly.length < 10 || digitsOnly.length > 13) {
+      return 'شماره تماس باید ۱۱ رقم باشد (مثال: 09123456789)'
+    }
+    return true
+  }
+]
+
+const urlRules = [
+  (value: string) => {
+    if (!value) return true // Optional field
+    try {
+      // Allow URLs with or without protocol (we'll add https:// automatically if missing)
+      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
+      if (!urlPattern.test(value)) {
+        return 'آدرس معتبر نیست (مثال: example.com یا https://example.com)'
+      }
+      return true
+    } catch {
+      return 'آدرس معتبر نیست'
+    }
+  }
+]
+
+const videoUrlRules = [
+  (value: string) => {
+    if (!value) return true // Optional field
+    // Check for YouTube, Aparat, or general URL format (with or without protocol)
+    const youtubePattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/
+    const aparatPattern = /^(https?:\/\/)?(www\.)?aparat\.com\/.+/
+    const generalUrlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
+    
+    if (youtubePattern.test(value) || aparatPattern.test(value) || generalUrlPattern.test(value)) {
+      return true
+    }
+    return 'لینک ویدیو معتبر نیست. لطفاً لینک یوتیوب یا آپارات وارد کنید (مثال: youtube.com/watch?v=... یا aparat.com/v/...)'
+  }
+]
+
+const yearRules = [
+  (value: number | null) => {
+    if (!value) return true // Optional field
+    
+    if (value < 1200 || value > 1405) {
+      return 'سال باید بین ۱۲۰۰ و ۱۴۰۵ باشد'
+    }
+    return true
+  }
+]
+
+const employeeCountRules = [
+  (value: number | null) => {
+    if (!value) return true // Optional field
+    if (value < 1) {
+      return 'تعداد کارمندان باید حداقل ۱ باشد'
+    }
+    if (value > 1000000) {
+      return 'تعداد کارمندان معتبر نیست'
+    }
+    return true
+  }
+]
+
+const socialMediaUrlRules = [
+  (value: string) => {
+    if (!value) return true // Optional field
+    try {
+      // Allow URLs with or without protocol (we'll add https:// automatically if missing)
+      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
+      if (!urlPattern.test(value)) {
+        return 'آدرس معتبر نیست (مثال: instagram.com/username یا https://instagram.com/username)'
+      }
+      return true
+    } catch {
+      return 'آدرس معتبر نیست'
+    }
+  }
+]
 
 const miniSiteMetrics = computed(() => [
   {
@@ -727,35 +865,47 @@ const removeBanner = () => {
 }
 
 const loadCurrentSettings = async () => {
+  // Don't load if already loading
+  if (loadingSettings.value) return
+  
   loadingSettings.value = true
   try {
+    // Always fetch fresh user data to ensure we have complete vendor profile
+    // The login endpoint only returns minimal vendor_profile (id, store_name, logo)
+    // so we need to fetch from auth/me/ to get all fields
+    console.log('Loading settings - fetching fresh user data...')
     let user = authStore.user
     let vendorProfile: any = null
     
-    // Try to get vendor profile from user object
-    if (user?.vendor_profile) {
-      vendorProfile = user.vendor_profile
-    } else if (authStore.vendorProfile) {
-      vendorProfile = authStore.vendorProfile
-    } else {
-      // If vendor profile is not available, fetch current user data
-      console.log('Vendor profile not found, fetching current user...')
-      try {
-        await authStore.fetchCurrentUser()
-        user = authStore.user
-        if (user?.vendor_profile) {
-          vendorProfile = user.vendor_profile
-        } else if (authStore.vendorProfile) {
-          vendorProfile = authStore.vendorProfile
-        }
-      } catch (err) {
-        console.error('Error fetching current user:', err)
+    // Always fetch current user to get complete vendor profile data
+    try {
+      const fetchedUser = await authStore.fetchCurrentUser()
+      user = fetchedUser || authStore.user
+      console.log('Fetched user data:', user)
+      
+      if (user?.vendor_profile) {
+        vendorProfile = user.vendor_profile
+        console.log('Vendor profile from fetched user:', vendorProfile)
+      } else if (authStore.vendorProfile) {
+        vendorProfile = authStore.vendorProfile
+        console.log('Vendor profile from authStore:', vendorProfile)
+      }
+    } catch (err) {
+      console.error('Error fetching current user:', err)
+      // Fallback to cached data if fetch fails
+      if (authStore.user?.vendor_profile) {
+        vendorProfile = authStore.user.vendor_profile
+      } else if (authStore.vendorProfile) {
+        vendorProfile = authStore.vendorProfile
       }
     }
     
     if (vendorProfile && vendorProfile.id) {
-      supplierId.value = vendorProfile.id
-      console.log('Vendor profile loaded, ID:', vendorProfile.id, 'Store name:', vendorProfile.store_name)
+      const profileId = vendorProfile.id
+      supplierId.value = profileId
+      hasLoadedData.value = true
+      console.log('Vendor profile loaded, ID:', profileId, 'Store name:', vendorProfile.store_name)
+      console.log('Full vendor profile data:', JSON.stringify(vendorProfile, null, 2))
       
       formData.value = {
         store_name: vendorProfile.store_name || '',
@@ -766,7 +916,7 @@ const loadCurrentSettings = async () => {
         brand_color_primary: vendorProfile.brand_color_primary || '#1976D2',
         brand_color_secondary: vendorProfile.brand_color_secondary || '#424242',
         slogan: vendorProfile.slogan || '',
-        year_established: vendorProfile.year_established || null,
+        year_established: vendorProfile.year_established || 1405,
         employee_count: vendorProfile.employee_count || null,
         video_url: vendorProfile.video_url || '',
         meta_title: vendorProfile.meta_title || '',
@@ -774,11 +924,26 @@ const loadCurrentSettings = async () => {
       }
 
       if (vendorProfile.banner_image) {
-        previewBanner.value = vendorProfile.banner_image
+        // Handle both relative and absolute URLs
+        const bannerUrl = vendorProfile.banner_image
+        if (bannerUrl.startsWith('http://') || bannerUrl.startsWith('https://')) {
+          previewBanner.value = bannerUrl
+        } else {
+          // Assume it's a relative URL, prepend API base URL if needed
+          // For now, use as-is since the backend should return full URLs
+          previewBanner.value = bannerUrl
+        }
+        console.log('Banner image loaded:', previewBanner.value)
+      } else {
+        previewBanner.value = ''
       }
 
-      certifications.value = vendorProfile.certifications || []
-      awards.value = vendorProfile.awards || []
+      certifications.value = Array.isArray(vendorProfile.certifications) 
+        ? vendorProfile.certifications 
+        : (vendorProfile.certifications ? [vendorProfile.certifications] : [])
+      awards.value = Array.isArray(vendorProfile.awards) 
+        ? vendorProfile.awards 
+        : (vendorProfile.awards ? [vendorProfile.awards] : [])
       socialMedia.value = vendorProfile.social_media || {
         linkedin: '',
         instagram: '',
@@ -801,17 +966,43 @@ const loadCurrentSettings = async () => {
   }
 }
 
+// Helper function to normalize URLs - add https:// if missing
+const normalizeUrl = (url: string | null | undefined): string | null => {
+  if (!url || !url.trim()) return null
+  const trimmed = url.trim()
+  // If it already has a protocol, return as is
+  if (trimmed.match(/^https?:\/\//i)) {
+    return trimmed
+  }
+  // Otherwise, add https://
+  return `https://${trimmed}`
+}
+
 const saveSettings = async () => {
   if (!formValid.value) return
 
   saving.value = true
 
   try {
+    // Normalize URLs before sending (Django URLField requires protocol)
+    const normalizedSocialMedia: any = {}
+    for (const [key, value] of Object.entries(socialMedia.value)) {
+      // Only include non-empty values, and normalize URLs
+      if (value && typeof value === 'string' && value.trim()) {
+        normalizedSocialMedia[key] = normalizeUrl(value)
+      } else {
+        normalizedSocialMedia[key] = null
+      }
+    }
+    
     const updateData: any = {
       ...formData.value,
+      // Normalize website and video_url
+      website: formData.value.website ? normalizeUrl(formData.value.website) : null,
+      video_url: formData.value.video_url ? normalizeUrl(formData.value.video_url) : null,
       certifications: certifications.value.filter(c => c.title),
       awards: awards.value.filter(a => a.title),
-      social_media: socialMedia.value
+      social_media: normalizedSocialMedia
     }
 
     // Handle banner upload if changed
@@ -819,17 +1010,24 @@ const saveSettings = async () => {
       updateData.banner_image = bannerFile.value[0]
     }
 
-    await supplierApi.updateSupplierProfile(updateData)
+    console.log('Saving settings with data:', updateData)
+    
+    const response = await supplierApi.updateSupplierProfile(updateData)
+    console.log('Save response:', response)
     
     // Refresh user data to get updated vendor_profile
     try {
-      await authStore.fetchCurrentUser()
+      const updatedUser = await authStore.fetchCurrentUser()
+      console.log('User data refreshed after save:', updatedUser)
+      console.log('Vendor profile in refreshed user:', updatedUser?.vendor_profile || authStore.vendorProfile)
+      
+      // Reload settings to show updated data
+      await loadCurrentSettings()
     } catch (err) {
       console.warn('Error refreshing user data:', err)
+      // Still try to reload settings even if fetchCurrentUser failed
+      await loadCurrentSettings()
     }
-    
-    // Reload settings to show updated data
-    await loadCurrentSettings()
     
     // Clear banner file after successful upload
     bannerFile.value = []
@@ -837,9 +1035,69 @@ const saveSettings = async () => {
     snackbarMessage.value = 'همه تغییرات با موفقیت ذخیره شد'
     snackbarColor.value = 'success'
     snackbar.value = true
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving settings:', error)
-    snackbarMessage.value = 'خطا در ذخیره تنظیمات'
+    console.error('Error details:', {
+      message: error?.message,
+      response: error?.response,
+      data: error?.data,
+      status: error?.status
+    })
+    
+    // Try to get the actual error message from the response
+    let errorMessage = 'خطا در ذخیره تنظیمات'
+    if (error?.data) {
+      console.error('Error data:', error.data)
+      if (typeof error.data === 'string') {
+        errorMessage = error.data
+      } else if (error.data.error) {
+        errorMessage = error.data.error
+        // If there are validation errors, format them nicely
+        if (error.data.vendor_profile_errors) {
+          const errors = error.data.vendor_profile_errors
+          const errorList: string[] = []
+          
+          // Map field names to Persian labels
+          const fieldLabels: Record<string, string> = {
+            website: 'آدرس وب‌سایت',
+            video_url: 'لینک ویدیو',
+            contact_email: 'ایمیل تماس',
+            contact_phone: 'شماره تماس',
+            year_established: 'سال تاسیس',
+            employee_count: 'تعداد کارمندان',
+            store_name: 'نام فروشگاه',
+            description: 'توضیحات',
+            slogan: 'شعار',
+            meta_title: 'عنوان متا',
+            meta_description: 'توضیحات متا'
+          }
+          
+          for (const [field, messages] of Object.entries(errors)) {
+            const fieldLabel = fieldLabels[field] || field
+            const messageArray = Array.isArray(messages) ? messages : [messages]
+            messageArray.forEach((msg: string) => {
+              errorList.push(`${fieldLabel}: ${msg}`)
+            })
+          }
+          
+          if (errorList.length > 0) {
+            errorMessage = 'خطا در اعتبارسنجی:\n' + errorList.join('\n')
+          }
+        }
+      } else if (error.data.vendor_profile_errors) {
+        const errors = error.data.vendor_profile_errors
+        const errorList: string[] = []
+        for (const [field, messages] of Object.entries(errors)) {
+          const messageArray = Array.isArray(messages) ? messages : [messages]
+          errorList.push(`${field}: ${messageArray.join(', ')}`)
+        }
+        errorMessage = 'خطا در اعتبارسنجی:\n' + errorList.join('\n')
+      } else if (typeof error.data === 'object') {
+        errorMessage = JSON.stringify(error.data)
+      }
+    }
+    
+    snackbarMessage.value = errorMessage
     snackbarColor.value = 'error'
     snackbar.value = true
   } finally {
@@ -915,8 +1173,44 @@ const copyPreviewUrl = async () => {
   }
 }
 
-onMounted(() => {
+// Watch for vendor profile changes and reload settings
+watch(() => authStore.vendorProfile, (newProfile) => {
+  if (newProfile && newProfile.id && isMounted.value) {
+    // Only reload if we don't have a supplierId or if the ID changed
+    if (!supplierId.value || supplierId.value !== newProfile.id) {
+      console.log('Vendor profile changed, reloading settings...', { oldId: supplierId.value, newId: newProfile.id })
+      hasLoadedData.value = false
+      loadCurrentSettings()
+    }
+  }
+}, { deep: true })
+
+// Watch for user changes
+watch(() => authStore.user, (newUser) => {
+  if (newUser && newUser.vendor_profile && isMounted.value) {
+    const profileId = newUser.vendor_profile?.id
+    if (profileId && (!supplierId.value || supplierId.value !== profileId)) {
+      console.log('User vendor profile changed, reloading settings...', { oldId: supplierId.value, newId: profileId })
+      hasLoadedData.value = false
+      loadCurrentSettings()
+    }
+  }
+}, { deep: true })
+
+onMounted(async () => {
   isMounted.value = true
+  
+  // Wait for auth to be initialized
+  if (authStore.token && !authStore.user) {
+    try {
+      await authStore.initializeAuth()
+    } catch (err) {
+      console.warn('Error initializing auth:', err)
+    }
+  }
+  
+  // Load settings after a short delay to ensure auth is ready
+  await nextTick()
   loadCurrentSettings()
 })
 </script>
