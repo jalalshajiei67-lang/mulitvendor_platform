@@ -42,10 +42,11 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'order_number', 'buyer', 'buyer_username', 'status', 'total_amount', 
-                  'shipping_address', 'shipping_phone', 'notes', 'is_paid', 'payment_method', 
+                  'shipping_address', 'shipping_phone', 'notes', 'is_paid', 'payment_method',
                   'payment_date', 'items', 'payments', 'images', 'created_at', 'updated_at',
-                  'is_rfq', 'first_name', 'last_name', 'company_name', 'phone_number', 
-                  'unique_needs', 'category', 'category_name', 'product_name']
+                  'is_rfq', 'first_name', 'last_name', 'company_name', 'phone_number',
+                  'unique_needs', 'category', 'category_name', 'product_name',
+                  'first_viewed_at', 'first_responded_at', 'response_points_awarded', 'response_speed_bucket']
         read_only_fields = ['order_number', 'buyer', 'created_at', 'updated_at']
     
     def get_product_name(self, obj):

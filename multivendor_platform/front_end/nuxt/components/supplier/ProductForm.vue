@@ -200,8 +200,16 @@
         </v-col>
 
         <v-col cols="12" lg="4">
+          <FormQualityScore
+            class="mb-4 sticky-card"
+            title="امتیاز محصول"
+            caption="راهنمای قدم‌به‌قدم برای جذاب‌تر کردن محصول"
+            :score="productScore"
+            :metrics="productMetrics"
+            :tips="productTips"
+          />
           <!-- Status & Options -->
-          <v-card elevation="2" rounded="lg" class="mb-4 sticky-card">
+          <v-card elevation="2" rounded="lg" class="mb-4">
             <v-card-title class="text-h6 font-weight-bold bg-warning pa-4">
               <v-icon class="ml-2">mdi-cog</v-icon>
               تنظیمات
@@ -299,6 +307,8 @@ import { useProductApi } from '~/composables/useProductApi'
 import { useDepartmentStore } from '~/stores/department'
 import { useCategoryStore } from '~/stores/category'
 import { useSubcategoryStore } from '~/stores/subcategory'
+import { useGamificationStore } from '~/stores/gamification'
+import FormQualityScore from '~/components/gamification/FormQualityScore.vue'
 
 interface Props {
   productData?: any
@@ -315,6 +325,7 @@ const productApi = useProductApi()
 const departmentStore = useDepartmentStore()
 const categoryStore = useCategoryStore()
 const subcategoryStore = useSubcategoryStore()
+const gamificationStore = useGamificationStore()
 
 const formRef = ref<any>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -339,6 +350,7 @@ const selectedDepartment = ref<number | null>(null)
 const selectedCategory = ref<number | null>(null)
 
 const uploadedImages = ref<any[]>([])
+const existingImageCount = ref(props.productData?.images?.length ?? 0)
 const isDragOver = ref(false)
 const imageError = ref('')
 const descriptionTouched = ref(false)
@@ -354,8 +366,93 @@ const descriptionValid = computed(() => {
   return textOnly.length > 0
 })
 
+const cleanDescription = computed(() => (product.value.description || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
+const descriptionWords = computed(() => (cleanDescription.value ? cleanDescription.value.split(' ').filter(Boolean).length : 0))
+const totalImageCount = computed(() => existingImageCount.value + uploadedImages.value.length)
+
+const productMetrics = computed(() => [
+  {
+    key: 'name',
+    label: 'نام محصول',
+    tip: 'نام را بین ۱۰ تا ۶۰ کاراکتر نگه دارید و مدل دستگاه را ذکر کنید.',
+    weight: 0.15,
+    passed: product.value.name.length >= 10 && product.value.name.length <= 60
+  },
+  {
+    key: 'description',
+    label: 'توضیحات',
+    tip: 'حداقل ۱۵۰ کلمه درباره ویژگی‌ها و خدمات پس از فروش بنویسید.',
+    weight: 0.25,
+    passed: descriptionWords.value >= 150
+  },
+  {
+    key: 'images',
+    label: 'تصاویر',
+    tip: 'سه تصویر واضح از زوایای مختلف دستگاه آپلود کنید.',
+    weight: 0.2,
+    passed: totalImageCount.value >= 3
+  },
+  {
+    key: 'pricing',
+    label: 'قیمت و موجودی',
+    tip: 'قیمت و وضعیت موجودی را مشخص کنید.',
+    weight: 0.1,
+    passed: product.value.price > 0 && product.value.stock >= 0
+  },
+  {
+    key: 'category',
+    label: 'دسته‌بندی',
+    tip: 'زیر دسته دقیق را انتخاب کنید تا مشتری راحت‌تر شما را پیدا کند.',
+    weight: 0.1,
+    passed: Boolean(product.value.subcategory)
+  },
+  {
+    key: 'attributes',
+    label: 'ویژگی‌ها و برچسب‌ها',
+    tip: 'برچسب‌هایی مثل توان موتور یا ظرفیت تولید را وارد کنید.',
+    weight: 0.05,
+    passed: true // Placeholder until attributes UI متصل شود
+  },
+  {
+    key: 'seo',
+    label: 'سئو',
+    tip: 'نامک و توضیح کوتاه را تکمیل کنید.',
+    weight: 0.1,
+    passed: Boolean(product.value.slug && product.value.slug.length > 3 && product.value.description)
+  },
+  {
+    key: 'status',
+    label: 'وضعیت نمایش',
+    tip: 'محصول را در حالت فعال قرار دهید تا در لیست‌ها دیده شود.',
+    weight: 0.05,
+    passed: product.value.is_active
+  }
+])
+
+const productScore = computed(() => {
+  const metrics = productMetrics.value
+  const totalWeight = metrics.reduce((sum, metric) => sum + metric.weight, 0)
+  const earned = metrics.reduce((sum, metric) => sum + (metric.passed ? metric.weight : 0), 0)
+  return totalWeight ? Math.round((earned / totalWeight) * 100) : 0
+})
+
+const productTips = computed(() => productMetrics.value.filter(metric => !metric.passed).map(metric => metric.tip))
+
+watch(productScore, (score) => {
+  gamificationStore.updateLocalScore('product', {
+    title: 'product',
+    score,
+    metrics: productMetrics.value,
+    tips: productTips.value
+  })
+}, { immediate: true })
+
 watch(() => product.value.description, () => {
   descriptionTouched.value = true
+})
+
+watch(() => props.productData, (value) => {
+  existingImageCount.value = value?.images?.length ?? 0
 })
 
 const triggerFileInput = () => {
