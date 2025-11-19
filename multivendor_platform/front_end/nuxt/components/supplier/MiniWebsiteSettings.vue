@@ -619,28 +619,25 @@ const removeBanner = () => {
 const loadCurrentSettings = async () => {
   loadingSettings.value = true
   try {
+    // Always refresh the authenticated user to ensure we get the full vendor profile
+    // (login response only includes limited vendor fields and misses mini-site branding data)
     let user = authStore.user
+    try {
+      const refreshedUser = await authStore.fetchCurrentUser()
+      if (refreshedUser) {
+        user = refreshedUser
+      }
+    } catch (err) {
+      console.warn('Error refreshing current user during mini-site load:', err)
+    }
+
     let vendorProfile: any = null
-    
-    // Try to get vendor profile from user object
+
+    // Try to get vendor profile from the refreshed user first
     if (user?.vendor_profile) {
       vendorProfile = user.vendor_profile
     } else if (authStore.vendorProfile) {
       vendorProfile = authStore.vendorProfile
-    } else {
-      // If vendor profile is not available, fetch current user data
-      console.log('Vendor profile not found, fetching current user...')
-      try {
-        await authStore.fetchCurrentUser()
-        user = authStore.user
-        if (user?.vendor_profile) {
-          vendorProfile = user.vendor_profile
-        } else if (authStore.vendorProfile) {
-          vendorProfile = authStore.vendorProfile
-        }
-      } catch (err) {
-        console.error('Error fetching current user:', err)
-      }
     }
     
     if (vendorProfile && vendorProfile.id) {
