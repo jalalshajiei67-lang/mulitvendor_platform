@@ -5,8 +5,8 @@
         <v-card class="elevation-0 auth-card" rounded="xl">
           <!-- Header -->
           <v-card-text class="pa-6 pb-4 text-center">
-            <h1 class="text-h4 font-weight-bold mb-2">ایجاد حساب کاربری</h1>
-            <p class="text-body-2 text-medium-emphasis">لطفاً نوع حساب کاربری خود را انتخاب کنید</p>
+            <h1 class="text-h4 font-weight-bold mb-2">ثبت نام در ایندکسو</h1>
+            <p class="text-body-2 text-medium-emphasis">لطفاً بگویید می‌خواهید خریدار باشید یا فروشنده</p>
           </v-card-text>
 
           <!-- Role Selection Cards -->
@@ -22,7 +22,8 @@
                 <v-card
                   :class="[
                     'role-card',
-                    { 'role-card-selected': form.role === role.value }
+                    { 'role-card-selected': form.role === role.value },
+                    { 'role-card-flash': !form.role }
                   ]"
                   :color="form.role === role.value ? 'primary' : 'surface-variant'"
                   :variant="form.role === role.value ? 'flat' : 'outlined'"
@@ -108,7 +109,7 @@
                     dir="rtl"
                     type="tel"
                     placeholder="09123456789"
-                    hint="شماره موبایل شما به عنوان نام کاربری استفاده می‌شود"
+                    hint="شماره موبایل شما همان نام کاربری شما خواهد بود"
                     persistent-hint
                   />
                 </v-col>
@@ -182,7 +183,7 @@
           <!-- Login Link -->
           <v-divider />
           <v-card-text class="text-center pa-4">
-            <span class="text-body-2">از قبل حساب دارید؟</span>
+            <span class="text-body-2">قبلاً ثبت نام کرده‌اید؟</span>
             <NuxtLink to="/login" class="text-primary font-weight-bold mr-2">
               ورود
             </NuxtLink>
@@ -208,9 +209,9 @@ definePageMeta({
 
 useSeoMeta({
   title: 'ثبت‌نام | ایندکسو',
-  description: 'ایجاد حساب کاربری جدید در ایندکسو برای خرید یا فروش محصولات.',
+  description: 'ثبت نام در ایندکسو برای خرید یا فروش ماشین‌آلات و تجهیزات. ساده و سریع.',
   ogTitle: 'ثبت‌نام در ایندکسو',
-  ogDescription: 'با ثبت‌نام در ایندکسو به امکانات خرید و فروش چندفروشنده دسترسی پیدا کنید.',
+  ogDescription: 'ثبت نام در ایندکسو برای خرید یا فروش ماشین‌آلات و تجهیزات. ساده و سریع.',
   ogType: 'website'
 })
 
@@ -237,19 +238,19 @@ const roleOptions = [
     label: 'خریدار',
     value: 'buyer',
     icon: 'mdi-cart',
-    description: 'برای خرید محصولات'
+    description: 'می‌خواهم محصولات و ماشین‌آلات بخرم'
   },
   {
     label: 'فروشنده',
     value: 'seller',
     icon: 'mdi-store',
-    description: 'برای فروش محصولات'
+    description: 'می‌خواهم محصولات و ماشین‌آلات خود را بفروشم'
   },
   {
     label: 'خریدار و فروشنده',
     value: 'both',
     icon: 'mdi-account-multiple',
-    description: 'هم خرید و هم فروش'
+    description: 'هم می‌خواهم بخرم و هم بفروشم'
   }
 ]
 
@@ -279,12 +280,12 @@ const mobileRules = [
     // Accept: 09XXXXXXXXX, +98XXXXXXXXXX, 0098XXXXXXXXXX, 98XXXXXXXXXX, 9XXXXXXXXX
     const mobileRegex = /^(\+98|0098|98|0)?9\d{9}$/
     if (!mobileRegex.test(cleaned)) {
-      return 'شماره موبایل معتبر نیست. لطفاً شماره را به صورت صحیح وارد کنید (مثال: 09123456789)'
+      return 'شماره موبایل درست نیست. لطفاً شماره را صحیح وارد کنید (مثال: 09123456789)'
     }
     // Check minimum length (should be at least 10 digits after cleaning)
     const digitsOnly = cleaned.replace(/\D/g, '')
     if (digitsOnly.length < 10 || digitsOnly.length > 13) {
-      return 'شماره موبایل باید ۱۰ رقم باشد (مثال: 09123456789)'
+      return 'شماره موبایل باید ۱۱ رقم باشد (مثال: 09123456789)'
     }
     return true
   }
@@ -307,7 +308,7 @@ const submit = async () => {
   if (!result.valid) return
 
   if (!form.role) {
-    error.value = 'لطفاً نوع حساب کاربری خود را انتخاب کنید'
+      error.value = 'لطفاً بگویید می‌خواهید خریدار باشید یا فروشنده'
     return
   }
 
@@ -347,15 +348,15 @@ const submit = async () => {
         } else if (typeof firstError === 'string') {
           error.value = firstError
         } else {
-          error.value = 'خطا در ثبت‌نام. لطفاً اطلاعات را بررسی کنید.'
+          error.value = 'متأسفانه ثبت‌نام انجام نشد. لطفاً اطلاعات را دوباره بررسی کنید.'
         }
       } else if (typeof errors === 'string') {
         error.value = errors
       } else {
-        error.value = authStore.error ?? 'خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.'
+        error.value = authStore.error ?? 'متأسفانه ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.'
       }
     } else {
-      error.value = authStore.error ?? 'خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.'
+      error.value = authStore.error ?? 'متأسفانه ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.'
     }
   }
 }
@@ -396,6 +397,24 @@ const submit = async () => {
 .role-card-selected {
   border-color: rgb(var(--v-theme-primary)) !important;
   box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3) !important;
+  animation: none !important;
+}
+
+.role-card-flash {
+  animation: flash-pulse 2s ease-in-out infinite;
+}
+
+@keyframes flash-pulse {
+  0%, 100% {
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: scale(1);
+  }
+  50% {
+    border-color: rgb(var(--v-theme-primary));
+    box-shadow: 0 4px 16px rgba(var(--v-theme-primary), 0.4);
+    transform: scale(1.02);
+  }
 }
 
 .cursor-pointer {

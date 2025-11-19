@@ -137,6 +137,11 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Site URL for SEO (robots.txt, sitemap, canonical URLs)
+# Used for generating absolute URLs in sitemaps and robots.txt
+# Falls back to request if not set
+SITE_URL = os.environ.get('SITE_URL', '')  # e.g., 'https://indexo.ir'
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

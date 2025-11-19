@@ -45,15 +45,28 @@ def health_check(request):
     return HttpResponse("OK", content_type="text/plain", status=200)
 
 def robots_txt(request):
-    """Serve robots.txt file to restrict crawlers from unnecessary sections"""
-    # Determine protocol (Django's request.is_secure() handles proxy headers 
-    # when SECURE_PROXY_SSL_HEADER is configured in settings)
-    protocol = 'https' if request.is_secure() else 'http'
-    domain = request.get_host()
+    """
+    Serve robots.txt file to restrict crawlers from unnecessary sections.
+    Auto-updates based on SITE_URL setting or request host.
+    """
+    # Get SITE_URL from settings, fallback to request if not configured
+    site_url = getattr(settings, 'SITE_URL', '').strip()
+    
+    if site_url:
+        # Use SITE_URL from settings (auto-updates when environment variable changes)
+        # Remove trailing slash if present
+        site_url = site_url.rstrip('/')
+        sitemap_url = f'{site_url}/sitemap.xml'
+    else:
+        # Fallback to request-based URL (for development or when SITE_URL not set)
+        protocol = 'https' if request.is_secure() else 'http'
+        domain = request.get_host()
+        sitemap_url = f'{protocol}://{domain}/sitemap.xml'
     
     # Build robots.txt content line by line to ensure proper formatting
     robots_lines = [
         '# robots.txt for Multivendor Platform',
+        '# Auto-generated - Updates automatically based on SITE_URL setting',
         '',
         '# Allow all crawlers',
         'User-agent: *',
@@ -74,7 +87,7 @@ def robots_txt(request):
         'Disallow: /tinymce/',
         '',
         '# Allow sitemap for better SEO indexing',
-        f'Sitemap: {protocol}://{domain}/sitemap.xml',
+        f'Sitemap: {sitemap_url}',
         ''  # Final newline
     ]
     

@@ -20,13 +20,13 @@
         <v-row>
           <v-col cols="12" sm="6" md="4">
             <h3 class="text-subtitle-1 text-sm-h6 mb-2">درباره ما</h3>
-            <p class="text-caption text-sm-body-2">ایندکسو</p>
+            <p class="text-caption text-sm-body-2">خرید و فروش آسان ماشین‌آلات و تجهیزات از بهترین تولیدکنندگان</p>
           </v-col>
           <v-col cols="12" sm="6" md="4">
             <h3 class="text-subtitle-1 text-sm-h6 mb-2">لینک‌های سریع</h3>
             <div class="d-flex flex-column align-center">
               <router-link to="/departments" class="text-white text-decoration-none mb-1 hover-link">محصولات</router-link>
-              <router-link to="/suppliers" class="text-white text-decoration-none mb-1 hover-link">تامین‌کنندگان</router-link>
+              <router-link to="/suppliers" class="text-white text-decoration-none mb-1 hover-link">فروشندگان</router-link>
               <router-link to="/blog" class="text-white text-decoration-none mb-1 hover-link">وبلاگ</router-link>
               <router-link to="/contact-us" class="text-white text-decoration-none mb-1 hover-link">تماس با ما</router-link>
               <router-link to="/sitemap" class="text-white text-decoration-none mb-1 hover-link">نقشه سایت</router-link>
@@ -39,7 +39,7 @@
           </v-col>
         </v-row>
         <v-divider class="my-3 my-sm-4"></v-divider>
-        <p class="text-caption text-sm-body-2">&copy; {{ new Date().getFullYear() }} پلتفرم چند فروشنده. تمامی حقوق محفوظ است.</p>
+        <p class="text-caption text-sm-body-2">&copy; {{ new Date().getFullYear() }} ایندکسو. تمامی حقوق محفوظ است.</p>
       </v-container>
     </v-footer>
 

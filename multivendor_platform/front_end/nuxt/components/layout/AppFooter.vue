@@ -5,7 +5,7 @@
         <v-col cols="12" md="4">
           <div class="text-h6 font-weight-bold mb-2">ایندکسو</div>
           <p class="text-body-2 text-medium-emphasis">
-            پلتفرم جامع خرید و فروش B2B با تمرکز بر تجربه کاربری فارسی، چندفروشندگی و سئوی پیشرفته.
+            ایندکسو: خرید و فروش آسان ماشین‌آلات و تجهیزات از بهترین تولیدکنندگان کشور. بدون واسطه و با اطمینان کامل.
           </p>
         </v-col>
 
@@ -23,7 +23,7 @@
         <v-col cols="12" sm="6" md="4">
           <div class="text-subtitle-1 font-weight-bold mb-3">خبرنامه</div>
           <p class="text-body-2 text-medium-emphasis">
-            برای دریافت جدیدترین محصولات و تخفیف‌ها ایمیل خود را وارد کنید.
+            برای دریافت آخرین محصولات و تخفیف‌های ویژه، ایمیل خود را وارد کنید.
           </p>
           <v-text-field
             v-model="newsletter"

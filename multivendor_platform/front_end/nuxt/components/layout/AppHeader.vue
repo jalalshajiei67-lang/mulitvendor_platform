@@ -14,7 +14,7 @@
             />
             <div class="mr-3">
               <strong class="text-primary text-subtitle-1">ایندکسو</strong>
-              <div class="text-caption text-medium-emphasis">بازار چندفروشنده</div>
+              <div class="text-caption text-medium-emphasis">خرید و فروش آسان ماشین‌آلات</div>
             </div>
           </NuxtLink>
         </div>

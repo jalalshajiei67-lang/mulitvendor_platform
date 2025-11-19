@@ -136,6 +136,11 @@ MEDIA_ROOT = os.environ.get('MEDIA_ROOT', '/app/media')
 # Base URL for building absolute URLs (used in serializers)
 BASE_URL = os.environ.get('BASE_URL', 'https://multivendor-backend.indexo.ir')
 
+# Site URL for SEO (robots.txt, sitemap, canonical URLs)
+# Used for generating absolute URLs in sitemaps and robots.txt
+# Falls back to request if not set
+SITE_URL = os.environ.get('SITE_URL', 'https://indexo.ir')
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

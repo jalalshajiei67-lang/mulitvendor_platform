@@ -15,7 +15,7 @@
               <v-card-text class="pa-0">
                 <v-text-field
                   v-model="searchQuery"
-                  placeholder="چه دستگاهی نیاز دارید؟"
+                  placeholder="نام دستگاه یا ماشین آلات مورد نظر خود را بنویسید"
                   append-inner-icon="mdi-magnify"
                   variant="outlined"
                   rounded="lg"
@@ -48,12 +48,12 @@
                     size="24"
                     class="mr-2"
                   ></v-progress-circular>
-                  <span>در حال جستجو...</span>
+                  <span>در حال پیدا کردن...</span>
                 </div>
 
                 <!-- No Results -->
                 <div v-else-if="!hasResults && searchQuery.length >= 2" class="no-results pa-4 text-center">
-                  <p class="text-body-2 text-medium-emphasis">نتیجه‌ای یافت نشد</p>
+                  <p class="text-body-2 text-medium-emphasis">متأسفانه چیزی پیدا نشد. لطفاً کلمه دیگری امتحان کنید</p>
                 </div>
 
                 <!-- Results -->
@@ -130,7 +130,7 @@
                       @click="performSearch"
                       class="text-caption"
                     >
-                      مشاهده همه نتایج ({{ searchResults.total - totalDisplayed }} نتیجه دیگر)
+                      نمایش همه ({{ searchResults.total - totalDisplayed }} مورد دیگر)
                     </v-btn>
                   </div>
                 </div>
@@ -140,7 +140,7 @@
 
           <!-- Subtitle -->
           <p class="search-subtitle text-center text-body-1 text-md-h6">
-            از بین تولیدات بهترین تولید کنندگان ماشین آلات نیاز خود را جستجو کنید
+            دستگاه و ماشین آلات مورد نیاز خود را از بهترین تولیدکنندگان پیدا کنید
           </p>
         </v-col>
       </v-row>
@@ -202,7 +202,7 @@
             <v-row align="center" no-gutters>
               <v-col cols="12" md="8" class="pa-2 pa-md-4">
                 <p class="text-body-1 text-md-h6 mb-0">
-                  همین الان درخواست خودت را ثبت کن و منتظر تماس تامین کنندگان معتبر باش
+                  درخواست خود را ثبت کنید. فروشندگان معتبر با شما تماس می‌گیرند
                 </p>
               </v-col>
               <v-col cols="12" md="4" class="pa-2 pa-md-4 text-center text-md-end">
@@ -281,7 +281,7 @@
             <v-row align="center" no-gutters>
               <v-col cols="12" md="8" class="pa-2 pa-md-4">
                 <p class="text-body-1 text-md-h6 mb-0">
-                  برای شروع همکاری و بهره بردن از امکانات ایندکسو ثبت نام کنید
+                  همین حالا ثبت نام کنید و از تمام امکانات ایندکسو استفاده کنید
                 </p>
               </v-col>
               <v-col cols="12" md="4" class="pa-2 pa-md-4 text-center text-md-end">
@@ -295,7 +295,7 @@
                   block
                   class="cta-button"
                 >
-                  ثبت نام بعنوان تامین کننده
+                  ثبت نام فروشنده
                 </v-btn>
               </v-col>
             </v-row>
@@ -327,19 +327,19 @@ const buyerAdvantages = [
   {
     icon: 'mdi-account-switch',
     title: 'ارتباط مستقیم',
-    description: 'بدون واسطه و اصطکاک، مستقیماً با تامین‌کنندگان معتبر در ارتباط باشید',
+    description: 'بدون واسطه، مستقیماً با فروشندگان و تولیدکنندگان معتبر صحبت کنید',
     color: 'info'
   },
   {
     icon: 'mdi-shield-check',
     title: 'تامین‌کنندگان معتبر',
-    description: 'از بین بهترین تولیدکنندگان ماشین‌آلات، تامین‌کننده مناسب خود را پیدا کنید',
+    description: 'فقط با تولیدکنندگان و فروشندگان معتبر و قابل اعتماد کار می‌کنیم',
     color: 'success'
   },
   {
     icon: 'mdi-lightning-bolt',
     title: 'مسیر کوتاه خرید',
-    description: 'فرآیند خرید را کوتاه کرده و سریع‌تر به محصول مورد نظر خود برسید',
+    description: 'خرید را ساده و سریع کنید. بدون معطلی به محصول مورد نظرتان برسید',
     color: 'warning'
   }
 ]
@@ -349,19 +349,19 @@ const sellerAdvantages = [
   {
     icon: 'mdi-cash',
     title: 'هزینه کم',
-    description: 'با حداقل هزینه، محصولات خود را به خریداران هدف معرفی کنید',
+    description: 'با هزینه بسیار کم، محصولات خود را به خریداران واقعی نشان دهید',
     color: 'success'
   },
   {
     icon: 'mdi-chart-line',
     title: 'فروش آسان',
-    description: 'مدل کسب‌وکار بدون زحمت و با حداقل تلاش برای افزایش فروش',
+    description: 'فروش را ساده کنید. بدون دردسر و با کمترین کار، فروش خود را بیشتر کنید',
     color: 'primary'
   },
   {
     icon: 'mdi-handshake',
     title: 'دسترسی به خریداران',
-    description: 'مستقیماً با خریداران واقعی در صنعت ماشین‌آلات ارتباط برقرار کنید',
+    description: 'مستقیماً با کسانی که واقعاً به محصولات شما نیاز دارند صحبت کنید',
     color: 'info'
   }
 ]
