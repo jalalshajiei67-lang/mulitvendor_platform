@@ -35,6 +35,10 @@ class Order(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    first_viewed_at = models.DateTimeField(blank=True, null=True, help_text="When supplier first opened the order")
+    first_responded_at = models.DateTimeField(blank=True, null=True, help_text="When supplier first responded")
+    response_points_awarded = models.BooleanField(default=False)
+    response_speed_bucket = models.CharField(max_length=20, blank=True, null=True, help_text="Speed category (sub_1h, sub_4h, sub_24h)")
     
     class Meta:
         ordering = ['-created_at']

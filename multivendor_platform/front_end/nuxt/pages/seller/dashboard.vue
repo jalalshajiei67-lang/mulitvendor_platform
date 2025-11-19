@@ -203,6 +203,25 @@
                     </v-col>
                   </v-row>
 
+                  <v-row class="mb-4">
+                    <v-col cols="12" md="4">
+                      <EngagementWidget
+                        :engagement="gamificationStore.engagement"
+                        :loading="gamificationStore.loading"
+                        @cta="openProductForm"
+                      />
+                    </v-col>
+                    <v-col cols="12" md="4">
+                      <BadgeDisplay
+                        :badges="gamificationStore.badges.slice(0, 4)"
+                        title="نشان‌های پیش رو"
+                      />
+                    </v-col>
+                    <v-col cols="12" md="4">
+                      <LeaderboardWidget :entries="gamificationStore.leaderboard" />
+                    </v-col>
+                  </v-row>
+
                   <!-- Recent Orders Section -->
                   <v-row class="mb-4" v-if="recentOrders.length > 0">
                     <v-col cols="12">
@@ -248,58 +267,71 @@
               <v-window-item value="profile">
                 <div class="py-4">
                   <h3 class="text-h6 mb-4">اطلاعات شخصی</h3>
-                  <v-form ref="profileForm" @submit.prevent="updateProfile">
-                    <v-row>
-                      <v-col cols="12" md="6">
-                        <v-text-field
-                          v-model="profileData.first_name"
-                          label="نام"
-                          prepend-inner-icon="mdi-account"
-                          variant="outlined"
-                          density="comfortable"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="12" md="6">
-                        <v-text-field
-                          v-model="profileData.last_name"
-                          label="نام خانوادگی"
-                          prepend-inner-icon="mdi-account"
-                          variant="outlined"
-                          density="comfortable"
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                    <v-row>
-                      <v-col cols="12" md="6">
-                        <v-text-field
-                          v-model="profileData.email"
-                          label="ایمیل"
-                          prepend-inner-icon="mdi-email"
-                          type="email"
-                          variant="outlined"
-                          density="comfortable"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="12" md="6">
-                        <v-text-field
-                          v-model="profileData.phone"
-                          label="تلفن"
-                          prepend-inner-icon="mdi-phone"
-                          variant="outlined"
-                          density="comfortable"
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                    <v-btn
-                      color="primary"
-                      type="submit"
-                      :loading="saving"
-                      size="large"
-                      prepend-icon="mdi-content-save"
-                    >
-                      به‌روزرسانی پروفایل
-                    </v-btn>
-                  </v-form>
+                  <v-row>
+                    <v-col cols="12" lg="4">
+                      <FormQualityScore
+                        title="امتیاز پروفایل"
+                        caption="این مراحل اعتماد خریدار را بالا می‌برد"
+                        :score="profileScore"
+                        :metrics="profileMetrics"
+                        :tips="profileTips"
+                      />
+                    </v-col>
+                    <v-col cols="12" lg="8">
+                      <v-form ref="profileForm" @submit.prevent="updateProfile">
+                        <v-row>
+                          <v-col cols="12" md="6">
+                            <v-text-field
+                              v-model="profileData.first_name"
+                              label="نام"
+                              prepend-inner-icon="mdi-account"
+                              variant="outlined"
+                              density="comfortable"
+                            ></v-text-field>
+                          </v-col>
+                          <v-col cols="12" md="6">
+                            <v-text-field
+                              v-model="profileData.last_name"
+                              label="نام خانوادگی"
+                              prepend-inner-icon="mdi-account"
+                              variant="outlined"
+                              density="comfortable"
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col cols="12" md="6">
+                            <v-text-field
+                              v-model="profileData.email"
+                              label="ایمیل"
+                              prepend-inner-icon="mdi-email"
+                              type="email"
+                              variant="outlined"
+                              density="comfortable"
+                            ></v-text-field>
+                          </v-col>
+                          <v-col cols="12" md="6">
+                            <v-text-field
+                              v-model="profileData.phone"
+                              label="تلفن"
+                              prepend-inner-icon="mdi-phone"
+                              variant="outlined"
+                              density="comfortable"
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                        <v-btn
+                          color="primary"
+                          type="submit"
+                          :loading="saving"
+                          size="large"
+                          prepend-icon="mdi-content-save"
+                        >
+                          به‌روزرسانی پروفایل
+                        </v-btn>
+                      </v-form>
+                    </v-col>
+                  </v-row>
                 </div>
               </v-window-item>
 
@@ -569,6 +601,11 @@ import MiniWebsiteSettings from '~/components/supplier/MiniWebsiteSettings.vue'
 import PortfolioManager from '~/components/supplier/PortfolioManager.vue'
 import TeamManager from '~/components/supplier/TeamManager.vue'
 import ContactMessagesInbox from '~/components/supplier/ContactMessagesInbox.vue'
+import EngagementWidget from '~/components/gamification/EngagementWidget.vue'
+import BadgeDisplay from '~/components/gamification/BadgeDisplay.vue'
+import LeaderboardWidget from '~/components/gamification/LeaderboardWidget.vue'
+import FormQualityScore from '~/components/gamification/FormQualityScore.vue'
+import { useGamificationStore } from '~/stores/gamification'
 
 definePageMeta({
   middleware: 'authenticated',
@@ -577,6 +614,7 @@ definePageMeta({
 
 const authStore = useAuthStore()
 const sellerApi = useSellerApi()
+const gamificationStore = useGamificationStore()
 const route = useRoute()
 
 // Check for tab query parameter - default to 'home'
@@ -622,6 +660,63 @@ const profileData = ref({
   email: '',
   phone: ''
 })
+
+const vendorProfile = computed(() => authStore.user?.vendor_profile || authStore.vendorProfile || null)
+
+const profileMetrics = computed(() => [
+  {
+    key: 'name',
+    label: 'نام و نام خانوادگی',
+    tip: 'نام کامل خود را بنویسید تا روی فاکتورها و کارت ویزیت نمایش داده شود.',
+    weight: 0.2,
+    passed: Boolean(profileData.value.first_name && profileData.value.last_name)
+  },
+  {
+    key: 'contact',
+    label: 'اطلاعات تماس',
+    tip: 'ایمیل و شماره تماس فعال وارد کنید.',
+    weight: 0.3,
+    passed: Boolean(profileData.value.email && profileData.value.phone)
+  },
+  {
+    key: 'address',
+    label: 'آدرس و موقعیت',
+    tip: 'آدرس کارگاه یا شهر فعالیت را وارد کنید.',
+    weight: 0.15,
+    passed: Boolean(vendorProfile.value?.address)
+  },
+  {
+    key: 'logo',
+    label: 'لوگو',
+    tip: 'لوگوی شرکت را در پروفایل بارگذاری کنید.',
+    weight: 0.15,
+    passed: Boolean(vendorProfile.value?.logo)
+  },
+  {
+    key: 'bio',
+    label: 'شرح فروشگاه',
+    tip: 'چند جمله درباره تجربه و تخصص خود بنویسید.',
+    weight: 0.2,
+    passed: Boolean(vendorProfile.value?.description && vendorProfile.value?.description.length > 80)
+  })
+
+const profileScore = computed(() => {
+  const metrics = profileMetrics.value
+  const totalWeight = metrics.reduce((sum, metric) => sum + metric.weight, 0) || 1
+  const earned = metrics.reduce((sum, metric) => sum + (metric.passed ? metric.weight : 0), 0)
+  return Math.round((earned / totalWeight) * 100)
+})
+
+const profileTips = computed(() => profileMetrics.value.filter(metric => !metric.passed).map(metric => metric.tip))
+
+watch(profileScore, (score) => {
+  gamificationStore.updateLocalScore('profile', {
+    title: 'profile',
+    score,
+    metrics: profileMetrics.value,
+    tips: profileTips.value
+  })
+}, { immediate: true })
 
 const adData = ref({
   id: 0,
@@ -896,6 +991,7 @@ onMounted(() => {
   loadOrders()
   loadReviews()
   loadAds()
+  gamificationStore.hydrate().catch((error) => console.warn('Failed to load gamification data', error))
 })
 </script>
 
