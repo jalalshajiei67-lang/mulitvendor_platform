@@ -17,26 +17,4 @@ class Migration(migrations.Migration):
                 blank=True, help_text="When supplier first responded", null=True
             ),
         ),
-        migrations.AddField(
-            model_name="order",
-            name="first_viewed_at",
-            field=models.DateTimeField(
-                blank=True, help_text="When supplier first opened the order", null=True
-            ),
-        ),
-        migrations.AddField(
-            model_name="order",
-            name="response_points_awarded",
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AddField(
-            model_name="order",
-            name="response_speed_bucket",
-            field=models.CharField(
-                blank=True,
-                help_text="Speed category (sub_1h, sub_4h, sub_24h)",
-                max_length=20,
-                null=True,
-            ),
-        ),
     ]
