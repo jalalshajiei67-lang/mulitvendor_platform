@@ -6,6 +6,7 @@ from django.db.models import Q
 from .models import Order, OrderItem, OrderImage
 from .serializers import OrderSerializer, CreateRFQSerializer
 from products.models import Product, Category
+from gamification.services import GamificationService
 
 @api_view(['POST'])
 @permission_classes([AllowAny])  # Allow anonymous submissions
@@ -151,8 +152,36 @@ def admin_update_rfq_status_view(request, rfq_id):
         
         rfq.status = new_status
         rfq.save()
-        
+
         serializer = OrderSerializer(rfq, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Order.DoesNotExist:
         return Response({'error': 'RFQ not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def track_order_view(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({'detail': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+    service = GamificationService.for_user(request.user)
+    service.register_order_view(order)
+    return Response({'first_viewed_at': order.first_viewed_at})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def track_order_response(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({'detail': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+    service = GamificationService.for_user(request.user)
+    service.register_order_response(order)
+    return Response({
+        'first_responded_at': order.first_responded_at,
+        'response_points_awarded': order.response_points_awarded,
+        'response_speed_bucket': order.response_speed_bucket,
+    })

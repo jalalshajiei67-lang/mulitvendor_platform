@@ -23,6 +23,14 @@
       </v-card-title>
 
       <v-card-text>
+        <FormQualityScore
+          class="mb-4"
+          title="امتیاز وب‌سایت مینی"
+          caption="چند قدم تا صفحه حرفه‌ای"
+          :score="miniSiteScore"
+          :metrics="miniSiteMetrics"
+          :tips="miniSiteTips"
+        />
         <v-form ref="formRef" v-model="formValid">
           <!-- Branding Section -->
           <v-card class="mb-4" elevation="1">
@@ -530,9 +538,12 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useSupplierApi } from '~/composables/useSupplierApi'
+import { useGamificationStore } from '~/stores/gamification'
+import FormQualityScore from '~/components/gamification/FormQualityScore.vue'
 
 const authStore = useAuthStore()
 const supplierApi = useSupplierApi()
+const gamificationStore = useGamificationStore()
 
 const formRef = ref()
 const formValid = ref(false)
@@ -571,6 +582,105 @@ const socialMedia = ref({
   telegram: '',
   whatsapp: ''
 })
+const socialLinksCount = computed(() => Object.values(socialMedia.value).filter(Boolean).length)
+
+const miniSiteMetrics = computed(() => [
+  {
+    key: 'banner',
+    label: 'بنر و رنگ برند',
+    tip: 'یک تصویر عریض از خط تولید یا دستگاه شاخص انتخاب کنید.',
+    weight: 0.18,
+    passed: Boolean(previewBanner.value)
+  },
+  {
+    key: 'colors',
+    label: 'رنگ برند',
+    tip: 'رنگ اصلی و دوم را مشخص کنید تا صفحه هماهنگ شود.',
+    weight: 0.1,
+    passed: Boolean(formData.value.brand_color_primary && formData.value.brand_color_secondary)
+  },
+  {
+    key: 'slogan',
+    label: 'شعار کوتاه',
+    tip: 'شعاری ۱۰ تا ۲۰۰ کاراکتری درباره ارزش پیشنهادی خود بنویسید.',
+    weight: 0.08,
+    passed: Boolean(formData.value.slogan && formData.value.slogan.length >= 10)
+  },
+  {
+    key: 'about',
+    label: 'معرفی فروشگاه',
+    tip: 'حداقل ۲۰۰ کاراکتر درباره تجربه و خدمات خود توضیح دهید.',
+    weight: 0.12,
+    passed: Boolean(formData.value.description && formData.value.description.length >= 200)
+  },
+  {
+    key: 'contact',
+    label: 'راه‌های تماس',
+    tip: 'تلفن، واتساپ یا ایمیل پاسخگو را وارد کنید.',
+    weight: 0.1,
+    passed: Boolean(formData.value.contact_phone || formData.value.contact_email)
+  },
+  {
+    key: 'media',
+    label: 'ویدیو یا وب‌سایت',
+    tip: 'ویدیو معرفی یا لینک وب‌سایت رسمی را اضافه کنید.',
+    weight: 0.07,
+    passed: Boolean(formData.value.video_url || formData.value.website)
+  },
+  {
+    key: 'company',
+    label: 'سال تاسیس و تیم',
+    tip: 'سال شروع فعالیت و تعداد همکاران را بنویسید.',
+    weight: 0.05,
+    passed: Boolean(formData.value.year_established && formData.value.employee_count)
+  },
+  {
+    key: 'certs',
+    label: 'گواهینامه‌ها',
+    tip: 'گواهینامه‌هایی مانند ISO یا استاندارد ملی را ثبت کنید.',
+    weight: 0.12,
+    passed: certifications.value.length > 0
+  },
+  {
+    key: 'awards',
+    label: 'جوایز و تقدیرنامه',
+    tip: 'حداقل یک نمونه از موفقیت‌های خود را معرفی کنید.',
+    weight: 0.08,
+    passed: awards.value.length > 0
+  },
+  {
+    key: 'social',
+    label: 'شبکه‌های اجتماعی',
+    tip: 'حداقل دو لینک شبکه اجتماعی قرار دهید.',
+    weight: 0.1,
+    passed: socialLinksCount.value >= 2
+  },
+  {
+    key: 'seo',
+    label: 'متای سئو',
+    tip: 'عنوان و توضیح متای صفحه را تکمیل کنید.',
+    weight: 0.1,
+    passed: Boolean(formData.value.meta_title && formData.value.meta_description)
+  }
+])
+
+const miniSiteScore = computed(() => {
+  const metrics = miniSiteMetrics.value
+  const totalWeight = metrics.reduce((sum, metric) => sum + metric.weight, 0) || 1
+  const earned = metrics.reduce((sum, metric) => sum + (metric.passed ? metric.weight : 0), 0)
+  return Math.round((earned / totalWeight) * 100)
+})
+
+const miniSiteTips = computed(() => miniSiteMetrics.value.filter(metric => !metric.passed).map(metric => metric.tip))
+
+watch(miniSiteScore, (score) => {
+  gamificationStore.updateLocalScore('miniWebsite', {
+    title: 'miniWebsite',
+    score,
+    metrics: miniSiteMetrics.value,
+    tips: miniSiteTips.value
+  })
+}, { immediate: true })
 
 const addCertification = () => {
   certifications.value.push({ title: '', issuer: '', date: '' })
