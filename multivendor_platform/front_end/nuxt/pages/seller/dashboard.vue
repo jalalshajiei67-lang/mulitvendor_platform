@@ -290,51 +290,6 @@
                         ></v-text-field>
                       </v-col>
                     </v-row>
-                    
-                    <v-divider class="my-4"></v-divider>
-                    <h3 class="text-h6 mb-3">اطلاعات فروشگاه</h3>
-                    <v-text-field
-                      v-model="profileData.store_name"
-                      label="نام فروشگاه"
-                      prepend-inner-icon="mdi-store"
-                      variant="outlined"
-                      density="comfortable"
-                    ></v-text-field>
-                    <v-textarea
-                      v-model="profileData.description"
-                      label="توضیحات فروشگاه"
-                      prepend-inner-icon="mdi-text"
-                      rows="3"
-                      variant="outlined"
-                      density="comfortable"
-                    ></v-textarea>
-                    <v-row>
-                      <v-col cols="12" md="6">
-                        <v-text-field
-                          v-model="profileData.contact_email"
-                          label="ایمیل تماس"
-                          prepend-inner-icon="mdi-email-outline"
-                          variant="outlined"
-                          density="comfortable"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="12" md="6">
-                        <v-text-field
-                          v-model="profileData.contact_phone"
-                          label="تلفن تماس"
-                          prepend-inner-icon="mdi-phone-outline"
-                          variant="outlined"
-                          density="comfortable"
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                    <v-text-field
-                      v-model="profileData.website"
-                      label="وب‌سایت"
-                      prepend-inner-icon="mdi-web"
-                      variant="outlined"
-                      density="comfortable"
-                    ></v-text-field>
                     <v-btn
                       color="primary"
                       type="submit"
@@ -665,12 +620,7 @@ const profileData = ref({
   first_name: '',
   last_name: '',
   email: '',
-  phone: '',
-  store_name: '',
-  description: '',
-  contact_email: '',
-  contact_phone: '',
-  website: ''
+  phone: ''
 })
 
 const adData = ref({
@@ -939,12 +889,7 @@ onMounted(() => {
       first_name: authStore.user.first_name || '',
       last_name: authStore.user.last_name || '',
       email: authStore.user.email || '',
-      phone: authStore.user.profile?.phone || '',
-      store_name: authStore.user.vendor_profile?.store_name || '',
-      description: authStore.user.vendor_profile?.description || '',
-      contact_email: authStore.user.vendor_profile?.contact_email || '',
-      contact_phone: authStore.user.vendor_profile?.contact_phone || '',
-      website: authStore.user.vendor_profile?.website || ''
+      phone: authStore.user.profile?.phone || ''
     }
   }
   loadDashboardData()
