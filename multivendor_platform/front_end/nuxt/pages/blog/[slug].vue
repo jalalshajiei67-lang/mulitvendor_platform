@@ -11,14 +11,14 @@
           <v-chip v-if="post.category_name" class="mb-4" size="small" color="rgba(255,255,255,0.24)">
             {{ post.category_name }}
           </v-chip>
-          <h1 class="text-h3 text-md-h1 font-weight-bold mb-4 readable-heading">
+          <h1 class="text-h3 text-md-h1 font-weight-bold mb-4 hero-heading">
             {{ post.title }}
           </h1>
-          <p class="text-body-1 text-md-h5 opacity-90 readable-text">
+          <p class="text-body-1 text-md-h5 opacity-90 hero-text">
             {{ post.excerpt }}
           </p>
 
-          <div class="d-flex flex-wrap gap-4 mt-6 text-body-2 text-md-subtitle-2 meta-text">
+          <div class="d-flex flex-wrap gap-4 mt-6 text-body-2 text-md-subtitle-2 hero-meta">
             <span class="d-flex align-center">
               <v-icon size="18" class="ml-2">mdi-account</v-icon>
               {{ post.author_name }}
@@ -203,13 +203,15 @@ const breadcrumbs = computed(() => [
 ])
 
 const heroStyle = computed(() => {
-  const gradient = post.value?.category_color
-    ? `linear-gradient(135deg, ${post.value.category_color}, rgba(0,0,0,0.45))`
-    : `linear-gradient(135deg, rgba(var(--v-theme-primary), 0.85), rgba(var(--v-theme-secondary), 0.9))`
-
-  return {
-    background: gradient
+  if (post.value?.category_color) {
+    return {
+      background: `linear-gradient(135deg, ${post.value.category_color}, rgba(0,0,0,0.45))`
+    }
   }
+  
+  // Use fallback colors if CSS variables aren't available
+  // The CSS will handle the gradient with CSS variables
+  return {}
 })
 
 const formatDate = (value: string) =>
@@ -279,6 +281,7 @@ useSeoMeta({
   position: relative;
   overflow: hidden;
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)), rgb(var(--v-theme-secondary)));
 }
 
 .hero::after {
@@ -287,6 +290,49 @@ useSeoMeta({
   inset: 0;
   background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 60%);
   pointer-events: none;
+  z-index: 0;
+}
+
+.hero .v-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hero-specific text styling - ensure white text is visible */
+.hero-heading {
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.98) !important;
+}
+
+.hero-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.hero-meta {
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-size: 0.875rem;
+}
+
+.hero-meta .v-icon {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Ensure breadcrumbs are visible in hero */
+.hero :deep(.v-breadcrumbs) {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.hero :deep(.v-breadcrumbs .v-breadcrumbs-item) {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.hero :deep(.v-breadcrumbs .v-icon) {
+  color: rgba(255, 255, 255, 0.7) !important;
 }
 
 /* Typography improvements */
