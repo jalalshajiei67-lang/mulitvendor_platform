@@ -151,6 +151,7 @@ urlpatterns = [
     path('api/auth/', include('users.urls')),
     path('api/users/', include('users.urls')),  # For suppliers and user-related endpoints
     path('api/orders/', include('orders.urls')),  # For orders and RFQ endpoints
+    path('api/gamification/', include('gamification.urls')),
     path('api/pages/', include('pages.urls')),  # For static pages (About Us, Contact Us)
     
     # --- DASHBOARD URLS ---

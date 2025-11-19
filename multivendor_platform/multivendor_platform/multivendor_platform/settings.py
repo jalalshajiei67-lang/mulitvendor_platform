@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'orders',
     'blog',
     'pages',
+    'gamification',
 ]
 
 MIDDLEWARE = [
