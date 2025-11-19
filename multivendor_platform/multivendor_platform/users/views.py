@@ -1067,8 +1067,20 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
     ViewSet for listing and retrieving suppliers (vendors)
     Public access - read only
     """
-    queryset = VendorProfile.objects.filter(is_approved=True).order_by('store_name')
     serializer_class = VendorProfileSerializer
+
+    def get_queryset(self):
+        """Allow public access to approved suppliers and private access to the owner's profile."""
+        base_queryset = VendorProfile.objects.all()
+
+        if self.request.user.is_authenticated:
+            try:
+                vendor_id = self.request.user.vendor_profile.id
+                return base_queryset.filter(Q(is_approved=True) | Q(id=vendor_id)).order_by('store_name')
+            except VendorProfile.DoesNotExist:
+                pass
+
+        return base_queryset.filter(is_approved=True).order_by('store_name')
     
     def get_permissions(self):
         """All actions are public (read-only)"""
