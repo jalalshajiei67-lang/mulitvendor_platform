@@ -122,8 +122,8 @@
       <v-row class="mt-8">
         <v-col cols="12" md="8">
           <v-card elevation="1" rounded="xl" class="pa-6">
-            <h2 class="text-h5 font-weight-bold mb-4">{{ t('productDescription') }}</h2>
-            <div class="text-body-1 text-medium-emphasis" v-html="product.description"></div>
+            <h2 class="text-h5 font-weight-bold mb-4 readable-heading">{{ t('productDescription') }}</h2>
+            <div class="content content-body" v-html="product.description"></div>
           </v-card>
         </v-col>
 
@@ -308,6 +308,184 @@ useSeoMeta({
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* Typography improvements */
+.readable-heading {
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+}
+
+.readable-text {
+  line-height: 1.75;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.meta-text {
+  line-height: 1.6;
+  color: rgba(var(--v-theme-on-surface), 0.72);
+  font-size: 0.875rem;
+}
+
+/* Content body styling */
+.content-body {
+  max-width: 100%;
+  line-height: 1.8;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
+}
+
+.product-detail .content-body :deep(img) {
+  max-width: 100%;
+  border-radius: 16px;
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
+  box-shadow: 0 4px 12px rgba(var(--v-theme-on-surface), 0.1);
+}
+
+.product-detail .content-body :deep(h1),
+.product-detail .content-body :deep(h2),
+.product-detail .content-body :deep(h3),
+.product-detail .content-body :deep(h4),
+.product-detail .content-body :deep(h5),
+.product-detail .content-body :deep(h6) {
+  font-weight: 700;
+  line-height: 1.3;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+  margin-bottom: 0;
+}
+
+/* Medium.com-inspired heading spacing */
+.product-detail .content-body :deep(h1) {
+  font-size: 2.5rem;
+  margin-top: 3rem;
+  margin-bottom: 1.5rem;
+}
+
+.product-detail .content-body :deep(h1:first-child) {
+  margin-top: 0;
+}
+
+.product-detail .content-body :deep(h2) {
+  font-size: 2rem;
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.product-detail .content-body :deep(h3) {
+  font-size: 1.75rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.product-detail .content-body :deep(h4) {
+  font-size: 1.5rem;
+  margin-top: 1.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.product-detail .content-body :deep(h5) {
+  font-size: 1.25rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.product-detail .content-body :deep(h6) {
+  font-size: 1.125rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Medium.com-inspired paragraph spacing */
+.product-detail .content-body :deep(p) {
+  line-height: 1.8;
+  margin-top: 0;
+  margin-bottom: 1.75rem;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  font-size: 1.05rem;
+  text-align: justify;
+  max-width: 65ch;
+}
+
+/* First paragraph after heading has less top margin */
+.product-detail .content-body :deep(h1 + p),
+.product-detail .content-body :deep(h2 + p),
+.product-detail .content-body :deep(h3 + p),
+.product-detail .content-body :deep(h4 + p),
+.product-detail .content-body :deep(h5 + p),
+.product-detail .content-body :deep(h6 + p) {
+  margin-top: 0.5rem;
+}
+
+.product-detail .content-body :deep(ul),
+.product-detail .content-body :deep(ol) {
+  margin-top: 1.5rem;
+  margin-bottom: 1.75rem;
+  padding-right: 2rem;
+  line-height: 1.8;
+}
+
+.product-detail .content-body :deep(li) {
+  margin-bottom: 0.875rem;
+  line-height: 1.8;
+}
+
+.product-detail .content-body :deep(li:last-child) {
+  margin-bottom: 0;
+}
+
+.product-detail .content-body :deep(blockquote) {
+  border-right: 4px solid rgba(var(--v-theme-primary), 0.5);
+  padding-right: 1.5rem;
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
+  font-style: italic;
+  color: rgba(var(--v-theme-on-surface), 0.75);
+  line-height: 1.8;
+}
+
+.product-detail .content-body :deep(blockquote p) {
+  margin-bottom: 1rem;
+}
+
+.product-detail .content-body :deep(blockquote p:last-child) {
+  margin-bottom: 0;
+}
+
+.product-detail .content-body :deep(a) {
+  color: rgb(var(--v-theme-primary));
+  text-decoration: underline;
+  transition: opacity 0.2s ease;
+}
+
+.product-detail .content-body :deep(a:hover) {
+  opacity: 0.8;
+}
+
+.product-detail .content-body :deep(code) {
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'Courier New', monospace;
+}
+
+.product-detail .content-body :deep(pre) {
+  background-color: rgba(var(--v-theme-on-surface), 0.05);
+  padding: 1.5rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+}
+
+.product-detail .content-body :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
 }
 </style>
 
