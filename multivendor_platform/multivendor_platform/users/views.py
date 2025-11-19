@@ -95,6 +95,7 @@ def extract_id_list(data, key):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@csrf_exempt
 def login_view(request):
     """
     User login endpoint
@@ -104,7 +105,7 @@ def login_view(request):
     
     if not username or not password:
         return Response(
-            {'error': 'Username and password are required'}, 
+            {'error': 'لطفاً نام کاربری و رمز عبور را وارد کنید.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
@@ -115,7 +116,7 @@ def login_view(request):
         try:
             if user.profile.is_blocked:
                 return Response(
-                    {'error': 'Your account has been blocked. Please contact support.'}, 
+                    {'error': 'حساب کاربری شما مسدود شده است. برای رفع مشکل با پشتیبانی تماس بگیرید.'}, 
                     status=status.HTTP_403_FORBIDDEN
                 )
         except UserProfile.DoesNotExist:
@@ -156,7 +157,7 @@ def login_view(request):
             })
     else:
         return Response(
-            {'error': 'Invalid credentials'}, 
+            {'error': 'نام کاربری یا رمز عبور اشتباه است. لطفاً دوباره تلاش کنید.'}, 
             status=status.HTTP_401_UNAUTHORIZED
         )
 
@@ -180,45 +181,62 @@ def logout_view(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@csrf_exempt
 def register_view(request):
     """
     User registration endpoint with role selection
     """
-    serializer = RegisterSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.save()
-        token = Token.objects.create(user=user)
-        
-        # Log registration activity
-        log_activity(user, 'register', f'New user {user.username} registered with role {user.profile.role}', request)
-        
-        # Get user profile info
-        profile = user.profile
-        vendor_profile = None
-        if profile.is_seller():
-            try:
-                vendor_profile = {
-                    'store_name': user.vendor_profile.store_name if user.vendor_profile.store_name else None,
-                    'logo': user.vendor_profile.logo.url if user.vendor_profile.logo else None
+    try:
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            token = Token.objects.create(user=user)
+            
+            # Log registration activity
+            log_activity(user, 'register', f'New user {user.username} registered with role {user.profile.role}', request)
+            
+            # Get user profile info
+            profile = user.profile
+            vendor_profile = None
+            if profile.is_seller():
+                try:
+                    vendor_profile = {
+                        'store_name': user.vendor_profile.store_name if user.vendor_profile.store_name else None,
+                        'logo': user.vendor_profile.logo.url if user.vendor_profile.logo else None
+                    }
+                except VendorProfile.DoesNotExist:
+                    vendor_profile = None
+            
+            return Response({
+                'token': token.key,
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email if user.email and '@placeholder.local' not in user.email else '',
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'role': profile.role,
+                    'is_verified': profile.is_verified,
+                    'vendor_profile': vendor_profile
                 }
-            except VendorProfile.DoesNotExist:
-                vendor_profile = None
+            }, status=status.HTTP_201_CREATED)
         
-        return Response({
-            'token': token.key,
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email if user.email and '@placeholder.local' not in user.email else '',
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'role': profile.role,
-                'is_verified': profile.is_verified,
-                'vendor_profile': vendor_profile
-            }
-        }, status=status.HTTP_201_CREATED)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Format validation errors for better user experience
+        formatted_errors = {}
+        for field, errors in serializer.errors.items():
+            if isinstance(errors, list):
+                # Get the first error message
+                formatted_errors[field] = errors[0] if errors else 'مقدار وارد شده معتبر نیست'
+            else:
+                formatted_errors[field] = str(errors)
+        
+        return Response({'error': formatted_errors}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        # Handle unexpected errors
+        return Response(
+            {'error': 'مشکلی در ثبت‌نام پیش آمده است. لطفاً دوباره تلاش کنید.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

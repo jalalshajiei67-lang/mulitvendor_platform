@@ -104,13 +104,16 @@
                     variant="outlined"
                     rounded="lg"
                     :rules="mobileRules"
+                    :error="authError?.field === 'username'"
+                    :error-messages="authError?.field === 'username' ? [authError.message] : []"
                     required
                     density="comfortable"
                     dir="rtl"
                     type="tel"
                     placeholder="09123456789"
-                    hint="شماره موبایل شما همان نام کاربری شما خواهد بود"
+                    hint="شماره موبایل شما همان نام کاربری شما خواهد بود (مثال: 09123456789)"
                     persistent-hint
+                    @input="clearError"
                   />
                 </v-col>
 
@@ -126,9 +129,14 @@
                     :append-inner-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
                     @click:append-inner="showPassword = !showPassword"
                     :rules="passwordRules"
+                    :error="authError?.field === 'password'"
+                    :error-messages="authError?.field === 'password' ? [authError.message] : []"
                     required
                     density="comfortable"
                     dir="rtl"
+                    hint="حداقل ۶ کاراکتر"
+                    persistent-hint
+                    @input="clearError"
                   />
                 </v-col>
 
@@ -149,18 +157,48 @@
                 </v-col>
               </v-row>
 
-              <!-- Error Message -->
-              <v-alert
-                v-if="error"
-                type="error"
-                variant="tonal"
-                rounded="lg"
-                class="mt-4"
-                closable
-                @click:close="error = null"
-              >
-                {{ error }}
-              </v-alert>
+              <!-- Enhanced Error Display -->
+              <transition name="slide-fade">
+                <v-alert
+                  v-if="authError"
+                  :type="getErrorColor(authError.type)"
+                  variant="tonal"
+                  rounded="lg"
+                  class="mt-4 error-alert"
+                  :icon="getErrorIcon(authError.type)"
+                  closable
+                  @click:close="clearError"
+                >
+                  <div class="error-content">
+                    <div class="text-h6 font-weight-bold mb-2">{{ authError.message }}</div>
+                    <div v-if="authError.hint" class="text-body-2 mt-2 hint-text">
+                      {{ authError.hint }}
+                    </div>
+                    <div v-if="authError.action === 'login'" class="mt-3">
+                      <v-btn
+                        variant="text"
+                        size="small"
+                        color="primary"
+                        prepend-icon="mdi-login"
+                        to="/login"
+                      >
+                        ورود به حساب کاربری
+                      </v-btn>
+                    </div>
+                    <div v-if="authError.recoverable && authError.action === 'retry'" class="mt-3">
+                      <v-btn
+                        variant="outlined"
+                        size="small"
+                        color="primary"
+                        @click="retryRegister"
+                        :loading="loading"
+                      >
+                        تلاش مجدد
+                      </v-btn>
+                    </div>
+                  </div>
+                </v-alert>
+              </transition>
             </v-form>
           </v-card-text>
 
@@ -172,11 +210,12 @@
               size="x-large"
               rounded="lg"
               :loading="loading"
-              :disabled="!isValid || !form.role"
+              :disabled="!isValid || !form.role || loading"
               @click="submit"
               class="font-weight-bold"
             >
-              ثبت‌نام
+              <span v-if="!loading">ثبت‌نام</span>
+              <span v-else>در حال ثبت‌نام...</span>
             </v-btn>
           </v-card-actions>
 
@@ -195,6 +234,8 @@
 </template>
 
 <script setup lang="ts">
+import { getErrorIcon, getErrorColor } from '~/utils/authErrors'
+
 definePageMeta({
   layout: 'default',
   middleware: [
@@ -222,8 +263,8 @@ const formRef = ref()
 const isValid = ref(false)
 const showPassword = ref(false)
 const confirmPassword = ref('')
-const error = ref<string | null>(null)
 const loading = computed(() => authStore.loading)
+const authError = computed(() => authStore.authError)
 
 const form = reactive({
   username: '',
@@ -257,7 +298,15 @@ const roleOptions = [
 const selectRole = (role: string) => {
   form.role = role
   // Clear any previous errors
-  error.value = null
+  clearError()
+}
+
+const clearError = () => {
+  authStore.clearError()
+}
+
+const retryRegister = async () => {
+  await submit()
 }
 
 // Validation rules
@@ -293,7 +342,17 @@ const mobileRules = [
 
 const passwordRules = [
   (value: string) => Boolean(value) || 'رمز عبور الزامی است',
-  (value: string) => (value?.length >= 6) || 'رمز عبور باید حداقل ۶ کاراکتر باشد'
+  (value: string) => (value?.length >= 6) || 'رمز عبور باید حداقل ۶ کاراکتر باشد',
+  (value: string) => {
+    if (!value || value.length < 6) return true
+    // Check for at least one letter and one number for better security
+    const hasLetter = /[a-zA-Z\u0600-\u06FF]/.test(value)
+    const hasNumber = /\d/.test(value)
+    if (!hasLetter || !hasNumber) {
+      return 'رمز عبور باید شامل حروف و اعداد باشد'
+    }
+    return true
+  }
 ]
 
 const confirmPasswordRules = [
@@ -308,11 +367,10 @@ const submit = async () => {
   if (!result.valid) return
 
   if (!form.role) {
-      error.value = 'لطفاً بگویید می‌خواهید خریدار باشید یا فروشنده'
     return
   }
 
-  error.value = null
+  clearError()
 
   try {
     // Prepare payload - mobile number is username
@@ -337,27 +395,7 @@ const submit = async () => {
     router.push('/buyer/dashboard')
   } catch (err: any) {
     console.error('Registration failed', err)
-    // Handle backend validation errors
-    if (err?.data) {
-      const errors = err.data
-      if (typeof errors === 'object') {
-        // Get first error message
-        const firstError = Object.values(errors)[0]
-        if (Array.isArray(firstError)) {
-          error.value = firstError[0]
-        } else if (typeof firstError === 'string') {
-          error.value = firstError
-        } else {
-          error.value = 'متأسفانه ثبت‌نام انجام نشد. لطفاً اطلاعات را دوباره بررسی کنید.'
-        }
-      } else if (typeof errors === 'string') {
-        error.value = errors
-      } else {
-        error.value = authStore.error ?? 'متأسفانه ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.'
-      }
-    } else {
-      error.value = authStore.error ?? 'متأسفانه ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.'
-    }
+    // Error is already handled by the auth store
   }
 }
 </script>
@@ -472,5 +510,49 @@ const submit = async () => {
 /* Focus styles */
 :deep(.v-field--focused) {
   border-color: rgb(var(--v-theme-primary)) !important;
+}
+
+.error-alert {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.error-content {
+  width: 100%;
+}
+
+.hint-text {
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+/* Slide fade animation for error */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+/* Error field highlighting */
+:deep(.v-field--error) {
+  animation: shake 0.3s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 </style>

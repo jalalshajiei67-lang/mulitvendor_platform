@@ -5,119 +5,212 @@
       <v-img
         v-if="supplier.banner_image"
         :src="formatImageUrl(supplier.banner_image)"
-        :height="display.xs.value ? 300 : 400"
+        :height="display.xs.value ? 350 : 450"
         cover
-        class="hero-image"
+        class="hero-image animate-in"
       >
         <template v-slot:placeholder>
           <v-skeleton-loader type="image" />
         </template>
       </v-img>
-      <div v-else class="default-banner" :style="{ height: display.xs.value ? '300px' : '400px' }"></div>
-      <div class="hero-overlay"></div>
+      <div v-else class="default-banner animate-in" :style="{ height: display.xs.value ? '350px' : '450px' }"></div>
+      <div class="hero-overlay animate-in"></div>
+
+      <!-- Floating Elements -->
+      <div class="floating-elements">
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
+      </div>
     </div>
 
     <!-- Hero Content -->
     <v-container class="hero-content">
       <v-row align="center" justify="center">
         <!-- Logo -->
-        <v-col cols="12" md="3" class="text-center">
-          <v-avatar
-            :size="display.xs.value ? 120 : 180"
-            class="hero-logo elevation-8"
-            rounded="lg"
-          >
-            <v-img
-              v-if="supplier.logo"
-              :src="formatImageUrl(supplier.logo)"
-              cover
+        <v-col cols="12" md="4" class="text-center logo-section">
+          <div class="logo-container animate-in" :class="{ 'animate-delay-1': true }">
+            <v-avatar
+              :size="display.xs.value ? 140 : 200"
+              class="hero-logo elevation-12"
+              rounded="lg"
             >
-              <template v-slot:placeholder>
-                <v-skeleton-loader type="avatar" />
-              </template>
-            </v-img>
-            <v-icon v-else :size="display.xs.value ? 60 : 90" color="white">
-              mdi-store
-            </v-icon>
-          </v-avatar>
+              <v-img
+                v-if="supplier.logo"
+                :src="formatImageUrl(supplier.logo)"
+                cover
+              >
+                <template v-slot:placeholder>
+                  <v-skeleton-loader type="avatar" />
+                </template>
+              </v-img>
+              <v-icon v-else :size="display.xs.value ? 70 : 100" color="white">
+                mdi-store
+              </v-icon>
+            </v-avatar>
+
+            <!-- Trust Indicators -->
+            <div class="trust-indicators mt-4">
+              <v-chip
+                v-if="supplier.is_verified"
+                color="success"
+                size="small"
+                variant="elevated"
+                class="me-2 mb-2"
+              >
+                <v-icon start size="small">mdi-check-decagram</v-icon>
+                تایید شده
+              </v-chip>
+              <v-chip
+                v-if="supplier.is_featured"
+                color="amber"
+                size="small"
+                variant="elevated"
+                class="mb-2"
+              >
+                <v-icon start size="small">mdi-star</v-icon>
+                ویژه
+              </v-chip>
+            </div>
+          </div>
         </v-col>
 
         <!-- Store Info -->
-        <v-col cols="12" md="9">
-          <div class="store-info">
-            <h1 class="store-name text-h3 text-md-h2 font-weight-bold mb-2">
-              {{ supplier.store_name }}
-            </h1>
-            <p v-if="supplier.slogan" class="store-slogan text-h6 text-md-h5 mb-4">
-              {{ supplier.slogan }}
-            </p>
-            <p v-if="supplier.description" class="store-description text-body-1 mb-4">
+        <v-col cols="12" md="8">
+          <div class="store-info animate-in animate-delay-2">
+            <div class="store-header">
+              <h1 class="store-name text-h3 text-md-h1 font-weight-black mb-3">
+                {{ supplier.store_name }}
+              </h1>
+              <div v-if="supplier.slogan" class="slogan-badge">
+                <v-chip
+                  color="rgba(255,255,255,0.2)"
+                  text-color="white"
+                  variant="elevated"
+                  size="large"
+                  class="slogan-chip"
+                >
+                  <v-icon start>mdi-lightbulb-on</v-icon>
+                  {{ supplier.slogan }}
+                </v-chip>
+              </div>
+            </div>
+
+            <p v-if="supplier.description" class="store-description text-body-1 mb-6">
               {{ supplier.description }}
             </p>
 
             <!-- Key Metrics -->
-            <v-row class="metrics mt-4" dense>
+            <v-row class="metrics mt-6" dense justify="center" justify-md="start">
               <v-col cols="6" sm="3" v-if="supplier.year_established">
-                <v-card class="metric-card pa-3 text-center" elevation="2">
-                  <v-icon color="primary" size="large">mdi-calendar-star</v-icon>
-                  <div class="metric-value text-h6 font-weight-bold mt-2">
+                <v-card class="metric-card pa-4 pa-md-5 text-center glass-card animate-in animate-delay-3" elevation="8" rounded="xl">
+                  <div class="metric-icon-container mb-3">
+                    <v-icon color="primary" size="x-large" class="metric-icon">mdi-calendar-star</v-icon>
+                  </div>
+                  <div class="metric-value text-h4 text-md-h3 font-weight-black">
                     {{ new Date().getFullYear() - supplier.year_established }}
                   </div>
-                  <div class="metric-label text-caption">سال تجربه</div>
+                  <div class="metric-label text-caption text-sm-body-2 font-weight-medium">سال تجربه</div>
                 </v-card>
               </v-col>
               <v-col cols="6" sm="3" v-if="supplier.employee_count">
-                <v-card class="metric-card pa-3 text-center" elevation="2">
-                  <v-icon color="primary" size="large">mdi-account-group</v-icon>
-                  <div class="metric-value text-h6 font-weight-bold mt-2">
+                <v-card class="metric-card pa-4 pa-md-5 text-center glass-card animate-in animate-delay-4" elevation="8" rounded="xl">
+                  <div class="metric-icon-container mb-3">
+                    <v-icon color="primary" size="x-large" class="metric-icon">mdi-account-group</v-icon>
+                  </div>
+                  <div class="metric-value text-h4 text-md-h3 font-weight-black">
                     {{ supplier.employee_count }}
                   </div>
-                  <div class="metric-label text-caption">کارمند</div>
+                  <div class="metric-label text-caption text-sm-body-2 font-weight-medium">کارمند</div>
                 </v-card>
               </v-col>
               <v-col cols="6" sm="3">
-                <v-card class="metric-card pa-3 text-center" elevation="2">
-                  <v-icon color="amber" size="large">mdi-star</v-icon>
-                  <div class="metric-value text-h6 font-weight-bold mt-2">
+                <v-card class="metric-card pa-4 pa-md-5 text-center glass-card animate-in animate-delay-5" elevation="8" rounded="xl">
+                  <div class="metric-icon-container mb-3">
+                    <v-icon color="amber" size="x-large" class="metric-icon">mdi-star</v-icon>
+                  </div>
+                  <div class="metric-value text-h4 text-md-h3 font-weight-black">
                     {{ supplier.rating_average || 0 }}
                   </div>
-                  <div class="metric-label text-caption">امتیاز</div>
+                  <div class="metric-label text-caption text-sm-body-2 font-weight-medium">امتیاز</div>
                 </v-card>
               </v-col>
               <v-col cols="6" sm="3">
-                <v-card class="metric-card pa-3 text-center" elevation="2">
-                  <v-icon color="primary" size="large">mdi-package-variant</v-icon>
-                  <div class="metric-value text-h6 font-weight-bold mt-2">
+                <v-card class="metric-card pa-4 pa-md-5 text-center glass-card animate-in animate-delay-6" elevation="8" rounded="xl">
+                  <div class="metric-icon-container mb-3">
+                    <v-icon color="primary" size="x-large" class="metric-icon">mdi-package-variant</v-icon>
+                  </div>
+                  <div class="metric-value text-h4 text-md-h3 font-weight-black">
                     {{ supplier.product_count || 0 }}
                   </div>
-                  <div class="metric-label text-caption">محصول</div>
+                  <div class="metric-label text-caption text-sm-body-2 font-weight-medium">محصول</div>
                 </v-card>
               </v-col>
             </v-row>
 
-            <!-- Action Buttons -->
-            <div class="action-buttons mt-6">
+            <!-- Enhanced Action Buttons -->
+            <div class="action-buttons mt-8 animate-in animate-delay-7">
               <v-btn
                 color="primary"
-                size="large"
+                size="x-large"
                 prepend-icon="mdi-email"
                 @click="$emit('contact-click')"
-                class="me-2 mb-2"
+                class="primary-cta me-3 mb-3 pulse-animation"
+                elevation="4"
               >
-                تماس با ما
+                <span class="cta-text">تماس با ما</span>
+                <v-icon end class="cta-arrow">mdi-chevron-left</v-icon>
               </v-btn>
               <v-btn
                 v-if="supplier.website"
-                color="secondary"
+                color="white"
                 variant="outlined"
-                size="large"
+                size="x-large"
                 prepend-icon="mdi-web"
                 :href="supplier.website"
                 target="_blank"
-                class="mb-2"
+                class="secondary-cta mb-3"
+                elevation="2"
               >
-                وب‌سایت
+                بازدید از وب‌سایت
               </v-btn>
+
+              <!-- Social Media Quick Links -->
+              <div v-if="supplier.social_media" class="social-quick-links mt-4">
+                <span class="social-label text-caption mb-2 d-block">ما را دنبال کنید:</span>
+                <div class="social-buttons">
+                  <v-btn
+                    v-if="supplier.social_media.instagram"
+                    icon="mdi-instagram"
+                    size="small"
+                    variant="text"
+                    color="white"
+                    :href="supplier.social_media.instagram"
+                    target="_blank"
+                    class="social-btn"
+                  ></v-btn>
+                  <v-btn
+                    v-if="supplier.social_media.telegram"
+                    icon="mdi-telegram"
+                    size="small"
+                    variant="text"
+                    color="white"
+                    :href="supplier.social_media.telegram"
+                    target="_blank"
+                    class="social-btn"
+                  ></v-btn>
+                  <v-btn
+                    v-if="supplier.social_media.whatsapp"
+                    icon="mdi-whatsapp"
+                    size="small"
+                    variant="text"
+                    color="white"
+                    :href="supplier.social_media.whatsapp"
+                    target="_blank"
+                    class="social-btn"
+                  ></v-btn>
+                </div>
+              </div>
             </div>
           </div>
         </v-col>
@@ -159,9 +252,10 @@ const heroStyle = computed(() => {
 <style scoped>
 .supplier-hero {
   position: relative;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
   --brand-color-primary: rgb(var(--v-theme-primary));
   --brand-color-secondary: rgb(var(--v-theme-secondary));
+  overflow: hidden;
 }
 
 .hero-banner {
@@ -173,84 +267,480 @@ const heroStyle = computed(() => {
 .default-banner {
   background: linear-gradient(135deg, var(--brand-color-primary), var(--brand-color-secondary));
   width: 100%;
+  position: relative;
 }
 
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.6));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.4) 0%,
+    rgba(0, 0, 0, 0.6) 50%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
 }
 
 .hero-content {
   position: relative;
-  margin-top: -80px;
+  margin-top: -100px;
   z-index: 10;
+  padding: 2rem 0;
 }
 
 @media (max-width: 960px) {
   .hero-content {
-    margin-top: -60px;
+    margin-top: -80px;
+    padding: 1.5rem 0;
   }
 }
 
-.hero-logo {
-  border: 4px solid white;
-  background-color: white;
+@media (max-width: 600px) {
+  .hero-content {
+    margin-top: -60px;
+    padding: 1rem 0;
+  }
 }
 
+/* Floating Elements */
+.floating-elements {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.floating-shape {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  animation: float 6s ease-in-out infinite;
+}
+
+.shape-1 {
+  width: 80px;
+  height: 80px;
+  top: 20%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.shape-2 {
+  width: 60px;
+  height: 60px;
+  top: 60%;
+  right: 15%;
+  animation-delay: 2s;
+}
+
+.shape-3 {
+  width: 100px;
+  height: 100px;
+  bottom: 10%;
+  left: 20%;
+  animation-delay: 4s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+  }
+}
+
+/* Logo Section */
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-logo {
+  border: 5px solid rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.hero-logo:hover {
+  transform: scale(1.05) rotate(2deg);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Trust Indicators */
+.trust-indicators {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Store Info */
 .store-info {
   color: white;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+  text-align: center;
+}
+
+@media (min-width: 960px) {
+  .store-info {
+    text-align: right;
+  }
+}
+
+.store-header {
+  margin-bottom: 1.5rem;
 }
 
 .store-name {
   color: white;
-  line-height: 1.2;
-}
-
-.store-slogan {
-  color: rgba(255, 255, 255, 0.95);
-  font-style: italic;
-}
-
-.store-description {
-  color: rgba(255, 255, 255, 0.9);
-  max-width: 800px;
-}
-
-.metric-card {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.metric-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
-}
-
-.metric-value {
-  color: var(--brand-color-primary);
-}
-
-.metric-label {
-  color: rgba(var(--v-theme-on-surface), 0.7);
-}
-
-.action-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  line-height: 1.1;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+  margin-bottom: 1rem;
+  font-size: 2.5rem !important;
 }
 
 @media (max-width: 600px) {
-  .action-buttons {
-    flex-direction: column;
+  .store-name {
+    font-size: 1.8rem !important;
   }
-  
-  .action-buttons .v-btn {
+}
+
+.slogan-badge {
+  display: flex;
+  justify-content: center;
+}
+
+@media (min-width: 960px) {
+  .slogan-badge {
+    justify-content: flex-start;
+  }
+}
+
+.slogan-chip {
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-style: italic;
+  font-weight: 500;
+}
+
+.store-description {
+  color: rgba(255, 255, 255, 0.95);
+  max-width: 700px;
+  line-height: 1.6;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+  margin: 0 auto;
+}
+
+@media (min-width: 960px) {
+  .store-description {
+    margin: 0;
+  }
+}
+
+/* Metrics */
+.metrics {
+  margin-top: 2rem;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: blur(25px);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.metric-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-12px) scale(1.05);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.28) !important;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.metric-card:hover::before {
+  opacity: 1;
+}
+
+.metric-card:hover::after {
+  opacity: 1;
+}
+
+.metric-icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 0 auto;
+  transition: all 0.4s ease;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.metric-card:hover .metric-icon-container {
+  transform: scale(1.15) rotate(5deg);
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.metric-icon {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.metric-value {
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  margin-bottom: 0.5rem;
+}
+
+.metric-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+@media (min-width: 960px) {
+  .action-buttons {
+    align-items: flex-start;
+  }
+}
+
+.primary-cta {
+  background: linear-gradient(135deg, var(--brand-color-primary), var(--brand-color-secondary));
+  border: none;
+  position: relative;
+  overflow: hidden;
+  min-width: 200px;
+}
+
+.primary-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.primary-cta:hover::before {
+  opacity: 1;
+}
+
+.primary-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+}
+
+.cta-text {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.cta-arrow {
+  transition: transform 0.3s ease;
+}
+
+.primary-cta:hover .cta-arrow {
+  transform: translateX(-4px);
+}
+
+.secondary-cta {
+  border-color: rgba(255, 255, 255, 0.8);
+  color: white;
+  backdrop-filter: blur(10px);
+  min-width: 180px;
+  transition: all 0.3s ease;
+}
+
+.secondary-cta:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Social Quick Links */
+.social-quick-links {
+  text-align: center;
+}
+
+@media (min-width: 960px) {
+  .social-quick-links {
+    text-align: right;
+  }
+}
+
+.social-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.social-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+@media (min-width: 960px) {
+  .social-buttons {
+    justify-content: flex-start;
+  }
+}
+
+.social-btn {
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.social-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+/* Pulse Animation */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(var(--v-theme-primary), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0);
+  }
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite;
+}
+
+/* Animation Classes */
+.animate-in {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: slideInUp 0.8s ease-out forwards;
+}
+
+.animate-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.animate-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.animate-delay-3 {
+  animation-delay: 0.3s;
+}
+
+.animate-delay-4 {
+  animation-delay: 0.4s;
+}
+
+.animate-delay-5 {
+  animation-delay: 0.5s;
+}
+
+.animate-delay-6 {
+  animation-delay: 0.6s;
+}
+
+.animate-delay-7 {
+  animation-delay: 0.7s;
+}
+
+@keyframes slideInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Glass Card Utility */
+.glass-card {
+  background: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .metrics {
+    margin-top: 1.5rem;
+  }
+
+  .metric-card {
+    padding: 1rem !important;
+  }
+
+  .metric-icon-container {
+    width: 50px;
+    height: 50px;
+  }
+
+  .metric-value {
+    font-size: 1.25rem !important;
+  }
+
+  .action-buttons {
     width: 100%;
+  }
+
+  .primary-cta,
+  .secondary-cta {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .social-buttons {
+    justify-content: center;
   }
 }
 </style>

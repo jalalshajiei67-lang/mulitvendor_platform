@@ -236,8 +236,37 @@
         </v-col>
 
         <v-col cols="12" lg="4">
+          <!-- Action Buttons (moved to top) -->
+          <div class="action-buttons-container mb-4">
+            <v-btn
+              type="submit"
+              color="primary"
+              size="large"
+              block
+              :loading="submitting"
+              prepend-icon="mdi-content-save"
+              class="mb-2 save-button"
+              elevation="3"
+            >
+              {{ editMode ? 'به‌روزرسانی محصول' : 'ذخیره محصول' }}
+            </v-btn>
+
+            <v-btn
+              color="grey"
+              size="large"
+              block
+              variant="outlined"
+              @click="$emit('cancel')"
+              :disabled="submitting"
+              class="cancel-button"
+              elevation="2"
+            >
+              انصراف
+            </v-btn>
+          </div>
+
           <FormQualityScore
-            class="mb-4 sticky-card"
+            class="mb-4"
             title="امتیاز محصول"
             caption="راهنمای قدم‌به‌قدم برای جذاب‌تر کردن محصول"
             :score="productScore"
@@ -267,9 +296,9 @@
                 class="mb-3"
               ></v-switch>
 
-              <v-divider class="my-4"></v-divider>
 
-              <!-- Action Buttons -->
+              <!-- Original Vuetify buttons (commented out for now) -->
+              <!--
               <v-btn
                 type="submit"
                 color="primary"
@@ -292,6 +321,7 @@
               >
                 انصراف
               </v-btn>
+              -->
             </v-card-text>
           </v-card>
 
@@ -856,6 +886,7 @@ onMounted(async () => {
 .sticky-card {
   position: sticky;
   top: 80px;
+  z-index: 1;
 }
 
 .help-list {
@@ -865,6 +896,50 @@ onMounted(async () => {
 
 .help-list li {
   margin-bottom: 8px;
+}
+
+/* Action buttons container styling */
+.action-buttons-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+/* Force button visibility and proper alignment */
+.save-button,
+.cancel-button {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  min-height: 56px !important;
+  position: relative !important;
+  z-index: 10 !important;
+  width: 100% !important;
+}
+
+.save-button .v-btn__content,
+.cancel-button .v-btn__content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+/* Ensure button text and icon are properly aligned */
+.save-button .v-btn__prepend,
+.cancel-button .v-btn__prepend {
+  margin-inline-end: 8px !important;
+}
+
+.save-button .v-btn__content,
+.cancel-button .v-btn__content {
+  flex: 1 1 auto !important;
+  justify-content: center !important;
+  text-align: center !important;
 }
 </style>
 

@@ -1,3 +1,6 @@
+import type { AuthError } from '~/utils/authErrors'
+import { handleAuthError } from '~/utils/authErrors'
+
 type AuthUser = Record<string, any>
 type LoginResponse = { token: string; user: AuthUser }
 
@@ -84,6 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(initialUser)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const authError = ref<AuthError | null>(null)
 
   const isAuthenticated = computed(() => Boolean(token.value && user.value))
   const userRole = computed(() => user.value?.role ?? null)
@@ -111,6 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
   const login = async (credentials: Record<string, any>) => {
     loading.value = true
     error.value = null
+    authError.value = null
 
     try {
       const response = await useApiFetch<LoginResponse>('auth/login/', {
@@ -120,8 +125,9 @@ export const useAuthStore = defineStore('auth', () => {
       persistSession(response.token, response.user)
       return response
     } catch (err: any) {
-      error.value =
-        err?.data?.error ?? 'خطا در ورود. لطفاً اطلاعات خود را بررسی کنید.'
+      const handledError = handleAuthError(err)
+      authError.value = handledError
+      error.value = handledError.message
       console.error('Login error:', err)
       throw err
     } finally {
@@ -145,6 +151,7 @@ export const useAuthStore = defineStore('auth', () => {
   const register = async (payload: Record<string, any>) => {
     loading.value = true
     error.value = null
+    authError.value = null
 
     try {
       const response = await useApiFetch<LoginResponse>('auth/register/', {
@@ -154,7 +161,9 @@ export const useAuthStore = defineStore('auth', () => {
       persistSession(response.token, response.user)
       return response
     } catch (err: any) {
-      error.value = err?.data?.error ?? 'خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.'
+      const handledError = handleAuthError(err)
+      authError.value = handledError
+      error.value = handledError.message
       console.error('Registration error:', err)
       throw err
     } finally {
@@ -206,11 +215,17 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const clearError = () => {
+    error.value = null
+    authError.value = null
+  }
+
   return {
     token,
     user,
     loading,
     error,
+    authError,
     isAuthenticated,
     userRole,
     isBuyer,
@@ -223,7 +238,8 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     fetchCurrentUser,
     updateProfile,
-    initializeAuth
+    initializeAuth,
+    clearError
   }
 })
 
