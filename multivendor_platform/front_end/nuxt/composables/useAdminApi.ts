@@ -76,6 +76,13 @@ export const useAdminApi = () => {
       })
     },
 
+    async createRFQ(data: FormData | Record<string, any>) {
+      return useApiFetch('orders/admin/rfq/create/', {
+        method: 'POST',
+        body: data
+      })
+    },
+
     // Blog
     async getAdminBlogPosts(params: Record<string, any> = {}) {
       return useApiFetch<{ results: any[]; count: number }>('auth/admin/blog/posts/', {

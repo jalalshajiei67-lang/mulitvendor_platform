@@ -38,16 +38,23 @@ class OrderSerializer(serializers.ModelSerializer):
     buyer_username = serializers.CharField(source='buyer.username', read_only=True, allow_null=True)
     product_name = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
+    suppliers = serializers.SerializerMethodField()
+    lead_source_display = serializers.CharField(source='get_lead_source_display', read_only=True)
     
     class Meta:
         model = Order
         fields = ['id', 'order_number', 'buyer', 'buyer_username', 'status', 'total_amount', 
                   'shipping_address', 'shipping_phone', 'notes', 'is_paid', 'payment_method',
                   'payment_date', 'items', 'payments', 'images', 'created_at', 'updated_at',
-                  'is_rfq', 'first_name', 'last_name', 'company_name', 'phone_number',
-                  'unique_needs', 'category', 'category_name', 'product_name',
-                  'first_viewed_at', 'first_responded_at', 'response_points_awarded', 'response_speed_bucket']
+                  'is_rfq', 'first_name', 'last_name', 'company_name', 'phone_number', 'email',
+                  'unique_needs', 'category', 'category_name', 'product_name', 'lead_source',
+                  'lead_source_display', 'suppliers', 'first_viewed_at', 'first_responded_at',
+                  'response_points_awarded', 'response_speed_bucket']
         read_only_fields = ['order_number', 'buyer', 'created_at', 'updated_at']
+    
+    def get_suppliers(self, obj):
+        """Get supplier IDs and names"""
+        return [{'id': s.id, 'name': s.name} for s in obj.suppliers.all()]
     
     def get_product_name(self, obj):
         """Get product name from first order item"""
@@ -188,4 +195,49 @@ class CreateRFQSerializer(serializers.Serializer):
         
         # Images will be handled in the view
         return order
+
+class AdminCreateRFQSerializer(serializers.Serializer):
+    """Serializer for admin to create manual RFQ/lead"""
+    product_id = serializers.IntegerField(required=False, allow_null=True, help_text="Product ID (optional)")
+    category_id = serializers.IntegerField(required=True, help_text="Category ID (required)")
+    first_name = serializers.CharField(max_length=100, required=True)
+    last_name = serializers.CharField(max_length=100, required=True)
+    company_name = serializers.CharField(max_length=200, required=True)
+    phone_number = serializers.CharField(max_length=20, required=True)
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+    unique_needs = serializers.CharField(required=False, allow_blank=True)
+    lead_source = serializers.ChoiceField(choices=[('phone', 'Phone'), ('whatsapp', 'WhatsApp'), ('instagram', 'Instagram')], required=True)
+    supplier_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_empty=True,
+        help_text="List of supplier IDs to send this RFQ to (optional, will auto-match if not provided)"
+    )
+    # Images will be handled separately in the view for multipart/form-data
+    
+    def validate_category_id(self, value):
+        from products.models import Category
+        try:
+            Category.objects.get(id=value)
+        except Category.DoesNotExist:
+            raise serializers.ValidationError("Category not found")
+        return value
+    
+    def validate_product_id(self, value):
+        if value is not None:
+            try:
+                Product.objects.get(id=value, is_active=True)
+            except Product.DoesNotExist:
+                raise serializers.ValidationError("Product not found or inactive")
+        return value
+    
+    def validate_supplier_ids(self, value):
+        if value:
+            from users.models import Supplier
+            for supplier_id in value:
+                try:
+                    Supplier.objects.get(id=supplier_id, is_active=True)
+                except Supplier.DoesNotExist:
+                    raise serializers.ValidationError(f"Supplier with id {supplier_id} not found or inactive")
+        return value
 

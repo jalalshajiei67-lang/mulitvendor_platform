@@ -2,6 +2,12 @@ from django.db import models
 from django.contrib.auth.models import User
 from products.models import Product, Category
 
+LEAD_SOURCE_CHOICES = (
+    ('phone', 'Phone'),
+    ('whatsapp', 'WhatsApp'),
+    ('instagram', 'Instagram'),
+)
+
 class Order(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
@@ -30,8 +36,11 @@ class Order(models.Model):
     last_name = models.CharField(max_length=100, blank=True, null=True, help_text="Buyer last name (for RFQ)")
     company_name = models.CharField(max_length=200, blank=True, null=True, help_text="Company name (for RFQ)")
     phone_number = models.CharField(max_length=20, blank=True, null=True, help_text="Phone number (for RFQ)")
+    email = models.EmailField(blank=True, null=True, help_text="Email address (for RFQ)")
     unique_needs = models.TextField(blank=True, null=True, help_text="Buyer's unique requirements/needs (for RFQ)")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='rfq_orders', help_text="Category for RFQ (if submitted from category page)")
+    lead_source = models.CharField(max_length=20, choices=LEAD_SOURCE_CHOICES, blank=True, null=True, help_text="Source of the lead (phone, whatsapp, instagram)")
+    suppliers = models.ManyToManyField('users.Supplier', related_name='rfqs', blank=True, help_text="Suppliers who should receive this RFQ")
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

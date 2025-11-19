@@ -191,7 +191,13 @@
       <!-- RFQs View -->
       <div v-if="activeView === 'rfqs'" class="rfqs-view">
         <v-card elevation="0" variant="outlined">
-          <v-card-title class="pa-4">درخواست‌های استعلام قیمت</v-card-title>
+          <v-card-title class="pa-4 d-flex justify-space-between align-center">
+            <span>درخواست‌های استعلام قیمت</span>
+            <v-btn color="primary" @click="showCreateLeadDialog = true">
+              <v-icon class="ms-2">mdi-plus</v-icon>
+              ثبت لید جدید
+            </v-btn>
+          </v-card-title>
           <v-divider></v-divider>
           <v-card-text>
             <v-data-table
@@ -444,6 +450,224 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+
+      <!-- Create Lead Dialog -->
+      <v-dialog v-model="showCreateLeadDialog" max-width="800px" scrollable persistent>
+        <v-card>
+          <v-card-title class="d-flex justify-space-between align-center pa-4" style="background: rgb(var(--v-theme-primary)); color: white;">
+            <div class="text-h6">ثبت لید جدید</div>
+            <v-btn icon variant="text" color="white" @click="closeCreateLeadDialog">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+
+          <v-divider></v-divider>
+
+          <v-card-text class="pa-6">
+            <v-form ref="createLeadForm" v-model="createLeadFormValid">
+              <v-row>
+                <!-- Lead Source -->
+                <v-col cols="12" md="6">
+                  <v-select
+                    v-model="createLeadData.lead_source"
+                    :items="leadSourceOptions"
+                    label="منبع لید *"
+                    required
+                    :rules="[v => !!v || 'لطفاً منبع لید را انتخاب کنید']"
+                  ></v-select>
+                </v-col>
+
+                <!-- Category -->
+                <v-col cols="12" md="6">
+                  <v-select
+                    v-model="createLeadData.category_id"
+                    :items="leadCategories"
+                    item-title="name"
+                    item-value="id"
+                    label="دسته‌بندی *"
+                    required
+                    :rules="[v => !!v || 'لطفاً دسته‌بندی را انتخاب کنید']"
+                    :loading="loadingLeadCategories"
+                    @update:model-value="onCategoryChange"
+                  ></v-select>
+                </v-col>
+
+                <!-- Product (Optional) -->
+                <v-col cols="12" md="6">
+                  <v-select
+                    v-model="createLeadData.product_id"
+                    :items="leadProducts"
+                    item-title="name"
+                    item-value="id"
+                    label="محصول (اختیاری)"
+                    :loading="loadingLeadProducts"
+                    clearable
+                    @update:model-value="onProductChange"
+                  ></v-select>
+                </v-col>
+
+                <!-- First Name -->
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="createLeadData.first_name"
+                    label="نام *"
+                    required
+                    :rules="[v => !!v || 'لطفاً نام را وارد کنید']"
+                  ></v-text-field>
+                </v-col>
+
+                <!-- Last Name -->
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="createLeadData.last_name"
+                    label="نام خانوادگی *"
+                    required
+                    :rules="[v => !!v || 'لطفاً نام خانوادگی را وارد کنید']"
+                  ></v-text-field>
+                </v-col>
+
+                <!-- Company Name -->
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="createLeadData.company_name"
+                    label="نام شرکت *"
+                    required
+                    :rules="[v => !!v || 'لطفاً نام شرکت را وارد کنید']"
+                  ></v-text-field>
+                </v-col>
+
+                <!-- Phone Number -->
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="createLeadData.phone_number"
+                    label="شماره تماس *"
+                    required
+                    :rules="[v => !!v || 'لطفاً شماره تماس را وارد کنید']"
+                  ></v-text-field>
+                </v-col>
+
+                <!-- Email -->
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="createLeadData.email"
+                    label="ایمیل"
+                    type="email"
+                  ></v-text-field>
+                </v-col>
+
+                <!-- Unique Needs -->
+                <v-col cols="12">
+                  <v-textarea
+                    v-model="createLeadData.unique_needs"
+                    label="نیازهای خاص"
+                    rows="3"
+                  ></v-textarea>
+                </v-col>
+
+                <!-- Auto-matched Suppliers -->
+                <v-col cols="12" v-if="autoMatchedSuppliers.length > 0">
+                  <v-card variant="outlined" class="pa-4">
+                    <div class="text-subtitle-1 font-weight-bold mb-3">
+                      تامین‌کنندگان پیشنهادی (بر اساس دسته‌بندی/محصول)
+                    </div>
+                    <v-chip-group v-model="selectedAutoSuppliers" multiple>
+                      <v-chip
+                        v-for="supplier in autoMatchedSuppliers"
+                        :key="supplier.id"
+                        :value="supplier.id"
+                      >
+                        {{ supplier.name }}
+                      </v-chip>
+                    </v-chip-group>
+                  </v-card>
+                </v-col>
+
+                <!-- Manual Supplier Selection -->
+                <v-col cols="12">
+                  <v-card variant="outlined" class="pa-4">
+                    <div class="text-subtitle-1 font-weight-bold mb-3">
+                      انتخاب دستی تامین‌کنندگان
+                    </div>
+                    <v-select
+                      v-model="createLeadData.supplier_ids"
+                      :items="allSuppliers"
+                      item-title="name"
+                      item-value="id"
+                      label="تامین‌کنندگان"
+                      multiple
+                      chips
+                      :loading="loadingSuppliers"
+                    ></v-select>
+                  </v-card>
+                </v-col>
+
+                <!-- Image Upload -->
+                <v-col cols="12">
+                  <v-card variant="outlined" class="pa-4">
+                    <div class="text-subtitle-1 font-weight-bold mb-3">تصاویر (حداکثر 10 تصویر)</div>
+                    <v-file-input
+                      v-model="createLeadImages"
+                      label="انتخاب تصاویر"
+                      multiple
+                      accept="image/*"
+                      prepend-icon="mdi-camera"
+                      show-size
+                      :rules="[v => !v || v.length <= 10 || 'حداکثر 10 تصویر مجاز است']"
+                    ></v-file-input>
+                    <div v-if="createLeadImages && createLeadImages.length > 0" class="mt-4">
+                      <v-row>
+                        <v-col
+                          v-for="(file, idx) in createLeadImages"
+                          :key="idx"
+                          cols="6"
+                          sm="4"
+                          md="3"
+                        >
+                          <v-card>
+                            <v-img
+                              :src="getImagePreview(file)"
+                              aspect-ratio="1"
+                              cover
+                            ></v-img>
+                            <v-card-actions>
+                              <v-btn
+                                icon
+                                size="small"
+                                variant="text"
+                                color="error"
+                                @click="removeImage(idx)"
+                              >
+                                <v-icon>mdi-delete</v-icon>
+                              </v-btn>
+                            </v-card-actions>
+                          </v-card>
+                        </v-col>
+                      </v-row>
+                    </div>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </v-form>
+          </v-card-text>
+
+          <v-divider></v-divider>
+
+          <v-card-actions class="pa-4">
+            <v-spacer></v-spacer>
+            <v-btn variant="text" @click="closeCreateLeadDialog">
+              انصراف
+            </v-btn>
+            <v-btn
+              color="primary"
+              :loading="submittingLead"
+              :disabled="!createLeadFormValid"
+              @click="submitLead"
+            >
+              ثبت لید
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-container>
   </div>
 </template>
@@ -458,6 +682,9 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const adminApi = useAdminApi()
+const categoryApi = useCategoryApi()
+const productApi = useProductApi()
+const supplierApi = useSupplierApi()
 
 const activeView = ref((route.query.view as string) || 'dashboard')
 const dashboardData = ref<any>({})
@@ -476,6 +703,39 @@ const loadingRFQs = ref(false)
 const showRFQDetailDialog = ref(false)
 const selectedRFQ = ref<any>(null)
 const loadingRFQDetail = ref(false)
+
+// Create Lead Dialog
+const showCreateLeadDialog = ref(false)
+const createLeadFormValid = ref(false)
+const createLeadForm = ref<any>(null)
+const submittingLead = ref(false)
+const createLeadData = ref({
+  lead_source: '',
+  category_id: null as number | null,
+  product_id: null as number | null,
+  first_name: '',
+  last_name: '',
+  company_name: '',
+  phone_number: '',
+  email: '',
+  unique_needs: '',
+  supplier_ids: [] as number[]
+})
+const createLeadImages = ref<File[]>([])
+const leadCategories = ref<any[]>([])
+const leadProducts = ref<any[]>([])
+const allSuppliers = ref<any[]>([])
+const autoMatchedSuppliers = ref<any[]>([])
+const selectedAutoSuppliers = ref<number[]>([])
+const loadingLeadCategories = ref(false)
+const loadingLeadProducts = ref(false)
+const loadingSuppliers = ref(false)
+
+const leadSourceOptions = [
+  { title: 'تلفن', value: 'phone' },
+  { title: 'واتساپ', value: 'whatsapp' },
+  { title: 'اینستاگرام', value: 'instagram' }
+]
 
 const userHeaders = [
   { title: 'نام کاربری', key: 'username' },
@@ -713,6 +973,193 @@ watch(activeView, (newView) => {
 watch(() => route.query.view, (newView) => {
   if (typeof newView === 'string') {
     activeView.value = newView
+  }
+})
+
+// Create Lead Methods
+const loadLeadCategories = async () => {
+  loadingLeadCategories.value = true
+  try {
+    const response = await categoryApi.getCategories()
+    leadCategories.value = Array.isArray(response) ? response : response.results || []
+  } catch (error) {
+    console.error('Failed to load categories:', error)
+  } finally {
+    loadingLeadCategories.value = false
+  }
+}
+
+const loadLeadProducts = async (categoryId?: number) => {
+  loadingLeadProducts.value = true
+  try {
+    const params: any = {}
+    if (categoryId) {
+      params.category = categoryId
+    }
+    const response = await productApi.getProducts(params)
+    leadProducts.value = Array.isArray(response) ? response : response.results || []
+  } catch (error) {
+    console.error('Failed to load products:', error)
+  } finally {
+    loadingLeadProducts.value = false
+  }
+}
+
+const loadSuppliers = async () => {
+  loadingSuppliers.value = true
+  try {
+    allSuppliers.value = await supplierApi.getSuppliers()
+  } catch (error) {
+    console.error('Failed to load suppliers:', error)
+  } finally {
+    loadingSuppliers.value = false
+  }
+}
+
+const onCategoryChange = async (categoryId: number) => {
+  if (categoryId) {
+    await loadLeadProducts(categoryId)
+    await findAutoMatchedSuppliers()
+  } else {
+    leadProducts.value = []
+    autoMatchedSuppliers.value = []
+  }
+}
+
+const onProductChange = async (productId: number | null) => {
+  if (productId) {
+    await findAutoMatchedSuppliers()
+  } else {
+    await findAutoMatchedSuppliers()
+  }
+}
+
+const findAutoMatchedSuppliers = async () => {
+  autoMatchedSuppliers.value = []
+  selectedAutoSuppliers.value = []
+  
+  if (createLeadData.value.product_id) {
+    // If product is selected, get supplier from product
+    try {
+      const product = leadProducts.value.find(p => p.id === createLeadData.value.product_id)
+      if (product && product.supplier) {
+        autoMatchedSuppliers.value = [product.supplier]
+        selectedAutoSuppliers.value = [product.supplier.id]
+      }
+    } catch (error) {
+      console.error('Failed to find supplier from product:', error)
+    }
+  } else if (createLeadData.value.category_id) {
+    // If only category is selected, find all suppliers with products in this category
+    try {
+      const categoryProducts = await productApi.getProducts({ category: createLeadData.value.category_id })
+      const productsList = Array.isArray(categoryProducts) ? categoryProducts : categoryProducts.results || []
+      const suppliersMap = new Map()
+      productsList.forEach((product: any) => {
+        if (product.supplier && product.supplier.id) {
+          suppliersMap.set(product.supplier.id, product.supplier)
+        }
+      })
+      autoMatchedSuppliers.value = Array.from(suppliersMap.values())
+      selectedAutoSuppliers.value = Array.from(suppliersMap.keys())
+    } catch (error) {
+      console.error('Failed to find suppliers from category:', error)
+    }
+  }
+}
+
+const getImagePreview = (file: File) => {
+  return URL.createObjectURL(file)
+}
+
+const removeImage = (index: number) => {
+  createLeadImages.value.splice(index, 1)
+}
+
+const closeCreateLeadDialog = () => {
+  showCreateLeadDialog.value = false
+  createLeadForm.value?.reset()
+  createLeadData.value = {
+    lead_source: '',
+    category_id: null,
+    product_id: null,
+    first_name: '',
+    last_name: '',
+    company_name: '',
+    phone_number: '',
+    email: '',
+    unique_needs: '',
+    supplier_ids: []
+  }
+  createLeadImages.value = []
+  autoMatchedSuppliers.value = []
+  selectedAutoSuppliers.value = []
+}
+
+const submitLead = async () => {
+  if (!createLeadForm.value?.validate()) {
+    return
+  }
+
+  submittingLead.value = true
+  try {
+    const formData = new FormData()
+    
+    // Add form fields
+    formData.append('lead_source', createLeadData.value.lead_source)
+    formData.append('category_id', String(createLeadData.value.category_id!))
+    if (createLeadData.value.product_id) {
+      formData.append('product_id', String(createLeadData.value.product_id))
+    }
+    formData.append('first_name', createLeadData.value.first_name)
+    formData.append('last_name', createLeadData.value.last_name)
+    formData.append('company_name', createLeadData.value.company_name)
+    formData.append('phone_number', createLeadData.value.phone_number)
+    if (createLeadData.value.email) {
+      formData.append('email', createLeadData.value.email)
+    }
+    if (createLeadData.value.unique_needs) {
+      formData.append('unique_needs', createLeadData.value.unique_needs)
+    }
+    
+    // Combine auto-selected and manually selected suppliers
+    const allSelectedSuppliers = [
+      ...selectedAutoSuppliers.value,
+      ...createLeadData.value.supplier_ids
+    ].filter((id, index, self) => self.indexOf(id) === index) // Remove duplicates
+    
+    if (allSelectedSuppliers.length > 0) {
+      allSelectedSuppliers.forEach(supplierId => {
+        formData.append('supplier_ids', String(supplierId))
+      })
+    }
+    
+    // Add images
+    createLeadImages.value.forEach((image, index) => {
+      formData.append(`images`, image)
+    })
+    
+    await adminApi.createRFQ(formData)
+    
+    // Show success message
+    alert('لید با موفقیت ثبت شد')
+    
+    // Close dialog and reload RFQs
+    closeCreateLeadDialog()
+    await loadRFQs()
+    await loadDashboardData()
+  } catch (error: any) {
+    console.error('Failed to create lead:', error)
+    alert(`خطا در ثبت لید: ${error.message || 'خطای نامشخص'}`)
+  } finally {
+    submittingLead.value = false
+  }
+}
+
+watch(showCreateLeadDialog, (isOpen) => {
+  if (isOpen) {
+    loadLeadCategories()
+    loadSuppliers()
   }
 })
 
