@@ -10,11 +10,20 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="order",
-            name="first_responded_at",
-            field=models.DateTimeField(
-                blank=True, help_text="When supplier first responded", null=True
-            ),
+        migrations.RunSQL(
+            sql="""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'orders_order' AND column_name = 'first_responded_at'
+                ) THEN
+                    ALTER TABLE orders_order ADD COLUMN first_responded_at TIMESTAMP WITH TIME ZONE NULL;
+                END IF;
+            END $$;
+            """,
+            reverse_sql="""
+            ALTER TABLE orders_order DROP COLUMN IF EXISTS first_responded_at;
+            """,
         ),
     ]
