@@ -6,6 +6,8 @@ from .views import (
     GamificationPointsView,
     GamificationLeaderboardView,
     TrackGamificationActionView,
+    AwardSectionCompletionView,
+    AwardAllSectionsView,
 )
 
 urlpatterns = [
@@ -15,4 +17,6 @@ urlpatterns = [
     path('points/', GamificationPointsView.as_view(), name='gamification-points'),
     path('leaderboard/', GamificationLeaderboardView.as_view(), name='gamification-leaderboard'),
     path('track-action/', TrackGamificationActionView.as_view(), name='gamification-track-action'),
+    path('award-section/', AwardSectionCompletionView.as_view(), name='gamification-award-section'),
+    path('award-all-sections/', AwardAllSectionsView.as_view(), name='gamification-award-all-sections'),
 ]

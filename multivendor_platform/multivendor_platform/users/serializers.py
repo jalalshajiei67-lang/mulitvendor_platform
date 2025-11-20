@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from .models import (
     UserProfile, BuyerProfile, VendorProfile, SellerAd, SellerAdImage, 
     ProductReview, SupplierComment, UserActivity, SupplierPortfolioItem, 
-    SupplierTeamMember, SupplierContactMessage
+    SupplierTeamMember, SupplierContactMessage, OTP
 )
 
 class UserSerializer(serializers.ModelSerializer):
@@ -264,3 +264,95 @@ class SupplierContactMessageSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_at', 'updated_at']
 
+
+class OTPRequestSerializer(serializers.Serializer):
+    """Serializer for OTP request"""
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    username = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    purpose = serializers.ChoiceField(choices=OTP.PURPOSE_CHOICES)
+
+    def validate(self, data):
+        phone = data.get('phone')
+        username = data.get('username')
+
+        if not phone and not username:
+            raise serializers.ValidationError("شماره موبایل یا نام کاربری الزامی است.")
+
+        if phone:
+            cleaned = re.sub(r'[\s\-()]', '', phone.strip())
+            if cleaned.startswith('+98'):
+                cleaned = '0' + cleaned[3:]
+            elif cleaned.startswith('0098'):
+                cleaned = '0' + cleaned[4:]
+            elif cleaned.startswith('98'):
+                cleaned = '0' + cleaned[2:]
+            elif not cleaned.startswith('0'):
+                cleaned = '0' + cleaned
+            
+            if not re.match(r'^09\d{9}$', cleaned):
+                raise serializers.ValidationError("فرمت شماره موبایل معتبر نیست. لطفاً شماره را به صورت صحیح وارد کنید (مثال: 09123456789).")
+            data['phone'] = cleaned
+        
+        return data
+
+class OTPVerifySerializer(serializers.Serializer):
+    """Serializer for OTP verification"""
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    username = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    code = serializers.CharField(max_length=6, min_length=6)
+    purpose = serializers.ChoiceField(choices=OTP.PURPOSE_CHOICES)
+
+    def validate(self, data):
+        phone = data.get('phone')
+        username = data.get('username')
+
+        if not phone and not username:
+            raise serializers.ValidationError("شماره موبایل یا نام کاربری الزامی است.")
+        
+        if phone:
+            cleaned = re.sub(r'[\s\-()]', '', phone.strip())
+            if cleaned.startswith('+98'):
+                cleaned = '0' + cleaned[3:]
+            elif cleaned.startswith('0098'):
+                cleaned = '0' + cleaned[4:]
+            elif cleaned.startswith('98'):
+                cleaned = '0' + cleaned[2:]
+            elif not cleaned.startswith('0'):
+                cleaned = '0' + cleaned
+            
+            if not re.match(r'^09\d{9}$', cleaned):
+                raise serializers.ValidationError("فرمت شماره موبایل معتبر نیست. لطفاً شماره را به صورت صحیح وارد کنید (مثال: 09123456789).")
+            data['phone'] = cleaned
+
+        return data
+
+class PasswordResetSerializer(serializers.Serializer):
+    """Serializer for password reset with OTP"""
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    username = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    code = serializers.CharField(max_length=6, min_length=6)
+    new_password = serializers.CharField(write_only=True, min_length=6)
+
+    def validate(self, data):
+        phone = data.get('phone')
+        username = data.get('username')
+
+        if not phone and not username:
+            raise serializers.ValidationError("شماره موبایل یا نام کاربری الزامی است.")
+        
+        if phone:
+            cleaned = re.sub(r'[\s\-()]', '', phone.strip())
+            if cleaned.startswith('+98'):
+                cleaned = '0' + cleaned[3:]
+            elif cleaned.startswith('0098'):
+                cleaned = '0' + cleaned[4:]
+            elif cleaned.startswith('98'):
+                cleaned = '0' + cleaned[2:]
+            elif not cleaned.startswith('0'):
+                cleaned = '0' + cleaned
+            
+            if not re.match(r'^09\d{9}$', cleaned):
+                raise serializers.ValidationError("فرمت شماره موبایل معتبر نیست. لطفاً شماره را به صورت صحیح وارد کنید (مثال: 09123456789).")
+            data['phone'] = cleaned
+
+        return data

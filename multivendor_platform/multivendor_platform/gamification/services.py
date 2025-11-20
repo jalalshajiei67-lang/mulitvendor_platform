@@ -47,15 +47,19 @@ class GamificationService:
     def get_or_create_engagement(self) -> SupplierEngagement | None:
         if not self.vendor_profile:
             return None
-        engagement, _ = SupplierEngagement.objects.get_or_create(
+        engagement, created = SupplierEngagement.objects.get_or_create(
             vendor_profile=self.vendor_profile,
             defaults={
-                'total_points': 0,
+                'total_points': 1,  # Minimum base score so it's never zero
                 'today_points': 0,
                 'current_streak_days': 0,
                 'longest_streak_days': 0,
             },
         )
+        # Ensure existing engagements also have at least 1 point
+        if not created and engagement.total_points == 0:
+            engagement.total_points = 1
+            engagement.save(update_fields=['total_points'])
         return engagement
 
     def add_points(self, reason: str, points: int, metadata: dict | None = None):
@@ -64,6 +68,9 @@ class GamificationService:
             return
         engagement.total_points += max(points, 0)
         engagement.today_points += max(points, 0)
+        # Ensure total_points is never zero (minimum base score)
+        if engagement.total_points == 0:
+            engagement.total_points = 1
         engagement.save(update_fields=['total_points', 'today_points', 'updated_at'])
         PointsHistory.objects.create(
             vendor_profile=self.vendor_profile,
@@ -273,6 +280,124 @@ class GamificationService:
             'metrics': serialized_metrics,
             'tips': [m.tip for m in metrics if not m.passed],
         }
+
+    # ------------------------------------------------------------------
+    # Section completion scoring
+    # ------------------------------------------------------------------
+    def award_section_completion_points(self, section: str) -> int:
+        """
+        Award points based on section completion score.
+        Points are awarded proportionally to the score (0-100).
+        Only awards points for score improvements to avoid double-counting.
+        Accumulates scores from all sections to total_points.
+        
+        Args:
+            section: One of 'profile', 'product', 'miniWebsite', 'portfolio', 'team'
+        
+        Returns:
+            Points awarded (0 if no improvement or already awarded)
+        """
+        if not self.vendor_profile:
+            return 0
+        
+        # Map section names to score computation methods
+        score_methods = {
+            'profile': self.compute_profile_score,
+            'product': self.compute_product_score,
+            'miniWebsite': self.compute_mini_site_score,
+            'portfolio': self.compute_portfolio_score,
+            'team': self.compute_team_score,
+        }
+        
+        if section not in score_methods:
+            return 0
+        
+        # Calculate current score
+        score_result = score_methods[section]()
+        current_score = score_result.get('score', 0)
+        
+        # Base points per section (maximum points when score is 100)
+        section_base_points = {
+            'profile': 50,
+            'product': 100,
+            'miniWebsite': 75,
+            'portfolio': 50,
+            'team': 50,
+        }
+        
+        base_points = section_base_points.get(section, 50)
+        
+        # Check if we've already awarded points for this section
+        engagement = self.get_or_create_engagement()
+        if not engagement:
+            return 0
+        
+        # Check recent history for this section to see previous score
+        recent_history = PointsHistory.objects.filter(
+            vendor_profile=self.vendor_profile,
+            reason='section_completion',
+            metadata__section=section
+        ).order_by('-created_at').first()
+        
+        if recent_history:
+            # Get the last recorded score for this section
+            previous_score = recent_history.metadata.get('score', 0)
+            
+            # Only award points if score improved
+            if current_score > previous_score:
+                # Calculate points for the improvement
+                score_improvement = current_score - previous_score
+                improvement_points = int((score_improvement / 100) * base_points)
+                
+                if improvement_points > 0:
+                    self.add_points(
+                        'section_completion',
+                        improvement_points,
+                        metadata={
+                            'section': section, 
+                            'score': current_score, 
+                            'previous_score': previous_score,
+                            'improvement': score_improvement
+                        }
+                    )
+                    return improvement_points
+            # Score didn't improve, don't award points
+            return 0
+        else:
+            # First time calculating points for this section
+            # Award points based on current score (proportional)
+            points_to_award = int((current_score / 100) * base_points)
+            
+            # Award at least 1 point if score > 0 to ensure accumulation
+            if current_score > 0:
+                if points_to_award < 1:
+                    points_to_award = 1
+                    
+                self.add_points(
+                    'section_completion',
+                    points_to_award,
+                    metadata={'section': section, 'score': current_score, 'is_first_award': True}
+                )
+                return points_to_award
+        
+        return 0
+
+    def award_all_section_scores(self) -> Dict[str, int]:
+        """
+        Calculate and award points for all sections based on their current scores.
+        This ensures all section completion scores are accumulated into total_points.
+        
+        Returns:
+            Dictionary mapping section names to points awarded
+        """
+        sections = ['profile', 'product', 'miniWebsite', 'portfolio', 'team']
+        awarded = {}
+        
+        for section in sections:
+            points = self.award_section_completion_points(section)
+            awarded[section] = points
+        
+        return awarded
 
     # ------------------------------------------------------------------
     # Response-time helpers

@@ -68,6 +68,7 @@ class PointsHistory(models.Model):
         ('fast_response', 'Fast Order Response'),
         ('tutorial', 'Watched Tutorial'),
         ('badge', 'Badge Earned'),
+        ('section_completion', 'Section Completion'),
         ('custom', 'Custom Action'),
     )
     vendor_profile = models.ForeignKey(

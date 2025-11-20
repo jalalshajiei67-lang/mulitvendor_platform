@@ -160,7 +160,8 @@ if not CORS_ALLOW_ALL_ORIGINS:
             "http://127.0.0.1:8080",
             "http://localhost:5173",
             "http://127.0.0.1:5173",
-        
+            "http://localhost:3000",  # Nuxt dev server
+            "http://127.0.0.1:3000",  # Nuxt dev server
         ]
 else:
     CORS_ALLOWED_ORIGINS = []
@@ -197,6 +198,8 @@ else:
         "http://127.0.0.1:5173",
         "http://localhost:8080",
         "http://127.0.0.1:8080",
+        "http://localhost:3000",  # Nuxt dev server
+        "http://127.0.0.1:3000",  # Nuxt dev server
     ]
 
 # Security settings for production behind reverse proxy (nginx/CapRover)
@@ -275,3 +278,9 @@ TINYMCE_DEFAULT_CONFIG = {
     'extended_valid_elements': 'table[*],tr[*],td[*],th[*]',
     'block_formats': 'Paragraph=p; Header 1=h1; Header 2=h2; Header 3=h3; Header 4=h4; Header 5=h5; Header 6=h6; Preformatted=pre',
 }
+
+# OTP Configuration
+OTP_SENDER_CLASS = os.environ.get('OTP_SENDER_CLASS', 'users.services.otp_senders.LocalOTPSender')
+OTP_EXPIRATION_MINUTES = int(os.environ.get('OTP_EXPIRATION_MINUTES', '5'))
+OTP_RATE_LIMIT_REQUESTS = int(os.environ.get('OTP_RATE_LIMIT_REQUESTS', '3'))
+OTP_RATE_LIMIT_WINDOW_MINUTES = int(os.environ.get('OTP_RATE_LIMIT_WINDOW_MINUTES', '15'))

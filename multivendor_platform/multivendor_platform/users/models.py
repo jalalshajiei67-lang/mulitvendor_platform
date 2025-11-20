@@ -312,3 +312,40 @@ class SupplierContactMessage(models.Model):
     
     def __str__(self):
         return f"Message from {self.sender_name} to {self.vendor_profile.store_name}"
+
+class OTP(models.Model):
+    """One-Time Password for authentication and verification"""
+    PURPOSE_CHOICES = (
+        ('login', 'Login'),
+        ('password_reset', 'Password Reset'),
+        ('phone_verification', 'Phone Verification'),
+        ('transaction', 'Transaction'),
+    )
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='otps', null=True, blank=True, help_text="User (nullable for phone-based OTP)")
+    phone = models.CharField(max_length=20, help_text="Phone number (when user is not authenticated)")
+    code = models.CharField(max_length=6, help_text="6-digit OTP code")
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES, help_text="Purpose of the OTP")
+    is_used = models.BooleanField(default=False, help_text="Whether the OTP has been used")
+    expires_at = models.DateTimeField(help_text="Expiration time of the OTP")
+    created_at = models.DateTimeField(auto_now_add=True)
+    attempts = models.IntegerField(default=0, help_text="Number of verification attempts")
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "OTP"
+        verbose_name_plural = "OTPs"
+        indexes = [
+            models.Index(fields=['phone', 'purpose', 'is_used']),
+            models.Index(fields=['user', 'purpose', 'is_used']),
+            models.Index(fields=['expires_at']),
+        ]
+    
+    def __str__(self):
+        user_str = self.user.username if self.user else self.phone
+        return f"OTP for {user_str} - {self.get_purpose_display()} ({'used' if self.is_used else 'active'})"
+    
+    def is_expired(self):
+        """Check if OTP has expired"""
+        from django.utils import timezone
+        return timezone.now() > self.expires_at

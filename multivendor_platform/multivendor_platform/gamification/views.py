@@ -111,3 +111,53 @@ class TrackGamificationActionView(APIView):
             return Response({'detail': 'فروشنده یافت نشد'}, status=status.HTTP_400_BAD_REQUEST)
         service.add_points(action, points, metadata=request.data.get('metadata'))
         return Response({'detail': 'recorded', 'points': points})
+
+
+class AwardSectionCompletionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        section = request.data.get('section')
+        if not section:
+            return Response({'detail': 'Section is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        valid_sections = ['profile', 'product', 'miniWebsite', 'portfolio', 'team']
+        if section not in valid_sections:
+            return Response(
+                {'detail': f'Invalid section. Must be one of: {", ".join(valid_sections)}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        service = GamificationService.for_user(request.user)
+        if not service.vendor_profile:
+            return Response({'detail': 'فروشنده یافت نشد'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        points_awarded = service.award_section_completion_points(section)
+        
+        return Response({
+            'detail': 'points_awarded',
+            'points': points_awarded,
+            'section': section
+        })
+
+
+class AwardAllSectionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        Award points for all sections based on their current completion scores.
+        This ensures all section scores are accumulated into the total score.
+        """
+        service = GamificationService.for_user(request.user)
+        if not service.vendor_profile:
+            return Response({'detail': 'فروشنده یافت نشد'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        awarded = service.award_all_section_scores()
+        total_awarded = sum(awarded.values())
+        
+        return Response({
+            'detail': 'all_sections_processed',
+            'sections': awarded,
+            'total_points_awarded': total_awarded
+        })

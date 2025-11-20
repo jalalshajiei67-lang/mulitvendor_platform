@@ -17,12 +17,14 @@ from .serializers import (
     UserSerializer, UserProfileSerializer, VendorProfileSerializer, 
     SellerAdSerializer, SellerAdImageSerializer, SupplierCommentSerializer, UserActivitySerializer,
     RegisterSerializer, UserDetailSerializer, PasswordChangeSerializer,
-    SupplierPortfolioItemSerializer, SupplierTeamMemberSerializer, SupplierContactMessageSerializer
+    SupplierPortfolioItemSerializer, SupplierTeamMemberSerializer, SupplierContactMessageSerializer,
+    OTPRequestSerializer, OTPVerifySerializer, PasswordResetSerializer
 )
 from orders.models import Order, OrderItem
 from orders.serializers import OrderSerializer
 from products.models import ProductComment
 from products.serializers import ProductCommentSerializer
+from .services.otp_service import OTPService
 
 def get_client_ip(request):
     """Get client IP address from request"""
@@ -177,6 +179,316 @@ def logout_view(request):
         return Response(
             {'error': 'Error logging out'}, 
             status=status.HTTP_400_BAD_REQUEST
+        )
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def otp_request_view(request):
+    """
+    Request OTP endpoint
+    """
+    serializer = OTPRequestSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {'error': serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    phone = serializer.validated_data.get('phone')
+    username = serializer.validated_data.get('username')
+    purpose = serializer.validated_data['purpose']
+    
+    # Get user if username provided
+    user = None
+    if username:
+        try:
+            user = User.objects.get(username=username)
+            # Use phone from user profile if phone not provided
+            if not phone:
+                try:
+                    phone = user.profile.phone or user.username
+                except:
+                    phone = user.username
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'کاربری با این نام کاربری یافت نشد'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    # Use phone or user for OTP generation
+    user_or_phone = user if user else phone
+    
+    try:
+        otp_service = OTPService()
+        result = otp_service.generate_otp(user_or_phone, purpose)
+        
+        response_data = {
+            'success': True,
+            'message': 'کد تأیید با موفقیت ارسال شد. لطفاً پیامک دریافتی را بررسی کنید.'
+        }
+        
+        # In local/dev mode, include the OTP code in response
+        if 'code' in result:
+            response_data['otp_code'] = result['code']
+            response_data['message'] = 'کد تأیید برای شما آماده است (حالت تست)'
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    except ValueError as e:
+        return Response(
+            {
+                'error': str(e),
+                'helpful_message': 'اگر مشکل ادامه داشت، لطفاً با پشتیبانی تماس بگیرید.'
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error generating OTP: {str(e)}", exc_info=True)
+        return Response(
+            {
+                'error': 'متأسفانه در ارسال کد تأیید مشکلی پیش آمده است.',
+                'helpful_message': 'لطفاً چند لحظه صبر کنید و دوباره تلاش کنید. اگر مشکل ادامه داشت، با پشتیبانی تماس بگیرید.'
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def otp_verify_view(request):
+    """
+    Verify OTP endpoint
+    """
+    serializer = OTPVerifySerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {'error': serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    phone = serializer.validated_data.get('phone')
+    username = serializer.validated_data.get('username')
+    code = serializer.validated_data['code']
+    purpose = serializer.validated_data['purpose']
+    
+    # Get user if username provided
+    user = None
+    if username:
+        try:
+            user = User.objects.get(username=username)
+            # Use phone from user profile if phone not provided
+            if not phone:
+                try:
+                    phone = user.profile.phone or user.username
+                except:
+                    phone = user.username
+        except User.DoesNotExist:
+            return Response(
+                {
+                    'error': 'شماره موبایل وارد شده در سیستم ثبت نشده است.',
+                    'hint': 'لطفاً شماره موبایل خود را بررسی کنید. اگر حساب کاربری ندارید، از صفحه ثبت‌نام استفاده کنید.'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    # Use phone or user for OTP verification
+    user_or_phone = user if user else phone
+    
+    try:
+        otp_service = OTPService()
+        # For password_reset, don't mark as used yet (will be marked when password is reset)
+        mark_as_used = purpose != 'password_reset'
+        result = otp_service.verify_otp(code, user_or_phone, purpose, mark_as_used=mark_as_used)
+        
+        response_data = {
+            'success': True,
+            'message': 'کد تأیید صحیح است'
+        }
+        
+        # Include OTP code in response for password_reset flow
+        if purpose == 'password_reset':
+            response_data['otp_code'] = code
+        
+        # If login purpose, return token and user data
+        if purpose == 'login' and 'user' in result:
+            verified_user = result['user']
+            
+            # Check if user is blocked
+            try:
+                if verified_user.profile.is_blocked:
+                    return Response(
+                        {'error': 'حساب کاربری شما مسدود شده است. برای رفع مشکل با پشتیبانی تماس بگیرید.'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except:
+                pass
+            
+            # Create or get token
+            token, created = Token.objects.get_or_create(user=verified_user)
+            
+            # Log login activity
+            log_activity(verified_user, 'login', f'User {verified_user.username} logged in via OTP', request)
+            
+            # Get user profile info
+            try:
+                user_serializer = UserDetailSerializer(verified_user)
+                user_data = user_serializer.data
+                
+                # Extract role and is_verified from profile
+                profile = verified_user.profile
+                user_data['role'] = profile.role
+                user_data['is_verified'] = profile.is_verified
+                
+                response_data['token'] = token.key
+                response_data['user'] = user_data
+            except:
+                response_data['token'] = token.key
+                response_data['user'] = {
+                    'id': verified_user.id,
+                    'username': verified_user.username,
+                    'email': verified_user.email,
+                    'first_name': verified_user.first_name,
+                    'last_name': verified_user.last_name,
+                    'is_staff': verified_user.is_staff,
+                }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    except ValueError as e:
+        return Response(
+            {
+                'error': str(e),
+                'helpful_message': 'اگر مطمئن هستید کد را درست وارد کرده‌اید، می‌توانید کد جدیدی درخواست کنید.'
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error verifying OTP: {str(e)}", exc_info=True)
+        return Response(
+            {
+                'error': 'متأسفانه در تأیید کد مشکلی پیش آمده است.',
+                'helpful_message': 'لطفاً چند لحظه صبر کنید و دوباره تلاش کنید. اگر مشکل ادامه داشت، کد جدیدی درخواست کنید.'
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def password_reset_view(request):
+    """
+    Password reset endpoint with OTP verification
+    """
+    serializer = PasswordResetSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {'error': serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    phone = serializer.validated_data.get('phone')
+    username = serializer.validated_data.get('username')
+    code = serializer.validated_data['code']
+    new_password = serializer.validated_data['new_password']
+    
+    # Get user
+    user = None
+    if username:
+        try:
+            user = User.objects.get(username=username)
+            if not phone:
+                try:
+                    phone = user.profile.phone or user.username
+                except:
+                    phone = user.username
+        except User.DoesNotExist:
+            return Response(
+                {
+                    'error': 'شماره موبایل وارد شده در سیستم ثبت نشده است.',
+                    'hint': 'لطفاً شماره موبایل خود را بررسی کنید. اگر حساب کاربری ندارید، از صفحه ثبت‌نام استفاده کنید.'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+    else:
+        # Find user by phone
+        try:
+            # Try to find user by phone in profile
+            profile = UserProfile.objects.filter(phone=phone).first()
+            if profile:
+                user = profile.user
+            else:
+                # Try to find by username (phone might be username)
+                try:
+                    user = User.objects.get(username=phone)
+                except User.DoesNotExist:
+                    return Response(
+                        {
+                            'error': 'شماره موبایل وارد شده در سیستم ثبت نشده است.',
+                            'hint': 'لطفاً شماره موبایل خود را بررسی کنید. اگر حساب کاربری ندارید، از صفحه ثبت‌نام استفاده کنید.'
+                        },
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+        except Exception:
+            return Response(
+                {
+                    'error': 'خطا در پیدا کردن حساب کاربری.',
+                    'hint': 'لطفاً شماره موبایل خود را بررسی کنید و دوباره تلاش کنید.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    # Verify OTP and reset password
+    try:
+        otp_service = OTPService()
+        # Verify OTP (this will mark it as used)
+        result = otp_service.verify_otp(code, phone or user, 'password_reset', mark_as_used=True)
+        
+        if not result.get('success'):
+            return Response(
+                {
+                    'error': 'کد تأیید نامعتبر است.',
+                    'hint': 'لطفاً کد تأیید را بررسی کنید و دوباره تلاش کنید.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Reset password
+        user.set_password(new_password)
+        user.save()
+        
+        # Log activity
+        log_activity(user, 'password_reset', f'User {user.username} reset password via OTP', request)
+        
+        return Response(
+            {
+                'success': True,
+                'message': 'رمز عبور شما با موفقیت تغییر یافت. اکنون می‌توانید با رمز عبور جدید وارد شوید.'
+            },
+            status=status.HTTP_200_OK
+        )
+    except ValueError as e:
+        return Response(
+            {
+                'error': str(e),
+                'helpful_message': 'لطفاً کد تأیید را بررسی کنید. اگر کد منقضی شده است، کد جدیدی درخواست کنید.'
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error resetting password: {str(e)}", exc_info=True)
+        return Response(
+            {
+                'error': 'متأسفانه در تغییر رمز عبور مشکلی پیش آمده است.',
+                'helpful_message': 'لطفاً چند لحظه صبر کنید و دوباره تلاش کنید. اگر مشکل ادامه داشت، با پشتیبانی تماس بگیرید.'
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
 @api_view(['POST'])

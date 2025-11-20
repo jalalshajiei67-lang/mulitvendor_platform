@@ -1,193 +1,271 @@
 <template>
   <div class="mini-website-settings" dir="rtl">
-    <v-card elevation="2">
-      <v-card-title class="text-h5 font-weight-bold d-flex align-center justify-space-between">
-        <div class="d-flex align-center">
-          <v-icon color="primary" class="me-2">mdi-palette</v-icon>
-          تنظیمات صفحه فروشگاه شما
+    <v-card elevation="2" rounded="lg">
+      <!-- Header Section - Simplified -->
+      <v-card-title class="text-h4 font-weight-bold d-flex align-center gap-3 pa-6 bg-green-lighten-5">
+        <v-icon size="40" color="primary">mdi-palette</v-icon>
+        <div>
+          <div>تنظیمات صفحه فروشگاه شما</div>
+          <div class="text-caption text-medium-emphasis mt-2">اطلاعات کسب‌وکار و ظاهر صفحه را تنظیم کنید</div>
         </div>
-        <ClientOnly>
-          <div v-if="supplierId" class="text-caption text-medium-emphasis">
-            <v-icon size="small" class="me-1">mdi-link</v-icon>
-            <span class="me-2">آدرس صفحه شما:</span>
-            <a 
-              :href="fullPreviewUrl" 
-              target="_blank" 
-              class="text-decoration-none text-primary"
-              @click.stop.prevent="previewWebsite"
-            >
-              {{ previewUrl }}
-            </a>
-          </div>
-        </ClientOnly>
       </v-card-title>
 
-      <v-card-text>
+      <v-card-text class="pa-6">
+        <!-- Quality Score - Prominent -->
         <FormQualityScore
-          class="mb-4"
-          title="امتیاز وب‌سایت مینی"
-          caption="چند قدم تا صفحه حرفه‌ای"
+          class="mb-8"
+          title="میزان تکمیل اطلاعات"
+          caption="برای دیدن صفحه حرفه‌ای، اطلاعات زیر را کامل کنید"
           :score="miniSiteScore"
           :metrics="miniSiteMetrics"
           :tips="miniSiteTips"
         />
+
         <v-form ref="formRef" v-model="formValid">
-          <!-- Branding Section -->
-          <v-card class="mb-4" elevation="1">
-            <v-card-title class="text-subtitle-1 font-weight-bold bg-grey-lighten-4">
-              <v-icon size="small" class="me-2">mdi-brush</v-icon>
+          <!-- SECTION 1: Store Identity - Core Information -->
+          <v-card class="mb-8" elevation="1" rounded="lg" outlined>
+            <v-card-title class="text-h6 font-weight-bold pa-5 bg-green-lighten-5">
+              <v-icon size="28" class="me-3">mdi-store</v-icon>
+              مشخصات فروشگاه
+            </v-card-title>
+            <v-card-text class="pa-6">
+              <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
+                اطلاعات پایه‌ای فروشگاه خود را وارد کنید. این اطلاعات را مشتریان می‌بینند.
+              </div>
+
+              <!-- Store Name - Most Important -->
+              <div class="mb-6">
+                <v-text-field
+                  v-model="formData.store_name"
+                  label="نام فروشگاه یا شرکت"
+                  prepend-icon="mdi-label"
+                  variant="outlined"
+                  density="comfortable"
+                  size="large"
+                  class="text-input-large"
+                  hint="مثال: فروشگاه آرتا برای صنایع"
+                  :rules="[v => !!v || 'لطفاً نام فروشگاه را وارد کنید']"
+                >
+                  <template #prepend>
+                    <v-icon color="primary" size="24">mdi-store</v-icon>
+                  </template>
+                </v-text-field>
+              </div>
+
+              <!-- Description - Important -->
+              <div class="mb-6">
+                <div class="text-body-2 font-weight-bold mb-2">توضیحات درباره فروشگاه</div>
+                <div class="text-caption text-medium-emphasis mb-3">
+                  چند جمله درباره کسب‌وکار، تجربه و محصولات خود بنویسید
+                </div>
+                <v-textarea
+                  v-model="formData.description"
+                  placeholder="مثال: ما برای بیش از ۲۰ سال تولید ماشین‌آلات صنعتی می‌کنیم..."
+                  prepend-icon="mdi-text"
+                  rows="5"
+                  variant="outlined"
+                  density="comfortable"
+                  hint="حداقل ۲۰۰ حرف بنویسید"
+                  counter="500"
+                  :rules="descriptionRules"
+                >
+                  <template #prepend>
+                    <v-icon color="primary" size="24">mdi-text</v-icon>
+                  </template>
+                </v-textarea>
+              </div>
+
+              <!-- Slogan - Brand Statement -->
+              <div>
+                <v-text-field
+                  v-model="formData.slogan"
+                  label="شعار یا جمله‌ی معرفی شرکت"
+                  prepend-icon="mdi-star"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="مثال: بهترین کیفیت، بهترین قیمت"
+                  hint="یک جمله کوتاه که بشرکت را خلاصه کند"
+                  counter="100"
+                  :rules="[v => !v || v.length <= 100 || 'حداکثر 100 حرف']"
+                >
+                  <template #prepend>
+                    <v-icon color="primary" size="24">mdi-star</v-icon>
+                  </template>
+                </v-text-field>
+              </div>
+            </v-card-text>
+          </v-card>
+
+          <!-- SECTION 2: Visual Identity - Design & Colors -->
+          <v-card class="mb-8" elevation="1" rounded="lg" outlined>
+            <v-card-title class="text-h6 font-weight-bold pa-5 bg-green-lighten-5">
+              <v-icon size="28" class="me-3">mdi-palette</v-icon>
               رنگ و ظاهر صفحه فروشگاه
             </v-card-title>
-            <v-card-text>
-              <div class="text-body-2 text-medium-emphasis mb-4">
-                در این بخش می‌توانید رنگ‌ها و تصویر بالای صفحه فروشگاه خود را تنظیم کنید.
+            <v-card-text class="pa-6">
+              <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
+                یک تصویر زیبا برای بالای صفحه انتخاب کنید و رنگ‌های مناسب انتخاب کنید.
               </div>
+
+              <!-- Banner Image -->
+              <div class="mb-8">
+                <div class="text-subtitle-1 font-weight-bold mb-3">تصویر بالای صفحه</div>
+                <div class="text-body-2 text-medium-emphasis mb-4">
+                  یک تصویر عریض از محصولات یا فابریکه خود انتخاب کنید
+                </div>
+
+                <!-- Banner Preview -->
+                <v-card
+                  v-if="previewBanner"
+                  class="mb-4 position-relative"
+                  elevation="1"
+                  rounded="lg"
+                >
+                  <v-img :src="previewBanner" height="250" cover>
+                    <v-btn
+                      icon="mdi-close"
+                      size="large"
+                      color="error"
+                      class="ma-3"
+                      @click="removeBanner"
+                      elevation="2"
+                    ></v-btn>
+                  </v-img>
+                  <div class="pa-3 text-caption text-medium-emphasis">
+                    تصویر انتخابی (برای حذف بر روی X کلیک کنید)
+                  </div>
+                </v-card>
+
+                <!-- File Upload -->
+                <v-file-input
+                  v-model="bannerFile"
+                  label="انتخاب تصویر از کامپیوتر"
+                  prepend-icon="mdi-image"
+                  accept="image/*"
+                  @change="onBannerChange"
+                  variant="outlined"
+                  density="comfortable"
+                  class="file-input-large"
+                  hint="تصاویر JPG یا PNG"
+                >
+                  <template #prepend>
+                    <v-icon color="primary" size="24">mdi-image</v-icon>
+                  </template>
+                </v-file-input>
+              </div>
+
+              <!-- Colors Section -->
+              <div class="mb-8">
+                <div class="text-subtitle-1 font-weight-bold mb-4">انتخاب رنگ برند</div>
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <div class="text-body-2 font-weight-bold mb-3">رنگ اصلی</div>
+                    <div class="d-flex gap-3">
+                      <v-text-field
+                        v-model="formData.brand_color_primary"
+                        type="color"
+                        variant="outlined"
+                        density="comfortable"
+                        hide-details
+                        class="color-input"
+                      ></v-text-field>
+                      <v-card
+                        :style="{ backgroundColor: formData.brand_color_primary }"
+                        class="flex-grow-1 rounded-lg"
+                        min-height="56"
+                      ></v-card>
+                    </div>
+                    <div class="text-caption text-medium-emphasis mt-2">
+                      این رنگ در دکمه‌ها و بخش‌های مهم نمایش داده می‌شود
+                    </div>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <div class="text-body-2 font-weight-bold mb-3">رنگ دوم</div>
+                    <div class="d-flex gap-3">
+                      <v-text-field
+                        v-model="formData.brand_color_secondary"
+                        type="color"
+                        variant="outlined"
+                        density="comfortable"
+                        hide-details
+                        class="color-input"
+                      ></v-text-field>
+                      <v-card
+                        :style="{ backgroundColor: formData.brand_color_secondary }"
+                        class="flex-grow-1 rounded-lg"
+                        min-height="56"
+                      ></v-card>
+                    </div>
+                    <div class="text-caption text-medium-emphasis mt-2">
+                      رنگ مکمل برای طراحی زیباتر
+                    </div>
+                  </v-col>
+                </v-row>
+              </div>
+            </v-card-text>
+          </v-card>
+
+          <!-- SECTION 3: Contact Information -->
+          <v-card class="mb-8" elevation="1" rounded="lg" outlined>
+            <v-card-title class="text-h6 font-weight-bold pa-5 bg-green-lighten-5">
+              <v-icon size="28" class="me-3">mdi-phone</v-icon>
+              راه‌های تماس با شما
+            </v-card-title>
+            <v-card-text class="pa-6">
+              <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
+                راه‌های تماس خود را وارد کنید تا مشتریان بتوانند با شما ارتباط برقرار کنند
+              </div>
+
               <v-row>
-                <!-- Banner Image -->
-                <v-col cols="12">
-                  <div class="mb-2 text-subtitle-2 font-weight-bold">تصویر بالای صفحه</div>
-                  <div class="text-caption text-medium-emphasis mb-2">
-                    یک تصویر زیبا برای بالای صفحه فروشگاه خود انتخاب کنید. تصویر باید عریض باشد (مثل تصاویر بنر).
-                  </div>
-                  <div v-if="previewBanner" class="mb-3">
-                    <v-img :src="previewBanner" height="200" cover class="rounded">
-                      <v-btn
-                        icon="mdi-close"
-                        size="small"
-                        color="error"
-                        class="ma-2"
-                        @click="removeBanner"
-                      ></v-btn>
-                    </v-img>
-                  </div>
-                  <v-file-input
-                    v-model="bannerFile"
-                    label="انتخاب تصویر از کامپیوتر یا موبایل"
-                    prepend-icon="mdi-image"
-                    accept="image/*"
-                    @change="onBannerChange"
-                    variant="outlined"
-                    density="comfortable"
-                    hint="فقط فایل‌های تصویری (jpg, png و غیره)"
-                  ></v-file-input>
-                </v-col>
-
-                <!-- Brand Colors -->
                 <v-col cols="12" md="6">
-                  <div class="text-subtitle-2 font-weight-bold mb-2">رنگ اصلی صفحه</div>
                   <v-text-field
-                    v-model="formData.brand_color_primary"
-                    label="رنگ اصلی"
-                    type="color"
-                    prepend-icon="mdi-palette"
+                    v-model="formData.contact_phone"
+                    label="شماره تلفن"
+                    prepend-icon="mdi-phone"
                     variant="outlined"
                     density="comfortable"
-                    hint="این رنگ در دکمه‌ها و بخش‌های مهم صفحه نمایش داده می‌شود"
-                  ></v-text-field>
+                    placeholder="09123456789"
+                    hint="شماره موبایل یا ثابت"
+                    :rules="phoneRules"
+                  >
+                    <template #prepend>
+                      <v-icon color="primary" size="24">mdi-phone</v-icon>
+                    </template>
+                  </v-text-field>
                 </v-col>
 
                 <v-col cols="12" md="6">
-                  <div class="text-subtitle-2 font-weight-bold mb-2">رنگ دوم</div>
                   <v-text-field
-                    v-model="formData.brand_color_secondary"
-                    label="رنگ دوم"
-                    type="color"
-                    prepend-icon="mdi-palette"
+                    v-model="formData.contact_email"
+                    label="ایمیل تماس"
+                    prepend-icon="mdi-email"
+                    type="email"
                     variant="outlined"
                     density="comfortable"
-                    hint="رنگ دوم برای زیباتر شدن صفحه (اختیاری)"
-                  ></v-text-field>
-                </v-col>
-
-                <!-- Slogan -->
-                <v-col cols="12">
-                  <v-text-field
-                    v-model="formData.slogan"
-                    label="شعار یا جمله معرفی کوتاه"
-                    prepend-icon="mdi-text-short"
-                    variant="outlined"
-                    density="comfortable"
-                    placeholder="مثال: بهترین تولیدکننده ماشین‌آلات صنعتی"
-                    hint="یک جمله کوتاه که معرفی کننده شماست (حداکثر 200 حرف)"
-                    counter="200"
-                    :rules="[v => !v || v.length <= 200 || 'حداکثر 200 کاراکتر']"
-                  ></v-text-field>
+                    placeholder="info@example.com"
+                    :rules="emailRules"
+                  >
+                    <template #prepend>
+                      <v-icon color="primary" size="24">mdi-email</v-icon>
+                    </template>
+                  </v-text-field>
                 </v-col>
               </v-row>
             </v-card-text>
           </v-card>
 
-          <!-- Company Information -->
-          <v-card class="mb-4" elevation="1">
-            <v-card-title class="text-subtitle-1 font-weight-bold bg-grey-lighten-4">
-              <v-icon size="small" class="me-2">mdi-domain</v-icon>
-              اطلاعات فروشگاه و تماس
+          <!-- SECTION 4: Company Details -->
+          <v-card class="mb-8" elevation="1" rounded="lg" outlined>
+            <v-card-title class="text-h6 font-weight-bold pa-5 bg-green-lighten-5">
+              <v-icon size="28" class="me-3">mdi-information</v-icon>
+              اطلاعات شرکت
             </v-card-title>
-            <v-card-text>
-              <div class="text-body-2 text-medium-emphasis mb-4">
-                اطلاعات اصلی فروشگاه خود را در این بخش وارد کنید. این اطلاعات در صفحه فروشگاه شما نمایش داده می‌شود.
+            <v-card-text class="pa-6">
+              <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
+                اطلاعات تاریخی و سازمانی درباره شرکت
               </div>
+
               <v-row>
-                <v-col cols="12">
-                  <v-text-field
-                    v-model="formData.store_name"
-                    label="نام فروشگاه *"
-                    prepend-icon="mdi-store"
-                    variant="outlined"
-                    density="comfortable"
-                    hint="نام فروشگاه یا شرکت شما (این فیلد اجباری است)"
-                    :rules="[v => !!v || 'لطفاً نام فروشگاه را وارد کنید']"
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-textarea
-                    v-model="formData.description"
-                    label="توضیحات فروشگاه"
-                    prepend-icon="mdi-text"
-                    rows="4"
-                    variant="outlined"
-                    density="comfortable"
-                    hint="در مورد فروشگاه، محصولات و خدمات خود توضیح دهید. این متن در صفحه فروشگاه شما نمایش داده می‌شود."
-                    placeholder="مثال: ما یک شرکت تولیدی با بیش از 20 سال سابقه در زمینه تولید ماشین‌آلات صنعتی هستیم..."
-                  ></v-textarea>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="formData.contact_email"
-                    label="ایمیل تماس"
-                    prepend-icon="mdi-email-outline"
-                    type="email"
-                    variant="outlined"
-                    density="comfortable"
-                    hint="ایمیلی که مشتریان می‌توانند با شما تماس بگیرند"
-                    placeholder="info@example.com"
-                    :rules="emailRules"
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="formData.contact_phone"
-                    label="شماره تماس"
-                    prepend-icon="mdi-phone-outline"
-                    variant="outlined"
-                    density="comfortable"
-                    hint="شماره تلفن یا موبایل برای تماس مشتریان"
-                    placeholder="09123456789"
-                    :rules="phoneRules"
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-text-field
-                    v-model="formData.website"
-                    label="آدرس وب‌سایت (در صورت داشتن)"
-                    prepend-icon="mdi-web"
-                    variant="outlined"
-                    density="comfortable"
-                    placeholder="https://example.com"
-                    hint="اگر وب‌سایت جداگانه‌ای دارید، آدرس آن را اینجا وارد کنید (اختیاری)"
-                    :rules="urlRules"
-                  ></v-text-field>
-                </v-col>
                 <v-col cols="12" md="6">
                   <v-select
                     v-model="formData.year_established"
@@ -196,19 +274,13 @@
                     prepend-icon="mdi-calendar"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="سال را انتخاب کنید"
-                    hint="سال شروع فعالیت شرکت یا فروشگاه (تقویم شمسی)"
-                    :rules="yearRules"
+                    hint="سال شروع کسب‌وکار"
                     clearable
                     item-title="label"
                     item-value="value"
                   >
-                    <template #item="{ props, item }">
-                      <v-list-item v-bind="props" :title="item.raw.label">
-                        <template #prepend>
-                          <v-icon>mdi-calendar</v-icon>
-                        </template>
-                      </v-list-item>
+                    <template #prepend>
+                      <v-icon color="primary" size="24">mdi-calendar</v-icon>
                     </template>
                   </v-select>
                 </v-col>
@@ -221,59 +293,68 @@
                     type="number"
                     variant="outlined"
                     density="comfortable"
-                    :min="1"
                     placeholder="مثال: 50"
-                    hint="تعداد کارمندان شرکت (اختیاری)"
+                    :min="1"
                     :rules="employeeCountRules"
-                  ></v-text-field>
+                  >
+                    <template #prepend>
+                      <v-icon color="primary" size="24">mdi-account-group</v-icon>
+                    </template>
+                  </v-text-field>
                 </v-col>
 
                 <v-col cols="12">
                   <v-text-field
-                    v-model="formData.video_url"
-                    label="لینک ویدیو معرفی (در صورت داشتن)"
-                    prepend-icon="mdi-video"
+                    v-model="formData.website"
+                    label="آدرس وب‌سایت (اختیاری)"
+                    prepend-icon="mdi-web"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="لینک ویدیو از یوتیوب یا آپارات"
-                    hint="اگر ویدیوی معرفی شرکت دارید، لینک آن را اینجا وارد کنید (اختیاری)"
-                    :rules="videoUrlRules"
-                  ></v-text-field>
+                    placeholder="example.com"
+                    :rules="urlRules"
+                  >
+                    <template #prepend>
+                      <v-icon color="primary" size="24">mdi-web</v-icon>
+                    </template>
+                  </v-text-field>
                 </v-col>
               </v-row>
             </v-card-text>
           </v-card>
 
-          <!-- Certifications & Awards -->
-          <v-card class="mb-4" elevation="1">
-            <v-card-title class="text-subtitle-1 font-weight-bold bg-grey-lighten-4">
-              <v-icon size="small" class="me-2">mdi-certificate</v-icon>
+          <!-- SECTION 5: Certifications & Awards (Simplified) -->
+          <v-card class="mb-8" elevation="1" rounded="lg" outlined>
+            <v-card-title class="text-h6 font-weight-bold pa-5 bg-green-lighten-5">
+              <v-icon size="28" class="me-3">mdi-trophy</v-icon>
               گواهینامه‌ها و جوایز
             </v-card-title>
-            <v-card-text>
-              <div class="text-body-2 text-medium-emphasis mb-4">
-                اگر گواهینامه یا جایزه‌ای دارید، می‌توانید آن‌ها را در این بخش اضافه کنید. این کار به اعتماد بیشتر مشتریان کمک می‌کند.
+            <v-card-text class="pa-6">
+              <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
+                گواهینامه‌ها و جوایز خود را معرفی کنید تا مشتریان اعتماد بیشتری پیدا کنند
               </div>
+
               <!-- Certifications -->
-              <div class="mb-4">
-                <div class="d-flex align-center justify-space-between mb-2">
-                  <div class="text-subtitle-2 font-weight-bold">گواهینامه‌ها</div>
+              <div class="mb-8">
+                <div class="d-flex align-center justify-space-between mb-4">
+                  <div class="text-subtitle-1 font-weight-bold">گواهینامه‌ها</div>
                   <v-btn
                     size="small"
                     color="primary"
                     prepend-icon="mdi-plus"
                     @click="addCertification"
+                    variant="outlined"
                   >
-                    افزودن گواهینامه جدید
+                    افزودن
                   </v-btn>
                 </div>
                 <v-card
                   v-for="(cert, index) in certifications"
-                  :key="index"
-                  class="mb-2"
+                  :key="`cert-${index}`"
+                  class="mb-3"
                   variant="outlined"
+                  rounded="lg"
                 >
-                  <v-card-text class="pa-3">
+                  <v-card-text class="pa-4">
                     <v-row dense>
                       <v-col cols="12" md="5">
                         <v-text-field
@@ -288,7 +369,7 @@
                       <v-col cols="12" md="4">
                         <v-text-field
                           v-model="cert.issuer"
-                          label="صادرکننده"
+                          label="سازمان صادرکننده"
                           density="compact"
                           variant="outlined"
                           placeholder="مثال: سازمان استاندارد"
@@ -298,16 +379,16 @@
                       <v-col cols="12" md="2">
                         <v-text-field
                           v-model="cert.date"
-                          label="تاریخ"
+                          label="سال"
                           density="compact"
                           variant="outlined"
                           placeholder="1400"
                           hide-details
                         ></v-text-field>
                       </v-col>
-                      <v-col cols="12" md="1" class="d-flex align-center">
+                      <v-col cols="12" md="1" class="d-flex align-center justify-center">
                         <v-btn
-                          icon="mdi-delete"
+                          icon="mdi-trash-can"
                           size="small"
                           color="error"
                           variant="text"
@@ -321,24 +402,26 @@
 
               <!-- Awards -->
               <div>
-                <div class="d-flex align-center justify-space-between mb-2">
-                  <div class="text-subtitle-2 font-weight-bold">جوایز و افتخارات</div>
+                <div class="d-flex align-center justify-space-between mb-4">
+                  <div class="text-subtitle-1 font-weight-bold">جوایز</div>
                   <v-btn
                     size="small"
                     color="primary"
                     prepend-icon="mdi-plus"
                     @click="addAward"
+                    variant="outlined"
                   >
-                    افزودن جایزه جدید
+                    افزودن
                   </v-btn>
                 </div>
                 <v-card
                   v-for="(award, index) in awards"
-                  :key="index"
-                  class="mb-2"
+                  :key="`award-${index}`"
+                  class="mb-3"
                   variant="outlined"
+                  rounded="lg"
                 >
-                  <v-card-text class="pa-3">
+                  <v-card-text class="pa-4">
                     <v-row dense>
                       <v-col cols="12" md="4">
                         <v-text-field
@@ -346,7 +429,7 @@
                           label="عنوان جایزه"
                           density="compact"
                           variant="outlined"
-                          placeholder="مثال: برترین تولیدکننده سال"
+                          placeholder="مثال: برترین تولیدکننده"
                           hide-details
                         ></v-text-field>
                       </v-col>
@@ -373,16 +456,15 @@
                       <v-col cols="12" md="2">
                         <v-text-field
                           v-model="award.description"
-                          label="توضیحات"
+                          label="توضیح"
                           density="compact"
                           variant="outlined"
-                          placeholder="توضیح کوتاه"
                           hide-details
                         ></v-text-field>
                       </v-col>
-                      <v-col cols="12" md="1" class="d-flex align-center">
+                      <v-col cols="12" md="1" class="d-flex align-center justify-center">
                         <v-btn
-                          icon="mdi-delete"
+                          icon="mdi-trash-can"
                           size="small"
                           color="error"
                           variant="text"
@@ -396,159 +478,189 @@
             </v-card-text>
           </v-card>
 
-          <!-- Social Media -->
-          <v-card class="mb-4" elevation="1">
-            <v-card-title class="text-subtitle-2 font-weight-bold bg-grey-lighten-4">
-              <v-icon size="small" class="me-2">mdi-share-variant</v-icon>
-              صفحات شبکه‌های اجتماعی
+          <!-- SECTION 6: Social Media (Simplified) -->
+          <v-card class="mb-8" elevation="1" rounded="lg" outlined>
+            <v-card-title class="text-h6 font-weight-bold pa-5 bg-green-lighten-5">
+              <v-icon size="28" class="me-3">mdi-share-variant</v-icon>
+              شبکه‌های اجتماعی
             </v-card-title>
-            <v-card-text>
-              <div class="text-body-2 text-medium-emphasis mb-4">
-                اگر در شبکه‌های اجتماعی صفحه‌ای دارید، آدرس آن‌ها را اینجا وارد کنید. مشتریان می‌توانند از این طریق با شما در ارتباط باشند. (همه فیلدها اختیاری هستند)
+            <v-card-text class="pa-6">
+              <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
+                صفحه‌های خود را در شبکه‌های اجتماعی معرفی کنید (همه اختیاری هستند)
               </div>
+
               <v-row>
                 <v-col cols="12" md="6">
                   <v-text-field
-                    v-model="socialMedia.linkedin"
-                    label="لینکدین (در صورت داشتن)"
-                    prepend-icon="mdi-linkedin"
-                    variant="outlined"
-                    density="comfortable"
-                    placeholder="https://linkedin.com/company/..."
-                    hint="آدرس صفحه لینکدین شرکت"
-                    :rules="socialMediaUrlRules"
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
                     v-model="socialMedia.instagram"
-                    label="اینستاگرام (در صورت داشتن)"
+                    label="اینستاگرام"
                     prepend-icon="mdi-instagram"
                     variant="outlined"
                     density="comfortable"
                     placeholder="https://instagram.com/..."
-                    hint="آدرس صفحه اینستاگرام"
-                    :rules="socialMediaUrlRules"
-                  ></v-text-field>
+                  >
+                    <template #prepend>
+                      <v-icon color="primary" size="24">mdi-instagram</v-icon>
+                    </template>
+                  </v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
                   <v-text-field
                     v-model="socialMedia.telegram"
-                    label="تلگرام (در صورت داشتن)"
+                    label="تلگرام"
                     prepend-icon="mdi-telegram"
                     variant="outlined"
                     density="comfortable"
                     placeholder="https://t.me/..."
-                    hint="آدرس کانال یا گروه تلگرام"
-                    :rules="socialMediaUrlRules"
-                  ></v-text-field>
+                  >
+                    <template #prepend>
+                      <v-icon color="primary" size="24">mdi-telegram</v-icon>
+                    </template>
+                  </v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
                   <v-text-field
                     v-model="socialMedia.whatsapp"
-                    label="واتساپ (در صورت داشتن)"
+                    label="واتساپ"
                     prepend-icon="mdi-whatsapp"
                     variant="outlined"
                     density="comfortable"
                     placeholder="https://wa.me/..."
-                    hint="لینک واتساپ برای تماس مستقیم"
-                    :rules="socialMediaUrlRules"
-                  ></v-text-field>
+                  >
+                    <template #prepend>
+                      <v-icon color="primary" size="24">mdi-whatsapp</v-icon>
+                    </template>
+                  </v-text-field>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="socialMedia.linkedin"
+                    label="لینکدین"
+                    prepend-icon="mdi-linkedin"
+                    variant="outlined"
+                    density="comfortable"
+                    placeholder="https://linkedin.com/..."
+                  >
+                    <template #prepend>
+                      <v-icon color="primary" size="24">mdi-linkedin</v-icon>
+                    </template>
+                  </v-text-field>
                 </v-col>
               </v-row>
             </v-card-text>
           </v-card>
 
-          <!-- SEO Settings -->
-          <v-card class="mb-4" elevation="1">
-            <v-card-title class="text-subtitle-1 font-weight-bold bg-grey-lighten-4">
-              <v-icon size="small" class="me-2">mdi-search-web</v-icon>
-              تنظیمات نمایش در گوگل
-            </v-card-title>
-            <v-card-text>
-              <div class="text-body-2 text-medium-emphasis mb-4">
-                وقتی کسی در گوگل شما را جستجو می‌کند، چه عنوان و توضیحی نمایش داده شود؟ این بخش برای بهتر پیدا شدن شما در گوگل است. (اختیاری - اگر خالی بگذارید، از نام و توضیحات فروشگاه استفاده می‌شود)
-              </div>
-              <v-row>
-                <v-col cols="12">
-                  <v-text-field
-                    v-model="formData.meta_title"
-                    label="عنوان نمایش در گوگل"
-                    prepend-icon="mdi-format-title"
-                    variant="outlined"
-                    density="comfortable"
-                    counter="60"
-                    hint="عنوانی که در نتایج جستجوی گوگل نمایش داده می‌شود (حداکثر 60 حرف)"
-                    placeholder="مثال: فروشگاه آنلاین ماشین‌آلات صنعتی"
-                    :rules="[v => !v || v.length <= 60 || 'حداکثر 60 کاراکتر']"
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-textarea
-                    v-model="formData.meta_description"
-                    label="توضیحات نمایش در گوگل"
-                    prepend-icon="mdi-text"
-                    variant="outlined"
-                    rows="3"
-                    counter="160"
-                    hint="توضیح کوتاهی که زیر عنوان در نتایج گوگل نمایش داده می‌شود (حداکثر 160 حرف)"
-                    placeholder="مثال: فروشگاه آنلاین انواع ماشین‌آلات صنعتی با بهترین قیمت و کیفیت..."
-                    :rules="[v => !v || v.length <= 160 || 'حداکثر 160 کاراکتر']"
-                  ></v-textarea>
-                </v-col>
-              </v-row>
-            </v-card-text>
-          </v-card>
+          <!-- SECTION 7: SEO (Optional - Collapsed) -->
+          <v-expansion-panels>
+            <v-expansion-panel rounded="lg" elevation="1">
+              <template #title>
+                <v-icon size="24" class="me-3" color="primary">mdi-search-web</v-icon>
+                <span class="text-subtitle-1 font-weight-bold">تنظیمات نمایش در گوگل (اختیاری)</span>
+              </template>
+
+              <v-card-text class="pa-6">
+                <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
+                  وقتی کسی شما را در گوگل جستجو می‌کند، چه نمایش داده شود؟
+                </div>
+
+                <v-row>
+                  <v-col cols="12">
+                    <v-text-field
+                      v-model="formData.meta_title"
+                      label="عنوان نمایش در گوگل"
+                      variant="outlined"
+                      density="comfortable"
+                      counter="60"
+                      hint="عنوانی کوتاه برای جستجو"
+                      placeholder="فروشگاه آنلاین ماشین‌آلات"
+                      :rules="[v => !v || v.length <= 60 || 'حداکثر 60 حرف']"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-textarea
+                      v-model="formData.meta_description"
+                      label="توضیح نمایش در گوگل"
+                      variant="outlined"
+                      rows="3"
+                      counter="160"
+                      hint="توضیح کوتاه برای نتایج جستجو"
+                      placeholder="فروشگاه آنلاین انواع ماشین‌آلات..."
+                      :rules="[v => !v || v.length <= 160 || 'حداکثر 160 حرف']"
+                    ></v-textarea>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-expansion-panel>
+          </v-expansion-panels>
         </v-form>
       </v-card-text>
 
-      <v-card-actions class="px-4 pb-4">
+      <!-- Action Buttons - Large and Clear -->
+      <v-card-actions class="pa-6 gap-3 flex-wrap">
         <v-btn
           color="primary"
-          size="large"
+          size="x-large"
           prepend-icon="mdi-content-save"
           :loading="saving"
           :disabled="!formValid"
           @click="saveSettings"
+          class="flex-grow-1"
+          min-width="200"
         >
           ذخیره همه تغییرات
         </v-btn>
+
         <v-btn
           color="secondary"
-          size="large"
+          size="x-large"
           variant="outlined"
           prepend-icon="mdi-eye"
-          :disabled="!supplierId || loadingSettings"
+          :disabled="!supplierId"
           :loading="loadingSettings"
           @click="previewWebsite"
+          class="flex-grow-1"
+          min-width="200"
         >
-          مشاهده صفحه فروشگاه
+          دیدن صفحه فروشگاه
         </v-btn>
-        <ClientOnly>
-          <v-btn
-            v-if="supplierId"
-            icon="mdi-content-copy"
-            size="small"
-            variant="text"
-            @click="copyPreviewUrl"
-            class="ms-2"
-          >
-            <v-tooltip activator="parent" location="top">کپی آدرس صفحه</v-tooltip>
-          </v-btn>
-        </ClientOnly>
-        <v-spacer></v-spacer>
+
         <v-btn
+          color="error"
+          size="large"
           variant="text"
+          prepend-icon="mdi-refresh"
           @click="resetForm"
+          class="ms-auto"
         >
-          بازگشت به تنظیمات قبلی
+          بازگشت
         </v-btn>
       </v-card-actions>
     </v-card>
 
+    <!-- Preview URL Info Card -->
+    <v-card v-if="supplierId" class="mt-6" elevation="1" rounded="lg" outlined>
+      <v-card-text class="pa-6 d-flex align-center gap-4">
+        <v-icon size="32" color="primary">mdi-link</v-icon>
+        <div class="flex-grow-1">
+          <div class="text-body-2 text-medium-emphasis mb-2">آدرس صفحه فروشگاه شما:</div>
+          <div class="text-body-1 font-weight-bold text-primary">{{ fullPreviewUrl }}</div>
+        </div>
+        <v-btn
+          icon="mdi-content-copy"
+          size="large"
+          color="primary"
+          variant="outlined"
+          @click="copyPreviewUrl"
+        >
+          <v-icon>mdi-content-copy</v-icon>
+          <v-tooltip activator="parent" location="top">کپی کردن آدرس</v-tooltip>
+        </v-btn>
+      </v-card-text>
+    </v-card>
+
     <!-- Success Snackbar -->
-    <v-snackbar v-model="snackbar" :color="snackbarColor" :timeout="3000" location="top">
-      {{ snackbarMessage }}
+    <v-snackbar v-model="snackbar" :color="snackbarColor" :timeout="4000" location="top">
+      <div class="text-body-1">{{ snackbarMessage }}</div>
     </v-snackbar>
   </div>
 </template>
@@ -559,12 +671,12 @@ import { useAuthStore } from '~/stores/auth'
 import { useSupplierApi } from '~/composables/useSupplierApi'
 import { useGamificationStore } from '~/stores/gamification'
 import FormQualityScore from '~/components/gamification/FormQualityScore.vue'
-import { toJalaali } from 'jalaali-js'
 
 const authStore = useAuthStore()
 const supplierApi = useSupplierApi()
 const gamificationStore = useGamificationStore()
 
+// State management
 const formRef = ref()
 const formValid = ref(false)
 const saving = ref(false)
@@ -579,16 +691,17 @@ const previewBanner = ref<string>('')
 const isMounted = ref(false)
 const hasLoadedData = ref(false)
 
+// Form data - simplified and organized
 const formData = ref({
   store_name: '',
   description: '',
   contact_email: '',
   contact_phone: '',
   website: '',
-  brand_color_primary: '#1976D2',
-  brand_color_secondary: '#424242',
+  brand_color_primary: '#4CAF50',
+  brand_color_secondary: '#388E3C',
   slogan: '',
-  year_established: 1405 as number | null,
+  year_established: null as number | null,
   employee_count: null as number | null,
   video_url: '',
   meta_title: '',
@@ -603,14 +716,16 @@ const socialMedia = ref({
   telegram: '',
   whatsapp: ''
 })
-const socialLinksCount = computed(() => Object.values(socialMedia.value).filter(Boolean).length)
 
-// Persian year picker - generate years from 1200 to 1405
+// Computed properties
+const socialLinksCount = computed(() => 
+  Object.values(socialMedia.value).filter(Boolean).length
+)
+
 const persianYears = computed(() => {
-  // Generate years from 1200 to 1405
   const years: Array<{ label: string; value: number }> = []
-  const startYear = 1200
   const endYear = 1405
+  const startYear = 1250
   
   for (let year = endYear; year >= startYear; year--) {
     years.push({
@@ -618,199 +733,138 @@ const persianYears = computed(() => {
       value: year
     })
   }
-  
   return years
 })
 
-// Validation rules
+// Validation Rules - Simplified
+const descriptionRules = [
+  (v: string) => !!v || 'لطفاً توضیحات را وارد کنید',
+  (v: string) => (v && v.length >= 50) || 'حداقل 50 حرف لازم است'
+]
+
 const emailRules = [
   (value: string) => {
-    if (!value) return true // Optional field
+    if (!value) return true
     const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return pattern.test(value) || 'ایمیل معتبر نیست (مثال: info@example.com)'
+    return pattern.test(value) || 'ایمیل معتبر نیست'
   }
 ]
 
 const phoneRules = [
   (value: string) => {
-    if (!value) return true // Optional field
-    // Remove spaces, dashes, and parentheses for validation
-    const cleaned = value?.replace(/[\s\-()]/g, '') || ''
-    // Check if it starts with a valid Iranian mobile prefix
-    // Accept: 09XXXXXXXXX, +98XXXXXXXXXX, 0098XXXXXXXXXX, 98XXXXXXXXXX, 9XXXXXXXXX
+    if (!value) return true
+    const cleaned = value.replace(/[\s\-()]/g, '')
     const mobileRegex = /^(\+98|0098|98|0)?9\d{9}$/
-    if (!mobileRegex.test(cleaned)) {
-      return 'شماره تماس معتبر نیست. لطفاً شماره را صحیح وارد کنید (مثال: 09123456789)'
-    }
-    // Check minimum length (should be at least 10 digits after cleaning)
-    const digitsOnly = cleaned.replace(/\D/g, '')
-    if (digitsOnly.length < 10 || digitsOnly.length > 13) {
-      return 'شماره تماس باید ۱۱ رقم باشد (مثال: 09123456789)'
-    }
-    return true
+    return mobileRegex.test(cleaned) || 'شماره معتبر نیست'
   }
 ]
 
 const urlRules = [
   (value: string) => {
-    if (!value) return true // Optional field
-    try {
-      // Allow URLs with or without protocol (we'll add https:// automatically if missing)
-      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
-      if (!urlPattern.test(value)) {
-        return 'آدرس معتبر نیست (مثال: example.com یا https://example.com)'
-      }
-      return true
-    } catch {
-      return 'آدرس معتبر نیست'
-    }
-  }
-]
-
-const videoUrlRules = [
-  (value: string) => {
-    if (!value) return true // Optional field
-    // Check for YouTube, Aparat, or general URL format (with or without protocol)
-    const youtubePattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/
-    const aparatPattern = /^(https?:\/\/)?(www\.)?aparat\.com\/.+/
-    const generalUrlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
-    
-    if (youtubePattern.test(value) || aparatPattern.test(value) || generalUrlPattern.test(value)) {
-      return true
-    }
-    return 'لینک ویدیو معتبر نیست. لطفاً لینک یوتیوب یا آپارات وارد کنید (مثال: youtube.com/watch?v=... یا aparat.com/v/...)'
+    if (!value) return true
+    const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
+    return urlPattern.test(value) || 'آدرس معتبر نیست'
   }
 ]
 
 const yearRules = [
   (value: number | null) => {
-    if (!value) return true // Optional field
-    
-    if (value < 1200 || value > 1405) {
-      return 'سال باید بین ۱۲۰۰ و ۱۴۰۵ باشد'
-    }
-    return true
+    if (!value) return true
+    return (value >= 1250 && value <= 1405) || 'سال نامعتبر'
   }
 ]
 
 const employeeCountRules = [
   (value: number | null) => {
-    if (!value) return true // Optional field
-    if (value < 1) {
-      return 'تعداد کارمندان باید حداقل ۱ باشد'
-    }
-    if (value > 1000000) {
-      return 'تعداد کارمندان معتبر نیست'
-    }
-    return true
+    if (!value) return true
+    return (value >= 1 && value <= 100000) || 'تعداد نامعتبر'
   }
 ]
 
-const socialMediaUrlRules = [
-  (value: string) => {
-    if (!value) return true // Optional field
-    try {
-      // Allow URLs with or without protocol (we'll add https:// automatically if missing)
-      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
-      if (!urlPattern.test(value)) {
-        return 'آدرس معتبر نیست (مثال: instagram.com/username یا https://instagram.com/username)'
-      }
-      return true
-    } catch {
-      return 'آدرس معتبر نیست'
-    }
-  }
-]
-
+// Gamification Metrics
 const miniSiteMetrics = computed(() => [
   {
+    key: 'name',
+    label: 'نام فروشگاه',
+    tip: 'نام فروشگاه را وارد کنید',
+    weight: 0.15,
+    passed: Boolean(formData.value.store_name)
+  },
+  {
+    key: 'about',
+    label: 'توضیحات فروشگاه',
+    tip: 'درباره شرکت خود بنویسید',
+    weight: 0.15,
+    passed: Boolean(formData.value.description && formData.value.description.length >= 50)
+  },
+  {
     key: 'banner',
-    label: 'بنر و رنگ برند',
-    tip: 'یک تصویر عریض از خط تولید یا دستگاه شاخص انتخاب کنید.',
-    weight: 0.18,
+    label: 'تصویر صفحه',
+    tip: 'یک تصویر عریض انتخاب کنید',
+    weight: 0.15,
     passed: Boolean(previewBanner.value)
   },
   {
     key: 'colors',
-    label: 'رنگ برند',
-    tip: 'رنگ اصلی و دوم را مشخص کنید تا صفحه هماهنگ شود.',
-    weight: 0.1,
+    label: 'رنگ‌های برند',
+    tip: 'رنگ‌های مناسب انتخاب کنید',
+    weight: 0.10,
     passed: Boolean(formData.value.brand_color_primary && formData.value.brand_color_secondary)
-  },
-  {
-    key: 'slogan',
-    label: 'شعار کوتاه',
-    tip: 'شعاری ۱۰ تا ۲۰۰ کاراکتری درباره ارزش پیشنهادی خود بنویسید.',
-    weight: 0.08,
-    passed: Boolean(formData.value.slogan && formData.value.slogan.length >= 10)
-  },
-  {
-    key: 'about',
-    label: 'معرفی فروشگاه',
-    tip: 'حداقل ۲۰۰ کاراکتر درباره تجربه و خدمات خود توضیح دهید.',
-    weight: 0.12,
-    passed: Boolean(formData.value.description && formData.value.description.length >= 200)
   },
   {
     key: 'contact',
     label: 'راه‌های تماس',
-    tip: 'تلفن، واتساپ یا ایمیل پاسخگو را وارد کنید.',
-    weight: 0.1,
+    tip: 'تلفن یا ایمیل بگذارید',
+    weight: 0.15,
     passed: Boolean(formData.value.contact_phone || formData.value.contact_email)
   },
   {
-    key: 'media',
-    label: 'ویدیو یا وب‌سایت',
-    tip: 'ویدیو معرفی یا لینک وب‌سایت رسمی را اضافه کنید.',
-    weight: 0.07,
-    passed: Boolean(formData.value.video_url || formData.value.website)
-  },
-  {
     key: 'company',
-    label: 'سال تاسیس و تیم',
-    tip: 'سال شروع فعالیت و تعداد همکاران را بنویسید.',
-    weight: 0.05,
+    label: 'اطلاعات شرکت',
+    tip: 'سال تاسیس و تعداد کارمندان',
+    weight: 0.10,
     passed: Boolean(formData.value.year_established && formData.value.employee_count)
-  },
-  {
-    key: 'certs',
-    label: 'گواهینامه‌ها',
-    tip: 'گواهینامه‌هایی مانند ISO یا استاندارد ملی را ثبت کنید.',
-    weight: 0.12,
-    passed: certifications.value.length > 0
-  },
-  {
-    key: 'awards',
-    label: 'جوایز و تقدیرنامه',
-    tip: 'حداقل یک نمونه از موفقیت‌های خود را معرفی کنید.',
-    weight: 0.08,
-    passed: awards.value.length > 0
   },
   {
     key: 'social',
     label: 'شبکه‌های اجتماعی',
-    tip: 'حداقل دو لینک شبکه اجتماعی قرار دهید.',
-    weight: 0.1,
-    passed: socialLinksCount.value >= 2
+    tip: 'حداقل یک شبکه اجتماعی',
+    weight: 0.10,
+    passed: socialLinksCount.value >= 1
   },
   {
-    key: 'seo',
-    label: 'متای سئو',
-    tip: 'عنوان و توضیح متای صفحه را تکمیل کنید.',
-    weight: 0.1,
-    passed: Boolean(formData.value.meta_title && formData.value.meta_description)
+    key: 'certs',
+    label: 'گواهینامه‌ها',
+    tip: 'گواهینامه‌های خود را معرفی کنید',
+    weight: 0.10,
+    passed: certifications.value.length > 0
   }
 ])
 
 const miniSiteScore = computed(() => {
   const metrics = miniSiteMetrics.value
-  const totalWeight = metrics.reduce((sum, metric) => sum + metric.weight, 0) || 1
-  const earned = metrics.reduce((sum, metric) => sum + (metric.passed ? metric.weight : 0), 0)
+  const totalWeight = metrics.reduce((sum, m) => sum + m.weight, 0) || 1
+  const earned = metrics.reduce((sum, m) => sum + (m.passed ? m.weight : 0), 0)
   return Math.round((earned / totalWeight) * 100)
 })
 
-const miniSiteTips = computed(() => miniSiteMetrics.value.filter(metric => !metric.passed).map(metric => metric.tip))
+const miniSiteTips = computed(() => 
+  miniSiteMetrics.value.filter(m => !m.passed).map(m => m.tip)
+)
 
+const previewUrl = computed(() => 
+  supplierId.value ? `/suppliers/${supplierId.value}` : null
+)
+
+const fullPreviewUrl = computed(() => {
+  if (!previewUrl.value) return '#'
+  if (import.meta.client && typeof window !== 'undefined') {
+    return window.location.origin + previewUrl.value
+  }
+  return previewUrl.value
+})
+
+// Watch gamification score
 watch(miniSiteScore, (score) => {
   gamificationStore.updateLocalScore('miniWebsite', {
     title: 'miniWebsite',
@@ -820,6 +874,7 @@ watch(miniSiteScore, (score) => {
   })
 }, { immediate: true })
 
+// Methods
 const addCertification = () => {
   certifications.value.push({ title: '', issuer: '', date: '' })
 }
@@ -836,21 +891,9 @@ const removeAward = (index: number) => {
   awards.value.splice(index, 1)
 }
 
-const previewUrl = computed(() => {
-  return supplierId.value ? `/suppliers/${supplierId.value}` : null
-})
-
-const fullPreviewUrl = computed(() => {
-  if (!previewUrl.value) return '#'
-  if (import.meta.client && typeof window !== 'undefined') {
-    return window.location.origin + previewUrl.value
-  }
-  return previewUrl.value
-})
-
 const onBannerChange = (event: Event) => {
   const files = (event.target as HTMLInputElement).files
-  if (files && files[0]) {
+  if (files?.[0]) {
     const reader = new FileReader()
     reader.onload = (e) => {
       previewBanner.value = e.target?.result as string
@@ -864,86 +907,56 @@ const removeBanner = () => {
   previewBanner.value = ''
 }
 
+const normalizeUrl = (url: string | null | undefined): string | null => {
+  if (!url?.trim()) return null
+  const trimmed = url.trim()
+  if (trimmed.match(/^https?:\/\//i)) return trimmed
+  return `https://${trimmed}`
+}
+
 const loadCurrentSettings = async () => {
-  // Don't load if already loading
   if (loadingSettings.value) return
   
   loadingSettings.value = true
   try {
-    // Always fetch fresh user data to ensure we have complete vendor profile
-    // The login endpoint only returns minimal vendor_profile (id, store_name, logo)
-    // so we need to fetch from auth/me/ to get all fields
-    console.log('Loading settings - fetching fresh user data...')
-    let user = authStore.user
-    let vendorProfile: any = null
-    
-    // Always fetch current user to get complete vendor profile data
-    try {
-      const fetchedUser = await authStore.fetchCurrentUser()
-      user = fetchedUser || authStore.user
-      console.log('Fetched user data:', user)
-      
-      if (user?.vendor_profile) {
-        vendorProfile = user.vendor_profile
-        console.log('Vendor profile from fetched user:', vendorProfile)
-      } else if (authStore.vendorProfile) {
-        vendorProfile = authStore.vendorProfile
-        console.log('Vendor profile from authStore:', vendorProfile)
-      }
-    } catch (err) {
-      console.error('Error fetching current user:', err)
-      // Fallback to cached data if fetch fails
-      if (authStore.user?.vendor_profile) {
-        vendorProfile = authStore.user.vendor_profile
-      } else if (authStore.vendorProfile) {
-        vendorProfile = authStore.vendorProfile
+    let vendorProfile = authStore.user?.vendor_profile || authStore.vendorProfile
+
+    if (!vendorProfile?.id) {
+      try {
+        const fetchedUser = await authStore.fetchCurrentUser()
+        vendorProfile = fetchedUser?.vendor_profile
+      } catch (err) {
+        console.error('Error fetching user:', err)
       }
     }
-    
-    if (vendorProfile && vendorProfile.id) {
-      const profileId = vendorProfile.id
-      supplierId.value = profileId
+
+    if (vendorProfile?.id) {
+      supplierId.value = vendorProfile.id
       hasLoadedData.value = true
-      console.log('Vendor profile loaded, ID:', profileId, 'Store name:', vendorProfile.store_name)
-      console.log('Full vendor profile data:', JSON.stringify(vendorProfile, null, 2))
-      
+
       formData.value = {
         store_name: vendorProfile.store_name || '',
         description: vendorProfile.description || '',
         contact_email: vendorProfile.contact_email || '',
         contact_phone: vendorProfile.contact_phone || '',
         website: vendorProfile.website || '',
-        brand_color_primary: vendorProfile.brand_color_primary || '#1976D2',
-        brand_color_secondary: vendorProfile.brand_color_secondary || '#424242',
+        brand_color_primary: vendorProfile.brand_color_primary || '#4CAF50',
+        brand_color_secondary: vendorProfile.brand_color_secondary || '#388E3C',
         slogan: vendorProfile.slogan || '',
-        year_established: vendorProfile.year_established || 1405,
+        year_established: vendorProfile.year_established || null,
         employee_count: vendorProfile.employee_count || null,
         video_url: vendorProfile.video_url || '',
         meta_title: vendorProfile.meta_title || '',
         meta_description: vendorProfile.meta_description || ''
       }
 
-      if (vendorProfile.banner_image) {
-        // Handle both relative and absolute URLs
-        const bannerUrl = vendorProfile.banner_image
-        if (bannerUrl.startsWith('http://') || bannerUrl.startsWith('https://')) {
-          previewBanner.value = bannerUrl
-        } else {
-          // Assume it's a relative URL, prepend API base URL if needed
-          // For now, use as-is since the backend should return full URLs
-          previewBanner.value = bannerUrl
-        }
-        console.log('Banner image loaded:', previewBanner.value)
-      } else {
-        previewBanner.value = ''
-      }
-
+      previewBanner.value = vendorProfile.banner_image || ''
       certifications.value = Array.isArray(vendorProfile.certifications) 
         ? vendorProfile.certifications 
-        : (vendorProfile.certifications ? [vendorProfile.certifications] : [])
+        : []
       awards.value = Array.isArray(vendorProfile.awards) 
         ? vendorProfile.awards 
-        : (vendorProfile.awards ? [vendorProfile.awards] : [])
+        : []
       socialMedia.value = vendorProfile.social_media || {
         linkedin: '',
         instagram: '',
@@ -951,14 +964,13 @@ const loadCurrentSettings = async () => {
         whatsapp: ''
       }
     } else {
-      console.warn('No vendor profile found for user', { user, vendorProfile: authStore.vendorProfile })
-      snackbarMessage.value = 'پروفایل تامین‌کننده یافت نشد. لطفاً با پشتیبانی تماس بگیرید.'
+      snackbarMessage.value = 'پروفایل یافت نشد'
       snackbarColor.value = 'warning'
       snackbar.value = true
     }
   } catch (error) {
     console.error('Error loading settings:', error)
-    snackbarMessage.value = 'خطا در بارگذاری تنظیمات'
+    snackbarMessage.value = 'خطا در بارگذاری'
     snackbarColor.value = 'error'
     snackbar.value = true
   } finally {
@@ -966,38 +978,20 @@ const loadCurrentSettings = async () => {
   }
 }
 
-// Helper function to normalize URLs - add https:// if missing
-const normalizeUrl = (url: string | null | undefined): string | null => {
-  if (!url || !url.trim()) return null
-  const trimmed = url.trim()
-  // If it already has a protocol, return as is
-  if (trimmed.match(/^https?:\/\//i)) {
-    return trimmed
-  }
-  // Otherwise, add https://
-  return `https://${trimmed}`
-}
-
 const saveSettings = async () => {
   if (!formValid.value) return
-
   saving.value = true
 
   try {
-    // Normalize URLs before sending (Django URLField requires protocol)
     const normalizedSocialMedia: any = {}
     for (const [key, value] of Object.entries(socialMedia.value)) {
-      // Only include non-empty values, and normalize URLs
-      if (value && typeof value === 'string' && value.trim()) {
-        normalizedSocialMedia[key] = normalizeUrl(value)
-      } else {
-        normalizedSocialMedia[key] = null
-      }
+      normalizedSocialMedia[key] = value && typeof value === 'string' 
+        ? normalizeUrl(value) 
+        : null
     }
-    
+
     const updateData: any = {
       ...formData.value,
-      // Normalize website and video_url
       website: formData.value.website ? normalizeUrl(formData.value.website) : null,
       video_url: formData.value.video_url ? normalizeUrl(formData.value.video_url) : null,
       certifications: certifications.value.filter(c => c.title),
@@ -1005,99 +999,25 @@ const saveSettings = async () => {
       social_media: normalizedSocialMedia
     }
 
-    // Handle banner upload if changed
     if (bannerFile.value.length > 0) {
       updateData.banner_image = bannerFile.value[0]
     }
 
-    console.log('Saving settings with data:', updateData)
+    await supplierApi.updateSupplierProfile(updateData)
     
-    const response = await supplierApi.updateSupplierProfile(updateData)
-    console.log('Save response:', response)
-    
-    // Refresh user data to get updated vendor_profile
     try {
-      const updatedUser = await authStore.fetchCurrentUser()
-      console.log('User data refreshed after save:', updatedUser)
-      console.log('Vendor profile in refreshed user:', updatedUser?.vendor_profile || authStore.vendorProfile)
-      
-      // Reload settings to show updated data
-      await loadCurrentSettings()
+      await authStore.fetchCurrentUser()
     } catch (err) {
-      console.warn('Error refreshing user data:', err)
-      // Still try to reload settings even if fetchCurrentUser failed
-      await loadCurrentSettings()
+      console.warn('Error refreshing user:', err)
     }
-    
-    // Clear banner file after successful upload
-    bannerFile.value = []
 
-    snackbarMessage.value = 'همه تغییرات با موفقیت ذخیره شد'
+    bannerFile.value = []
+    snackbarMessage.value = 'تغییرات ذخیره شد'
     snackbarColor.value = 'success'
     snackbar.value = true
   } catch (error: any) {
-    console.error('Error saving settings:', error)
-    console.error('Error details:', {
-      message: error?.message,
-      response: error?.response,
-      data: error?.data,
-      status: error?.status
-    })
-    
-    // Try to get the actual error message from the response
-    let errorMessage = 'خطا در ذخیره تنظیمات'
-    if (error?.data) {
-      console.error('Error data:', error.data)
-      if (typeof error.data === 'string') {
-        errorMessage = error.data
-      } else if (error.data.error) {
-        errorMessage = error.data.error
-        // If there are validation errors, format them nicely
-        if (error.data.vendor_profile_errors) {
-          const errors = error.data.vendor_profile_errors
-          const errorList: string[] = []
-          
-          // Map field names to Persian labels
-          const fieldLabels: Record<string, string> = {
-            website: 'آدرس وب‌سایت',
-            video_url: 'لینک ویدیو',
-            contact_email: 'ایمیل تماس',
-            contact_phone: 'شماره تماس',
-            year_established: 'سال تاسیس',
-            employee_count: 'تعداد کارمندان',
-            store_name: 'نام فروشگاه',
-            description: 'توضیحات',
-            slogan: 'شعار',
-            meta_title: 'عنوان متا',
-            meta_description: 'توضیحات متا'
-          }
-          
-          for (const [field, messages] of Object.entries(errors)) {
-            const fieldLabel = fieldLabels[field] || field
-            const messageArray = Array.isArray(messages) ? messages : [messages]
-            messageArray.forEach((msg: string) => {
-              errorList.push(`${fieldLabel}: ${msg}`)
-            })
-          }
-          
-          if (errorList.length > 0) {
-            errorMessage = 'خطا در اعتبارسنجی:\n' + errorList.join('\n')
-          }
-        }
-      } else if (error.data.vendor_profile_errors) {
-        const errors = error.data.vendor_profile_errors
-        const errorList: string[] = []
-        for (const [field, messages] of Object.entries(errors)) {
-          const messageArray = Array.isArray(messages) ? messages : [messages]
-          errorList.push(`${field}: ${messageArray.join(', ')}`)
-        }
-        errorMessage = 'خطا در اعتبارسنجی:\n' + errorList.join('\n')
-      } else if (typeof error.data === 'object') {
-        errorMessage = JSON.stringify(error.data)
-      }
-    }
-    
-    snackbarMessage.value = errorMessage
+    console.error('Error saving:', error)
+    snackbarMessage.value = error?.data?.error || 'خطا در ذخیره‌سازی'
     snackbarColor.value = 'error'
     snackbar.value = true
   } finally {
@@ -1110,106 +1030,47 @@ const resetForm = () => {
 }
 
 const previewWebsite = async () => {
-  console.log('Preview clicked, supplierId:', supplierId.value, 'previewUrl:', previewUrl.value)
-  
   if (!supplierId.value) {
-    // Try to reload settings first
     await loadCurrentSettings()
-    if (!supplierId.value) {
-      snackbarMessage.value = 'لطفاً ابتدا اطلاعات را ذخیره کنید'
-      snackbarColor.value = 'warning'
-      snackbar.value = true
-      return
-    }
   }
-  
+
   if (previewUrl.value) {
-    try {
-      const fullUrl = window.location.origin + previewUrl.value
-      console.log('Opening preview URL:', fullUrl)
-      
-      // Try window.open first
-      const newWindow = window.open(fullUrl, '_blank', 'noopener,noreferrer')
-      
-      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-        // Popup blocked, try alternative method
-        console.warn('Popup blocked, trying alternative method')
-        // Create a temporary link and click it
-        const link = document.createElement('a')
-        link.href = fullUrl
-        link.target = '_blank'
-        link.rel = 'noopener noreferrer'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-      }
-    } catch (error) {
-      console.error('Error opening preview:', error)
-      snackbarMessage.value = 'نمی‌توانم صفحه را باز کنم. لطفاً آدرس را کپی کنید: ' + previewUrl.value
-      snackbarColor.value = 'error'
-      snackbar.value = true
-    }
-  } else {
-    snackbarMessage.value = 'لطفاً ابتدا اطلاعات را ذخیره کنید'
-    snackbarColor.value = 'warning'
-    snackbar.value = true
+    const fullUrl = window.location.origin + previewUrl.value
+    window.open(fullUrl, '_blank', 'noopener,noreferrer')
   }
 }
 
 const copyPreviewUrl = async () => {
   if (previewUrl.value) {
-    const fullUrl = window.location.origin + previewUrl.value
     try {
-      await navigator.clipboard.writeText(fullUrl)
-      snackbarMessage.value = 'آدرس صفحه کپی شد. می‌توانید آن را برای دیگران ارسال کنید.'
+      await navigator.clipboard.writeText(window.location.origin + previewUrl.value)
+      snackbarMessage.value = 'آدرس کپی شد'
       snackbarColor.value = 'success'
       snackbar.value = true
-    } catch (error) {
-      console.error('Error copying URL:', error)
-      snackbarMessage.value = 'خطا در کپی کردن لینک'
+    } catch {
+      snackbarMessage.value = 'خطا در کپی‌کردن'
       snackbarColor.value = 'error'
       snackbar.value = true
     }
   }
 }
 
-// Watch for vendor profile changes and reload settings
+// Lifecycle
 watch(() => authStore.vendorProfile, (newProfile) => {
-  if (newProfile && newProfile.id && isMounted.value) {
-    // Only reload if we don't have a supplierId or if the ID changed
-    if (!supplierId.value || supplierId.value !== newProfile.id) {
-      console.log('Vendor profile changed, reloading settings...', { oldId: supplierId.value, newId: newProfile.id })
-      hasLoadedData.value = false
-      loadCurrentSettings()
-    }
-  }
-}, { deep: true })
-
-// Watch for user changes
-watch(() => authStore.user, (newUser) => {
-  if (newUser && newUser.vendor_profile && isMounted.value) {
-    const profileId = newUser.vendor_profile?.id
-    if (profileId && (!supplierId.value || supplierId.value !== profileId)) {
-      console.log('User vendor profile changed, reloading settings...', { oldId: supplierId.value, newId: profileId })
-      hasLoadedData.value = false
-      loadCurrentSettings()
-    }
+  if (newProfile?.id && isMounted.value && !supplierId.value) {
+    loadCurrentSettings()
   }
 }, { deep: true })
 
 onMounted(async () => {
   isMounted.value = true
-  
-  // Wait for auth to be initialized
   if (authStore.token && !authStore.user) {
     try {
       await authStore.initializeAuth()
     } catch (err) {
-      console.warn('Error initializing auth:', err)
+      console.warn('Auth error:', err)
     }
   }
-  
-  // Load settings after a short delay to ensure auth is ready
   await nextTick()
   loadCurrentSettings()
 })
@@ -1217,8 +1078,41 @@ onMounted(async () => {
 
 <style scoped>
 .mini-website-settings {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
 }
-</style>
 
+/* Larger text inputs for older users */
+.text-input-large :deep(.v-field__input) {
+  font-size: 16px !important;
+  padding: 12px !important;
+}
+
+/* Color picker styling */
+.color-input {
+  max-width: 100px;
+}
+
+/* Line height for better readability */
+.line-height-lg {
+  line-height: 1.8;
+}
+
+/* Button spacing */
+.gap-3 {
+  gap: 12px;
+}
+
+.gap-4 {
+  gap: 16px;
+}
+
+/* Card hover effects - subtle */
+:deep(.v-card) {
+  transition: box-shadow 0.2s ease;
+}
+
+:deep(.v-card:hover) {
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
+}
+</style>

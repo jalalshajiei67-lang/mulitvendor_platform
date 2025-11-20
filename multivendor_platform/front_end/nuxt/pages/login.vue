@@ -7,7 +7,28 @@
             <v-toolbar-title class="text-h5">ورود به حساب کاربری</v-toolbar-title>
           </v-toolbar>
           <v-card-text class="pa-6">
-            <v-form ref="formRef" v-model="isValid" @submit.prevent="submit">
+            <!-- Login Method Toggle -->
+            <div class="d-flex justify-center mb-4">
+              <v-btn-toggle
+                v-model="loginMethod"
+                mandatory
+                variant="outlined"
+                density="compact"
+                rounded="lg"
+              >
+                <v-btn value="password">
+                  <v-icon class="ml-2">mdi-lock</v-icon>
+                  رمز عبور
+                </v-btn>
+                <v-btn value="otp">
+                  <v-icon class="ml-2">mdi-shield-check</v-icon>
+                  کد تأیید
+                </v-btn>
+              </v-btn-toggle>
+            </div>
+
+            <!-- Password Login Form -->
+            <v-form v-if="loginMethod === 'password'" ref="formRef" v-model="isValid" @submit.prevent="submit">
               <v-text-field
                 v-model="username"
                 label="نام کاربری"
@@ -40,6 +61,46 @@
                 class="mt-2"
               />
 
+              <!-- Forgot Password Link -->
+              <div class="text-left mt-2">
+                <NuxtLink to="/password-reset" class="text-primary text-body-2">
+                  <v-icon size="small" class="ml-1">mdi-lock-reset</v-icon>
+                  رمز عبور را فراموش کرده‌اید؟
+                </NuxtLink>
+              </div>
+            </v-form>
+
+            <!-- OTP Login Form -->
+            <div v-else>
+              <v-text-field
+                v-if="!showOtpVerification"
+                v-model="otpPhone"
+                label="شماره موبایل"
+                prepend-inner-icon="mdi-phone"
+                variant="outlined"
+                rounded="lg"
+                :rules="phoneRules"
+                :error="authError?.field === 'phone'"
+                :error-messages="authError?.field === 'phone' ? [authError.message] : []"
+                required
+                @input="clearError"
+                hint="شماره موبایل خود را وارد کنید (مثال: 09123456789)"
+                persistent-hint
+                class="mb-4"
+              />
+
+              <!-- OTP Verification Component -->
+              <div v-if="showOtpVerification">
+                <AuthOtpVerification
+                  :phone="otpPhone"
+                  purpose="login"
+                  @verified="handleOtpVerified"
+                  @error="handleOtpError"
+                  @resend="handleOtpResend"
+                />
+              </div>
+            </div>
+
               <!-- Enhanced Error Display -->
               <transition name="slide-fade">
                 <v-alert
@@ -63,6 +124,7 @@
                         size="small"
                         color="primary"
                         prepend-icon="mdi-lock-reset"
+                        @click="router.push('/password-reset')"
                       >
                         بازیابی رمز عبور
                       </v-btn>
@@ -81,10 +143,9 @@
                   </div>
                 </v-alert>
               </transition>
-            </v-form>
           </v-card-text>
 
-          <v-card-actions class="pa-6 pt-0">
+          <v-card-actions v-if="loginMethod === 'password'" class="pa-6 pt-0">
             <v-btn
               color="primary"
               block
@@ -96,6 +157,21 @@
             >
               <span v-if="!loading">ورود</span>
               <span v-else>در حال ورود...</span>
+            </v-btn>
+          </v-card-actions>
+
+          <v-card-actions v-else-if="!showOtpVerification" class="pa-6 pt-0">
+            <v-btn
+              color="primary"
+              block
+              size="large"
+              rounded="lg"
+              :loading="loading"
+              :disabled="!otpPhone || !isPhoneValid || loading"
+              @click="requestOtp"
+            >
+              <span v-if="!loading">ارسال کد تأیید</span>
+              <span v-else>در حال ارسال...</span>
             </v-btn>
           </v-card-actions>
 
@@ -144,24 +220,45 @@ const isValid = ref(false)
 const username = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const loginMethod = ref<'password' | 'otp'>('password')
+const otpPhone = ref('')
+const showOtpVerification = ref(false)
 const loading = computed(() => authStore.loading)
 const authError = computed(() => authStore.authError)
 
 const usernameRules = [
-  (value: string) => Boolean(value?.trim()) || 'نام کاربری الزامی است',
+  (value: string) => Boolean(value?.trim()) || 'لطفاً شماره موبایل خود را وارد کنید',
   (value: string) => {
     if (!value) return true
     const cleaned = value.replace(/[\s\-()]/g, '')
     if (cleaned.length < 10) {
-      return 'نام کاربری باید حداقل ۱۰ کاراکتر باشد'
+      return 'شماره موبایل باید حداقل ۱۰ رقم باشد. لطفاً شماره را کامل وارد کنید'
     }
     return true
   }
 ]
 const passwordRules = [
-  (value: string) => Boolean(value) || 'رمز عبور الزامی است',
-  (value: string) => (value?.length >= 6) || 'رمز عبور باید حداقل ۶ کاراکتر باشد'
+  (value: string) => Boolean(value) || 'لطفاً رمز عبور خود را وارد کنید',
+  (value: string) => (value?.length >= 6) || 'رمز عبور باید حداقل ۶ کاراکتر باشد. لطفاً رمز عبور خود را بررسی کنید'
 ]
+
+const phoneRules = [
+  (value: string) => Boolean(value?.trim()) || 'لطفاً شماره موبایل خود را وارد کنید',
+  (value: string) => {
+    if (!value) return true
+    const cleaned = value.replace(/[\s\-()]/g, '')
+    if (!/^09\d{9}$/.test(cleaned)) {
+      return 'شماره موبایل باید 11 رقم و با 09 شروع شود. مثال: 09123456789'
+    }
+    return true
+  }
+]
+
+const isPhoneValid = computed(() => {
+  if (!otpPhone.value) return false
+  const cleaned = otpPhone.value.replace(/[\s\-()]/g, '')
+  return /^09\d{9}$/.test(cleaned)
+})
 
 const clearError = () => {
   authStore.clearError()
@@ -202,6 +299,58 @@ const submit = async () => {
     // Error is already handled by the auth store
   }
 }
+
+const requestOtp = async () => {
+  if (!isPhoneValid.value) {
+    // Error will be shown by form validation
+    return
+  }
+
+  clearError()
+
+  try {
+    const response = await authStore.requestOtpLogin(otpPhone.value)
+    
+    // Always show OTP verification component on success
+    if (response && response.success !== false) {
+      showOtpVerification.value = true
+    }
+  } catch (err: any) {
+    // Error is already handled by the auth store
+    showOtpVerification.value = false
+  }
+}
+
+const handleOtpVerified = async (data: any) => {
+  if (data.token && data.user) {
+    const redirect = (route.query.redirect as string) || '/'
+    if (data.user.is_staff || data.user.is_superuser) {
+      return router.push('/admin/dashboard')
+    }
+    if (data.user.role === 'seller' || data.user.role === 'both') {
+      return router.push('/seller/dashboard')
+    }
+    if (data.user.role === 'buyer') {
+      return router.push(redirect)
+    }
+    router.push(redirect)
+  }
+}
+
+const handleOtpError = (message: string) => {
+  console.error('OTP verification error:', message)
+}
+
+const handleOtpResend = async () => {
+  await requestOtp()
+}
+
+// Reset OTP form when switching methods
+watch(loginMethod, () => {
+  showOtpVerification.value = false
+  otpPhone.value = ''
+  clearError()
+})
 </script>
 
 <style scoped>

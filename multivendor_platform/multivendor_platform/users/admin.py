@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     UserProfile, BuyerProfile, VendorProfile, Supplier, SellerAd, SellerAdImage, 
     ProductReview, SupplierComment, UserActivity, SupplierPortfolioItem, 
-    SupplierTeamMember, SupplierContactMessage
+    SupplierTeamMember, SupplierContactMessage, OTP
 )
 
 class UserProfileAdmin(admin.ModelAdmin):
@@ -268,6 +268,19 @@ class SupplierContactMessageAdmin(admin.ModelAdmin):
             'all': ('admin/css/force_action_button.css',)
         }
 
+class OTPAdmin(admin.ModelAdmin):
+    list_display = ['phone', 'user', 'purpose', 'is_used', 'attempts', 'expires_at', 'created_at']
+    list_filter = ['purpose', 'is_used', 'created_at', 'expires_at']
+    search_fields = ['phone', 'user__username', 'code']
+    readonly_fields = ['code', 'created_at', 'expires_at']
+    actions = ['delete_selected']
+    
+    class Media:
+        js = ('admin/js/fix_action_button.js',)
+        css = {
+            'all': ('admin/css/force_action_button.css',)
+        }
+
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(BuyerProfile, BuyerProfileAdmin)
 admin.site.register(VendorProfile, VendorProfileAdmin)
@@ -278,3 +291,4 @@ admin.site.register(UserActivity, UserActivityAdmin)
 admin.site.register(SupplierPortfolioItem, SupplierPortfolioItemAdmin)
 admin.site.register(SupplierTeamMember, SupplierTeamMemberAdmin)
 admin.site.register(SupplierContactMessage, SupplierContactMessageAdmin)
+admin.site.register(OTP, OTPAdmin)

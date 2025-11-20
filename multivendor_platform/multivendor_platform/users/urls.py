@@ -18,7 +18,8 @@ from .views import (
     admin_update_subcategory_view, admin_delete_subcategory_view,
     admin_blog_posts_view, admin_blog_categories_view,
     SupplierViewSet, SupplierCommentViewSet,
-    SupplierPortfolioItemViewSet, SupplierTeamMemberViewSet, SupplierContactMessageViewSet
+    SupplierPortfolioItemViewSet, SupplierTeamMemberViewSet, SupplierContactMessageViewSet,
+    otp_request_view, otp_verify_view, password_reset_view
 )
 
 router = DefaultRouter()
@@ -36,6 +37,11 @@ urlpatterns = [
     path('register/', register_view, name='register'),
     path('me/', current_user_view, name='current-user'),
     path('profile/update/', update_profile_view, name='update-profile'),
+    
+    # OTP Authentication
+    path('otp/request/', otp_request_view, name='otp-request'),
+    path('otp/verify/', otp_verify_view, name='otp-verify'),
+    path('password-reset/', password_reset_view, name='password-reset'),
     
     # Buyer Dashboard
     path('buyer/dashboard/', buyer_dashboard_view, name='buyer-dashboard'),

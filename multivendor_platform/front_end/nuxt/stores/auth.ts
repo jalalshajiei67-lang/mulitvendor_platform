@@ -220,6 +220,85 @@ export const useAuthStore = defineStore('auth', () => {
     authError.value = null
   }
 
+  // OTP Methods
+  const requestOtpLogin = async (phone: string) => {
+    loading.value = true
+    error.value = null
+    authError.value = null
+
+    try {
+      const { useOtpApi } = await import('~/composables/useOtpApi')
+      const otpApi = useOtpApi()
+      const response = await otpApi.requestOtp({
+        phone,
+        purpose: 'login'
+      })
+      return response
+    } catch (err: any) {
+      const handledError = handleAuthError(err)
+      authError.value = handledError
+      error.value = handledError.message
+      console.error('OTP request error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const verifyOtpLogin = async (phone: string, code: string) => {
+    loading.value = true
+    error.value = null
+    authError.value = null
+
+    try {
+      const { useOtpApi } = await import('~/composables/useOtpApi')
+      const otpApi = useOtpApi()
+      const response = await otpApi.verifyOtp({
+        phone,
+        code,
+        purpose: 'login'
+      })
+      
+      if (response.success && response.token && response.user) {
+        persistSession(response.token, response.user)
+      }
+      
+      return response
+    } catch (err: any) {
+      const handledError = handleAuthError(err)
+      authError.value = handledError
+      error.value = handledError.message
+      console.error('OTP verification error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const requestPasswordResetOtp = async (phone: string) => {
+    loading.value = true
+    error.value = null
+    authError.value = null
+
+    try {
+      const { useOtpApi } = await import('~/composables/useOtpApi')
+      const otpApi = useOtpApi()
+      const response = await otpApi.requestOtp({
+        phone,
+        purpose: 'password_reset'
+      })
+      return response
+    } catch (err: any) {
+      const handledError = handleAuthError(err)
+      authError.value = handledError
+      error.value = handledError.message
+      console.error('Password reset OTP request error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     token,
     user,
@@ -239,7 +318,10 @@ export const useAuthStore = defineStore('auth', () => {
     fetchCurrentUser,
     updateProfile,
     initializeAuth,
-    clearError
+    clearError,
+    requestOtpLogin,
+    verifyOtpLogin,
+    requestPasswordResetOtp
   }
 })
 

@@ -38,7 +38,7 @@
                 floating
               >
                 <v-img
-                  :src="formatImageUrl(item.image)"
+                  :src="getImageUrl(item.image) || ''"
                   height="200"
                   cover
                 >
@@ -49,7 +49,7 @@
               </v-badge>
               <v-img
                 v-else
-                :src="formatImageUrl(item.image)"
+                :src="getImageUrl(item.image) || ''"
                 height="200"
                 cover
               >
@@ -172,13 +172,12 @@
               </v-col>
 
               <v-col cols="12" md="6">
-                <v-text-field
+                <PersianDatePicker
                   v-model="formData.project_date"
                   label="تاریخ پروژه"
                   prepend-icon="mdi-calendar"
-                  type="date"
                   variant="outlined"
-                ></v-text-field>
+                />
               </v-col>
 
               <v-col cols="12" md="6">
@@ -202,27 +201,111 @@
               </v-col>
 
               <v-col cols="12">
-                <div class="mb-2 text-subtitle-2 font-weight-bold">تصویر پروژه *</div>
-                <div v-if="imagePreview" class="mb-3">
-                  <v-img :src="imagePreview" height="200" cover class="rounded">
-                    <v-btn
-                      icon="mdi-close"
-                      size="small"
-                      color="error"
-                      class="ma-2"
-                      @click="removeImage"
-                    ></v-btn>
-                  </v-img>
+                <div class="mb-2 text-subtitle-2 font-weight-bold">تصاویر پروژه *</div>
+                
+                <!-- Image Gallery Preview -->
+                <div v-if="imagePreviews.length > 0" class="mb-3">
+                  <v-row dense>
+                    <v-col
+                      v-for="(preview, index) in imagePreviews"
+                      :key="index"
+                      cols="6"
+                      sm="4"
+                      md="3"
+                    >
+                      <div class="image-preview-wrapper position-relative">
+                        <v-img
+                          :src="preview.url"
+                          height="150"
+                          cover
+                          class="rounded"
+                        >
+                          <template v-slot:placeholder>
+                            <v-skeleton-loader type="image" />
+                          </template>
+                        </v-img>
+                        <v-btn
+                          icon="mdi-close"
+                          size="small"
+                          color="error"
+                          variant="flat"
+                          class="remove-image-btn"
+                          @click="removeImageAtIndex(index)"
+                        ></v-btn>
+                        <v-chip
+                          v-if="index === 0"
+                          size="x-small"
+                          color="primary"
+                          class="primary-image-badge"
+                        >
+                          اصلی
+                        </v-chip>
+                      </div>
+                    </v-col>
+                  </v-row>
+                  <v-alert
+                    v-if="imagePreviews.length > 1"
+                    type="info"
+                    variant="tonal"
+                    density="compact"
+                    class="mt-2"
+                  >
+                    اولین تصویر به عنوان تصویر اصلی نمایش داده می‌شود
+                  </v-alert>
                 </div>
+
+                <!-- Existing Image Preview (when editing) -->
+                <div v-else-if="existingImagePreview" class="mb-3">
+                  <v-img
+                    :src="existingImagePreview"
+                    height="200"
+                    cover
+                    class="rounded"
+                  >
+                    <template v-slot:placeholder>
+                      <v-skeleton-loader type="image" />
+                    </template>
+                  </v-img>
+                  <v-btn
+                    icon="mdi-close"
+                    size="small"
+                    color="error"
+                    variant="flat"
+                    class="mt-2"
+                    @click="removeExistingImage"
+                  >
+                    حذف تصویر موجود
+                  </v-btn>
+                </div>
+
                 <v-file-input
                   v-model="imageFile"
-                  label="انتخاب تصویر"
-                  prepend-icon="mdi-camera"
+                  label="انتخاب تصاویر (می‌توانید چند تصویر انتخاب کنید)"
+                  prepend-icon="mdi-image-multiple"
                   accept="image/*"
                   variant="outlined"
-                  @change="onImageChange"
-                  :rules="[v => !!editingItem || !!imageFile.length || 'تصویر الزامی است']"
-                ></v-file-input>
+                  multiple
+                  chips
+                  show-size
+                  @update:model-value="onImageChange"
+                  :rules="imageValidationRules"
+                  hide-details="auto"
+                >
+                  <template v-slot:selection="{ fileNames }">
+                    <template v-for="(fileName, index) in fileNames" :key="fileName">
+                      <v-chip
+                        size="small"
+                        color="primary"
+                        class="me-2"
+                      >
+                        {{ fileName }}
+                      </v-chip>
+                    </template>
+                  </template>
+                </v-file-input>
+                <div class="text-caption text-medium-emphasis mt-1">
+                  می‌توانید حداکثر 10 تصویر انتخاب کنید
+                </div>
               </v-col>
             </v-row>
           </v-form>
@@ -259,11 +342,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useSupplierPortfolioApi, type SupplierPortfolioItem } from '~/composables/useSupplierPortfolioApi'
 import { formatImageUrl } from '~/utils/imageUtils'
+import PersianDatePicker from '~/components/common/PersianDatePicker.vue'
 
 const portfolioApi = useSupplierPortfolioApi()
+
+// Helper function to get image URL (handles both string and File types)
+const getImageUrl = (image: string | File | undefined): string | null => {
+  if (!image) return null
+  if (typeof image === 'string') {
+    return formatImageUrl(image)
+  }
+  // If it's a File, create object URL for preview
+  if (image instanceof File) {
+    return URL.createObjectURL(image)
+  }
+  return null
+}
 
 const items = ref<SupplierPortfolioItem[]>([])
 const loading = ref(false)
@@ -280,7 +377,9 @@ const snackbarColor = ref('success')
 const editingItem = ref<SupplierPortfolioItem | null>(null)
 const itemToDelete = ref<SupplierPortfolioItem | null>(null)
 const imageFile = ref<File[]>([])
-const imagePreview = ref<string>('')
+const imagePreviews = ref<Array<{ url: string; file: File }>>([])
+const existingImagePreview = ref<string>('')
+const isUpdatingImages = ref(false) // Flag to prevent recursive updates
 
 const formData = ref({
   title: '',
@@ -291,6 +390,25 @@ const formData = ref({
   sort_order: 0,
   is_featured: false
 })
+
+// Image validation rules
+const imageValidationRules = computed(() => [
+  (v: File[] | null) => {
+    // If editing, image is optional (can keep existing image)
+    if (editingItem.value && (existingImagePreview.value || imagePreviews.value.length > 0)) {
+      return true
+    }
+    // If creating new, at least one image is required
+    if (!v || !Array.isArray(v) || v.length === 0) {
+      return 'حداقل یک تصویر الزامی است'
+    }
+    // Check maximum number of images
+    if (v.length > 10) {
+      return 'حداکثر 10 تصویر می‌توانید انتخاب کنید'
+    }
+    return true
+  }
+])
 
 const loadItems = async () => {
   loading.value = true
@@ -316,8 +434,13 @@ const openForm = (item?: SupplierPortfolioItem) => {
       is_featured: item.is_featured || false
     }
     if (item.image) {
-      imagePreview.value = formatImageUrl(item.image)
+      const imageUrl = getImageUrl(item.image)
+      existingImagePreview.value = imageUrl || ''
+    } else {
+      existingImagePreview.value = ''
     }
+    imagePreviews.value = []
+    imageFile.value = []
   } else {
     editingItem.value = null
     formData.value = {
@@ -329,7 +452,8 @@ const openForm = (item?: SupplierPortfolioItem) => {
       sort_order: 0,
       is_featured: false
     }
-    imagePreview.value = ''
+    existingImagePreview.value = ''
+    imagePreviews.value = []
     imageFile.value = []
   }
   formDialog.value = true
@@ -338,26 +462,108 @@ const openForm = (item?: SupplierPortfolioItem) => {
 const closeForm = () => {
   formDialog.value = false
   editingItem.value = null
-  imagePreview.value = ''
+  existingImagePreview.value = ''
+  imagePreviews.value = []
   imageFile.value = []
+  // Clean up object URLs
+  imagePreviews.value.forEach(preview => {
+    if (preview.url.startsWith('blob:')) {
+      URL.revokeObjectURL(preview.url)
+    }
+  })
   formRef.value?.reset()
 }
 
-const onImageChange = (event: Event) => {
-  const files = (event.target as HTMLInputElement).files
-  if (files && files[0]) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      imagePreview.value = e.target?.result as string
+const onImageChange = async (files: File | File[] | null) => {
+  // Prevent recursive updates
+  if (isUpdatingImages.value) {
+    return
+  }
+
+  isUpdatingImages.value = true
+
+  try {
+    // Clean up previous preview URLs
+    imagePreviews.value.forEach(preview => {
+      if (preview.url.startsWith('blob:')) {
+        URL.revokeObjectURL(preview.url)
+      }
+    })
+
+    // Normalize to array
+    const fileArray = Array.isArray(files) ? files : files ? [files] : []
+    
+    // Limit to 10 images
+    const limitedFiles = fileArray.slice(0, 10)
+    
+    // Create previews for all selected images
+    imagePreviews.value = []
+    
+    for (const file of limitedFiles) {
+      if (file instanceof File) {
+        const url = URL.createObjectURL(file)
+        imagePreviews.value.push({ url, file })
+      }
     }
-    reader.readAsDataURL(files[0])
+
+    // Only update imageFile if it's different to prevent recursion
+    const currentFiles = imageFile.value
+    const filesChanged = 
+      currentFiles.length !== limitedFiles.length ||
+      currentFiles.some((file, index) => file !== limitedFiles[index])
+    
+    if (filesChanged) {
+      imageFile.value = limitedFiles
+    }
+
+    // Trigger validation after files are selected
+    await nextTick()
+    if (formRef.value) {
+      formRef.value.validate()
+    }
+  } finally {
+    isUpdatingImages.value = false
   }
 }
 
-const removeImage = () => {
-  imageFile.value = []
-  imagePreview.value = ''
+const removeImageAtIndex = async (index: number) => {
+  if (isUpdatingImages.value) {
+    return
+  }
+
+  isUpdatingImages.value = true
+
+  try {
+    // Clean up the object URL
+    if (imagePreviews.value[index]?.url.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreviews.value[index].url)
+    }
+    
+    // Remove from previews and files
+    imagePreviews.value.splice(index, 1)
+    imageFile.value.splice(index, 1)
+
+    // Trigger validation after removing image
+    await nextTick()
+    if (formRef.value) {
+      formRef.value.validate()
+    }
+  } finally {
+    isUpdatingImages.value = false
+  }
 }
+
+const removeExistingImage = async () => {
+  existingImagePreview.value = ''
+  // Trigger validation
+  await nextTick()
+  if (formRef.value) {
+    formRef.value.validate()
+  }
+}
+
+// Note: We don't need a watcher here because @update:model-value
+// on the v-file-input already calls onImageChange directly
 
 const saveItem = async () => {
   if (!formValid.value) return
@@ -369,9 +575,14 @@ const saveItem = async () => {
       ...formData.value
     }
 
-    if (imageFile.value.length > 0) {
+    // Use the first image as the main image (backend currently supports single image)
+    // If new images are selected, use the first one
+    // Otherwise, if editing and no new images, keep existing
+    if (imageFile.value && imageFile.value.length > 0) {
       data.image = imageFile.value[0]
     }
+    // Note: If we want to support multiple images in the future,
+    // we can send additional images as image_1, image_2, etc.
 
     if (editingItem.value) {
       await portfolioApi.updatePortfolioItem(editingItem.value.id!, data)
@@ -453,8 +664,42 @@ onMounted(() => {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.image-preview-wrapper {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(var(--v-theme-surface-variant), 0.3);
+  transition: all 0.3s ease;
+}
+
+.image-preview-wrapper:hover {
+  border-color: rgb(var(--v-theme-primary));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  opacity: 0.9;
+}
+
+.remove-image-btn:hover {
+  opacity: 1;
+}
+
+.primary-image-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 2;
 }
 </style>
 
