@@ -10,27 +10,39 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Skip adding first_responded_at since it already exists
-        migrations.AddField(
-            model_name="order",
-            name="first_viewed_at",
-            field=models.DateTimeField(
-                blank=True, help_text="When supplier first opened the order", null=True
-            ),
-        ),
-        migrations.AddField(
-            model_name="order",
-            name="response_points_awarded",
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AddField(
-            model_name="order",
-            name="response_speed_bucket",
-            field=models.CharField(
-                blank=True,
-                help_text="Speed category (sub_1h, sub_4h, sub_24h)",
-                max_length=20,
-                null=True,
-            ),
+        migrations.RunSQL(
+            sql="""
+            DO $$
+            BEGIN
+                -- Add first_viewed_at if it doesn't exist
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'orders_order' AND column_name = 'first_viewed_at'
+                ) THEN
+                    ALTER TABLE orders_order ADD COLUMN first_viewed_at TIMESTAMP WITH TIME ZONE NULL;
+                END IF;
+
+                -- Add response_points_awarded if it doesn't exist
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'orders_order' AND column_name = 'response_points_awarded'
+                ) THEN
+                    ALTER TABLE orders_order ADD COLUMN response_points_awarded BOOLEAN DEFAULT FALSE;
+                END IF;
+
+                -- Add response_speed_bucket if it doesn't exist
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'orders_order' AND column_name = 'response_speed_bucket'
+                ) THEN
+                    ALTER TABLE orders_order ADD COLUMN response_speed_bucket VARCHAR(20) NULL;
+                END IF;
+            END $$;
+            """,
+            reverse_sql="""
+            ALTER TABLE orders_order DROP COLUMN IF EXISTS first_viewed_at;
+            ALTER TABLE orders_order DROP COLUMN IF EXISTS response_points_awarded;
+            ALTER TABLE orders_order DROP COLUMN IF EXISTS response_speed_bucket;
+            """,
         ),
     ]
