@@ -20,7 +20,6 @@ jobs:
           server: '${{ secrets.CAPROVER_SERVER }}'
           app: '${{ secrets.CAPROVER_APP_BACKEND }}'
           token: '${{ secrets.CAPROVER_APP_TOKEN_BACKEND }}'
-          branch: '${{ github.ref_name }}'
 
   deploy-frontend:
     name: Deploy Frontend
@@ -37,5 +36,4 @@ jobs:
           server: '${{ secrets.CAPROVER_SERVER }}'
           app: '${{ secrets.CAPROVER_APP_FRONTEND }}'
           token: '${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }}'
-          branch: '${{ github.ref_name }}'
           directory: './multivendor_platform/front_end/nuxt'
