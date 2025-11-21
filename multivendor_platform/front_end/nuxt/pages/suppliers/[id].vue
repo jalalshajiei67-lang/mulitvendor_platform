@@ -3,18 +3,14 @@
     <!-- Enhanced Loading State -->
     <div v-if="loading" class="loading-container">
       <div class="loading-content">
-        <div class="loading-spinner">
-          <v-progress-circular
-            indeterminate
-            color="primary"
-            size="80"
-            width="6"
-            class="main-spinner"
-          ></v-progress-circular>
-        </div>
-        <div class="loading-text mt-6">
-          <h3 class="text-h6 font-weight-bold">در حال بارگذاری...</h3>
-        </div>
+        <v-progress-circular
+          indeterminate
+          color="primary"
+          size="100"
+          width="8"
+        ></v-progress-circular>
+        <h3 class="text-h4 font-weight-bold mt-8">لطفاً صبر کنید...</h3>
+        <p class="text-h6 mt-4 text-medium-emphasis">در حال آماده‌سازی صفحه</p>
       </div>
     </div>
 
@@ -22,26 +18,27 @@
     <div v-else-if="error" class="error-container">
       <v-container>
         <v-row justify="center">
-          <v-col cols="12" md="8" lg="6">
-            <v-card elevation="0" class="error-card" rounded="lg">
+          <v-col cols="12" md="10" lg="8">
+            <v-card elevation="4" class="error-card pa-8" rounded="xl">
               <v-card-text class="text-center pa-8">
-                <v-icon size="72" color="error" class="mb-4 d-block">
-                  mdi-alert-circle
+                <v-icon size="100" color="error" class="mb-6">
+                  mdi-alert-circle-outline
                 </v-icon>
-                <h2 class="text-h5 font-weight-bold mb-4 text-error">
-                  خطا در بارگذاری
+                <h2 class="text-h3 font-weight-bold mb-6 text-error">
+                  مشکلی پیش آمده
                 </h2>
-                <p class="text-body-1 mb-6 line-height-relaxed">
+                <p class="text-h6 mb-8">
                   {{ error }}
                 </p>
                 <v-btn
                   color="primary"
-                  size="large"
-                  class="px-8"
+                  size="x-large"
+                  class="px-12 text-h6"
                   @click="fetchSupplier"
-                  rounded="lg"
-                  elevation="2"
+                  rounded="xl"
+                  elevation="4"
                 >
+                  <v-icon start size="28">mdi-refresh</v-icon>
                   تلاش مجدد
                 </v-btn>
               </v-card-text>
@@ -56,193 +53,206 @@
       <!-- Simplified Hero Section -->
       <SupplierHero
         :supplier="supplier"
+        :available-sections="availableSections"
+        :mobile-nav-items="mobileNavItems"
+        :active-section="activeSection"
         @contact-click="scrollToContact"
+        @section-click="scrollToSection"
       />
-
-      <!-- Navigation Bar -->
-      <div class="navigation-container">
-        <v-container>
-          <!-- Desktop Navigation -->
-          <div class="desktop-nav d-none d-md-block">
-            <div class="nav-wrapper">
-              <button
-                v-for="section in availableSections"
-                :key="section.value"
-                class="nav-button"
-                :class="{ active: activeSection === section.value }"
-                @click="scrollToSection(section.value)"
-              >
-                <v-icon size="28" class="me-3">{{ section.icon }}</v-icon>
-                <span class="nav-label">{{ section.label }}</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Mobile Navigation -->
-          <div class="mobile-nav-selector d-md-none">
-            <v-select
-              :model-value="activeSection"
-              :items="mobileNavItems"
-              variant="outlined"
-              density="comfortable"
-              class="mobile-nav-select"
-              hide-details
-              rounded="lg"
-              bg-color="white"
-              @update:model-value="scrollToSection"
-            >
-              <template v-slot:selection="{ item }">
-                <div class="d-flex align-center gap-2">
-                  <v-icon :color="item.raw.color">{{ item.raw.icon }}</v-icon>
-                  <span class="font-weight-500">{{ item.title }}</span>
-                </div>
-              </template>
-              <template v-slot:item="{ props, item }">
-                <v-list-item v-bind="props" rounded="lg">
-                  <template v-slot:prepend>
-                    <v-icon :color="item.raw.color">{{ item.raw.icon }}</v-icon>
-                  </template>
-                  <v-list-item-title class="font-weight-500">
-                    {{ item.title }}
-                  </v-list-item-title>
-                </v-list-item>
-              </template>
-            </v-select>
-          </div>
-        </v-container>
-      </div>
 
       <!-- Main Content Area -->
       <div class="main-content">
-        <!-- Company Information Section -->
-        <v-container v-if="activeSection === 'about'" class="py-8 py-md-12" data-section="about">
-          <v-row :gutter="6">
-            <!-- Main Content -->
-            <v-col cols="12" md="8">
-              <!-- About Section -->
-              <div class="content-section mb-8">
-                <div class="section-header">
-                  <h2 class="section-title mb-6">درباره {{ supplier.store_name }}</h2>
-                  <div class="title-decoration"></div>
-                </div>
-                <v-card elevation="0" class="content-card" rounded="lg">
-                  <v-card-text class="pa-6 pa-md-8">
-                    <p class="readable-text" style="white-space: pre-line;">
-                      {{ supplier.about || supplier.description || 'اطلاعاتی در دسترس نیست.' }}
-                    </p>
-                  </v-card-text>
-                </v-card>
-              </div>
+        <!-- Home Section -->
+        <v-container v-if="activeSection === 'home'" class="py-8 py-md-12" data-section="home">
+          <!-- Logo, Metrics, and Action Buttons -->
+          <v-row align="center" justify="center" class="home-hero-content mb-12">
+            <!-- Logo -->
+            <v-col cols="12" md="4" class="text-center logo-section">
+              <div class="logo-container">
+                <v-avatar
+                  :size="display.xs.value ? 140 : 200"
+                  class="hero-logo elevation-12"
+                  rounded="lg"
+                >
+                  <v-img
+                    v-if="supplier.logo"
+                    :src="supplier.logo"
+                    cover
+                  >
+                    <template v-slot:placeholder>
+                      <v-skeleton-loader type="avatar" />
+                    </template>
+                  </v-img>
+                  <v-icon v-else :size="display.xs.value ? 70 : 100" color="white">
+                    mdi-store
+                  </v-icon>
+                </v-avatar>
 
-              <!-- Work Resume -->
-              <div v-if="supplier.work_resume" class="content-section mb-8">
-                <div class="section-header">
-                  <h3 class="section-title-sm mb-6">رزومه کاری</h3>
-                  <div class="title-decoration"></div>
+                <!-- Trust Indicators -->
+                <div class="trust-indicators mt-6">
+                  <v-chip
+                    v-if="(supplier as any).is_verified"
+                    color="success"
+                    size="large"
+                    variant="elevated"
+                    class="me-3 mb-3 pa-6"
+                  >
+                    <v-icon start size="28">mdi-check-decagram</v-icon>
+                    <span class="text-h6 font-weight-bold">فروشنده معتبر</span>
+                  </v-chip>
+                  <v-chip
+                    v-if="(supplier as any).is_featured"
+                    color="amber"
+                    size="large"
+                    variant="elevated"
+                    class="mb-3 pa-6"
+                  >
+                    <v-icon start size="28">mdi-star</v-icon>
+                    <span class="text-h6 font-weight-bold">فروشنده برتر</span>
+                  </v-chip>
                 </div>
-                <v-card elevation="0" class="content-card" rounded="lg">
-                  <v-card-text class="pa-6 pa-md-8">
-                    <p class="readable-text" style="white-space: pre-line;">
-                      {{ supplier.work_resume }}
-                    </p>
-                  </v-card-text>
-                </v-card>
-              </div>
-
-              <!-- History -->
-              <div v-if="supplier.history" class="content-section">
-                <div class="section-header">
-                  <h3 class="section-title-sm mb-6">تاریخچه</h3>
-                  <div class="title-decoration"></div>
-                </div>
-                <v-card elevation="0" class="content-card" rounded="lg">
-                  <v-card-text class="pa-6 pa-md-8">
-                    <p class="readable-text" style="white-space: pre-line;">
-                      {{ supplier.history }}
-                    </p>
-                  </v-card-text>
-                </v-card>
               </div>
             </v-col>
 
-            <!-- Sidebar - Contact Info -->
-            <v-col cols="12" md="4">
-              <div class="sticky-sidebar">
-                <!-- Quick Contact Card -->
-                <v-card elevation="0" class="contact-card" rounded="lg">
-                  <v-card-text class="pa-6">
-                    <h3 class="text-h6 font-weight-bold mb-6 text-center">
-                      اطلاعات تماس
-                    </h3>
+            <!-- Store Info -->
+            <v-col cols="12" md="8">
+              <div class="store-info">
+                <p v-if="supplier.description" class="store-description text-h5 mb-8 line-height-relaxed">
+                  {{ supplier.description }}
+                </p>
 
-                    <!-- Contact Items -->
-                    <div class="contact-item mb-5 pb-5" v-if="supplier.contact_phone">
-                      <div class="d-flex align-start gap-4">
-                        <div class="contact-icon-wrapper">
-                          <v-icon size="24" color="white">mdi-phone</v-icon>
-                        </div>
-                        <div class="flex-grow-1">
-                          <p class="text-caption text-medium-emphasis mb-2">شماره تماس</p>
-                          <p class="text-body-1 font-weight-600">{{ supplier.contact_phone }}</p>
-                        </div>
+                <!-- Key Metrics -->
+                <v-row class="metrics mt-8" justify="center" justify-md="start">
+                  <v-col cols="12" sm="6" md="3" v-if="supplier.year_established">
+                    <v-card class="metric-card metric-card-1 pa-6 pa-md-8 text-center" elevation="3" rounded="xl">
+                      <v-icon size="64" class="metric-icon mb-4" color="indigo">mdi-calendar-check</v-icon>
+                      <div class="metric-value text-h2 font-weight-black mb-2">
+                        {{ yearsOfExperience }}
                       </div>
-                    </div>
-
-                    <v-divider v-if="supplier.contact_phone" class="my-4"></v-divider>
-
-                    <div class="contact-item mb-5 pb-5" v-if="supplier.contact_email">
-                      <div class="d-flex align-start gap-4">
-                        <div class="contact-icon-wrapper">
-                          <v-icon size="24" color="white">mdi-email</v-icon>
-                        </div>
-                        <div class="flex-grow-1">
-                          <p class="text-caption text-medium-emphasis mb-2">ایمیل</p>
-                          <p class="text-body-1 font-weight-600 break-all">
-                            {{ supplier.contact_email }}
-                          </p>
-                        </div>
+                      <div class="metric-label text-h6 font-weight-bold">سال سابقه کار</div>
+                    </v-card>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3" v-if="supplier.employee_count">
+                    <v-card class="metric-card metric-card-2 pa-6 pa-md-8 text-center" elevation="3" rounded="xl">
+                      <v-icon size="64" class="metric-icon mb-4" color="pink">mdi-account-group</v-icon>
+                      <div class="metric-value text-h2 font-weight-black mb-2">
+                        {{ supplier.employee_count }}
                       </div>
-                    </div>
-
-                    <v-divider v-if="supplier.contact_email" class="my-4"></v-divider>
-
-                    <div class="contact-item" v-if="supplier.address">
-                      <div class="d-flex align-start gap-4">
-                        <div class="contact-icon-wrapper">
-                          <v-icon size="24" color="white">mdi-map-marker</v-icon>
-                        </div>
-                        <div class="flex-grow-1">
-                          <p class="text-caption text-medium-emphasis mb-2">آدرس</p>
-                          <p class="text-body-1 font-weight-600">{{ supplier.address }}</p>
-                        </div>
+                      <div class="metric-label text-h6 font-weight-bold">نفر پرسنل</div>
+                    </v-card>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-card class="metric-card metric-card-3 pa-6 pa-md-8 text-center" elevation="3" rounded="xl">
+                      <v-icon size="64" class="metric-icon mb-4" color="amber">mdi-star</v-icon>
+                      <div class="metric-value text-h2 font-weight-black mb-2">
+                        {{ supplier.rating_average || 0 }}
                       </div>
-                    </div>
-                  </v-card-text>
-                </v-card>
-
-                <!-- CTA Button -->
-                <v-btn
-                  block
-                  color="primary"
-                  size="x-large"
-                  class="mt-6 font-weight-bold contact-btn"
-                  prepend-icon="mdi-email"
-                  @click="activeSection = 'contact'"
-                  rounded="lg"
-                  elevation="2"
-                >
-                  ارسال پیام
-                </v-btn>
+                      <div class="metric-label text-h6 font-weight-bold">امتیاز مشتریان</div>
+                    </v-card>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-card class="metric-card metric-card-4 pa-6 pa-md-8 text-center" elevation="3" rounded="xl">
+                      <v-icon size="64" class="metric-icon mb-4" color="green">mdi-package-variant</v-icon>
+                      <div class="metric-value text-h2 font-weight-black mb-2">
+                        {{ supplier.product_count || 0 }}
+                      </div>
+                      <div class="metric-label text-h6 font-weight-bold">تنوع محصولات</div>
+                    </v-card>
+                  </v-col>
+                </v-row>
               </div>
             </v-col>
           </v-row>
+
+          <!-- About Section -->
+          <div class="content-section mb-16">
+            <div class="section-header mb-10">
+              <v-icon size="48" color="primary" class="mb-4">mdi-information</v-icon>
+              <h2 class="section-title text-h3 font-weight-black mb-4">معرفی {{ supplier.store_name }}</h2>
+            </div>
+            <v-card elevation="4" class="content-card" rounded="xl" color="blue-grey-lighten-5">
+              <v-card-text class="pa-8 pa-md-12">
+                <p class="readable-text text-h5" style="white-space: pre-line;">
+                  {{ supplier.about || supplier.description || 'اطلاعاتی در دسترس نیست.' }}
+                </p>
+              </v-card-text>
+            </v-card>
+          </div>
+
+          <!-- Work Resume -->
+          <div v-if="supplier.work_resume" class="content-section mb-16">
+            <div class="section-header mb-10">
+              <v-icon size="48" color="primary" class="mb-4">mdi-briefcase</v-icon>
+              <h3 class="section-title text-h3 font-weight-black mb-4">پروژه‌ها و تجربیات</h3>
+            </div>
+            <v-card elevation="4" class="content-card" rounded="xl" color="green-lighten-5">
+              <v-card-text class="pa-8 pa-md-12">
+                <p class="readable-text text-h5" style="white-space: pre-line;">
+                  {{ supplier.work_resume }}
+                </p>
+              </v-card-text>
+            </v-card>
+          </div>
+
+          <!-- History -->
+          <div v-if="supplier.history" class="content-section mb-16">
+            <div class="section-header mb-10">
+              <v-icon size="48" color="primary" class="mb-4">mdi-history</v-icon>
+              <h3 class="section-title text-h3 font-weight-black mb-4">داستان ما</h3>
+            </div>
+            <v-card elevation="4" class="content-card" rounded="xl" color="amber-lighten-5">
+              <v-card-text class="pa-8 pa-md-12">
+                <p class="readable-text text-h5" style="white-space: pre-line;">
+                  {{ supplier.history }}
+                </p>
+              </v-card-text>
+            </v-card>
+          </div>
+
+          <!-- Portfolio Section -->
+          <div v-if="portfolioItems.length > 0" class="content-section mb-16">
+            <div class="section-header mb-10">
+              <v-icon size="48" color="primary" class="mb-4">mdi-image-multiple</v-icon>
+              <h2 class="section-title text-h3 font-weight-black mb-4">نمونه کارهای ما</h2>
+              <p class="text-h6 text-medium-emphasis">پروژه‌هایی که با موفقیت انجام داده‌ایم</p>
+            </div>
+            <SupplierPortfolio
+              :items="portfolioItems"
+              :loading="portfolioLoading"
+            />
+          </div>
+
+          <!-- Certifications Section -->
+          <div v-if="hasCertifications" class="content-section mb-16">
+            <div class="section-header mb-10">
+              <v-icon size="48" color="primary" class="mb-4">mdi-certificate</v-icon>
+              <h2 class="section-title text-h3 font-weight-black mb-4">مدارک و افتخارات</h2>
+              <p class="text-h6 text-medium-emphasis">گواهی‌های رسمی و جوایز دریافتی</p>
+            </div>
+            <SupplierCertifications
+              :certifications="supplier.certifications"
+              :awards="supplier.awards"
+            />
+          </div>
+
+          <!-- Empty State -->
+          <div v-if="portfolioItems.length === 0 && !hasCertifications" class="text-center py-16">
+            <v-icon size="120" color="grey-lighten-1" class="mb-6">
+              mdi-folder-open-outline
+            </v-icon>
+            <h3 class="text-h4 font-weight-bold mb-4">در حال آماده‌سازی</h3>
+            <p class="text-h6 text-medium-emphasis">
+              به زودی نمونه کارها و گواهینامه‌ها اضافه می‌شوند
+            </p>
+          </div>
         </v-container>
 
         <!-- Products Section -->
-        <v-container v-if="activeSection === 'products'" class="py-8 py-md-12" data-section="products">
-          <div class="section-header mb-8">
-            <h2 class="section-title">محصولات</h2>
-            <div class="title-decoration"></div>
+        <v-container v-if="activeSection === 'products'" class="py-12 py-md-16" data-section="products">
+          <div class="section-header mb-10 text-center">
+            <v-icon size="56" color="primary" class="mb-4">mdi-shopping</v-icon>
+            <h2 class="section-title text-h2 font-weight-black mb-4">محصولات ما</h2>
+            <p class="text-h6 text-medium-emphasis">انتخاب کنید و سفارش دهید</p>
           </div>
           <SupplierProductCatalog
             :products="products"
@@ -251,23 +261,12 @@
           />
         </v-container>
 
-        <!-- Portfolio Section -->
-        <v-container v-if="activeSection === 'portfolio'" class="py-8 py-md-12" data-section="portfolio">
-          <div class="section-header mb-8">
-            <h2 class="section-title">نمونه کارها</h2>
-            <div class="title-decoration"></div>
-          </div>
-          <SupplierPortfolio
-            :items="portfolioItems"
-            :loading="portfolioLoading"
-          />
-        </v-container>
-
         <!-- Team Section -->
-        <v-container v-if="activeSection === 'team'" class="py-8 py-md-12" data-section="team">
-          <div class="section-header mb-8">
-            <h2 class="section-title">تیم ما</h2>
-            <div class="title-decoration"></div>
+        <v-container v-if="activeSection === 'team'" class="py-12 py-md-16" data-section="team">
+          <div class="section-header mb-10 text-center">
+            <v-icon size="56" color="primary" class="mb-4">mdi-account-group</v-icon>
+            <h2 class="section-title text-h2 font-weight-black mb-4">تیم ما را بشناسید</h2>
+            <p class="text-h6 text-medium-emphasis">همکاران ما که برای شما تلاش می‌کنند</p>
           </div>
           <SupplierTeam
             :members="teamMembers"
@@ -275,47 +274,35 @@
           />
         </v-container>
 
-        <!-- Certifications Section -->
-        <v-container v-if="activeSection === 'certifications'" class="py-8 py-md-12" data-section="certifications">
-          <div class="section-header mb-8">
-            <h2 class="section-title">گواهینامه‌ها و جوایز</h2>
-            <div class="title-decoration"></div>
-          </div>
-          <SupplierCertifications
-            :certifications="supplier.certifications"
-            :awards="supplier.awards"
-          />
-        </v-container>
-
         <!-- Reviews Section -->
-        <v-container v-if="activeSection === 'reviews'" class="py-8 py-md-12" data-section="reviews">
-          <div class="section-header mb-8">
-            <h2 class="section-title">نظرات مشتریان</h2>
-            <div class="title-decoration"></div>
+        <v-container v-if="activeSection === 'reviews'" class="py-12 py-md-16" data-section="reviews">
+          <div class="section-header mb-10 text-center">
+            <v-icon size="56" color="primary" class="mb-4">mdi-comment-quote</v-icon>
+            <h2 class="section-title text-h2 font-weight-black mb-4">نظر مشتریان درباره ما</h2>
+            <p class="text-h6 text-medium-emphasis">تجربه دیگران از همکاری با ما</p>
           </div>
 
-          <v-row v-if="comments.length > 0" :gutter="6">
+          <v-row v-if="comments.length > 0">
             <v-col
               v-for="comment in comments"
               :key="comment.id"
               cols="12"
-              md="6"
             >
-              <v-card elevation="0" class="comment-card" rounded="lg">
-                <v-card-text class="pa-6">
+              <v-card elevation="4" class="comment-card mb-6" rounded="xl">
+                <v-card-text class="pa-8 pa-md-10">
                   <!-- Comment Header -->
-                  <div class="d-flex justify-space-between align-start mb-4">
+                  <div class="d-flex justify-space-between align-start mb-6">
                     <div class="d-flex align-center flex-grow-1">
-                      <v-avatar size="48" color="primary" class="me-3">
-                        <span class="text-white text-subtitle-1 font-weight-bold">
+                      <v-avatar size="72" color="primary" class="me-4">
+                        <span class="text-white text-h4 font-weight-bold">
                           {{ comment.user_username.charAt(0).toUpperCase() }}
                         </span>
                       </v-avatar>
                       <div>
-                        <p class="font-weight-bold text-body-1 mb-1">
+                        <p class="font-weight-bold text-h5 mb-2">
                           {{ comment.user_username }}
                         </p>
-                        <p class="text-caption text-medium-emphasis">
+                        <p class="text-h6 text-medium-emphasis">
                           {{ formatDate(comment.created_at) }}
                         </p>
                       </div>
@@ -324,29 +311,28 @@
                       <v-rating
                         :model-value="comment.rating"
                         readonly
-                        density="compact"
                         color="amber"
-                        size="small"
+                        size="large"
                       ></v-rating>
-                      <span class="rating-value">{{ comment.rating }}</span>
+                      <span class="rating-value text-h5 font-weight-bold mt-2">{{ comment.rating }} از ۵</span>
                     </div>
                   </div>
 
                   <!-- Comment Content -->
-                  <h4 v-if="comment.title" class="text-body-1 font-weight-bold mb-3">
+                  <h4 v-if="comment.title" class="text-h5 font-weight-bold mb-4">
                     {{ comment.title }}
                   </h4>
-                  <p class="text-body-2 mb-4 line-height-relaxed">
+                  <p class="text-h6 mb-6 line-height-relaxed">
                     {{ comment.comment }}
                   </p>
 
                   <!-- Supplier Reply -->
-                  <div v-if="comment.supplier_reply" class="supplier-reply mt-4 pt-4">
-                    <p class="text-caption font-weight-bold text-primary mb-3">
-                      <v-icon size="small" class="me-1">mdi-store</v-icon>
-                      پاسخ فروشنده
+                  <div v-if="comment.supplier_reply" class="supplier-reply mt-6 pt-6">
+                    <p class="text-h6 font-weight-bold text-primary mb-4">
+                      <v-icon size="28" class="me-2">mdi-reply</v-icon>
+                      پاسخ فروشنده:
                     </p>
-                    <p class="text-body-2 line-height-relaxed">
+                    <p class="text-h6 line-height-relaxed">
                       {{ comment.supplier_reply }}
                     </p>
                   </div>
@@ -356,21 +342,23 @@
           </v-row>
 
           <!-- Empty State -->
-          <v-row v-else justify="center" class="my-12">
+          <v-row v-else justify="center" class="my-16">
             <v-col cols="12" class="text-center">
-              <v-icon size="64" color="grey-lighten-2" class="mb-4 d-block">
-                mdi-comment-off
+              <v-icon size="120" color="grey-lighten-1" class="mb-6">
+                mdi-comment-off-outline
               </v-icon>
-              <h3 class="text-h6">نظری ثبت نشده است</h3>
+              <h3 class="text-h3 font-weight-bold mb-4">هنوز نظری ثبت نشده</h3>
+              <p class="text-h6 text-medium-emphasis">اولین نفری باشید که نظر می‌دهد</p>
             </v-col>
           </v-row>
         </v-container>
 
         <!-- Contact Section -->
-        <v-container v-if="activeSection === 'contact'" class="py-8 py-md-12" data-section="contact">
-          <div class="section-header mb-8">
-            <h2 class="section-title">تماس با ما</h2>
-            <div class="title-decoration"></div>
+        <v-container v-if="activeSection === 'contact'" class="py-12 py-md-16" data-section="contact">
+          <div class="section-header mb-10 text-center">
+            <v-icon size="56" color="primary" class="mb-4">mdi-phone-in-talk</v-icon>
+            <h2 class="section-title text-h2 font-weight-black mb-4">تماس با ما</h2>
+            <p class="text-h6 text-medium-emphasis">برای سفارش و مشاوره با ما در ارتباط باشید</p>
           </div>
           <SupplierContact ref="contactSection" :supplier="supplier" />
         </v-container>
@@ -378,14 +366,17 @@
 
       <!-- Fixed Contact Button for Mobile -->
       <v-btn
-        v-if="$vuetify.display.mdAndDown"
+        v-if="display.mdAndDown.value"
         class="fixed-contact-btn"
         color="primary"
-        icon="mdi-phone"
-        size="large"
-        elevation="6"
+        size="x-large"
+        elevation="8"
+        rounded="xl"
         @click="activeSection = 'contact'"
-      ></v-btn>
+      >
+        <v-icon size="32" class="me-2">mdi-phone</v-icon>
+        <span class="text-h6 font-weight-bold">تماس</span>
+      </v-btn>
     </div>
   </div>
 </template>
@@ -393,6 +384,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useDisplay } from 'vuetify'
+import { toJalaali } from 'jalaali-js'
 import { useAuthStore } from '~/stores/auth'
 import { useSupplierApi, type Supplier, type SupplierComment } from '~/composables/useSupplierApi'
 import { useSupplierPortfolioApi, type SupplierPortfolioItem } from '~/composables/useSupplierPortfolioApi'
@@ -403,6 +396,7 @@ const authStore = useAuthStore()
 const supplierApi = useSupplierApi()
 const portfolioApi = useSupplierPortfolioApi()
 const teamApi = useSupplierTeamApi()
+const display = useDisplay()
 
 const supplier = ref<Supplier | null>(null)
 const products = ref<any[]>([])
@@ -416,13 +410,13 @@ const portfolioLoading = ref(false)
 const teamLoading = ref(false)
 const error = ref<string | null>(null)
 
-const activeSection = ref('about')
+const activeSection = ref('home')
 const contactSection = ref()
 
 // Simplified mobile navigation
 const mobileNavItems = computed(() => {
   const sections = [
-    { title: 'درباره شرکت', value: 'about', icon: 'mdi-information', color: 'primary' }
+    { title: 'خانه', value: 'home', icon: 'mdi-home', color: 'primary' }
   ]
 
   if (products.value.length > 0) {
@@ -434,29 +428,11 @@ const mobileNavItems = computed(() => {
     })
   }
 
-  if (portfolioItems.value.length > 0) {
-    sections.push({
-      title: 'نمونه کارها',
-      value: 'portfolio',
-      icon: 'mdi-briefcase',
-      color: 'primary'
-    })
-  }
-
   if (teamMembers.value.length > 0) {
     sections.push({
       title: 'تیم ما',
       value: 'team',
       icon: 'mdi-account-group',
-      color: 'primary'
-    })
-  }
-
-  if (hasCertifications.value) {
-    sections.push({
-      title: 'گواهینامه‌ها',
-      value: 'certifications',
-      icon: 'mdi-certificate',
       color: 'primary'
     })
   }
@@ -483,20 +459,14 @@ const mobileNavItems = computed(() => {
 // Simplified available sections
 const availableSections = computed(() => {
   const sections = [
-    { value: 'about', label: 'درباره شرکت', icon: 'mdi-information' }
+    { value: 'home', label: 'خانه', icon: 'mdi-home' }
   ]
 
   if (products.value.length > 0) {
     sections.push({ value: 'products', label: 'محصولات', icon: 'mdi-package-variant' })
   }
-  if (portfolioItems.value.length > 0) {
-    sections.push({ value: 'portfolio', label: 'نمونه کارها', icon: 'mdi-briefcase' })
-  }
   if (teamMembers.value.length > 0) {
     sections.push({ value: 'team', label: 'تیم ما', icon: 'mdi-account-group' })
-  }
-  if (hasCertifications.value) {
-    sections.push({ value: 'certifications', label: 'گواهینامه‌ها', icon: 'mdi-certificate' })
   }
   if (comments.value.length > 0) {
     sections.push({ value: 'reviews', label: 'نظرات', icon: 'mdi-star' })
@@ -522,6 +492,23 @@ const brandingStyles = computed(() => {
 const hasCertifications = computed(() => {
   return (supplier.value?.certifications && supplier.value.certifications.length > 0) ||
          (supplier.value?.awards && supplier.value.awards.length > 0)
+})
+
+// Calculate years of experience based on Hijri/Jalaali calendar
+const yearsOfExperience = computed(() => {
+  if (!supplier.value?.year_established) return 0
+  
+  // Get current Gregorian date
+  const now = new Date()
+  
+  // Convert to Jalaali
+  const currentJalaali = toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate())
+  const currentYear = currentJalaali.jy
+  
+  // Calculate difference (both are in Jalaali/Hijri calendar)
+  const years = currentYear - supplier.value.year_established
+  
+  return years > 0 ? years : 0
 })
 
 useHead(() => ({
@@ -671,10 +658,11 @@ onMounted(() => {
   --brand-primary: rgb(var(--v-theme-primary));
   --brand-secondary: rgb(var(--v-theme-secondary));
   min-height: 100vh;
-  background: #f8f9fa;
+  background: linear-gradient(to bottom, #f5f5f5 0%, #fafafa 100%);
   position: relative;
   overflow-x: hidden;
-  font-size: 16px;
+  font-size: 18px;
+  line-height: 1.8;
 }
 
 /* Loading State */
@@ -683,155 +671,38 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   min-height: 70vh;
+  flex-direction: column;
 }
 
 .loading-content {
   text-align: center;
-  padding: 2rem;
-}
-
-.main-spinner {
-  position: relative;
-  z-index: 2;
-}
-
-.loading-text {
-  animation: fadeIn 0.5s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  padding: 3rem;
 }
 
 /* Error State */
 .error-container {
-  padding: 3rem 1rem;
+  padding: 4rem 2rem;
 }
 
 .error-card {
-  border: 2px solid rgba(var(--v-theme-error), 0.1);
   background: white;
-}
-
-/* Simplified Navigation */
-.navigation-container {
-  position: sticky;
-  top: 64px;
-  z-index: 10;
-  background: white;
-  border-bottom: 3px solid rgba(var(--v-theme-primary), 0.2);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.desktop-nav {
-  width: 100%;
-}
-
-.nav-wrapper {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-start;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 1rem;
-}
-
-.nav-wrapper::-webkit-scrollbar {
-  height: 4px;
-}
-
-.nav-wrapper::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.nav-wrapper::-webkit-scrollbar-thumb {
-  background: rgba(var(--v-theme-primary), 0.3);
-  border-radius: 2px;
-}
-
-.nav-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 24px;
-  border: none;
-  background: transparent;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.6);
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  border-bottom: 4px solid transparent;
-}
-
-.nav-button:hover {
-  background: rgba(var(--v-theme-primary), 0.08);
-  color: rgb(var(--v-theme-primary));
-}
-
-.nav-button.active {
-  color: rgb(var(--v-theme-primary));
-  border-bottom-color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.08);
-}
-
-.nav-label {
-  font-weight: 700;
-}
-
-/* Mobile Navigation */
-.mobile-nav-selector {
-  padding: 1rem;
-}
-
-.mobile-nav-select {
-  font-size: 16px;
-}
-
-.mobile-nav-select :deep(.v-field) {
-  border-radius: 12px;
-  border: 2px solid #e0e0e0;
+  border: 3px solid rgba(var(--v-theme-error), 0.2);
 }
 
 /* Main Content */
 .main-content {
   min-height: 50vh;
-  animation: fadeIn 0.3s ease-out;
 }
 
 /* Section Headers */
 .section-header {
   position: relative;
-  margin-bottom: 2rem;
+  text-align: center;
 }
 
 .section-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: rgba(0, 0, 0, 0.95);
-  margin-bottom: 0.5rem;
-  position: relative;
-  z-index: 1;
-}
-
-.section-title-sm {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: rgba(0, 0, 0, 0.95);
-  margin-bottom: 0.5rem;
-  position: relative;
-  z-index: 1;
-}
-
-.title-decoration {
-  height: 8px;
-  width: 80px;
-  background: rgb(var(--v-theme-primary));
-  border-radius: 4px;
-  margin-top: -0.5rem;
+  color: rgba(0, 0, 0, 0.9);
+  line-height: 1.4;
 }
 
 /* Content Sections */
@@ -842,88 +713,39 @@ onMounted(() => {
 /* Content Cards */
 .content-card {
   background: white;
-  border: 1px solid #e0e0e0;
+  border: 2px solid rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .content-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 /* Readable Text */
 .readable-text {
-  font-size: 1.1rem;
-  line-height: 1.8;
+  line-height: 2;
   color: rgba(0, 0, 0, 0.87);
-  word-spacing: 0.05em;
+  word-spacing: 0.1em;
+  letter-spacing: 0.02em;
 }
 
 .line-height-relaxed {
-  line-height: 1.8;
+  line-height: 2;
 }
 
-/* Contact Card */
-.sticky-sidebar {
-  position: sticky;
-  top: 250px;
-  transition: all 0.3s ease;
-}
-
-@media (max-width: 960px) {
-  .sticky-sidebar {
-    position: relative;
-    top: 0;
-  }
-}
-
-.contact-card {
-  background: white;
-  border: 2px solid rgba(var(--v-theme-primary), 0.15);
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.contact-card:hover {
-  border-color: rgba(var(--v-theme-primary), 0.3);
-  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.1);
-}
-
-.contact-icon-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: rgb(var(--v-theme-primary));
-  flex-shrink: 0;
-}
-
-.contact-item {
-  transition: all 0.3s ease;
-}
-
-.contact-item:hover {
-  padding-right: 12px;
-}
-
-.contact-btn {
-  font-size: 1.1rem;
-  padding: 16px;
-}
 
 /* Comment Card */
 .comment-card {
   background: white;
-  border: 1px solid #e0e0e0;
+  border: 2px solid rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .comment-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border-color: rgba(var(--v-theme-primary), 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: rgba(var(--v-theme-primary), 0.3);
 }
 
 .rating-container {
@@ -933,154 +755,213 @@ onMounted(() => {
 }
 
 .rating-value {
-  font-size: 0.8rem;
-  font-weight: 600;
-  margin-top: 2px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.87);
 }
 
 .supplier-reply {
-  background: rgba(var(--v-theme-primary), 0.08);
-  padding: 12px;
-  border-radius: 8px;
-  border-right: 3px solid rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.1);
+  padding: 1.5rem;
+  border-radius: 16px;
+  border-right: 5px solid rgb(var(--v-theme-primary));
 }
 
 /* Fixed Contact Button */
 .fixed-contact-btn {
   position: fixed;
-  bottom: 24px;
-  left: 24px;
+  bottom: 32px;
+  left: 32px;
   z-index: 100;
-  width: 64px;
-  height: 64px;
+  padding: 1.5rem 2.5rem !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
 }
 
-/* Typography */
-.font-weight-bold {
-  font-weight: 700;
-}
-
-.font-weight-600 {
-  font-weight: 600;
-}
-
-.font-weight-500 {
-  font-weight: 500;
-}
-
-.text-h5 {
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.text-h6 {
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.text-body-1 {
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-.text-body-2 {
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-
-.text-caption {
-  font-size: 0.85rem;
-}
-
-.text-subtitle-1 {
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-/* Spacing Utilities */
-.gap-2 {
-  gap: 8px;
-}
-
-.gap-4 {
-  gap: 16px;
-}
-
-.break-all {
-  word-break: break-all;
-}
-
-/* Smooth Scrolling */
-html {
-  scroll-behavior: smooth;
+.fixed-contact-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #f5f5f5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(var(--v-theme-primary), 0.4);
-  border-radius: 4px;
+  background: rgba(var(--v-theme-primary), 0.5);
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--v-theme-primary), 0.6);
+  background: rgba(var(--v-theme-primary), 0.7);
 }
+
+/* Home Hero Content Styles */
+.home-hero-content {
+  padding: 3rem 0;
+}
+
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-logo {
+  border: 6px solid rgba(var(--v-theme-primary), 0.3);
+  background: white;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.hero-logo:hover {
+  transform: scale(1.03);
+}
+
+.trust-indicators {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.store-info {
+  text-align: center;
+}
+
+@media (min-width: 960px) {
+  .store-info {
+    text-align: right;
+  }
+}
+
+.store-description {
+  color: rgba(0, 0, 0, 0.87);
+  max-width: 900px;
+  line-height: 2;
+  margin: 0 auto;
+  font-weight: 500;
+}
+
+@media (min-width: 960px) {
+  .store-description {
+    margin: 0;
+  }
+}
+
+/* Metrics */
+.metrics {
+  margin-top: 3rem;
+  gap: 1.5rem;
+}
+
+.metric-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 3px solid !important;
+  background: white !important;
+}
+
+.metric-card:hover {
+  transform: translateY(-8px);
+}
+
+.metric-card-1 {
+  border-color: rgb(var(--v-theme-indigo)) !important;
+}
+
+.metric-card-1:hover {
+  background: rgb(var(--v-theme-indigo-lighten-5)) !important;
+}
+
+.metric-card-2 {
+  border-color: rgb(var(--v-theme-pink)) !important;
+}
+
+.metric-card-2:hover {
+  background: rgb(var(--v-theme-pink-lighten-5)) !important;
+}
+
+.metric-card-3 {
+  border-color: rgb(var(--v-theme-amber)) !important;
+}
+
+.metric-card-3:hover {
+  background: rgb(var(--v-theme-amber-lighten-5)) !important;
+}
+
+.metric-card-4 {
+  border-color: rgb(var(--v-theme-green)) !important;
+}
+
+.metric-card-4:hover {
+  background: rgb(var(--v-theme-green-lighten-5)) !important;
+}
+
+.metric-icon {
+  opacity: 0.9;
+}
+
+.metric-value {
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.metric-label {
+  color: rgba(0, 0, 0, 0.7);
+  letter-spacing: 0.5px;
+}
+
 
 /* Mobile Responsive */
 @media (max-width: 600px) {
   .supplier-mini-website {
-    font-size: 15px;
+    font-size: 17px;
   }
 
   .section-title {
-    font-size: 1.75rem;
-  }
-
-  .section-title-sm {
-    font-size: 1.25rem;
-  }
-
-  .nav-button {
-    padding: 12px 16px;
-    font-size: 14px;
+    font-size: 2rem !important;
   }
 
   .readable-text {
-    font-size: 1rem;
-    line-height: 1.7;
-  }
-
-  .sticky-sidebar {
-    margin-top: 2rem;
-  }
-
-  .contact-card {
-    margin-top: 2rem;
+    font-size: 1.125rem !important;
+    line-height: 2;
   }
 
   .fixed-contact-btn {
-    bottom: 16px;
-    left: 16px;
-    width: 56px;
-    height: 56px;
-  }
-}
-
-@media (max-width: 400px) {
-  .nav-button {
-    padding: 10px 14px;
-    font-size: 13px;
+    bottom: 20px;
+    left: 20px;
+    padding: 1.25rem 2rem !important;
   }
 
-  .nav-icon {
-    display: none;
+  .metrics {
+    margin-top: 2rem;
+    gap: 1rem;
+  }
+
+  .hero-logo {
+    border-width: 4px !important;
+  }
+
+  .trust-indicators {
+    gap: 0.75rem;
+  }
+
+  .store-description {
+    font-size: 1.125rem !important;
+  }
+
+  .content-card {
+    margin-bottom: 1rem;
   }
 }
 
