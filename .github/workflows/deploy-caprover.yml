@@ -36,4 +36,4 @@ jobs:
           server: '${{ secrets.CAPROVER_SERVER }}'
           app: '${{ secrets.CAPROVER_APP_FRONTEND }}'
           token: '${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }}'
-          directory: './multivendor_platform/front_end/nuxt'
+          #directory: './multivendor_platform/front_end/nuxt'
