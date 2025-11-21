@@ -19,18 +19,25 @@ RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
 # Set environment variables for the build
 ARG NUXT_PUBLIC_API_BASE=https://multivendor-backend.indexo.ir/api
+ARG NUXT_PUBLIC_SITE_URL=https://indexo.ir
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
+ENV NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
 
 # Build the Nuxt app
 RUN echo "========================================" && \
     echo "Starting Nuxt build..." && \
     echo "NUXT_PUBLIC_API_BASE: $NUXT_PUBLIC_API_BASE" && \
+    echo "NUXT_PUBLIC_SITE_URL: $NUXT_PUBLIC_SITE_URL" && \
     echo "Current directory: $(pwd)" && \
+    echo "Verifying env vars are set:" && \
+    env | grep NUXT && \
     echo "========================================" && \
     npm run build && \
     echo "========================================" && \
     echo "Build completed! Checking .output folder..." && \
     ls -la .output/ && \
+    echo "Checking nitro.json for runtime config..." && \
+    cat .output/nitro.json && \
     echo "========================================"
 
 # Production stage - use Node.js to run Nuxt server
@@ -58,8 +65,9 @@ ENV NODE_ENV=production
 ENV NUXT_HOST=0.0.0.0
 ENV NUXT_PORT=3000
 
-# Set API base URL for runtime (can be overridden by CapRover)
+# Set runtime environment variables (can be overridden by CapRover)
 ENV NUXT_PUBLIC_API_BASE=https://multivendor-backend.indexo.ir/api
+ENV NUXT_PUBLIC_SITE_URL=https://indexo.ir
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
