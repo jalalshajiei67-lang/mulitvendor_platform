@@ -561,7 +561,13 @@ const saveProduct = async () => {
     }, 1500)
   } catch (error: any) {
     console.error('Error saving product:', error)
-    alert('خطا در ذخیره محصول: ' + (error?.data?.detail || error?.message || 'خطای نامشخص'))
+    
+    // Import and use the error formatting utility
+    const { formatErrorMessage } = await import('~/utils/apiErrors')
+    const errorMsg = formatErrorMessage(error)
+    
+    // Use alert for now, but could be improved with a snackbar
+    alert('خطا در ذخیره محصول:\n\n' + errorMsg)
   } finally {
     submitting.value = false
   }

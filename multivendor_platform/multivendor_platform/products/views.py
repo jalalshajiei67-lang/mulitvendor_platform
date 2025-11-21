@@ -139,14 +139,28 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     def perform_create(self, serializer):
-        product = serializer.save()
-        self._ensure_primary_category(product)
-        self._handle_image_uploads(product)
+        try:
+            product = serializer.save()
+            self._ensure_primary_category(product)
+            self._handle_image_uploads(product)
+        except serializers.ValidationError:
+            raise
+        except Exception as e:
+            raise serializers.ValidationError({
+                'detail': f'خطا در ایجاد محصول: {str(e)}'
+            })
     
     def perform_update(self, serializer):
-        product = serializer.save()
-        self._ensure_primary_category(product)
-        self._handle_image_uploads(product)
+        try:
+            product = serializer.save()
+            self._ensure_primary_category(product)
+            self._handle_image_uploads(product)
+        except serializers.ValidationError:
+            raise
+        except Exception as e:
+            raise serializers.ValidationError({
+                'detail': f'خطا در بروزرسانی محصول: {str(e)}'
+            })
     
     def _handle_image_uploads(self, product):
         """Handle multiple image uploads from FormData"""

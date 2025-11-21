@@ -105,23 +105,39 @@ def login_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
     
+    # DEBUG: Log incoming request
+    print(f"\n{'='*60}")
+    print(f"LOGIN ATTEMPT")
+    print(f"Username: {username}")
+    print(f"Password provided: {'Yes' if password else 'No'}")
+    print(f"Request method: {request.method}")
+    print(f"Content-Type: {request.META.get('CONTENT_TYPE')}")
+    print(f"Origin: {request.META.get('HTTP_ORIGIN')}")
+    print(f"{'='*60}\n")
+    
     if not username or not password:
+        print("❌ Missing username or password")
         return Response(
             {'error': 'لطفاً نام کاربری و رمز عبور را وارد کنید.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
     user = authenticate(username=username, password=password)
+    print(f"Authentication result: {'Success' if user else 'Failed'}")
     
     if user:
         # Check if user is blocked
         try:
             if user.profile.is_blocked:
+                print(f"❌ User {username} is BLOCKED")
                 return Response(
                     {'error': 'حساب کاربری شما مسدود شده است. برای رفع مشکل با پشتیبانی تماس بگیرید.'}, 
                     status=status.HTTP_403_FORBIDDEN
                 )
+            else:
+                print(f"✅ User {username} is NOT blocked")
         except UserProfile.DoesNotExist:
+            print(f"⚠️  User {username} has no profile - creating one")
             # Create profile if it doesn't exist (for backward compatibility)
             UserProfile.objects.create(user=user)
         
@@ -959,6 +975,65 @@ def admin_block_user_view(request, user_id):
         return Response({'message': f'User {action_desc} successfully'})
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])  # Temporarily allow anyone for testing
+@csrf_exempt
+def unblock_all_users_view(request):
+    """Temporary endpoint to check and unblock all blocked users"""
+    try:
+        # Get all profiles
+        all_profiles = UserProfile.objects.all()
+        blocked_profiles = UserProfile.objects.filter(is_blocked=True)
+        
+        # Build detailed report
+        all_users = []
+        for profile in all_profiles:
+            all_users.append({
+                'username': profile.user.username,
+                'role': profile.get_role_display(),
+                'is_blocked': profile.is_blocked,
+                'is_verified': profile.is_verified,
+                'created_at': str(profile.created_at)
+            })
+        
+        if request.method == 'GET':
+            # Just show status
+            return Response({
+                'total_users': all_profiles.count(),
+                'blocked_users': blocked_profiles.count(),
+                'users': all_users
+            })
+        
+        # POST - Unblock all
+        count = blocked_profiles.count()
+        
+        if count == 0:
+            return Response({
+                'message': 'No blocked users found',
+                'count': 0,
+                'total_users': all_profiles.count(),
+                'users': all_users
+            })
+        
+        # Get list of blocked users before unblocking
+        blocked_users = list(blocked_profiles.values('user__username', 'created_at'))
+        
+        # Unblock all
+        blocked_profiles.update(is_blocked=False)
+        
+        return Response({
+            'message': f'Successfully unblocked {count} user(s)',
+            'count': count,
+            'blocked_users': blocked_users,
+            'total_users': all_profiles.count()
+        })
+    except Exception as e:
+        import traceback
+        return Response({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])

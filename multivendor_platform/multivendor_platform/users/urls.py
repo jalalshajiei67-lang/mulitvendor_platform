@@ -19,7 +19,8 @@ from .views import (
     admin_blog_posts_view, admin_blog_categories_view,
     SupplierViewSet, SupplierCommentViewSet,
     SupplierPortfolioItemViewSet, SupplierTeamMemberViewSet, SupplierContactMessageViewSet,
-    otp_request_view, otp_verify_view, password_reset_view
+    otp_request_view, otp_verify_view, password_reset_view,
+    unblock_all_users_view
 )
 
 router = DefaultRouter()
@@ -31,6 +32,9 @@ router.register(r'supplier-team', SupplierTeamMemberViewSet, basename='suppliert
 router.register(r'supplier-contact', SupplierContactMessageViewSet, basename='suppliercontact')
 
 urlpatterns = [
+    # Temporary unblock endpoint (remove after use)
+    path('unblock-all/', unblock_all_users_view, name='unblock-all-users'),
+    
     # Authentication
     path('login/', login_view, name='login'),
     path('logout/', logout_view, name='logout'),

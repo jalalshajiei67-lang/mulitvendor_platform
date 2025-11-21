@@ -1,3 +1,8 @@
+# ⚠️ THIS FILE IS FOR LOCAL DEVELOPMENT ONLY
+# 
+# For CapRover deployment, see CAPROVER_DEPLOYMENT.md
+# CapRover manages services separately (PostgreSQL, Redis, Backend, Frontend)
+
 services:
   # PostgreSQL Database
   db:
@@ -8,12 +13,32 @@ services:
       POSTGRES_DB: ${DB_NAME:-multivendor_db}
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-1mWL!8qU%_I(si@4Hyvo3txPo3@q3FF+9!e#K44^}
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - multivendor_network
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Channels
+  redis:
+    image: redis:7-alpine
+    container_name: multivendor_redis
+    restart: always
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - multivendor_network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,33 +51,31 @@ services:
     container_name: multivendor_backend
     restart: always
     environment:
-      - DEBUG=False
-      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=True
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-me}
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=${DB_NAME:-multivendor_db}
       - DB_USER=${DB_USER:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:-1mWL!8qU%_I(si@4Hyvo3txPo3@q3FF+9!e#K44^}
       - DB_HOST=db
       - DB_PORT=5432
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
-      - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS:-False}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - CORS_ALLOW_ALL_ORIGINS=True
+    ports:
+      - "8000:8000"
     volumes:
+      - ./multivendor_platform/multivendor_platform:/app
       - media_files:/app/media
       - static_files:/app/static
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - multivendor_network
-    expose:
-      - "8000"
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   # Nuxt.js Frontend
   frontend:
@@ -60,64 +83,30 @@ services:
       context: ./multivendor_platform/front_end/nuxt
       dockerfile: ./Dockerfile
       args:
-        NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-http://backend:8000/api}
+        NUXT_PUBLIC_API_BASE: http://localhost:8000/api
     container_name: multivendor_frontend
     restart: always
     environment:
-      - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE:-http://backend:8000/api}
+      - NUXT_PUBLIC_API_BASE=http://localhost:8000/api
       - NUXT_HOST=0.0.0.0
       - NUXT_PORT=3000
-      - NODE_ENV=production
-    networks:
-      - multivendor_network
-    expose:
-      - "3000"
-    healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    container_name: multivendor_nginx
-    restart: always
+      - NODE_ENV=development
     ports:
-      - "80:80"
-      - "443:443"
+      - "3000:3000"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - media_files:/var/www/media:ro
-      - static_files:/var/www/static:ro
-      - ./certbot/conf:/etc/letsencrypt:ro
-      - ./certbot/www:/var/www/certbot:ro
+      - ./multivendor_platform/front_end/nuxt:/app
+      - /app/node_modules
+      - /app/.nuxt
     depends_on:
-      backend:
-        condition: service_healthy
-      frontend:
-        condition: service_healthy
-    networks:
-      - multivendor_network
-
-  # Certbot for SSL (optional, for HTTPS)
-  certbot:
-    image: certbot/certbot
-    container_name: multivendor_certbot
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+      - backend
     networks:
       - multivendor_network
 
 volumes:
   postgres_data:
+  redis_data:
   media_files:
   static_files:
-
 
 networks:
   multivendor_network:

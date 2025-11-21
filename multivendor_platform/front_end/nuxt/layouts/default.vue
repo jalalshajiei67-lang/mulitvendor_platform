@@ -5,12 +5,16 @@
       <slot />
     </v-main>
     <AppFooter />
+    
+    <!-- Chat Widget - Available site-wide -->
+    <ChatWidget />
   </v-layout>
 </template>
 
 <script setup lang="ts">
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
+import ChatWidget from '@/components/chat/ChatWidget.vue'
 
 useSeoMeta({
   title: 'صفحه اصلی',

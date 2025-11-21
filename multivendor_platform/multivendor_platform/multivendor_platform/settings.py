@@ -20,6 +20,7 @@ else:
     ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
 # Application definition
 INSTALLED_APPS = [
+    'daphne',  # ASGI server for Channels (must be at top)
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -29,6 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',  # For automatic sitemap generation
 
     # Third-party apps
+    'channels',  # WebSocket support
     'rest_framework',
     'rest_framework.authtoken',  # For token authentication
     'corsheaders',  # To allow requests from your Vue frontend
@@ -42,6 +44,7 @@ INSTALLED_APPS = [
     'blog',
     'pages',
     'gamification',
+    'chat',  # Chat system
 ]
 
 MIDDLEWARE = [
@@ -75,6 +78,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'multivendor_platform.wsgi.application'
+ASGI_APPLICATION = 'multivendor_platform.asgi.application'
 
 
 
@@ -214,7 +218,7 @@ if USE_TLS:
 # Configure DRF
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'multivendor_platform.authentication.CsrfExemptSessionAuthentication',  # Custom session auth without CSRF
         'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -284,3 +288,43 @@ OTP_SENDER_CLASS = os.environ.get('OTP_SENDER_CLASS', 'users.services.otp_sender
 OTP_EXPIRATION_MINUTES = int(os.environ.get('OTP_EXPIRATION_MINUTES', '5'))
 OTP_RATE_LIMIT_REQUESTS = int(os.environ.get('OTP_RATE_LIMIT_REQUESTS', '3'))
 OTP_RATE_LIMIT_WINDOW_MINUTES = int(os.environ.get('OTP_RATE_LIMIT_WINDOW_MINUTES', '15'))
+
+# Channels Configuration
+REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
+REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
+
+# Build Redis connection string
+if REDIS_PASSWORD:
+    REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [REDIS_URL],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [(REDIS_HOST, REDIS_PORT)],
+            },
+        },
+    }
+
+# Fallback to in-memory channel layer for development without Redis
+if DEBUG and REDIS_HOST == 'localhost':
+    try:
+        import redis
+        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+        r.ping()
+    except:
+        # Redis not available, use in-memory channel layer
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels.layers.InMemoryChannelLayer'
+            }
+        }

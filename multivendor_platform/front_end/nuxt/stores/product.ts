@@ -205,7 +205,10 @@ export const useProductStore = defineStore('products', () => {
       products.value = [enhanced, ...products.value]
       return enhanced
     } catch (err: any) {
-      error.value = t('failedToCreate')
+      // Import error formatting utility dynamically
+      const { formatErrorMessage } = await import('~/utils/apiErrors')
+      const formattedError = formatErrorMessage(err)
+      error.value = formattedError
       console.error('Error creating product:', err)
       throw err
     } finally {
@@ -235,7 +238,10 @@ export const useProductStore = defineStore('products', () => {
 
       return enhanced
     } catch (err: any) {
-      error.value = t('failedToUpdate')
+      // Import error formatting utility dynamically
+      const { formatErrorMessage } = await import('~/utils/apiErrors')
+      const formattedError = formatErrorMessage(err)
+      error.value = formattedError
       console.error('Error updating product:', err)
       throw err
     } finally {

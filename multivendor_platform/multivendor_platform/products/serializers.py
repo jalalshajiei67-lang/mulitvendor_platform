@@ -240,6 +240,36 @@ class ProductSerializer(serializers.ModelSerializer):
             'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
             'labels', 'promotional_labels', 'created_at', 'updated_at'
         ]
+        extra_kwargs = {
+            'name': {
+                'required': True,
+                'error_messages': {
+                    'required': 'نام محصول الزامی است',
+                    'blank': 'نام محصول نمی‌تواند خالی باشد',
+                    'max_length': 'نام محصول نمی‌تواند بیشتر از ۲۰۰ کاراکتر باشد'
+                }
+            },
+            'description': {
+                'required': True,
+                'error_messages': {
+                    'required': 'توضیحات محصول الزامی است',
+                    'blank': 'توضیحات محصول نمی‌تواند خالی باشد'
+                }
+            },
+            'price': {
+                'required': True,
+                'error_messages': {
+                    'required': 'قیمت محصول الزامی است',
+                    'invalid': 'قیمت وارد شده معتبر نیست'
+                }
+            },
+            'stock': {
+                'error_messages': {
+                    'invalid': 'موجودی وارد شده معتبر نیست',
+                    'min_value': 'موجودی نمی‌تواند منفی باشد'
+                }
+            }
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -313,9 +343,81 @@ class ProductSerializer(serializers.ModelSerializer):
             total_count = existing_count + new_images_count
             
             if total_count > 20:
-                raise serializers.ValidationError("Maximum 20 images allowed per product.")
+                raise serializers.ValidationError({
+                    "images": "حداکثر ۲۰ تصویر برای هر محصول مجاز است"
+                })
+        
+        # Validate price is positive
+        if 'price' in data and data['price'] is not None:
+            if data['price'] < 0:
+                raise serializers.ValidationError({
+                    "price": "قیمت نمی‌تواند منفی باشد"
+                })
+        
+        # Validate stock is non-negative
+        if 'stock' in data and data['stock'] is not None:
+            if data['stock'] < 0:
+                raise serializers.ValidationError({
+                    "stock": "موجودی نمی‌تواند منفی باشد"
+                })
+        
+        # Validate description is not empty HTML
+        if 'description' in data:
+            # Remove HTML tags and check if there's actual content
+            import re
+            clean_text = re.sub(r'<[^>]+>', '', data['description']).strip()
+            if not clean_text:
+                raise serializers.ValidationError({
+                    "description": "توضیحات نمی‌تواند خالی باشد"
+                })
         
         return data
+    
+    def validate_name(self, value):
+        """Validate product name"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("نام محصول نمی‌تواند خالی باشد")
+        
+        if len(value.strip()) < 3:
+            raise serializers.ValidationError("نام محصول باید حداقل ۳ کاراکتر باشد")
+        
+        return value.strip()
+    
+    def validate_description(self, value):
+        """Validate product description"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("توضیحات محصول نمی‌تواند خالی باشد")
+        
+        # Remove HTML tags and check actual content
+        import re
+        clean_text = re.sub(r'<[^>]+>', '', value).strip()
+        if not clean_text:
+            raise serializers.ValidationError("توضیحات نمی‌تواند خالی باشد")
+        
+        if len(clean_text) < 10:
+            raise serializers.ValidationError("توضیحات باید حداقل ۱۰ کاراکتر باشد")
+        
+        return value
+    
+    def validate_price(self, value):
+        """Validate product price"""
+        if value is None:
+            raise serializers.ValidationError("قیمت محصول الزامی است")
+        
+        if value < 0:
+            raise serializers.ValidationError("قیمت نمی‌تواند منفی باشد")
+        
+        if value == 0:
+            raise serializers.ValidationError("قیمت نمی‌تواند صفر باشد")
+        
+        return value
+    
+    def validate_stock(self, value):
+        """Validate product stock"""
+        if value is not None and value < 0:
+            raise serializers.ValidationError("موجودی نمی‌تواند منفی باشد")
+        
+        return value
 
 class ProductCommentSerializer(serializers.ModelSerializer):
     """

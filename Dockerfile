@@ -42,8 +42,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Run migrations and start server
+# Run migrations and start server with Daphne (ASGI for WebSocket support)
 CMD python manage.py migrate --noinput --fake-initial; \
     python manage.py collectstatic --noinput && \
-    gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120
+    daphne -b 0.0.0.0 -p 8000 multivendor_platform.asgi:application
 

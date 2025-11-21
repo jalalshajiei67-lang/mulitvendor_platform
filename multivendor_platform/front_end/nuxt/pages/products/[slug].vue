@@ -88,9 +88,24 @@
               </div>
             </div>
 
-            <v-btn block color="primary" size="large" @click="showRFQDialog = true">
+            <v-btn block color="primary" size="large" @click="showRFQDialog = true" class="mb-3">
               {{ t('requestQuote') }}
             </v-btn>
+            
+            <!-- Debug: Show vendor info -->
+            <div v-if="product" class="text-caption mb-2">
+              Vendor ID: {{ product.vendor }} | Product ID: {{ product.id }}
+            </div>
+            
+            <ProductChatButton
+              v-if="product && product.vendor"
+              :product-id="product.id"
+              :vendor-id="product.vendor"
+              block
+            />
+            <v-alert v-else-if="product && !product.vendor" type="warning" density="compact">
+              No vendor assigned to this product
+            </v-alert>
           </v-card>
 
           <v-card elevation="1" rounded="xl" class="pa-6">

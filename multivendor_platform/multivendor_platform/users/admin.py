@@ -9,19 +9,23 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'role', 'is_verified', 'is_blocked', 'created_at']
     list_filter = ['role', 'is_verified', 'is_blocked']
     search_fields = ['user__username', 'user__email', 'phone']
-    actions = ['verify_users', 'block_users', 'unblock_users', 'delete_selected']  # Include delete action
+    list_editable = ['is_blocked', 'is_verified']  # Allow inline editing
+    actions = ['verify_users', 'block_users', 'unblock_users', 'delete_selected']
     
     def verify_users(self, request, queryset):
-        queryset.update(is_verified=True)
-    verify_users.short_description = "Verify selected users"
+        updated = queryset.update(is_verified=True)
+        self.message_user(request, f'{updated} user(s) verified successfully.')
+    verify_users.short_description = "✅ Verify selected users"
     
     def block_users(self, request, queryset):
-        queryset.update(is_blocked=True)
-    block_users.short_description = "Block selected users"
+        updated = queryset.update(is_blocked=True)
+        self.message_user(request, f'{updated} user(s) blocked successfully.')
+    block_users.short_description = "🚫 Block selected users"
     
     def unblock_users(self, request, queryset):
-        queryset.update(is_blocked=False)
-    unblock_users.short_description = "Unblock selected users"
+        updated = queryset.update(is_blocked=False)
+        self.message_user(request, f'{updated} user(s) unblocked successfully.')
+    unblock_users.short_description = "🔓 Unblock selected users"
     
     class Media:
         js = ('admin/js/fix_action_button.js',)

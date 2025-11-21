@@ -363,10 +363,21 @@
     <v-snackbar
       v-model="showErrorSnackbar"
       color="error"
-      :timeout="5000"
+      :timeout="8000"
       location="top"
+      multi-line
     >
-      {{ errorMessage }}
+      <div style="white-space: pre-line; max-width: 600px;">
+        {{ errorMessage }}
+      </div>
+      <template v-slot:actions>
+        <v-btn
+          variant="text"
+          @click="showErrorSnackbar = false"
+        >
+          بستن
+        </v-btn>
+      </template>
     </v-snackbar>
   </div>
 </template>
@@ -812,7 +823,10 @@ const saveProduct = async () => {
     }, 1500)
   } catch (error: any) {
     console.error('Error saving product:', error)
-    errorMessage.value = error.data?.detail || 'خطا در ذخیره محصول'
+    
+    // Import and use the error formatting utility
+    const { formatErrorMessage } = await import('~/utils/apiErrors')
+    errorMessage.value = formatErrorMessage(error)
     showErrorSnackbar.value = true
   } finally {
     submitting.value = false
