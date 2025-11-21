@@ -14,16 +14,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
+      - name: Verify secrets are set
+        run: |
+          if [ -z "${{ secrets.CAPROVER_SERVER }}" ]; then
+            echo "❌ Error: CAPROVER_SERVER secret is not set!"
+            echo "Please add it in GitHub repository Settings > Secrets and variables > Actions"
+            echo "Example: https://captain.indexo.ir"
+            exit 1
+          fi
+          if [ -z "${{ secrets.CAPROVER_APP_TOKEN_BACKEND }}" ]; then
+            echo "❌ Error: CAPROVER_APP_TOKEN_BACKEND secret is not set!"
+            exit 1
+          fi
+          echo "✅ Secrets are configured"
+          echo "Server: ${{ secrets.CAPROVER_SERVER }}"
+      
       - name: Create deployment package
         run: |
           tar -czf deploy.tar captain-definition Dockerfile.backend docker-entrypoint.sh requirements.txt multivendor_platform/
       
       - name: Deploy to CapRover via webhook
         run: |
+          echo "Deploying to: ${{ secrets.CAPROVER_SERVER }}/api/v2/user/apps/webhooks/triggerbuild"
           response=$(curl -X POST \
-            ${{ secrets.CAPROVER_SERVER }}/api/v2/user/apps/webhooks/triggerbuild \
+            "${{ secrets.CAPROVER_SERVER }}/api/v2/user/apps/webhooks/triggerbuild" \
             -H "x-captain-app-token: ${{ secrets.CAPROVER_APP_TOKEN_BACKEND }}" \
-            -F "sourceFile=@deploy.tar")
+            -F "sourceFile=@deploy.tar" \
+            --fail-with-body \
+            --show-error)
           echo "Deployment response: $response"
           if echo "$response" | grep -q '"status":100'; then
             echo "✅ Backend deployment successful!"
@@ -41,6 +59,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      
+      - name: Verify secrets are set
+        run: |
+          if [ -z "${{ secrets.CAPROVER_SERVER }}" ]; then
+            echo "❌ Error: CAPROVER_SERVER secret is not set!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }}" ]; then
+            echo "❌ Error: CAPROVER_APP_TOKEN_FRONTEND secret is not set!"
+            exit 1
+          fi
+          echo "✅ Secrets are configured for frontend"
       
       - name: Create deployment package
         run: |
@@ -70,10 +100,13 @@ jobs:
       - name: Deploy to CapRover via webhook
         run: |
           cd multivendor_platform/front_end/nuxt
+          echo "Deploying frontend to: ${{ secrets.CAPROVER_SERVER }}/api/v2/user/apps/webhooks/triggerbuild"
           response=$(curl -X POST \
-            ${{ secrets.CAPROVER_SERVER }}/api/v2/user/apps/webhooks/triggerbuild \
+            "${{ secrets.CAPROVER_SERVER }}/api/v2/user/apps/webhooks/triggerbuild" \
             -H "x-captain-app-token: ${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }}" \
-            -F "sourceFile=@deploy.tar")
+            -F "sourceFile=@deploy.tar" \
+            --fail-with-body \
+            --show-error)
           echo "Deployment response: $response"
           if echo "$response" | grep -q '"status":100'; then
             echo "✅ Frontend deployment successful!"
