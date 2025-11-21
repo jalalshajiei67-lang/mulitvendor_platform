@@ -15,11 +15,12 @@ jobs:
         uses: actions/checkout@v3
       
       - name: Deploy to CapRover
-        uses: caprover/deploy-from-github@v1.0.1
+        uses: caprover/deploy-from-github@v1.1.2
         with:
           server: '${{ secrets.CAPROVER_SERVER }}'
           app: '${{ secrets.CAPROVER_APP_BACKEND }}'
           token: '${{ secrets.CAPROVER_APP_TOKEN_BACKEND }}'
+          branch: '${{ github.ref_name }}'
 
   deploy-frontend:
     name: Deploy Frontend
@@ -31,9 +32,10 @@ jobs:
         uses: actions/checkout@v3
       
       - name: Deploy to CapRover
-        uses: caprover/deploy-from-github@v1.0.1
+        uses: caprover/deploy-from-github@v1.1.2
         with:
           server: '${{ secrets.CAPROVER_SERVER }}'
           app: '${{ secrets.CAPROVER_APP_FRONTEND }}'
           token: '${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }}'
+          branch: '${{ github.ref_name }}'
           directory: './multivendor_platform/front_end/nuxt'
