@@ -18,6 +18,7 @@
                 :rules="[v => !!v || 'نام محصول الزامی است']"
                 required
                 class="mb-2"
+                data-tour="product-name-input"
               ></v-text-field>
 
               <v-text-field
@@ -30,14 +31,14 @@
                 class="mb-4"
               ></v-text-field>
 
-              <div class="mb-4">
+              <div class="mb-4" data-tour="product-description-input">
                 <label class="text-body-2 mb-2 d-block font-weight-medium">
                   <v-icon size="small" class="ml-1">mdi-text</v-icon>
                   توضیحات <span class="text-error">*</span>
                 </label>
                 <LazyTiptapEditor v-model="product.description" />
                 <div v-if="!descriptionValid && descriptionTouched" class="text-error text-caption mt-1">
-                  توضیحات الزامی است
+                  توضیحات الزami است
                 </div>
               </div>
 
@@ -53,6 +54,7 @@
                     min="0"
                     :rules="[v => v >= 0 || 'قیمت باید مثبت باشد']"
                     required
+                    data-tour="product-price-input"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" sm="6">
@@ -91,6 +93,7 @@
                 :rules="[v => !!v || 'زیردسته الزامی است']"
                 required
                 clearable
+                data-tour="product-category-input"
                 @update:model-value="onSubcategorySelect"
                 @update:search="onSubcategorySearch"
               >
@@ -247,6 +250,7 @@
               prepend-icon="mdi-content-save"
               class="mb-2 save-button"
               elevation="3"
+              data-tour="product-save-button"
             >
               {{ editMode ? 'به‌روزرسانی محصول' : 'ذخیره محصول' }}
             </v-btn>

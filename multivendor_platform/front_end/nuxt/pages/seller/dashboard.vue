@@ -14,11 +14,11 @@
               <v-icon start>mdi-home</v-icon>
               صفحه اصلی
             </v-tab>
-            <v-tab value="profile">
+            <v-tab value="profile" data-tour="profile-tab">
               <v-icon start>mdi-account</v-icon>
               پروفایل
             </v-tab>
-            <v-tab value="products">
+            <v-tab value="products" data-tour="products-tab">
               <v-icon left>mdi-package-variant</v-icon>
               محصولات
             </v-tab>
@@ -34,7 +34,7 @@
               <v-icon left>mdi-star</v-icon>
               نظرات مشتریان
             </v-tab>
-            <v-tab value="miniwebsite">
+            <v-tab value="miniwebsite" data-tour="miniwebsite-tab">
               <v-icon left>mdi-web</v-icon>
               وب‌سایت مینی
             </v-tab>
@@ -48,7 +48,7 @@
                   <!-- Welcome Section -->
                   <v-row class="mb-4">
                     <v-col cols="12">
-                      <div class="d-flex align-center justify-space-between flex-wrap gap-3">
+                      <div class="d-flex align-center justify-space-between flex-wrap gap-3" data-tour="welcome">
                       <div>
                         <h2 class="text-h5 mb-2">
                           خوش آمدید {{ getUserFullName() }}!
@@ -65,6 +65,7 @@
                             prepend-icon="mdi-plus-circle"
                             @click="tab = 'products'; openProductForm()"
                             size="default"
+                            data-tour="add-product-btn"
                           >
                             افزودن محصول جدید
                           </v-btn>
@@ -200,25 +201,6 @@
                           </div>
                         </v-card-text>
                       </v-card>
-                    </v-col>
-                  </v-row>
-
-                  <v-row class="mb-4">
-                    <v-col cols="12" md="4">
-                      <EngagementWidget
-                        :engagement="gamificationStore.engagement"
-                        :loading="gamificationStore.loading"
-                        @cta="openProductForm"
-                      />
-                    </v-col>
-                    <v-col cols="12" md="4">
-                      <BadgeDisplay
-                        :badges="gamificationStore.badges.slice(0, 4)"
-                        title="نشان‌های پیش رو"
-                      />
-                    </v-col>
-                    <v-col cols="12" md="4">
-                      <LeaderboardWidget :entries="gamificationStore.leaderboard" />
                     </v-col>
                   </v-row>
 
@@ -500,15 +482,15 @@
                     align-tabs="start"
                     class="mb-4"
                   >
-                    <v-tab value="settings">
+                    <v-tab value="settings" data-tour="miniwebsite-settings">
                       <v-icon start size="small">mdi-palette</v-icon>
                       تنظیمات
                     </v-tab>
-                    <v-tab value="portfolio">
+                    <v-tab value="portfolio" data-tour="miniwebsite-portfolio">
                       <v-icon start size="small">mdi-briefcase</v-icon>
                       نمونه کارها
                     </v-tab>
-                    <v-tab value="team">
+                    <v-tab value="team" data-tour="miniwebsite-team">
                       <v-icon start size="small">mdi-account-group</v-icon>
                       تیم
                     </v-tab>
@@ -589,6 +571,13 @@
     <v-snackbar v-model="snackbar" :color="snackbarColor" :timeout="3000" location="top">
       {{ snackbarMessage }}
     </v-snackbar>
+
+    <!-- Onboarding Tour -->
+    <OnboardingTour
+      @tour-started="handleTourStarted"
+      @tour-completed="handleTourCompleted"
+      @tour-dismissed="handleTourDismissed"
+    />
   </v-container>
 </template>
 
@@ -602,11 +591,10 @@ import PortfolioManager from '~/components/supplier/PortfolioManager.vue'
 import TeamManager from '~/components/supplier/TeamManager.vue'
 import ContactMessagesInbox from '~/components/supplier/ContactMessagesInbox.vue'
 import SupplierProductForm from '~/components/supplier/ProductForm.vue'
-import EngagementWidget from '~/components/gamification/EngagementWidget.vue'
-import BadgeDisplay from '~/components/gamification/BadgeDisplay.vue'
-import LeaderboardWidget from '~/components/gamification/LeaderboardWidget.vue'
 import FormQualityScore from '~/components/gamification/FormQualityScore.vue'
-import { useGamificationStore } from '~/stores/gamification'
+import OnboardingTour from '~/components/supplier/OnboardingTour.vue'
+// Removed gamification widgets: EngagementWidget, BadgeDisplay, LeaderboardWidget
+// See GAMIFICATION_UI_REMOVED.md for details
 
 definePageMeta({
   middleware: 'authenticated',
@@ -615,7 +603,6 @@ definePageMeta({
 
 const authStore = useAuthStore()
 const sellerApi = useSellerApi()
-const gamificationStore = useGamificationStore()
 const route = useRoute()
 
 // Check for tab query parameter - default to 'home'
@@ -711,14 +698,8 @@ const profileScore = computed(() => {
 
 const profileTips = computed(() => profileMetrics.value.filter(metric => !metric.passed).map(metric => metric.tip))
 
-watch(profileScore, (score) => {
-  gamificationStore.updateLocalScore('profile', {
-    title: 'profile',
-    score,
-    metrics: profileMetrics.value,
-    tips: profileTips.value
-  })
-}, { immediate: true })
+// Note: Profile score tracking is kept for form quality scoring
+// But gamification store integration is removed (see GAMIFICATION_UI_REMOVED.md)
 
 const adData = ref({
   id: 0,
@@ -952,6 +933,20 @@ const showSnackbar = (message: string, color = 'success') => {
   snackbar.value = true
 }
 
+// Tour event handlers
+const handleTourStarted = () => {
+  console.log('Tour started')
+}
+
+const handleTourCompleted = () => {
+  console.log('Tour completed')
+  showSnackbar('راهنما با موفقیت تکمیل شد!', 'success')
+}
+
+const handleTourDismissed = () => {
+  console.log('Tour dismissed')
+}
+
 const openProductForm = () => {
   editingProduct.value = null
   showProductForm.value = true
@@ -994,7 +989,7 @@ onMounted(() => {
   loadOrders()
   loadReviews()
   loadAds()
-  gamificationStore.hydrate().catch((error) => console.warn('Failed to load gamification data', error))
+  // Removed gamificationStore.hydrate() - see GAMIFICATION_UI_REMOVED.md
 })
 </script>
 

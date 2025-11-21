@@ -10,6 +10,7 @@
           color="primary"
           prepend-icon="mdi-plus"
           @click="openForm()"
+          data-tour="add-portfolio-button"
         >
           افزودن نمونه کار
         </v-btn>

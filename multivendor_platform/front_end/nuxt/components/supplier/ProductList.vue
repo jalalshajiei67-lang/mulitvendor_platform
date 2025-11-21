@@ -7,6 +7,7 @@
         color="primary"
         prepend-icon="mdi-plus"
         @click="$emit('add-product')"
+        data-tour="add-product-btn"
       >
         افزودن محصول جدید
       </v-btn>
@@ -27,6 +28,7 @@
         size="large"
         prepend-icon="mdi-plus-circle"
         @click="$emit('add-product')"
+        data-tour="add-product-btn"
       >
         افزودن محصول
       </v-btn>

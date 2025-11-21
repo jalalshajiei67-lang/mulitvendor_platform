@@ -45,6 +45,7 @@
                   class="text-input-large"
                   hint="مثال: فروشگاه آرتا برای صنایع"
                   :rules="[v => !!v || 'لطفاً نام فروشگاه را وارد کنید']"
+                  data-tour="store-name-input"
                 >
                   <template #prepend>
                     <v-icon color="primary" size="24">mdi-store</v-icon>
@@ -68,6 +69,7 @@
                   hint="حداقل ۲۰۰ حرف بنویسید"
                   counter="500"
                   :rules="descriptionRules"
+                  data-tour="store-description-input"
                 >
                   <template #prepend>
                     <v-icon color="primary" size="24">mdi-text</v-icon>
@@ -606,6 +608,7 @@
           @click="saveSettings"
           class="flex-grow-1"
           min-width="200"
+          data-tour="settings-save-button"
         >
           ذخیره همه تغییرات
         </v-btn>
@@ -620,6 +623,7 @@
           @click="previewWebsite"
           class="flex-grow-1"
           min-width="200"
+          data-tour="preview-website"
         >
           دیدن صفحه فروشگاه
         </v-btn>

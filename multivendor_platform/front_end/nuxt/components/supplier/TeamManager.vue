@@ -10,6 +10,7 @@
           color="primary"
           prepend-icon="mdi-plus"
           @click="openForm()"
+          data-tour="add-team-button"
         >
           افزودن عضو تیم
         </v-btn>
