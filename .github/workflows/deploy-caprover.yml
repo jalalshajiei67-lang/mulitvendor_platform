@@ -14,20 +14,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Install CapRover CLI
-        run: npm install -g caprover
-      
       - name: Create deployment tarball
         run: |
-          tar -czf deploy.tar.gz captain-definition Dockerfile requirements.txt multivendor_platform/
+          tar -czf deploy.tar captain-definition Dockerfile requirements.txt multivendor_platform/
       
-      - name: Deploy to CapRover
+      - name: Deploy to CapRover via API
         run: |
-          caprover deploy \
-            -h ${{ secrets.CAPROVER_SERVER }} \
-            -p ${{ secrets.CAPROVER_APP_TOKEN_BACKEND }} \
-            -a ${{ secrets.CAPROVER_APP_BACKEND }} \
-            -t deploy.tar.gz
+          curl -X POST \
+            ${{ secrets.CAPROVER_SERVER }}/api/v2/user/apps/webhooks/triggerbuild \
+            -H "Content-Type: application/json" \
+            -H "x-captain-app-token: ${{ secrets.CAPROVER_APP_TOKEN_BACKEND }}" \
+            -H "x-namespace: captain" \
+            -F "sourceFile=@deploy.tar"
 
   deploy-frontend:
     name: Deploy Frontend
@@ -38,19 +36,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Install CapRover CLI
-        run: npm install -g caprover
-      
       - name: Create deployment tarball
         working-directory: ./multivendor_platform/front_end/nuxt
         run: |
-          tar -czf deploy.tar.gz captain-definition Dockerfile package*.json nuxt.config.ts tsconfig.json app.vue public/ components/ composables/ layouts/ middleware/ pages/ plugins/ server/ stores/ assets/ types/
+          tar -czf deploy.tar captain-definition Dockerfile package*.json nuxt.config.ts tsconfig.json app.vue public/ components/ composables/ layouts/ middleware/ pages/ plugins/ server/ stores/ assets/ types/
       
-      - name: Deploy to CapRover
+      - name: Deploy to CapRover via API
         working-directory: ./multivendor_platform/front_end/nuxt
         run: |
-          caprover deploy \
-            -h ${{ secrets.CAPROVER_SERVER }} \
-            -p ${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }} \
-            -a ${{ secrets.CAPROVER_APP_FRONTEND }} \
-            -t deploy.tar.gz
+          curl -X POST \
+            ${{ secrets.CAPROVER_SERVER }}/api/v2/user/apps/webhooks/triggerbuild \
+            -H "Content-Type: application/json" \
+            -H "x-captain-app-token: ${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }}" \
+            -H "x-namespace: captain" \
+            -F "sourceFile=@deploy.tar"
