@@ -24,10 +24,10 @@ jobs:
       - name: Deploy to CapRover
         run: |
           caprover deploy \
-            --caproverUrl ${{ secrets.CAPROVER_SERVER }} \
-            --appToken ${{ secrets.CAPROVER_APP_TOKEN_BACKEND }} \
-            --appName ${{ secrets.CAPROVER_APP_BACKEND }} \
-            --tarFile deploy.tar.gz
+            -h ${{ secrets.CAPROVER_SERVER }} \
+            -p ${{ secrets.CAPROVER_APP_TOKEN_BACKEND }} \
+            -a ${{ secrets.CAPROVER_APP_BACKEND }} \
+            -t deploy.tar.gz
 
   deploy-frontend:
     name: Deploy Frontend
@@ -50,7 +50,7 @@ jobs:
         working-directory: ./multivendor_platform/front_end/nuxt
         run: |
           caprover deploy \
-            --caproverUrl ${{ secrets.CAPROVER_SERVER }} \
-            --appToken ${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }} \
-            --appName ${{ secrets.CAPROVER_APP_FRONTEND }} \
-            --tarFile deploy.tar.gz
+            -h ${{ secrets.CAPROVER_SERVER }} \
+            -p ${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }} \
+            -a ${{ secrets.CAPROVER_APP_FRONTEND }} \
+            -t deploy.tar.gz
