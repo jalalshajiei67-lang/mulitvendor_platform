@@ -14,26 +14,71 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Deploy to CapRover
-        uses: caprover/deploy-from-github@v1.1.2
-        with:
-          server: '${{ secrets.CAPROVER_SERVER }}'
-          app: '${{ secrets.CAPROVER_APP_BACKEND }}'
-          token: '${{ secrets.CAPROVER_APP_TOKEN_BACKEND }}'
+      - name: Create deployment package
+        run: |
+          tar -czf deploy.tar captain-definition Dockerfile.backend docker-entrypoint.sh requirements.txt multivendor_platform/
+      
+      - name: Deploy to CapRover via webhook
+        run: |
+          response=$(curl -X POST \
+            ${{ secrets.CAPROVER_SERVER }}/api/v2/user/apps/webhooks/triggerbuild \
+            -H "x-captain-app-token: ${{ secrets.CAPROVER_APP_TOKEN_BACKEND }}" \
+            -F "sourceFile=@deploy.tar")
+          echo "Deployment response: $response"
+          if echo "$response" | grep -q '"status":100'; then
+            echo "✅ Backend deployment successful!"
+          else
+            echo "❌ Backend deployment failed!"
+            echo "$response"
+            exit 1
+          fi
 
   deploy-frontend:
     name: Deploy Frontend
     runs-on: ubuntu-latest
-    needs: deploy-backend  # Wait for backend to deploy first
+    needs: deploy-backend
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Deploy to CapRover
-        uses: caprover/deploy-from-github@v1.1.2
-        with:
-          server: '${{ secrets.CAPROVER_SERVER }}'
-          app: '${{ secrets.CAPROVER_APP_FRONTEND }}'
-          token: '${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }}'
-          directory: './multivendor_platform/front_end/nuxt'
+      - name: Create deployment package
+        run: |
+          cd multivendor_platform/front_end/nuxt
+          tar -czf deploy.tar \
+            captain-definition \
+            Dockerfile \
+            package.json \
+            package-lock.json \
+            nuxt.config.ts \
+            tsconfig.json \
+            app.vue \
+            error.vue \
+            public/ \
+            assets/ \
+            components/ \
+            composables/ \
+            layouts/ \
+            middleware/ \
+            pages/ \
+            plugins/ \
+            server/ \
+            stores/ \
+            types/ \
+            utils/
+      
+      - name: Deploy to CapRover via webhook
+        run: |
+          cd multivendor_platform/front_end/nuxt
+          response=$(curl -X POST \
+            ${{ secrets.CAPROVER_SERVER }}/api/v2/user/apps/webhooks/triggerbuild \
+            -H "x-captain-app-token: ${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }}" \
+            -F "sourceFile=@deploy.tar")
+          echo "Deployment response: $response"
+          if echo "$response" | grep -q '"status":100'; then
+            echo "✅ Frontend deployment successful!"
+          else
+            echo "❌ Frontend deployment failed!"
+            echo "$response"
+            exit 1
+          fi
