@@ -4,28 +4,49 @@ const isFormData = (value: unknown): value is FormData =>
   typeof FormData !== 'undefined' && value instanceof FormData
 
 export const useApiFetch = async <T>(endpoint: string, options: FetchOptions<T> = {}) => {
-  // Get runtime config - must be called within Nuxt context
-  // This will throw if called outside proper context, which is the desired behavior
-  const config = useRuntimeConfig()
-  const apiBase = config.public.apiBase.replace(/\/$/, '')
-  const url = `${apiBase}/${endpoint.replace(/^\//, '')}`
-
+  // Try to get Nuxt app - if not available during SSR, handle gracefully
+  let config: any
   let authToken: string | null = null
 
-  // Get auth token from localStorage first (client-side), then fallback to cookie
-  if (process.client) {
-    authToken = window.localStorage.getItem('authToken')
-    if (!authToken) {
-      // Only try cookie if localStorage doesn't have it
-      // useCookie must be called within Nuxt context
-      const cookie = useCookie<string | null>('authToken')
-      authToken = cookie.value ?? null
+  try {
+    // Check if we have a Nuxt app instance available
+    const nuxtApp = tryUseNuxtApp()
+    
+    if (nuxtApp) {
+      // We're in a proper Nuxt context, use composables
+      config = useRuntimeConfig()
+      
+      // Get auth token from localStorage first (client-side), then fallback to cookie
+      if (process.client) {
+        authToken = window.localStorage.getItem('authToken')
+        if (!authToken) {
+          const cookie = useCookie<string | null>('authToken')
+          authToken = cookie.value ?? null
+        }
+      } else {
+        // Server-side: use cookie
+        const cookie = useCookie<string | null>('authToken')
+        authToken = cookie.value ?? null
+      }
+    } else {
+      // No Nuxt context available, use environment variables or defaults
+      config = {
+        public: {
+          apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api'
+        }
+      }
     }
-  } else {
-    // Server-side: use cookie (must be in Nuxt context)
-    const cookie = useCookie<string | null>('authToken')
-    authToken = cookie.value ?? null
+  } catch (error) {
+    // Fallback if composables fail
+    config = {
+      public: {
+        apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api'
+      }
+    }
   }
+
+  const apiBase = config.public.apiBase.replace(/\/$/, '')
+  const url = `${apiBase}/${endpoint.replace(/^\//, '')}`
 
   const headers: Record<string, string> = {
     Accept: 'application/json',

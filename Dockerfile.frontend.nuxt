@@ -58,6 +58,9 @@ ENV NODE_ENV=production
 ENV NUXT_HOST=0.0.0.0
 ENV NUXT_PORT=3000
 
+# Set API base URL for runtime (can be overridden by CapRover)
+ENV NUXT_PUBLIC_API_BASE=https://multivendor-backend.indexo.ir/api
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
