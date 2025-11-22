@@ -37,13 +37,13 @@ RUN python manage.py collectstatic --noinput || true
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/api/ || exit 1
+    CMD curl -f http://localhost:80/api/ || exit 1
 
-# Expose port
-EXPOSE 8000
+# Expose port (CapRover expects port 80)
+EXPOSE 80
 
 # Run migrations and start server with Daphne (ASGI for WebSocket support)
 CMD python manage.py migrate --noinput --fake-initial; \
     python manage.py collectstatic --noinput && \
-    daphne -b 0.0.0.0 -p 8000 multivendor_platform.asgi:application
+    daphne -b 0.0.0.0 -p 80 multivendor_platform.asgi:application
 

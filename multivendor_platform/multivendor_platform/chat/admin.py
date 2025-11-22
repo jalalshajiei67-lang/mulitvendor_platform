@@ -82,3 +82,4 @@ class TypingStatusAdmin(admin.ModelAdmin):
     readonly_fields = ['updated_at']
     raw_id_fields = ['room', 'user']
 
+

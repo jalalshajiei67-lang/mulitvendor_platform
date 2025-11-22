@@ -20,10 +20,10 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 ### Database Configuration
 ```env
 DB_ENGINE=django.db.backends.postgresql
-DB_NAME=postgres
+DB_NAME=multivendor_db
 DB_USER=postgres
 DB_PASSWORD=<your-postgresql-password-from-caprover>
-DB_HOST=srv-captain--multivendor-db
+DB_HOST=srv-captain--postgres-db
 DB_PORT=5432
 ```
 
@@ -31,14 +31,21 @@ DB_PORT=5432
 ```env
 REDIS_HOST=srv-captain--multivendor-redis
 REDIS_PORT=6379
+REDIS_PASSWORD=<your-redis-password-from-caprover>
+```
+
+### Django Settings Module (CRITICAL)
+```env
+DJANGO_SETTINGS_MODULE=multivendor_platform.settings_caprover
 ```
 
 ### Security & CORS Settings
 ```env
-ALLOWED_HOSTS=api.indexo.ir,indexo.ir,www.indexo.ir,multivendor-backend.indexo.ir
-CORS_ALLOWED_ORIGINS=https://indexo.ir,https://www.indexo.ir
+ALLOWED_HOSTS=multivendor-backend.indexo.ir,indexo.ir,www.indexo.ir
+CORS_ALLOWED_ORIGINS=https://multivendor-frontend.indexo.ir,https://indexo.ir,https://www.indexo.ir
+CORS_ALLOW_CREDENTIALS=True
 CORS_ALLOW_ALL_ORIGINS=False
-CSRF_TRUSTED_ORIGINS=https://indexo.ir,https://www.indexo.ir,https://api.indexo.ir
+CSRF_TRUSTED_ORIGINS=https://multivendor-backend.indexo.ir,https://indexo.ir,https://www.indexo.ir
 USE_TLS=True
 SITE_URL=https://indexo.ir
 ```
@@ -59,7 +66,7 @@ Set these in **CapRover → Apps → multivendor-frontend → App Configs**
 
 ```env
 NODE_ENV=production
-NUXT_PUBLIC_API_BASE=https://api.indexo.ir/api
+NUXT_PUBLIC_API_BASE=https://multivendor-backend.indexo.ir/api
 NUXT_PUBLIC_SITE_URL=https://indexo.ir
 NUXT_HOST=0.0.0.0
 NUXT_PORT=3000
@@ -74,10 +81,11 @@ Set these in **GitHub → Settings → Secrets and variables → Actions**
 | Secret Name | Value | How to Get |
 |-------------|-------|------------|
 | `CAPROVER_SERVER` | `https://captain.indexo.ir` | Your CapRover dashboard URL |
-| `CAPROVER_APP_BACKEND` | `multivendor-backend` | Backend app name in CapRover |
-| `CAPROVER_APP_FRONTEND` | `multivendor-frontend` | Frontend app name in CapRover |
-| `CAPROVER_APP_TOKEN_BACKEND` | `<token>` | CapRover → Backend App → Deployment → Enable App Token |
-| `CAPROVER_APP_TOKEN_FRONTEND` | `<token>` | CapRover → Frontend App → Deployment → Enable App Token |
+| `CAPROVER_PASSWORD` | `<your-password>` | CapRover dashboard password |
+| `CAPROVER_BACKEND_APP_NAME` | `multivendor-backend` | Backend app name in CapRover |
+| `CAPROVER_FRONTEND_APP_NAME` | `multivendor-frontend` | Frontend app name in CapRover |
+
+**Note:** The workflow uses password-based authentication. App tokens are not required.
 
 ---
 
@@ -233,4 +241,5 @@ True
 
 **Last Updated:** 2024-11-21  
 **Version:** 1.0.0
+
 

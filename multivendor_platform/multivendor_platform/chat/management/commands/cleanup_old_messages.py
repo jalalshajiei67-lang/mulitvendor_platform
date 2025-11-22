@@ -32,3 +32,4 @@ class Command(BaseCommand):
             self.style.SUCCESS('Successfully cleaned up stale typing statuses')
         )
 
+

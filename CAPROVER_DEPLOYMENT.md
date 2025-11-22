@@ -141,3 +141,4 @@ Configure in CapRover → Apps → Select App → HTTP Settings → Add Domain
 - ✅ Static/Media files are served by backend
 - ✅ HTTPS is managed by CapRover automatically
 
+

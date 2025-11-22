@@ -195,3 +195,4 @@ docker-compose exec backend bash
 - **Both**: Share the same `Dockerfile` but different configs
 - **Separation**: Keep local and production concerns separate
 
+

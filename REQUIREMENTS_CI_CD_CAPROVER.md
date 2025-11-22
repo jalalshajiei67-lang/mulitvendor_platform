@@ -15,7 +15,7 @@ You need to configure the following secrets in your GitHub repository:
 
 | Secret Name | Description | Example Value |
 |------------|-------------|---------------|
-| `CAPROVER_URL` | Your CapRover instance URL | `https://captain.indexo.ir` |
+| `CAPROVER_SERVER` | Your CapRover instance URL | `https://captain.indexo.ir` |
 | `CAPROVER_PASSWORD` | CapRover dashboard password | `YourCapRoverPassword` |
 | `CAPROVER_BACKEND_APP_NAME` | Backend app name in CapRover | `multivendor-backend` |
 | `CAPROVER_FRONTEND_APP_NAME` | Frontend app name in CapRover | `multivendor-frontend` |
@@ -69,29 +69,51 @@ docker run -p 80:80 -p 443:443 -p 3000:3000 \
 ```env
 DJANGO_SETTINGS_MODULE=multivendor_platform.settings_caprover
 
-# Database (if using external PostgreSQL)
+# Database Configuration
 DB_ENGINE=django.db.backends.postgresql
 DB_NAME=multivendor_db
 DB_USER=postgres
 DB_PASSWORD=your_secure_password
-DB_HOST=srv-captain--postgres (or your DB host)
+DB_HOST=srv-captain--postgres-db
 DB_PORT=5432
 
 # Django
 SECRET_KEY=your_secret_key_here
 DEBUG=False
-ALLOWED_HOSTS=multivendor-backend.indexo.ir,indexo.ir,www.indexo.ir,185.208.172.76
+ALLOWED_HOSTS=multivendor-backend.indexo.ir,indexo.ir,www.indexo.ir
+
+# Redis (for WebSocket/Chat)
+REDIS_HOST=srv-captain--multivendor-redis
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
 
 # CORS
-CORS_ALLOWED_ORIGINS=https://indexo.ir,https://www.indexo.ir
+CORS_ALLOWED_ORIGINS=https://multivendor-frontend.indexo.ir,https://indexo.ir,https://www.indexo.ir
+CORS_ALLOW_CREDENTIALS=True
 CORS_ALLOW_ALL_ORIGINS=False
+
+# CSRF
+CSRF_TRUSTED_ORIGINS=https://multivendor-backend.indexo.ir,https://indexo.ir,https://www.indexo.ir
+
+# Static/Media
+STATIC_URL=/static/
+STATIC_ROOT=/app/staticfiles
+MEDIA_URL=/media/
+MEDIA_ROOT=/app/media
+
+# Site
+USE_TLS=True
+SITE_URL=https://indexo.ir
 ```
 
 #### Frontend App Environment Variables:
 
 ```env
-VITE_API_BASE_URL=https://multivendor-backend.indexo.ir/api
 NODE_ENV=production
+NUXT_PUBLIC_API_BASE=https://multivendor-backend.indexo.ir/api
+NUXT_PUBLIC_SITE_URL=https://indexo.ir
+NUXT_HOST=0.0.0.0
+NUXT_PORT=3000
 ```
 
 ---

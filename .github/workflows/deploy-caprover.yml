@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  CAPROVER_SERVER: https://captain.indexo.ir
+  CAPROVER_SERVER: ${{ secrets.CAPROVER_SERVER }}
 
 permissions:
   contents: read

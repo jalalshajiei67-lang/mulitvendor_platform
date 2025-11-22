@@ -198,3 +198,4 @@ class TypingStatus(models.Model):
         cutoff_time = timezone.now() - timedelta(minutes=minutes)
         cls.objects.filter(updated_at__lt=cutoff_time).delete()
 
+

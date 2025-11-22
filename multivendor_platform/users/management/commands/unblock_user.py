@@ -64,3 +64,4 @@ class Command(BaseCommand):
                 self.style.ERROR(f'User profile for "{username}" not found')
             )
 
+
