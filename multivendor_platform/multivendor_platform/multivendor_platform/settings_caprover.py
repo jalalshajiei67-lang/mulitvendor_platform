@@ -24,6 +24,7 @@ CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_trusted_origins_str.sp
 
 # Application definition
 INSTALLED_APPS = [
+    'daphne',  # ASGI server for Channels (must be at top)
     'unfold',  # Modern admin theme - must be before django.contrib.admin
     'django.contrib.admin',
     'django.contrib.auth',
@@ -34,6 +35,7 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',  # For automatic sitemap generation
 
     # Third-party apps
+    'channels',  # WebSocket support
     'rest_framework',
     'rest_framework.authtoken',  # For token authentication
     'corsheaders',  # To allow requests from your Vue frontend
@@ -46,6 +48,8 @@ INSTALLED_APPS = [
     'orders',
     'blog',
     'pages',
+    'gamification',
+    'chat',  # Chat system
 ]
 
 MIDDLEWARE = [
@@ -78,17 +82,33 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'multivendor_platform.wsgi.application'
+ASGI_APPLICATION = 'multivendor_platform.asgi.application'
 
 # Database configuration for CapRover PostgreSQL
 DATABASES = {
     'default': {
         'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.postgresql'),
-        'NAME': os.environ.get('DB_NAME', 'multivendor_db'),
+        'NAME': os.environ.get('DB_NAME', 'postgres'),
         'USER': os.environ.get('DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', '1mWL!8qU%_I(si@4Hyvo3txPo3@q3FF+9!e#K44^'),
-        'HOST': os.environ.get('DB_HOST', 'srv-captain--postgres-db'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'your-strong-password'),
+        'HOST': os.environ.get('DB_HOST', 'srv-captain--multivendor-db'),
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
+}
+
+# Redis configuration for Channels (WebSocket chat)
+REDIS_HOST = os.environ.get('REDIS_HOST', 'srv-captain--multivendor-redis')
+REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
+REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', '')  # CapRover Redis usually doesn't need password
+
+# Channel layers configuration for WebSocket support
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [(REDIS_HOST, REDIS_PORT)],
+        },
+    },
 }
 
 # Password validation

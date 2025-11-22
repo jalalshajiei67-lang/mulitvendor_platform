@@ -5,19 +5,53 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  CAPROVER_SERVER: https://captain.indexo.ir
+
+permissions:
+  contents: read
+  deployments: write
+
 jobs:
   deploy-backend:
     name: Deploy Backend
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Deploy to CapRover
-        uses: caprover/deploy-from-github@v1.0.1
+        uses: actions/checkout@v4
+
+      - name: Verify backend captain-definition exists
+        run: |
+          if [ ! -f "./captain-definition" ]; then
+            echo "❌ captain-definition file not found in root directory"
+            exit 1
+          fi
+          echo "✅ captain-definition found"
+
+      - name: Verify backend Dockerfile exists
+        run: |
+          if [ ! -f "./Dockerfile" ]; then
+            echo "❌ Dockerfile not found in root directory"
+            exit 1
+          fi
+          echo "✅ Dockerfile found"
+
+      - name: Security scan - check for secrets in code
+        run: |
+          echo "🔍 Scanning for potential secrets..."
+          # Check for common secret patterns (not comprehensive, but basic check)
+          if grep -r "SECRET_KEY\|PASSWORD\|TOKEN\|KEY" --include="*.py" --include="*.js" --include="*.ts" --include="*.vue" multivendor_platform/ | grep -v "os.environ.get\|process.env" | grep -v "settings" | grep -v "test" | grep -v "example"; then
+            echo "⚠️  Potential hardcoded secrets found! Please review."
+            exit 1
+          else
+            echo "✅ No obvious hardcoded secrets found"
+          fi
+
+      - name: Deploy Backend to CapRover
+        uses: caprover/deploy-from-github@v1.1.2
         with:
-          server: '${{ secrets.CAPROVER_SERVER }}'
+          server: '${{ env.CAPROVER_SERVER }}'
           app: '${{ secrets.CAPROVER_APP_BACKEND }}'
           token: '${{ secrets.CAPROVER_APP_TOKEN_BACKEND }}'
 
@@ -25,15 +59,31 @@ jobs:
     name: Deploy Frontend
     runs-on: ubuntu-latest
     needs: deploy-backend  # Wait for backend to deploy first
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Deploy to CapRover
-        uses: caprover/deploy-from-github@v1.0.1
+        uses: actions/checkout@v4
+
+      - name: Verify frontend captain-definition exists
+        run: |
+          if [ ! -f "./multivendor_platform/front_end/nuxt/captain-definition" ]; then
+            echo "❌ Frontend captain-definition file not found"
+            exit 1
+          fi
+          echo "✅ Frontend captain-definition found"
+
+      - name: Verify frontend Dockerfile exists
+        run: |
+          if [ ! -f "./multivendor_platform/front_end/nuxt/Dockerfile" ]; then
+            echo "❌ Frontend Dockerfile not found"
+            exit 1
+          fi
+          echo "✅ Frontend Dockerfile found"
+
+      - name: Deploy Frontend to CapRover
+        uses: caprover/deploy-from-github@v1.1.2
         with:
-          server: '${{ secrets.CAPROVER_SERVER }}'
+          server: '${{ env.CAPROVER_SERVER }}'
           app: '${{ secrets.CAPROVER_APP_FRONTEND }}'
           token: '${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }}'
           directory: './multivendor_platform/front_end/nuxt'
