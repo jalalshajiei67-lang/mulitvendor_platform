@@ -81,10 +81,11 @@ jobs:
           fi
           echo "✅ Frontend Dockerfile found"
 
+
       - name: Deploy Frontend to CapRover
         uses: caprover/deploy-from-github@v1.1.2
         with:
           server: '${{ env.CAPROVER_SERVER }}'
-          app: '${{ secrets.CAPROVER_APP_FRONTEND }}'
+          app: '${{ secrets.CAPROVER_FRONTEND_APP_NAME }}'
           password: '${{ secrets.CAPROVER_PASSWORD }}'
           directory: './multivendor_platform/front_end/nuxt'
