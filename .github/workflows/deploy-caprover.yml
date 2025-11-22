@@ -28,7 +28,7 @@ jobs:
             exit 1
           fi
           echo "✅ captain-definition found"
-
+          
       - name: Verify backend Dockerfile exists
         run: |
           if [ ! -f "./Dockerfile" ]; then
@@ -36,7 +36,7 @@ jobs:
             exit 1
           fi
           echo "✅ Dockerfile found"
-
+          
       - name: Security scan - check for secrets in code
         run: |
           echo "🔍 Scanning for potential secrets..."
@@ -46,16 +46,16 @@ jobs:
           else
             echo "✅ No obvious hardcoded secrets found"
           fi
-
+          
       - name: Install CapRover CLI
         run: |
           npm install -g caprover
-
+          
       - name: Create deployment tar file
         run: |
           tar -czf deploy.tar.gz captain-definition Dockerfile requirements.txt multivendor_platform/
           ls -la
-
+          
       - name: Deploy Backend to CapRover
         run: |
           caprover deploy -h ${{ env.CAPROVER_SERVER }} -p ${{ secrets.CAPROVER_PASSWORD }} -a ${{ secrets.CAPROVER_BACKEND_APP_NAME }} -t deploy.tar.gz
@@ -76,7 +76,7 @@ jobs:
             exit 1
           fi
           echo "✅ Frontend captain-definition found"
-
+          
       - name: Verify frontend Dockerfile exists
         run: |
           if [ ! -f "./multivendor_platform/front_end/nuxt/Dockerfile" ]; then
@@ -84,17 +84,18 @@ jobs:
             exit 1
           fi
           echo "✅ Frontend Dockerfile found"
-
+          
       - name: Install CapRover CLI
         run: |
           npm install -g caprover
-
+          
       - name: Create deployment tar file for frontend
         run: |
           cd multivendor_platform/front_end/nuxt
-          tar -czf ../../../../deploy.tar.gz captain-definition Dockerfile ./
+          tar -czf deploy-frontend.tar.gz captain-definition Dockerfile ./
           ls -la
-
+          cd ../../../
+          
       - name: Deploy Frontend to CapRover
         run: |
-          caprover deploy -h ${{ env.CAPROVER_SERVER }} -p ${{ secrets.CAPROVER_PASSWORD }} -a ${{ secrets.CAPROVER_FRONTEND_APP_NAME }} -t deploy.tar.gz
+          caprover deploy -h ${{ env.CAPROVER_SERVER }} -p ${{ secrets.CAPROVER_PASSWORD }} -a ${{ secrets.CAPROVER_FRONTEND_APP_NAME }} -t multivendor_platform/front_end/nuxt/deploy-frontend.tar.gz
