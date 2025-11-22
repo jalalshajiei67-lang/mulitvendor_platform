@@ -47,6 +47,11 @@ jobs:
             echo "✅ No obvious hardcoded secrets found"
           fi
 
+      - name: Create deployment tar file
+        run: |
+          tar -czf deploy.tar.gz captain-definition Dockerfile multivendor_platform/
+          ls -la
+
       - name: Deploy Backend to CapRover
         uses: caprover/deploy-from-github@v1.1.2
         with:
@@ -79,10 +84,15 @@ jobs:
           fi
           echo "✅ Frontend Dockerfile found"
 
+      - name: Create deployment tar file for frontend
+        run: |
+          cd multivendor_platform/front_end/nuxt
+          tar -czf ../../../../deploy.tar.gz captain-definition Dockerfile ./
+          ls -la
+
       - name: Deploy Frontend to CapRover
         uses: caprover/deploy-from-github@v1.1.2
         with:
           server: '${{ env.CAPROVER_SERVER }}'
           app: '${{ secrets.CAPROVER_FRONTEND_APP_NAME }}'
           token: '${{ secrets.CAPROVER_PASSWORD }}'
-          directory: './multivendor_platform/front_end/nuxt'
