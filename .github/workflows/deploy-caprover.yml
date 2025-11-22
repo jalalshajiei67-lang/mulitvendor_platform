@@ -58,7 +58,7 @@ jobs:
 
       - name: Deploy Backend to CapRover
         run: |
-          caprover deploy -h ${{ env.CAPROVER_SERVER }} -p ${{ secrets.CAPROVER_PASSWORD }} -a ${{ secrets.CAPROVER_BACKEND_APP_NAME }} -i deploy.tar.gz
+          caprover deploy -h ${{ env.CAPROVER_SERVER }} -p ${{ secrets.CAPROVER_PASSWORD }} -a ${{ secrets.CAPROVER_BACKEND_APP_NAME }} -t deploy.tar.gz
 
   deploy-frontend:
     name: Deploy Frontend
@@ -97,4 +97,4 @@ jobs:
 
       - name: Deploy Frontend to CapRover
         run: |
-          caprover deploy -h ${{ env.CAPROVER_SERVER }} -p ${{ secrets.CAPROVER_PASSWORD }} -a ${{ secrets.CAPROVER_FRONTEND_APP_NAME }} -i deploy.tar.gz
+          caprover deploy -h ${{ env.CAPROVER_SERVER }} -p ${{ secrets.CAPROVER_PASSWORD }} -a ${{ secrets.CAPROVER_FRONTEND_APP_NAME }} -t deploy.tar.gz
