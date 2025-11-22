@@ -1,78 +1,29 @@
-# GitHub Secrets Setup for CI/CD
+# GitHub Secrets Configuration Guide
 
-To enable automatic deployment to CapRover via GitHub Actions, you need to add these secrets to your GitHub repository.
+## Required Secrets:
 
-## How to Add Secrets
+1. CAPROVER_SERVER - Your CapRover dashboard URL
+   Example: https://captain.indexo.ir
 
-1. Go to your GitHub repository
-2. Click **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
-4. Add each secret below
+2. CAPROVER_APP_BACKEND - Your backend app name
+   Example: multivendor-backend
 
-## Required Secrets
+3. CAPROVER_APP_TOKEN_BACKEND - Backend app token
+   Get from: CapRover Dashboard → Backend App → Deployment → Method 4
 
-### 1. CAPROVER_SERVER
-The URL of your CapRover server
-```
-https://captain.indexo.ir
-```
+4. CAPROVER_APP_FRONTEND - Your frontend app name
+   Example: multivendor-frontend
 
-### 2. CAPROVER_APP_BACKEND
-Your backend app name in CapRover
-```
-multivendor-backend
-```
+5. CAPROVER_APP_TOKEN_FRONTEND - Frontend app token
+   Get from: CapRover Dashboard → Frontend App → Deployment → Method 4
 
-### 3. CAPROVER_APP_FRONTEND
-Your frontend app name in CapRover
-```
-multivendor-frontend
-```
+## How to Get App Tokens:
 
-### 4. CAPROVER_APP_TOKEN_BACKEND
-App token for backend deployment
+1. Login to CapRover dashboard
+2. Select your backend/frontend app
+3. Go to Deployment tab
+4. Look for 'Method 4: Deploy via webhook'
+5. Copy the token from the webhook URL
 
-**How to get this:**
-1. Go to CapRover Dashboard
-2. Click on your backend app (`multivendor-backend`)
-3. Go to **Deployment** tab
-4. Find "App Token" section
-5. Click "Enable App Token"
-6. Copy the token
-
-### 5. CAPROVER_APP_TOKEN_FRONTEND
-App token for frontend deployment
-
-**Follow the same steps as above, but for the frontend app**
-
-## Testing the Deployment
-
-After adding all secrets:
-
-1. Make a change to your code
-2. Commit and push to the `main` branch
-3. Go to **Actions** tab in GitHub
-4. Watch the deployment process
-5. Check your CapRover apps for updates
-
-## Manual Deployment Trigger
-
-You can also manually trigger deployment:
-
-1. Go to **Actions** tab
-2. Click on "Deploy to CapRover" workflow
-3. Click **Run workflow**
-4. Select the `main` branch
-5. Click **Run workflow**
-
-## Troubleshooting
-
-### Deployment Failed
-- Check that all secrets are correctly added
-- Verify your CapRover server is accessible
-- Check CapRover app logs for errors
-
-### App Token Invalid
-- Regenerate the app token in CapRover
-- Update the GitHub secret with the new token
-
+Webhook URL format:
+https://captain.indexo.ir/api/v2/user/apps/webhooks/triggerbuild?namespace=captain&token=YOUR_TOKEN_HERE

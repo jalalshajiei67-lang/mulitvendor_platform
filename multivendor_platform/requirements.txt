@@ -12,10 +12,6 @@ psycopg2-binary>=2.9.0
 # Production Server
 gunicorn>=21.0.0
 whitenoise>=6.5.0
-daphne>=4.0.0
-channels>=4.0.0
-channels-redis>=4.1.0
-redis>=5.0.0
 
 # Rich Text Editor
 django-tinymce>=3.6.0

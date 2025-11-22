@@ -34,14 +34,14 @@ try:
     print(f"\nDescription Length: {len(data['description'])} characters")
     print(f"Price: {data['price']}")
     print(f"Images Found: {len(data['images'])}")
-    print(f"Warnings: {data['scraping_metadata']['warnings_count']}")
-    
+    print(f"Platform Detected: {data.get('platform_detected', 'unknown')}")
+
     if data['description']:
         print(f"\n{'='*100}")
         print("DESCRIPTION PREVIEW (first 500 chars):")
         print(f"{'='*100}")
         print(data['description'][:500] + "..." if len(data['description']) > 500 else data['description'])
-    
+
     if data['images']:
         print(f"\n{'='*100}")
         print("IMAGES FOUND:")
@@ -50,12 +50,6 @@ try:
             print(f"{i}. {img_url}")
         if len(data['images']) > 10:
             print(f"... and {len(data['images']) - 10} more images")
-    
-    if data['scraping_metadata']['warnings_count'] > 0:
-        print(f"\n{'='*100}")
-        print("WARNINGS:")
-        print(f"{'='*100}")
-        print(data['scraping_metadata']['summary'])
     
     print(f"\n{'='*100}")
     print("✅ Test completed successfully!")

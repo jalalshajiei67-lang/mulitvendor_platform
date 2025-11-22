@@ -53,8 +53,8 @@ for i, url in enumerate(test_urls, 1):
         print(f"   Description Length: {len(data['description'])} chars")
         print(f"   Price: {data['price']}")
         print(f"   Images Found: {len(data['images'])}")
-        print(f"   Warnings: {data['scraping_metadata']['warnings_count']}")
-        
+        print(f"   Fetch Method: {data.get('fetch_method', 'unknown')}")
+
         if data['images']:
             print(f"   First Image: {data['images'][0][:80]}...")
         
