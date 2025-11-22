@@ -108,24 +108,16 @@ check_django() {
     echo "✅ Django configuration verified!"
 }
 
-# Function to start Gunicorn
+# Function to start Daphne (ASGI server for WebSocket support)
 start_server() {
     echo ""
-    echo "[7/7] Starting Gunicorn server..."
+    echo "[7/7] Starting Daphne ASGI server..."
     echo "   Binding to: 0.0.0.0:80"
-    echo "   Workers: 4"
-    echo "   Timeout: 120s"
+    echo "   Application: multivendor_platform.asgi:application"
     echo "=========================================="
     echo ""
     
-    exec gunicorn multivendor_platform.wsgi:application \
-        --bind 0.0.0.0:80 \
-        --workers 4 \
-        --timeout 120 \
-        --access-logfile - \
-        --error-logfile - \
-        --log-level info \
-        --capture-output
+    exec daphne -b 0.0.0.0 -p 80 multivendor_platform.asgi:application
 }
 
 # Main execution flow
