@@ -47,12 +47,18 @@ jobs:
             echo "✅ No obvious hardcoded secrets found"
           fi
 
+      - name: Install CapRover CLI
+        run: |
+          npm install -g caprover
+
+      - name: Create deployment tar file
+        run: |
+          tar -czf deploy.tar.gz captain-definition Dockerfile multivendor_platform/
+          ls -la
+
       - name: Deploy Backend to CapRover
-        uses: caprover/deploy-from-github@v1.1.2
-        with:
-          server: '${{ env.CAPROVER_SERVER }}'
-          app: '${{ secrets.CAPROVER_BACKEND_APP_NAME }}'
-          token: '${{ secrets.CAPROVER_PASSWORD }}'
+        run: |
+          caprover deploy -h ${{ env.CAPROVER_SERVER }} -p ${{ secrets.CAPROVER_PASSWORD }} -a ${{ secrets.CAPROVER_BACKEND_APP_NAME }} -i deploy.tar.gz
 
   deploy-frontend:
     name: Deploy Frontend
@@ -79,10 +85,16 @@ jobs:
           fi
           echo "✅ Frontend Dockerfile found"
 
+      - name: Install CapRover CLI
+        run: |
+          npm install -g caprover
+
+      - name: Create deployment tar file for frontend
+        run: |
+          cd multivendor_platform/front_end/nuxt
+          tar -czf ../../../../deploy.tar.gz captain-definition Dockerfile ./
+          ls -la
+
       - name: Deploy Frontend to CapRover
-        uses: caprover/deploy-from-github@v1.1.2
-        with:
-          server: '${{ env.CAPROVER_SERVER }}'
-          app: '${{ secrets.CAPROVER_FRONTEND_APP_NAME }}'
-          token: '${{ secrets.CAPROVER_PASSWORD }}'
-          directory: './multivendor_platform/front_end/nuxt'
+        run: |
+          caprover deploy -h ${{ env.CAPROVER_SERVER }} -p ${{ secrets.CAPROVER_PASSWORD }} -a ${{ secrets.CAPROVER_FRONTEND_APP_NAME }} -i deploy.tar.gz
