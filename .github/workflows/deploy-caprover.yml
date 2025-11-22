@@ -54,7 +54,7 @@ jobs:
         with:
           server: '${{ env.CAPROVER_SERVER }}'
           app: '${{ secrets.CAPROVER_APP_BACKEND }}'
-          token: '${{ secrets.CAPROVER_APP_TOKEN_BACKEND }}'
+          password: '${{ secrets.CAPROVER_PASSWORD }}'
 
   deploy-frontend:
     name: Deploy Frontend
@@ -86,5 +86,5 @@ jobs:
         with:
           server: '${{ env.CAPROVER_SERVER }}'
           app: '${{ secrets.CAPROVER_APP_FRONTEND }}'
-          token: '${{ secrets.CAPROVER_APP_TOKEN_FRONTEND }}'
+          password: '${{ secrets.CAPROVER_PASSWORD }}'
           directory: './multivendor_platform/front_end/nuxt'
