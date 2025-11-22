@@ -332,7 +332,8 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/services/api'
 
@@ -340,7 +341,16 @@ export default {
   name: 'SellerDashboard',
   setup() {
     const authStore = useAuthStore()
-    const tab = ref('profile')
+    const route = useRoute()
+    const router = useRouter()
+    const validTabs = ['profile', 'products', 'ads', 'orders', 'reviews', 'analytics']
+
+    const getInitialTab = () => {
+      const requestedTab = route.query.tab
+      return validTabs.includes(requestedTab) ? requestedTab : 'profile'
+    }
+
+    const tab = ref(getInitialTab())
     const dashboardData = ref({})
     const orders = ref([])
     const reviews = ref([])
@@ -538,6 +548,27 @@ export default {
       snackbar.value = true
     }
     
+    watch(
+      () => route.query.tab,
+      (newTab) => {
+        if (validTabs.includes(newTab)) {
+          tab.value = newTab
+        } else if (!newTab && tab.value !== 'profile') {
+          tab.value = 'profile'
+        }
+      }
+    )
+
+    watch(tab, (newTab, oldTab) => {
+      if (newTab === oldTab || route.query.tab === newTab) return
+      router.replace({
+        query: {
+          ...route.query,
+          tab: newTab
+        }
+      })
+    })
+
     onMounted(() => {
       if (authStore.user) {
         profileData.value = {
