@@ -21,6 +21,19 @@ Disallow: /health/
 # Disallow TinyMCE editor (internal admin tool)
 Disallow: /tinymce/
 
+# Disallow authentication and checkout flows (user-specific)
+Disallow: /login
+Disallow: /register
+Disallow: /logout
+Disallow: /cart
+Disallow: /checkout
+Disallow: /profile
+Disallow: /account
+
+# Disallow backend host mirrors and any paths containing the backend domain
+Disallow: /https://multivendor-backend.indexo.ir/
+Disallow: /multivendor-backend.indexo.ir/
+
 # Allow sitemap for better SEO indexing
 Sitemap: https://indexo.ir/sitemap.xml
 
