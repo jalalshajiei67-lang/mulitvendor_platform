@@ -59,6 +59,14 @@ export const useApiFetch = async <T>(endpoint: string, options: FetchOptions<T> 
 
   if (authToken) {
     headers.Authorization = `Token ${authToken}`
+  } else {
+    // For guest users, include guest session ID in headers if available
+    if (process.client) {
+      const guestSessionId = window.localStorage.getItem('chatGuestSession')
+      if (guestSessionId) {
+        headers['X-Guest-Session-ID'] = guestSessionId
+      }
+    }
   }
 
   type ExtendedFetchOptions = FetchOptions<T> & { params?: FetchOptions<T>['query'] }

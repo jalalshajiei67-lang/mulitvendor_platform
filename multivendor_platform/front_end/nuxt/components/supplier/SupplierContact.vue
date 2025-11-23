@@ -124,17 +124,18 @@
                     >
                       ارسال ایمیل
                     </v-btn>
-                    <v-btn
-                      v-if="supplier.social_media?.whatsapp"
-                      :href="supplier.social_media.whatsapp"
-                      target="_blank"
-                      color="#25D366"
-                      variant="outlined"
-                      prepend-icon="mdi-whatsapp"
-                      class="quick-btn"
-                    >
-                      واتس‌اپ
-                    </v-btn>
+                <v-btn
+                  v-if="supplier.social_media?.whatsapp"
+                  :href="supplier.social_media.whatsapp"
+                  target="_blank"
+                  rel="nofollow noopener noreferrer"
+                  color="#25D366"
+                  variant="outlined"
+                  prepend-icon="mdi-whatsapp"
+                  class="quick-btn"
+                >
+                  واتس‌اپ
+                </v-btn>
                   </div>
                 </div>
 
@@ -227,6 +228,7 @@
                     class="contact-item"
                     :href="supplier.website"
                     target="_blank"
+                    rel="nofollow noopener noreferrer"
                   >
                     <template v-slot:prepend>
                       <div class="icon-container website-icon">
@@ -244,6 +246,7 @@
                         class="external-btn"
                         :href="supplier.website"
                         target="_blank"
+                        rel="nofollow noopener noreferrer"
                         @click.stop
                       ></v-btn>
                     </template>
@@ -297,6 +300,7 @@
                   class="social-btn linkedin-btn"
                   :href="supplier.social_media.linkedin"
                   target="_blank"
+                  rel="nofollow noopener noreferrer"
                   :title="'LinkedIn: ' + supplier.store_name"
                 >
                   <span class="social-label">LinkedIn</span>
@@ -310,6 +314,7 @@
                   class="social-btn instagram-btn"
                   :href="supplier.social_media.instagram"
                   target="_blank"
+                  rel="nofollow noopener noreferrer"
                   :title="'Instagram: @' + supplier.store_name"
                 >
                   <span class="social-label">Instagram</span>
@@ -323,6 +328,7 @@
                   class="social-btn telegram-btn"
                   :href="supplier.social_media.telegram"
                   target="_blank"
+                  rel="nofollow noopener noreferrer"
                   :title="'Telegram: ' + supplier.store_name"
                 >
                   <span class="social-label">Telegram</span>
@@ -336,6 +342,7 @@
                   class="social-btn whatsapp-btn"
                   :href="supplier.social_media.whatsapp"
                   target="_blank"
+                  rel="nofollow noopener noreferrer"
                   :title="'WhatsApp: ' + supplier.store_name"
                 >
                   <span class="social-label">WhatsApp</span>
@@ -349,6 +356,7 @@
                   class="social-btn twitter-btn"
                   :href="supplier.social_media.twitter"
                   target="_blank"
+                  rel="nofollow noopener noreferrer"
                   :title="'Twitter: @' + supplier.store_name"
                 >
                   <span class="social-label">Twitter</span>
@@ -362,6 +370,7 @@
                   class="social-btn youtube-btn"
                   :href="supplier.social_media.youtube"
                   target="_blank"
+                  rel="nofollow noopener noreferrer"
                   :title="'YouTube: ' + supplier.store_name"
                 >
                   <span class="social-label">YouTube</span>

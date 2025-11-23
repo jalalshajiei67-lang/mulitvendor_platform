@@ -40,8 +40,17 @@ class ChatRoomViewSet(viewsets.ModelViewSet):
                 participants=user
             ).distinct().prefetch_related('participants', 'product')
         else:
-            # Guest users - filter by guest session
+            # Guest users - filter by guest session (check multiple sources)
             guest_session_id = self.request.query_params.get('guest_session')
+            
+            # Check headers (common pattern for API clients)
+            if not guest_session_id:
+                guest_session_id = self.request.headers.get('X-Guest-Session-ID') or self.request.headers.get('Guest-Session-ID')
+            
+            # Check request data (for POST requests)
+            if not guest_session_id and hasattr(self.request, 'data'):
+                guest_session_id = self.request.data.get('guest_session_id')
+            
             if guest_session_id:
                 try:
                     guest_session = GuestSession.objects.get(session_id=guest_session_id)
@@ -53,6 +62,28 @@ class ChatRoomViewSet(viewsets.ModelViewSet):
             
             # Return empty queryset if no valid guest session
             return ChatRoom.objects.none()
+    
+    def get_object(self):
+        """Override get_object to handle guest sessions properly"""
+        # For detail actions, we need to be more permissive with queryset
+        # The permission class will handle the actual access control
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        # Try to get the object using the default method first
+        try:
+            return super().get_object()
+        except ChatRoom.DoesNotExist:
+            # If not found in queryset (e.g., guest session not in query params),
+            # try to get it directly by room_id and let permission class handle access
+            try:
+                room = ChatRoom.objects.get(room_id=lookup_value)
+                # Check if user has access via permission class
+                self.check_object_permissions(self.request, room)
+                return room
+            except ChatRoom.DoesNotExist:
+                from rest_framework.exceptions import NotFound
+                raise NotFound("Chat room not found.")
     
     def list(self, request, *args, **kwargs):
         """List all chat rooms for the user or guest"""

@@ -187,6 +187,7 @@
               :size="display.xs.value ? 'x-small' : 'small'"
               :href="supplier.website"
               target="_blank"
+              rel="nofollow noopener noreferrer"
               @click.stop
             ></v-btn>
           </v-card-actions>

@@ -16,14 +16,30 @@ class IsChatParticipant(permissions.BasePermission):
             if hasattr(obj, 'participants'):
                 return obj.participants.filter(id=request.user.id).exists()
         else:
-            # Check guest session access
+            # Check guest session access - check multiple sources
+            guest_session_id = None
+            
+            # Check query params
             guest_session_id = request.query_params.get('guest_session')
+            
+            # Check headers (common pattern for API clients)
+            if not guest_session_id:
+                guest_session_id = request.headers.get('X-Guest-Session-ID') or request.headers.get('Guest-Session-ID')
+            
+            # Check request data (for POST requests)
+            if not guest_session_id and hasattr(request, 'data'):
+                guest_session_id = request.data.get('guest_session_id')
+            
+            # If we have a guest session ID, verify it matches the room's guest session
             if guest_session_id and hasattr(obj, 'guest_session'):
-                try:
-                    guest_session = GuestSession.objects.get(session_id=guest_session_id)
-                    return obj.guest_session == guest_session
-                except GuestSession.DoesNotExist:
-                    pass
+                if obj.guest_session:
+                    try:
+                        guest_session = GuestSession.objects.get(session_id=guest_session_id)
+                        return obj.guest_session == guest_session
+                    except GuestSession.DoesNotExist:
+                        pass
+                # If room has no guest_session but request has one, deny access
+                return False
         
         return False
 

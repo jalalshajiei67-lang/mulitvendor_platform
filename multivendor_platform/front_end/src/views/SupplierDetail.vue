@@ -121,6 +121,7 @@
                   color="primary"
                   :href="supplier.website"
                   target="_blank"
+                  rel="nofollow noopener noreferrer"
                   link
                 >
                   وب‌سایت
