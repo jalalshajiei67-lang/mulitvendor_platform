@@ -530,6 +530,7 @@ import {
   useSupplierTeamApi,
   type SupplierTeamMember
 } from '~/composables/useSupplierTeamApi'
+import { generateOrganizationSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -673,7 +674,45 @@ const yearsOfExperience = computed(() => {
   return years > 0 ? years : 0
 })
 
-// Meta tags
+const config = useRuntimeConfig()
+const baseUrl = config.public.siteUrl || (process.client ? window.location.origin : 'https://indexo.ir')
+
+// Generate schemas
+const organizationSchema = computed(() => {
+  if (!supplier.value) return null
+  return generateOrganizationSchema(supplier.value, baseUrl)
+})
+
+// Breadcrumbs for supplier page
+const supplierBreadcrumbs = computed(() => [
+  { title: 'خانه', to: '/' },
+  { title: 'تامین‌کنندگان', to: '/suppliers' },
+  { title: supplier.value?.store_name || 'تامین‌کننده', disabled: true }
+])
+
+const breadcrumbSchema = computed(() => {
+  if (!supplierBreadcrumbs.value.length) return null
+  return generateBreadcrumbSchema(
+    supplierBreadcrumbs.value.map(item => ({
+      name: item.title,
+      url: item.to ? `${baseUrl}${item.to}` : undefined
+    })),
+    baseUrl
+  )
+})
+
+// Get canonical URL (default from ID, no DB field for suppliers)
+const canonicalUrl = computed(() => {
+  if (!supplier.value?.id) return ''
+  return `${baseUrl}/suppliers/${supplier.value.id}`
+})
+
+// Get OG image (primary image: logo or banner)
+const ogImage = computed(() => {
+  return supplier.value?.logo || supplier.value?.banner_image || ''
+})
+
+// Meta tags with Twitter Cards
 useHead(() => ({
   title:
     supplier.value?.meta_title ||
@@ -689,17 +728,46 @@ useHead(() => ({
     },
     {
       property: 'og:title',
-      content: supplier.value?.store_name || ''
+      content: supplier.value?.meta_title || supplier.value?.store_name || ''
     },
     {
       property: 'og:description',
-      content: supplier.value?.description || ''
+      content: supplier.value?.meta_description || supplier.value?.description || ''
     },
     {
       property: 'og:type',
       content: 'website'
+    },
+    {
+      property: 'og:image',
+      content: ogImage.value
+    },
+    {
+      name: 'twitter:card',
+      content: 'summary_large_image'
+    },
+    {
+      name: 'twitter:title',
+      content: supplier.value?.meta_title || supplier.value?.store_name || ''
+    },
+    {
+      name: 'twitter:description',
+      content: supplier.value?.meta_description || supplier.value?.description || ''
+    },
+    {
+      name: 'twitter:image',
+      content: ogImage.value
     }
-  ]
+  ],
+  link: [
+    { rel: 'canonical', href: canonicalUrl.value }
+  ],
+  ...(organizationSchema.value || breadcrumbSchema.value ? {
+    script: prepareSchemaScripts([
+      ...(organizationSchema.value ? [organizationSchema.value] : []),
+      ...(breadcrumbSchema.value ? [breadcrumbSchema.value] : [])
+    ])
+  } : {})
 }))
 
 const fetchSupplier = async () => {

@@ -213,6 +213,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateProductSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
 
 definePageMeta({
   layout: 'default'
@@ -290,13 +291,74 @@ watch(
   }
 )
 
+const config = useRuntimeConfig()
+const baseUrl = config.public.siteUrl || (process.client ? window.location.origin : 'https://indexo.ir')
+
+// Generate schemas
+const productSchema = computed(() => {
+  if (!product.value) return null
+  return generateProductSchema(product.value, baseUrl)
+})
+
+const breadcrumbSchema = computed(() => {
+  if (!breadcrumbs.value.length) return null
+  return generateBreadcrumbSchema(
+    breadcrumbs.value.map(item => ({
+      name: item.title,
+      url: item.to ? `${baseUrl}${item.to}` : undefined
+    })),
+    baseUrl
+  )
+})
+
+// Get canonical URL (check DB first, then fallback to slug)
+const canonicalUrl = computed(() => {
+  if (!product.value) return ''
+  if (product.value.canonical_url) {
+    return product.value.canonical_url
+  }
+  return `${baseUrl}/products/${product.value.slug}`
+})
+
+// Get OG image (primary image)
+const ogImage = computed(() => {
+  return product.value?.og_image_url || product.value?.primary_image || ''
+})
+
+// SEO Meta Tags
 useSeoMeta({
   title: () => product.value?.meta_title ?? product.value?.name ?? 'محصول',
   description: () => product.value?.meta_description ?? product.value?.short_description ?? '',
   ogTitle: () => product.value?.meta_title ?? product.value?.name ?? '',
   ogDescription: () => product.value?.meta_description ?? product.value?.short_description ?? '',
   ogType: 'product',
-  ogImage: () => product.value?.primary_image ?? ''
+  ogImage: () => ogImage.value,
+  twitterCard: 'summary_large_image',
+  twitterTitle: () => product.value?.meta_title ?? product.value?.name ?? '',
+  twitterDescription: () => product.value?.meta_description ?? product.value?.short_description ?? '',
+  twitterImage: () => ogImage.value
+})
+
+// Schema markup and canonical URL
+useHead(() => {
+  const schemas: any[] = []
+  
+  if (productSchema.value) {
+    schemas.push(productSchema.value)
+  }
+  
+  if (breadcrumbSchema.value) {
+    schemas.push(breadcrumbSchema.value)
+  }
+
+  return {
+    link: [
+      { rel: 'canonical', href: canonicalUrl.value }
+    ],
+    ...(schemas.length > 0 && {
+      script: prepareSchemaScripts(schemas)
+    })
+  }
 })
 </script>
 
@@ -501,6 +563,27 @@ useSeoMeta({
 .product-detail .content-body :deep(pre code) {
   background-color: transparent;
   padding: 0;
+}
+
+/* Table styling */
+.product-detail .content-body :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  border: 1px solid #e0e0e0;
+}
+
+.product-detail .content-body :deep(table th),
+.product-detail .content-body :deep(table td) {
+  padding: 0.75em;
+  border: 1px solid #e0e0e0;
+  text-align: right;
+}
+
+.product-detail .content-body :deep(table th) {
+  background-color: #f5f7fa;
+  font-weight: 700;
+  color: rgba(var(--v-theme-on-surface), 0.96);
 }
 </style>
 

@@ -232,3 +232,96 @@ export function generateArticleSchema(post: any, baseUrl: string): SchemaObject 
   }
 }
 
+/**
+ * Generate automatic CollectionPage schema for categories and subcategories
+ * Includes product list (first 10 products)
+ */
+export function generateCollectionPageSchema(
+  collection: { name: string; description?: string; slug: string; meta_description?: string },
+  products: Array<{ name: string; slug: string; id?: number | string }>,
+  baseUrl: string,
+  type: 'Category' | 'Subcategory'
+): SchemaObject | null {
+  if (!collection) return null
+
+  const collectionUrl = `${baseUrl}/${type.toLowerCase()}s/${collection.slug}`
+  const productList = (products || []).slice(0, 10).map((product, index) => {
+    const productSlug = product.slug || product.id
+    return {
+      '@type': 'ListItem',
+      position: index + 1,
+      name: product.name,
+      url: `${baseUrl}/products/${productSlug}`
+    }
+  })
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: collection.name,
+    description: collection.meta_description || collection.description || '',
+    url: collectionUrl,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: productList.length,
+      itemListElement: productList
+    }
+  }
+}
+
+/**
+ * Generate automatic Organization schema for suppliers/stores
+ */
+export function generateOrganizationSchema(supplier: any, baseUrl: string): SchemaObject | null {
+  if (!supplier) return null
+
+  const supplierUrl = `${baseUrl}/suppliers/${supplier.id}`
+  const logoUrl = supplier.logo || supplier.banner_image
+
+  const schema: SchemaObject = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: supplier.store_name,
+    description: supplier.meta_description || supplier.description || '',
+    url: supplier.website || supplierUrl,
+    image: logoUrl ? [logoUrl] : undefined,
+    logo: logoUrl ? {
+      '@type': 'ImageObject',
+      url: logoUrl
+    } : undefined
+  }
+
+  // Add address if available
+  if (supplier.address) {
+    schema.address = {
+      '@type': 'PostalAddress',
+      streetAddress: supplier.address
+    }
+  }
+
+  // Add contact point
+  if (supplier.contact_phone || supplier.contact_email) {
+    schema.contactPoint = {
+      '@type': 'ContactPoint',
+      ...(supplier.contact_phone && { telephone: supplier.contact_phone }),
+      ...(supplier.contact_email && { email: supplier.contact_email }),
+      contactType: 'Customer Service'
+    }
+  }
+
+  // Add founding date
+  if (supplier.year_established) {
+    schema.foundingDate = `${supplier.year_established}-01-01`
+  }
+
+  // Add number of employees
+  if (supplier.employee_count) {
+    schema.numberOfEmployees = {
+      '@type': 'QuantitativeValue',
+      value: supplier.employee_count
+    }
+  }
+
+  return schema
+}
+

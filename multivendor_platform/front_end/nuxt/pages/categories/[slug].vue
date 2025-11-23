@@ -161,6 +161,7 @@
 
 <script setup lang="ts">
 import { formatImageUrl } from '~/utils/imageUtils'
+import { generateCollectionPageSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
 
 definePageMeta({
   layout: 'default'
@@ -171,9 +172,11 @@ const slug = computed(() => route.params.slug as string)
 
 const categoryStore = useCategoryStore()
 const subcategoryStore = useSubcategoryStore()
+const productStore = useProductStore()
 
 const { currentCategory } = storeToRefs(categoryStore)
 const { subcategories, loading: subLoading, error: subError } = storeToRefs(subcategoryStore)
+const { products: storeProducts } = storeToRefs(productStore)
 const t = categoryStore.t
 
 const category = computed(() => currentCategory.value)
@@ -228,6 +231,68 @@ watch(
   }
 )
 
+const config = useRuntimeConfig()
+const baseUrl = config.public.siteUrl || (process.client ? window.location.origin : 'https://indexo.ir')
+
+// Fetch products for CollectionPage schema (first 10)
+const fetchProductsForSchema = async () => {
+  if (!category.value) return
+  try {
+    await productStore.fetchProducts({
+      category: category.value.id,
+      page_size: 10
+    })
+  } catch (error) {
+    console.warn('Error fetching products for schema:', error)
+  }
+}
+
+// Generate schemas
+const collectionSchema = computed(() => {
+  if (!category.value) return null
+  return generateCollectionPageSchema(
+    {
+      name: category.value.name,
+      description: category.value.description,
+      slug: category.value.slug,
+      meta_description: category.value.meta_description
+    },
+    storeProducts.value.slice(0, 10).map(p => ({
+      name: p.name,
+      slug: p.slug,
+      id: p.id
+    })),
+    baseUrl,
+    'Category'
+  )
+})
+
+const breadcrumbSchema = computed(() => {
+  if (!breadcrumbs.value.length) return null
+  return generateBreadcrumbSchema(
+    breadcrumbs.value.map(item => ({
+      name: item.title,
+      url: item.to ? `${baseUrl}${item.to}` : undefined
+    })),
+    baseUrl
+  )
+})
+
+// Get canonical URL (check DB first, then fallback to slug)
+const canonicalUrl = computed(() => {
+  if (!category.value) return ''
+  if (category.value.canonical_url) {
+    return category.value.canonical_url
+  }
+  return `${baseUrl}/categories/${category.value.slug}`
+})
+
+// Get OG image (primary image)
+const ogImage = computed(() => {
+  return category.value?.og_image_url || category.value?.image_url || ''
+})
+
+// SEO Meta Tags
 useSeoMeta({
   title: () => category.value?.meta_title ?? category.value?.name ?? 'دسته‌بندی',
   description: () =>
@@ -235,8 +300,43 @@ useSeoMeta({
   ogTitle: () => category.value?.meta_title ?? category.value?.name ?? '',
   ogDescription: () =>
     category.value?.meta_description ?? category.value?.description ?? '',
-  ogType: 'website'
+  ogType: 'website',
+  ogImage: () => ogImage.value,
+  twitterCard: 'summary_large_image',
+  twitterTitle: () => category.value?.meta_title ?? category.value?.name ?? '',
+  twitterDescription: () =>
+    category.value?.meta_description ?? category.value?.description ?? '',
+  twitterImage: () => ogImage.value
 })
+
+// Schema markup and canonical URL
+useHead(() => {
+  const schemas: any[] = []
+  
+  if (collectionSchema.value) {
+    schemas.push(collectionSchema.value)
+  }
+  
+  if (breadcrumbSchema.value) {
+    schemas.push(breadcrumbSchema.value)
+  }
+
+  return {
+    link: [
+      { rel: 'canonical', href: canonicalUrl.value }
+    ],
+    ...(schemas.length > 0 && {
+      script: prepareSchemaScripts(schemas)
+    })
+  }
+})
+
+// Fetch products for schema when category is loaded
+watch(() => category.value, async (newCategory) => {
+  if (newCategory) {
+    await fetchProductsForSchema()
+  }
+}, { immediate: true })
 </script>
 
 <style scoped>
@@ -353,6 +453,26 @@ useSeoMeta({
 
 .description-text {
   line-height: 2;
+}
+
+.description-text :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  border: 1px solid #e0e0e0;
+}
+
+.description-text :deep(table th),
+.description-text :deep(table td) {
+  padding: 0.75em;
+  border: 1px solid #e0e0e0;
+  text-align: right;
+}
+
+.description-text :deep(table th) {
+  background-color: #f5f7fa;
+  font-weight: 700;
+  color: rgba(var(--v-theme-on-surface), 0.96);
 }
 </style>
 

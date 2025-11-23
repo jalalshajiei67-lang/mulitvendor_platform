@@ -176,6 +176,7 @@
 
 <script setup lang="ts">
 import { decodeHtmlForDisplay } from '~/utils/htmlUtils'
+import { generateArticleSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
 
 definePageMeta({
   layout: 'default'
@@ -264,13 +265,71 @@ const goToPost = (targetSlug: string) => {
   navigateTo(`/blog/${targetSlug}`)
 }
 
+const config = useRuntimeConfig()
+const baseUrl = config.public.siteUrl || (process.client ? window.location.origin : 'https://indexo.ir')
+
+// Generate schemas
+const articleSchema = computed(() => {
+  if (!post.value) return null
+  return generateArticleSchema(post.value, baseUrl)
+})
+
+const breadcrumbSchema = computed(() => {
+  if (!breadcrumbs.value.length) return null
+  return generateBreadcrumbSchema(
+    breadcrumbs.value.map(item => ({
+      name: item.title,
+      url: item.to ? `${baseUrl}${item.to}` : undefined
+    })),
+    baseUrl
+  )
+})
+
+// Get canonical URL (use default from slug, DB canonical_url not persisted per requirement)
+const canonicalUrl = computed(() => {
+  if (!post.value?.slug) return ''
+  return `${baseUrl}/blog/${post.value.slug}`
+})
+
+// Get OG image (primary image)
+const ogImage = computed(() => {
+  return post.value?.featured_image || ''
+})
+
+// SEO Meta Tags
 useSeoMeta({
   title: () => post.value?.meta_title ?? post.value?.title ?? 'وبلاگ',
   description: () => post.value?.meta_description ?? post.value?.excerpt ?? '',
   ogTitle: () => post.value?.meta_title ?? post.value?.title ?? '',
   ogDescription: () => post.value?.meta_description ?? post.value?.excerpt ?? '',
   ogType: 'article',
-  ogImage: () => post.value?.featured_image ?? ''
+  ogImage: () => ogImage.value,
+  twitterCard: 'summary_large_image',
+  twitterTitle: () => post.value?.meta_title ?? post.value?.title ?? '',
+  twitterDescription: () => post.value?.meta_description ?? post.value?.excerpt ?? '',
+  twitterImage: () => ogImage.value
+})
+
+// Schema markup and canonical URL
+useHead(() => {
+  const schemas: any[] = []
+  
+  if (articleSchema.value) {
+    schemas.push(articleSchema.value)
+  }
+  
+  if (breadcrumbSchema.value) {
+    schemas.push(breadcrumbSchema.value)
+  }
+
+  return {
+    link: [
+      { rel: 'canonical', href: canonicalUrl.value }
+    ],
+    ...(schemas.length > 0 && {
+      script: prepareSchemaScripts(schemas)
+    })
+  }
 })
 </script>
 
@@ -513,6 +572,27 @@ useSeoMeta({
 .blog-detail .content-body :deep(pre code) {
   background-color: transparent;
   padding: 0;
+}
+
+/* Table styling */
+.blog-detail .content-body :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  border: 1px solid #e0e0e0;
+}
+
+.blog-detail .content-body :deep(table th),
+.blog-detail .content-body :deep(table td) {
+  padding: 0.75em;
+  border: 1px solid #e0e0e0;
+  text-align: right;
+}
+
+.blog-detail .content-body :deep(table th) {
+  background-color: #f5f7fa;
+  font-weight: 700;
+  color: rgba(var(--v-theme-on-surface), 0.96);
 }
 
 /* Comments styling */

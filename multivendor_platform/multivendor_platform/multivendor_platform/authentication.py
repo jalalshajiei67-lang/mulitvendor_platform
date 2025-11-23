@@ -13,3 +13,4 @@ class CsrfExemptSessionAuthentication(SessionAuthentication):
         return  # Do not enforce CSRF for this authentication class
 
 
+

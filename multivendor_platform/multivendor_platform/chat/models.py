@@ -199,3 +199,4 @@ class TypingStatus(models.Model):
         cls.objects.filter(updated_at__lt=cutoff_time).delete()
 
 
+
