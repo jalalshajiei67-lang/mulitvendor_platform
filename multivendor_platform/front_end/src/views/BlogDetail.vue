@@ -71,9 +71,7 @@
           <h1 class="text-h4 text-md-h3 text-lg-h2 font-weight-bold mb-4 readable-heading">{{ post.title }}</h1>
 
           <!-- Post Excerpt -->
-          <p v-if="post.excerpt" class="text-h6 text-md-h5 text-medium-emphasis mb-6 readable-text">
-            {{ post.excerpt }}
-          </p>
+          <div v-if="post.excerpt" class="text-h6 text-md-h5 text-medium-emphasis mb-6 readable-text" v-html="getDecodedExcerpt(post.excerpt)"></div>
 
           <!-- Author Info -->
           <div class="d-flex justify-space-between align-center flex-wrap ga-4 mb-4">
@@ -341,6 +339,7 @@ import { useHead } from '@unhead/vue'
 import { useBlogStore } from '@/stores/blog'
 import { useAuthStore } from '@/stores/auth'
 import { prepareSchemaScripts, generateArticleSchema, generateBreadcrumbSchema } from '@/composables/useSchema'
+import { decodeHtmlForDisplay } from '@/utils/htmlUtils'
 
 export default {
   name: 'BlogDetail',
@@ -526,6 +525,10 @@ export default {
       })
     }
     
+    const getDecodedExcerpt = (excerpt) => {
+      return decodeHtmlForDisplay(excerpt)
+    }
+    
     const formatContent = (content) => {
       // Simple formatting - in a real app, you might want to use a markdown parser
       return content.replace(/\n/g, '<br>')
@@ -564,7 +567,8 @@ export default {
       editPost,
       goToPost,
       formatDate,
-      formatContent
+      formatContent,
+      getDecodedExcerpt
     }
   }
 }

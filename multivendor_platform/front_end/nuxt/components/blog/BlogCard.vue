@@ -47,9 +47,7 @@
       <h3 class="text-h6 text-md-h5 font-weight-bold mb-3 readable-heading">
         {{ post.title }}
       </h3>
-      <p class="text-body-2 text-medium-emphasis line-clamp-3 excerpt-text">
-        {{ post.excerpt }}
-      </p>
+      <div class="text-body-2 text-medium-emphasis line-clamp-3 excerpt-text" v-html="decodedExcerpt"></div>
 
       <v-divider class="my-4" />
 
@@ -72,6 +70,8 @@
 </template>
 
 <script setup lang="ts">
+import { decodeHtmlForDisplay } from '~/utils/htmlUtils'
+
 const props = defineProps<{
   post: Record<string, any>
   variant?: 'grid' | 'list' | 'featured'
@@ -79,6 +79,8 @@ const props = defineProps<{
 
 const blogStore = useBlogStore()
 const t = blogStore.t
+
+const decodedExcerpt = computed(() => decodeHtmlForDisplay(props.post.excerpt))
 
 const chipStyle = computed(() => {
   if (!props.post.category_color) {

@@ -96,7 +96,7 @@
                 </v-chip>
                 
                 <h3 class="text-h6 text-md-h5 font-weight-bold mb-3 readable-heading">{{ post.title }}</h3>
-                <p class="text-body-2 text-medium-emphasis mb-4 excerpt-text">{{ post.excerpt }}</p>
+                <div class="text-body-2 text-medium-emphasis mb-4 excerpt-text" v-html="getDecodedExcerpt(post.excerpt)"></div>
                 
                 <div class="d-flex align-center flex-wrap ga-3 text-caption text-medium-emphasis meta-text">
                   <span class="d-flex align-center">
@@ -225,7 +225,7 @@
                 </div>
                 
                 <h3 class="text-h6 font-weight-bold mb-2 readable-heading">{{ post.title }}</h3>
-                <p class="text-body-2 text-medium-emphasis mb-4 excerpt-text">{{ post.excerpt }}</p>
+                <div class="text-body-2 text-medium-emphasis mb-4 excerpt-text" v-html="getDecodedExcerpt(post.excerpt)"></div>
                 
                 <div class="d-flex justify-space-between align-center flex-wrap ga-2 text-caption text-medium-emphasis meta-text">
                   <div class="d-flex align-center flex-wrap ga-2">
@@ -299,7 +299,7 @@
                     </div>
                     
                     <h3 class="text-h6 text-md-h5 font-weight-bold mb-2 readable-heading">{{ post.title }}</h3>
-                    <p class="text-body-2 text-medium-emphasis mb-4 excerpt-text">{{ post.excerpt }}</p>
+                    <div class="text-body-2 text-medium-emphasis mb-4 excerpt-text" v-html="getDecodedExcerpt(post.excerpt)"></div>
                     
                     <div class="d-flex justify-space-between align-center flex-wrap ga-2 text-caption text-medium-emphasis meta-text">
                       <div class="d-flex align-center flex-wrap ga-2">
@@ -369,6 +369,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBlogStore } from '@/stores/blog'
+import { decodeHtmlForDisplay } from '@/utils/htmlUtils'
 
 export default {
   name: 'BlogList',
@@ -440,6 +441,10 @@ export default {
         month: 'long',
         day: 'numeric'
       })
+    }
+    
+    const getDecodedExcerpt = (excerpt) => {
+      return decodeHtmlForDisplay(excerpt)
     }
     
     const getCategoryButtonColor = (category) => {

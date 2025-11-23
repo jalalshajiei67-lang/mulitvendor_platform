@@ -14,9 +14,7 @@
           <h1 class="text-h3 text-md-h1 font-weight-bold mb-4 hero-heading">
             {{ post.title }}
           </h1>
-          <p class="text-body-1 text-md-h5 opacity-90 hero-text">
-            {{ post.excerpt }}
-          </p>
+          <div class="text-body-1 text-md-h5 opacity-90 hero-text" v-html="decodedExcerpt"></div>
 
           <div class="d-flex flex-wrap gap-4 mt-6 text-body-2 text-md-subtitle-2 hero-meta">
             <span class="d-flex align-center">
@@ -177,6 +175,8 @@
 </template>
 
 <script setup lang="ts">
+import { decodeHtmlForDisplay } from '~/utils/htmlUtils'
+
 definePageMeta({
   layout: 'default'
 })
@@ -187,6 +187,8 @@ const slug = computed(() => route.params.slug as string)
 const blogStore = useBlogStore()
 const { currentPost, comments, recentPosts, relatedPosts } = storeToRefs(blogStore)
 const t = blogStore.t
+
+const decodedExcerpt = computed(() => decodeHtmlForDisplay(post.value?.excerpt))
 
 const authToken = useCookie<string | null>('authToken')
 const isAuthenticated = computed(() => Boolean(authToken.value || (process.client && localStorage.getItem('authToken'))))

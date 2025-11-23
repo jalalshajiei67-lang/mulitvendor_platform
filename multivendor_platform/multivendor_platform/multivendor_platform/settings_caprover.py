@@ -184,6 +184,7 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-guest-session-id',
     'access-control-request-method',
     'access-control-request-headers',
 ]
