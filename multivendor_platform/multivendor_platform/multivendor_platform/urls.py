@@ -47,49 +47,67 @@ def health_check(request):
 def robots_txt(request):
     """
     Serve robots.txt file to restrict crawlers from unnecessary sections.
-    Auto-updates based on SITE_URL setting or request host.
+    Blocks all indexing on backend domain (multivendor-backend.indexo.ir).
+    Allows indexing on frontend domains (indexo.ir, www.indexo.ir) except admin/API.
     """
-    # Get SITE_URL from settings, fallback to request if not configured
-    site_url = getattr(settings, 'SITE_URL', '').strip()
+    # Get the host from the request
+    host = request.get_host().lower()
     
-    if site_url:
-        # Use SITE_URL from settings (auto-updates when environment variable changes)
-        # Remove trailing slash if present
-        site_url = site_url.rstrip('/')
-        sitemap_url = f'{site_url}/sitemap.xml'
+    # Check if this is the backend domain (should be completely blocked)
+    backend_domains = ['multivendor-backend.indexo.ir']
+    is_backend_domain = any(host == domain or host.endswith('.' + domain) for domain in backend_domains)
+    
+    if is_backend_domain:
+        # Backend domain: Block everything
+        robots_lines = [
+            '# robots.txt for Multivendor Platform - Backend API',
+            '# This is the backend API domain - all pages should be blocked from indexing',
+            '',
+            'User-agent: *',
+            'Disallow: /',  # Block everything
+            '',
+        ]
     else:
-        # Fallback to request-based URL (for development or when SITE_URL not set)
-        protocol = 'https' if request.is_secure() else 'http'
-        domain = request.get_host()
-        sitemap_url = f'{protocol}://{domain}/sitemap.xml'
-    
-    # Build robots.txt content line by line to ensure proper formatting
-    robots_lines = [
-        '# robots.txt for Multivendor Platform',
-        '# Auto-generated - Updates automatically based on SITE_URL setting',
-        '',
-        '# Allow all crawlers',
-        'User-agent: *',
-        '',
-        '# Disallow admin panel (private administration area)',
-        'Disallow: /admin/',
-        '',
-        '# Disallow API endpoints (not for web crawling, API access only)',
-        'Disallow: /api/',
-        '',
-        '# Disallow vendor dashboard (private vendor area)',
-        'Disallow: /dashboard/',
-        '',
-        '# Disallow health check endpoint (internal monitoring)',
-        'Disallow: /health/',
-        '',
-        '# Disallow TinyMCE editor (internal admin tool)',
-        'Disallow: /tinymce/',
-        '',
-        '# Allow sitemap for better SEO indexing',
-        f'Sitemap: {sitemap_url}',
-        ''  # Final newline
-    ]
+        # Frontend domain (indexo.ir, www.indexo.ir): Allow most content, block only admin/API
+        # Get SITE_URL from settings, fallback to request if not configured
+        site_url = getattr(settings, 'SITE_URL', '').strip()
+        
+        if site_url:
+            # Use SITE_URL from settings (auto-updates when environment variable changes)
+            # Remove trailing slash if present
+            site_url = site_url.rstrip('/')
+            sitemap_url = f'{site_url}/sitemap.xml'
+        else:
+            # Fallback to request-based URL (for development or when SITE_URL not set)
+            protocol = 'https' if request.is_secure() else 'http'
+            domain = request.get_host()
+            sitemap_url = f'{protocol}://{domain}/sitemap.xml'
+        
+        robots_lines = [
+            '# robots.txt for Multivendor Platform - Frontend Website',
+            '# Allow indexing of products, categories, blog, and all public content',
+            '',
+            'User-agent: *',
+            '',
+            '# Disallow admin panel (private administration area)',
+            'Disallow: /admin/',
+            '',
+            '# Disallow API endpoints (not for web crawling, API access only)',
+            'Disallow: /api/',
+            '',
+            '# Disallow vendor dashboard (private vendor area)',
+            'Disallow: /dashboard/',
+            '',
+            '# Disallow health check endpoint (internal monitoring)',
+            'Disallow: /health/',
+            '',
+            '# Disallow TinyMCE editor (internal admin tool)',
+            'Disallow: /tinymce/',
+            '',
+            '# Allow sitemap for better SEO indexing',
+            f'Sitemap: {sitemap_url}',
+            '',
+        ]
     
     robots_content = '\n'.join(robots_lines)
     

@@ -69,7 +69,7 @@
                 <v-icon size="48">mdi-map-marker</v-icon>
               </div>
               <h3>آدرس</h3>
-              <p class="contact-text">{{ page.address_fa }}</p>
+              <div class="contact-text" v-html="page.address_fa"></div>
             </div>
 
             <!-- Working Hours -->

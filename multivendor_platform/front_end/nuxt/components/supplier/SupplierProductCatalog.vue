@@ -195,7 +195,7 @@
 
               <!-- Product Description (if available) -->
               <p v-if="product.description" class="product-description text-caption text-medium-emphasis mb-3 line-clamp-2">
-                {{ product.description }}
+                {{ stripHtml(product.description) }}
               </p>
 
               <!-- Price Section -->
@@ -334,6 +334,7 @@ interface Product {
   images?: any[]
   rating?: number
   is_featured?: boolean
+  description?: string
 }
 
 interface Props {
@@ -516,6 +517,24 @@ onUnmounted(() => {
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('fa-IR').format(price)
+}
+
+// Helper function to strip HTML tags and get plain text (SSR-safe)
+const stripHtml = (html: string): string => {
+  if (!html) return ''
+  // Remove HTML tags using regex (works in both SSR and client)
+  const text = html
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
+    .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
+    .replace(/&amp;/g, '&') // Replace &amp; with &
+    .replace(/&lt;/g, '<') // Replace &lt; with <
+    .replace(/&gt;/g, '>') // Replace &gt; with >
+    .replace(/&quot;/g, '"') // Replace &quot; with "
+    .replace(/&#39;/g, "'") // Replace &#39; with '
+    .replace(/&zwnj;/g, '\u200C') // Replace &zwnj; with zero-width non-joiner
+    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+    .trim() // Remove leading/trailing whitespace
+  return text
 }
 </script>
 
