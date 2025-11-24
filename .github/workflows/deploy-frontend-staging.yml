@@ -1,0 +1,63 @@
+name: Deploy Frontend to Staging
+
+on:
+  workflow_run:
+    workflows: ["Deploy Backend to Staging"]
+    types: [completed]
+    branches: [ staging ]
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend-staging:
+    name: Deploy Frontend to Staging
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref || 'staging' }}
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          # No cache needed - we only install CapRover CLI
+
+      - name: Install CapRover CLI
+        run: npm install -g caprover
+
+      - name: Create frontend deployment tarball (Staging)
+        run: |
+          cp captain-definition-frontend-staging captain-definition
+          tar -czf frontend-deploy.tar.gz \
+            --exclude='multivendor_platform/front_end/nuxt/node_modules' \
+            --exclude='multivendor_platform/front_end/nuxt/.nuxt' \
+            --exclude='multivendor_platform/front_end/nuxt/.output' \
+            --exclude='multivendor_platform/front_end/node_modules' \
+            --exclude='multivendor_platform/front_end/dist' \
+            captain-definition \
+            Dockerfile.frontend.staging.nuxt \
+            multivendor_platform/front_end/
+          echo "✅ Created deployment tarball with staging configuration"
+          echo "   Using: Dockerfile.frontend.staging.nuxt"
+          echo "   API URL: https://staging-api.indexo.ir/api"
+          echo "   Site URL: https://staging.indexo.ir"
+
+      - name: Deploy Frontend to CapRover (Staging)
+        env:
+          CAPROVER_URL: ${{ secrets.CAPROVER_URL }}
+          CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
+          CAPROVER_APP_NAME: ${{ secrets.CAPROVER_FRONTEND_STAGING_APP_NAME }}
+        run: |
+          caprover deploy \
+            --caproverUrl "$CAPROVER_URL" \
+            --caproverPassword "$CAPROVER_PASSWORD" \
+            --appName "$CAPROVER_APP_NAME" \
+            --tarFile frontend-deploy.tar.gz
+
+      - name: Frontend deployment successful (Staging)
+        run: |
+          echo "✅ Frontend deployed successfully to CapRover (Staging)!"
+          echo "🔗 Frontend URL: https://staging.indexo.ir"
+
