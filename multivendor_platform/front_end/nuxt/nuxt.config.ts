@@ -276,7 +276,12 @@ export default defineNuxtConfig({
   },
   nitro: {
     compressPublicAssets: true,
-    minify: true
+    minify: true,
+    // Allow self-signed certificates for staging API calls
+    // This is safe for staging environments with CapRover's self-signed certs
+    devServer: {
+      watch: []
+    }
   },
   features: {
     inlineStyles: false

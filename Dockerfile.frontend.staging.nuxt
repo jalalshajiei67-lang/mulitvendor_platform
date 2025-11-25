@@ -66,6 +66,10 @@ ENV NODE_ENV=production
 ENV NUXT_HOST=0.0.0.0
 ENV NUXT_PORT=3000
 
+# Allow self-signed SSL certificates for staging (CapRover uses self-signed certs)
+# ⚠️ Only for staging environment - do NOT use in production!
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
+
 # Set runtime environment variables - STAGING URLs (fallbacks)
 ARG NUXT_PUBLIC_API_BASE
 ARG NUXT_PUBLIC_SITE_URL
