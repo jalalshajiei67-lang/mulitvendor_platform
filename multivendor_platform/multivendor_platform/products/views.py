@@ -5,6 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import CreateView, ListView, TemplateView
 from django.urls import reverse_lazy
 from django.db import models
+from django.conf import settings
 
 # REST Framework imports
 from rest_framework import viewsets, status, filters
@@ -49,8 +50,9 @@ class HomeView(TemplateView):
     template_name = 'products/home.html'
     
     def get(self, request, *args, **kwargs):
-        # Redirect to Vue.js frontend
-        return redirect('http://localhost:5173/')
+        # Redirect to frontend using SITE_URL from settings, fallback to localhost for dev
+        frontend_url = getattr(settings, 'SITE_URL', 'http://localhost:5173')
+        return redirect(frontend_url.rstrip('/') + '/')
 
 class VendorDashboardView(LoginRequiredMixin, TemplateView):
     """
@@ -59,8 +61,9 @@ class VendorDashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'products/home.html'
     
     def get(self, request, *args, **kwargs):
-        # Redirect to Vue.js frontend my-products page
-        return redirect('http://localhost:5173/my-products')
+        # Redirect to frontend using SITE_URL from settings, fallback to localhost for dev
+        frontend_url = getattr(settings, 'SITE_URL', 'http://localhost:5173')
+        return redirect(f'{frontend_url.rstrip("/")}/my-products')
 
 class ProductCreateView(LoginRequiredMixin, TemplateView):
     """
@@ -69,8 +72,9 @@ class ProductCreateView(LoginRequiredMixin, TemplateView):
     template_name = 'products/home.html'
     
     def get(self, request, *args, **kwargs):
-        # Redirect to Vue.js frontend product creation page
-        return redirect('http://localhost:5173/products/new')
+        # Redirect to frontend using SITE_URL from settings, fallback to localhost for dev
+        frontend_url = getattr(settings, 'SITE_URL', 'http://localhost:5173')
+        return redirect(f'{frontend_url.rstrip("/")}/products/new')
 
 # --- DRF API VIEWSETS ---
 
