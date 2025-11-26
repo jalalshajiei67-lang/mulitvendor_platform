@@ -19,7 +19,8 @@ WORKDIR /app/multivendor_platform/front_end/nuxt
 RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
 # Set environment variables for the build - STAGING URLs
-ARG NUXT_PUBLIC_API_BASE=https://staging-api.indexo.ir/api
+# These can be overridden by CapRover build args
+ARG NUXT_PUBLIC_API_BASE=https://multivendor-backend-staging.indexo.ir/api
 ARG NUXT_PUBLIC_SITE_URL=https://staging.indexo.ir
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 ENV NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
@@ -73,7 +74,7 @@ ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 # Set runtime environment variables - STAGING URLs (fallbacks)
 ARG NUXT_PUBLIC_API_BASE
 ARG NUXT_PUBLIC_SITE_URL
-ENV NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE:-https://staging-api.indexo.ir/api}
+ENV NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE:-https://multivendor-backend-staging.indexo.ir/api}
 ENV NUXT_PUBLIC_SITE_URL=${NUXT_PUBLIC_SITE_URL:-https://staging.indexo.ir}
 
 # Health check

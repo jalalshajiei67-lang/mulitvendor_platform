@@ -3,11 +3,11 @@
 # ⚠️ IMPORTANT: Nuxt 3 uses NUXT_PUBLIC_* prefix for public environment variables
 
 # API Configuration (CRITICAL - must be set for API calls to work)
-NUXT_PUBLIC_API_BASE=https://staging-api.indexo.ir/api
+NUXT_PUBLIC_API_BASE=https://multivendor-backend-staging.indexo.ir/api
 NUXT_PUBLIC_SITE_URL=https://staging.indexo.ir
 
 # Django Admin URL (optional - for admin panel links)
-NUXT_PUBLIC_DJANGO_ADMIN_URL=https://staging-api.indexo.ir/admin/
+NUXT_PUBLIC_DJANGO_ADMIN_URL=https://multivendor-backend-staging.indexo.ir/admin/
 
 # App Configuration
 NUXT_PUBLIC_APP_TITLE=Multivendor Platform (Staging)
