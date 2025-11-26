@@ -1,5 +1,6 @@
-# Nuxt.js Frontend Dockerfile for CapRover - Optimized
-# Force rebuild: 2025-01-15-v4 (Homepage merge update)
+# Nuxt.js Frontend Dockerfile for CapRover Staging - Optimized
+# This is a staging-specific version with staging URLs
+# Force rebuild: 2025-01-15-v4 (Staging configuration)
 FROM node:20-alpine as build-stage
 
 # Set working directory
@@ -17,15 +18,15 @@ WORKDIR /app/multivendor_platform/front_end/nuxt
 # Install dependencies
 RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
-# Set environment variables for the build
-ARG NUXT_PUBLIC_API_BASE=https://multivendor-backend.indexo.ir/api
-ARG NUXT_PUBLIC_SITE_URL=https://indexo.ir
+# Set environment variables for the build - STAGING URLs
+ARG NUXT_PUBLIC_API_BASE=https://staging-api.indexo.ir/api
+ARG NUXT_PUBLIC_SITE_URL=https://staging.indexo.ir
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 ENV NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
 
 # Build the Nuxt app
 RUN echo "========================================" && \
-    echo "Starting Nuxt build..." && \
+    echo "Starting Nuxt build (STAGING)..." && \
     echo "NUXT_PUBLIC_API_BASE: $NUXT_PUBLIC_API_BASE" && \
     echo "NUXT_PUBLIC_SITE_URL: $NUXT_PUBLIC_SITE_URL" && \
     echo "Current directory: $(pwd)" && \
@@ -65,13 +66,15 @@ ENV NODE_ENV=production
 ENV NUXT_HOST=0.0.0.0
 ENV NUXT_PORT=3000
 
-# Runtime environment variables (use build args, can be overridden by CapRover env vars)
-# Note: NUXT_PUBLIC_* vars need to be set at build time for SSR to work correctly
-# Runtime env vars here are fallbacks and may not work for SSR - use build args instead
+# Allow self-signed SSL certificates for staging (CapRover uses self-signed certs)
+# ⚠️ Only for staging environment - do NOT use in production!
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
+
+# Set runtime environment variables - STAGING URLs (fallbacks)
 ARG NUXT_PUBLIC_API_BASE
 ARG NUXT_PUBLIC_SITE_URL
-ENV NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE:-https://multivendor-backend.indexo.ir/api}
-ENV NUXT_PUBLIC_SITE_URL=${NUXT_PUBLIC_SITE_URL:-https://indexo.ir}
+ENV NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE:-https://staging-api.indexo.ir/api}
+ENV NUXT_PUBLIC_SITE_URL=${NUXT_PUBLIC_SITE_URL:-https://staging.indexo.ir}
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
