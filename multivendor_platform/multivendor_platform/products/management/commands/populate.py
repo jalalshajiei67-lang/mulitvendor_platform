@@ -7,8 +7,40 @@ from products.models import Department, Category, Subcategory, Product
 from users.models import Supplier
 from blog.models import BlogCategory, BlogPost
 import random
+import re
 
 User = get_user_model()
+
+
+def generate_persian_slug(name, model_class, existing_pk=None):
+    """
+    Generate a slug from Persian text.
+    Falls back to transliteration or ID-based slug if slugify returns empty.
+    """
+    # Try to slugify the name
+    base_slug = slugify(name)
+    
+    # If slugify returns empty (common with Persian), create a fallback
+    if not base_slug or base_slug.strip() == '':
+        # Remove special characters and create a simple slug
+        base_slug = re.sub(r'[^\w\s-]', '', name.lower())
+        base_slug = re.sub(r'[-\s]+', '-', base_slug)
+        # If still empty, use a hash-based fallback
+        if not base_slug or base_slug.strip() == '':
+            base_slug = f"item-{abs(hash(name)) % 100000}"
+    
+    # Ensure uniqueness
+    slug = base_slug
+    counter = 1
+    queryset = model_class.objects.all()
+    if existing_pk:
+        queryset = queryset.exclude(pk=existing_pk)
+    
+    while queryset.filter(slug=slug).exists():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+    
+    return slug
 
 
 class Command(BaseCommand):
@@ -67,10 +99,22 @@ class Command(BaseCommand):
         
         departments = []
         for dept_data in departments_data:
+            # Generate slug first
+            slug = generate_persian_slug(dept_data['name'], Department)
+            
             dept, created = Department.objects.get_or_create(
                 name=dept_data['name'],
-                defaults=dept_data
+                defaults={
+                    **dept_data,
+                    'slug': slug  # Explicitly set the slug
+                }
             )
+            
+            # If department exists but has empty slug, update it
+            if not created and (not dept.slug or dept.slug.strip() == ''):
+                dept.slug = generate_persian_slug(dept_data['name'], Department, existing_pk=dept.pk)
+                dept.save(update_fields=['slug'])
+            
             departments.append(dept)
             if created:
                 self.stdout.write(f'  ✓ Created department: {dept.name}')
@@ -98,12 +142,22 @@ class Command(BaseCommand):
         
         categories = []
         for cat_data in categories_data:
+            # Generate slug first
+            slug = generate_persian_slug(cat_data['name'], Category)
+            
             category, created = Category.objects.get_or_create(
                 name=cat_data['name'],
                 defaults={
-                    'description': cat_data['description']
+                    'description': cat_data['description'],
+                    'slug': slug
                 }
             )
+            
+            # If category exists but has empty slug, update it
+            if not created and (not category.slug or category.slug.strip() == ''):
+                category.slug = generate_persian_slug(cat_data['name'], Category, existing_pk=category.pk)
+                category.save(update_fields=['slug'])
+            
             # Link to department
             category.departments.add(cat_data['department'])
             categories.append(category)
@@ -149,12 +203,22 @@ class Command(BaseCommand):
         
         subcategories = []
         for subcat_data in subcategories_data:
+            # Generate slug first
+            slug = generate_persian_slug(subcat_data['name'], Subcategory)
+            
             subcategory, created = Subcategory.objects.get_or_create(
                 name=subcat_data['name'],
                 defaults={
-                    'description': subcat_data['description']
+                    'description': subcat_data['description'],
+                    'slug': slug
                 }
             )
+            
+            # If subcategory exists but has empty slug, update it
+            if not created and (not subcategory.slug or subcategory.slug.strip() == ''):
+                subcategory.slug = generate_persian_slug(subcat_data['name'], Subcategory, existing_pk=subcategory.pk)
+                subcategory.save(update_fields=['slug'])
+            
             # Link to category
             subcategory.categories.add(subcat_data['category'])
             subcategories.append(subcategory)
@@ -339,13 +403,8 @@ class Command(BaseCommand):
         
         products_created = 0
         for product_data in products_data:
-            # Generate unique slug
-            base_slug = slugify(product_data['name'])
-            slug = base_slug
-            counter = 1
-            while Product.objects.filter(slug=slug).exists():
-                slug = f"{base_slug}-{counter}"
-                counter += 1
+            # Generate unique slug using helper function
+            slug = generate_persian_slug(product_data['name'], Product)
             
             product, created = Product.objects.get_or_create(
                 slug=slug,
@@ -403,10 +462,22 @@ class Command(BaseCommand):
         
         blog_categories = []
         for blog_cat_data in blog_categories_data:
+            # Generate slug first
+            slug = generate_persian_slug(blog_cat_data['name'], BlogCategory)
+            
             blog_category, created = BlogCategory.objects.get_or_create(
                 name=blog_cat_data['name'],
-                defaults=blog_cat_data
+                defaults={
+                    **blog_cat_data,
+                    'slug': slug
+                }
             )
+            
+            # If blog category exists but has empty slug, update it
+            if not created and (not blog_category.slug or blog_category.slug.strip() == ''):
+                blog_category.slug = generate_persian_slug(blog_cat_data['name'], BlogCategory, existing_pk=blog_category.pk)
+                blog_category.save(update_fields=['slug'])
+            
             blog_categories.append(blog_category)
             if created:
                 self.stdout.write(f'  ✓ Created blog category: {blog_category.name}')
@@ -513,13 +584,8 @@ class Command(BaseCommand):
         
         blog_posts_created = 0
         for post_data in blog_posts_data:
-            # Generate unique slug
-            base_slug = slugify(post_data['title'])
-            slug = base_slug
-            counter = 1
-            while BlogPost.objects.filter(slug=slug).exists():
-                slug = f"{base_slug}-{counter}"
-                counter += 1
+            # Generate unique slug using helper function
+            slug = generate_persian_slug(post_data['title'], BlogPost)
             
             post, created = BlogPost.objects.get_or_create(
                 slug=slug,
