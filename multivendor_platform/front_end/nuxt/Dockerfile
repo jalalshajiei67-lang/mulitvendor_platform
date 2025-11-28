@@ -28,7 +28,7 @@ COPY . .
 RUN npm run build
 
 # Production Stage
-FROM node:20-alpine as production-stage
+FROM node:20-slim as production-stage  # <-- THE FIX IS HERE
 
 WORKDIR /app
 
@@ -58,4 +58,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Start Nuxt server
 CMD ["node", ".output/server/index.mjs"]
-
