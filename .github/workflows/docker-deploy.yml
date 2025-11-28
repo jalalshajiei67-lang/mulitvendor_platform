@@ -1,0 +1,96 @@
+name: Deploy to Docker VPS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Allows you to run this workflow manually from the GitHub UI
+
+jobs:
+  deploy:
+    name: Build and Deploy on VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e # Exit immediately if a command exits with a non-zero status.
+
+            echo "🚀 Starting deployment to VPS..."
+
+            # --- 1. Setup Project Directory ---
+            DEPLOY_DIR="/home/deploy/docker-deploy"
+            REPO_URL="https://github.com/${{ github.repository }}.git"
+
+            # Clone the repository if it doesn't exist, otherwise pull latest changes
+            if [ ! -d "$DEPLOY_DIR/.git" ]; then
+              echo "📥 Cloning repository for the first time..."
+              rm -rf "$DEPLOY_DIR"
+              git clone "$REPO_URL" "$DEPLOY_DIR"
+            else
+              echo "📥 Pulling latest changes..."
+              cd "$DEPLOY_DIR"
+              git fetch origin
+              git reset --hard origin/main
+            fi
+
+            cd "$DEPLOY_DIR"
+
+            # --- 2. Build and Deploy Services ---
+            echo "🛑 Stopping existing containers..."
+            docker compose down --remove-orphans || true
+
+            echo "🧹 Cleaning up old Docker images..."
+            docker image prune -f
+
+            echo "🔨 Building new Docker images..."
+            docker compose build --no-cache
+
+            echo "▶️ Starting services with Docker Compose..."
+            docker compose up -d
+
+            # --- 3. Post-Deployment Tasks ---
+            echo "⏳ Waiting for services to be ready..."
+            sleep 20 # Give containers time to start
+
+            echo "🗄️ Running database migrations..."
+            docker compose exec -T backend python manage.py migrate --noinput
+
+            echo "📦 Collecting static files..."
+            docker compose exec -T backend python manage.py collectstatic --noinput
+
+            # --- 4. Verification ---
+            echo "🔍 Verifying deployment..."
+            docker compose ps
+
+            # Check if the main containers are running
+            if ! docker compose ps --services --filter "status=running" | grep -E '^(backend|frontend)$'; then
+              echo "❌ Error: One or more critical containers failed to start!"
+              docker compose logs --tail=50
+              exit 1
+            fi
+
+            echo "✅ Deployment completed successfully!"
+
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "🚀 DEPLOYMENT SUMMARY"
+          echo "=========================================="
+          echo "Status: ${{ job.status }}"
+          echo "VPS: ${{ secrets.VPS_HOST }}"
+          echo "=========================================="
+          echo "📍 Test URLs (after DNS is pointed):"
+          echo "  Frontend: https://indexo.ir"
+          echo "  Backend API: https://api.indexo.ir/api"
+          echo "  Admin Panel: https://api.indexo.ir/admin"
+          echo "=========================================="
