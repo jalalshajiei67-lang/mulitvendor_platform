@@ -227,6 +227,26 @@ useSeoMeta({
   line-height: 2;
 }
 
+.description-text :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  border: 1px solid #e0e0e0;
+}
+
+.description-text :deep(table th),
+.description-text :deep(table td) {
+  padding: 0.75em;
+  border: 1px solid #e0e0e0;
+  text-align: right;
+}
+
+.description-text :deep(table th) {
+  background-color: #f5f7fa;
+  font-weight: 700;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+}
+
 .description-icon :deep(.v-icon) {
   color: rgb(var(--v-theme-primary));
 }

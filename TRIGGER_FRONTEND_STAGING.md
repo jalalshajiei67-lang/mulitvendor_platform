@@ -33,3 +33,5 @@ This will deploy the frontend immediately without waiting for backend.
 
 If you want the frontend to always show up and be independently triggerable, we can modify the workflow to trigger on push as well. But for now, manual trigger should work.
 
+
+

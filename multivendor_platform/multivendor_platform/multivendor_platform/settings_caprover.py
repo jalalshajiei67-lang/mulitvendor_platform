@@ -55,6 +55,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # MUST be at the top - handles OPTIONS preflight
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files efficiently (must be after SecurityMiddleware)
     'django.contrib.sessions.middleware.SessionMiddleware',  # Required for admin
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -148,6 +149,11 @@ STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 ]
+
+# WhiteNoise configuration for serving static files in production
+# WhiteNoise serves static files efficiently and handles 404s with proper MIME types
+# Using ManifestStaticFilesStorage - WhiteNoise will handle compression on-the-fly
+STATICFILES_STORAGE = 'whitenoise.storage.ManifestStaticFilesStorage'
 
 # Media files (user uploaded content) for CapRover
 MEDIA_URL = os.environ.get('MEDIA_URL', '/media/')

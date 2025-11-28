@@ -100,6 +100,35 @@ class Subcategory(models.Model):
             departments.update(category.departments.all())
         return list(departments)
 
+class CategoryRequest(models.Model):
+    """
+    Model for suppliers to request new subcategories when existing ones don't fit their products.
+    Admin manually creates the category structure after approval.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    supplier = models.ForeignKey('users.Supplier', on_delete=models.CASCADE, related_name='category_requests', help_text="Supplier who requested the category")
+    product = models.OneToOneField('Product', on_delete=models.CASCADE, related_name='category_request', null=True, blank=True, help_text="Product that triggered this request")
+    requested_name = models.CharField(max_length=100, help_text="Name of the subcategory requested by supplier")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_notes = models.TextField(blank=True, null=True, help_text="Admin notes or rejection reason")
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_category_requests', help_text="Admin who reviewed this request")
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Category Request'
+        verbose_name_plural = 'Category Requests'
+    
+    def __str__(self):
+        return f"{self.requested_name} - {self.get_status_display()} ({self.supplier.name})"
+
 class Product(models.Model):
     vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='products')  # Keep for backward compatibility
     supplier = models.ForeignKey('users.Supplier', on_delete=models.SET_NULL, null=True, blank=True, related_name='products', help_text="Company/Supplier")
@@ -118,6 +147,50 @@ class Product(models.Model):
     canonical_url = models.URLField(max_length=500, blank=True, null=True, help_text="Canonical URL for SEO")
     schema_markup = models.TextField(blank=True, null=True, help_text="JSON-LD Schema markup for rich snippets")
     is_active = models.BooleanField(default=True)
+    
+    # Product availability and status fields
+    AVAILABILITY_CHOICES = [
+        ('in_stock', 'موجود در انبار'),
+        ('made_to_order', 'سفارشی'),
+    ]
+    availability_status = models.CharField(
+        max_length=20,
+        choices=AVAILABILITY_CHOICES,
+        blank=True,
+        null=True,
+        help_text="وضعیت موجودی محصول"
+    )
+    
+    CONDITION_CHOICES = [
+        ('new', 'نو'),
+        ('used', 'دست دوم'),
+    ]
+    condition = models.CharField(
+        max_length=10,
+        choices=CONDITION_CHOICES,
+        blank=True,
+        null=True,
+        help_text="وضعیت محصول (فقط برای محصولات موجود در انبار)"
+    )
+    
+    ORIGIN_CHOICES = [
+        ('iran', 'ساخت ایران'),
+        ('imported', 'وارداتی'),
+    ]
+    origin = models.CharField(
+        max_length=20,
+        choices=ORIGIN_CHOICES,
+        blank=True,
+        null=True,
+        help_text="مبدا محصول"
+    )
+    
+    lead_time_days = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="زمان تحویل به روز کاری (فقط برای محصولات سفارشی)"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -130,9 +203,19 @@ class Product(models.Model):
         if not self.slug:
             self.slug = slugify(self.name)
         
-        # Auto-draft products without a primary category
+        # Products with pending category requests are visible to supplier but not active
+        # Products without category and without pending request are inactive
         if not self.primary_category:
-            self.is_active = False
+            # Check if there's a pending category request
+            if hasattr(self, 'category_request') and self.category_request and self.category_request.status == 'pending':
+                # Product is visible to supplier but not active in public listings
+                self.is_active = False
+            elif not hasattr(self, 'category_request') or not self.category_request:
+                # No category and no request - inactive
+                self.is_active = False
+        else:
+            # Has proper category, can be active
+            self.is_active = True
         
         super().save(*args, **kwargs)
     
@@ -219,6 +302,23 @@ class Product(models.Model):
     def all_images(self):
         """Returns all images ordered by sort_order and is_primary"""
         return self.images.all().order_by('-is_primary', 'sort_order', 'created_at')
+
+class ProductFeature(models.Model):
+    """Key features/specifications for products"""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='features')
+    name = models.CharField(max_length=200, help_text="نام ویژگی")
+    value = models.CharField(max_length=500, help_text="مقدار ویژگی")
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['sort_order', 'created_at']
+        verbose_name = 'Product Feature'
+        verbose_name_plural = 'Product Features'
+    
+    def __str__(self):
+        return f"{self.product.name} - {self.name}: {self.value}"
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')

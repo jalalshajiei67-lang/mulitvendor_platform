@@ -196,3 +196,6 @@ docker-compose exec backend bash
 - **Separation**: Keep local and production concerns separate
 
 
+
+
+

@@ -4,7 +4,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ProductViewSet, CategoryViewSet, SubcategoryViewSet, DepartmentViewSet,
     MyProductsView, ProductCommentViewSet, global_search,
-    LabelGroupViewSet, LabelViewSet, LabelComboSeoPageViewSet
+    LabelGroupViewSet, LabelViewSet, LabelComboSeoPageViewSet,
+    CategoryRequestViewSet
 )
 from .test_scraper_api import test_scraper_connection, test_network_access
 
@@ -17,6 +18,7 @@ router.register(r'product-comments', ProductCommentViewSet, basename='product-co
 router.register(r'label-groups', LabelGroupViewSet, basename='label-group')
 router.register(r'labels', LabelViewSet, basename='label')
 router.register(r'label-combos', LabelComboSeoPageViewSet, basename='label-combo')
+router.register(r'category-requests', CategoryRequestViewSet, basename='category-request')
 
 urlpatterns = [
     # Put specific routes FIRST before router
@@ -30,3 +32,10 @@ urlpatterns = [
     # Then include router URLs (this will handle all ViewSet routes automatically)
     path('', include(router.urls)),
 ]
+
+# Debug: Print registered URLs for category-requests
+# Uncomment to debug URL registration
+# print("Category Request URLs:")
+# for url_pattern in router.urls:
+#     if 'category-request' in str(url_pattern.pattern):
+#         print(f"  {url_pattern.pattern} -> {url_pattern.callback}")

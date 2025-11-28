@@ -6,12 +6,14 @@ from django.views.generic import CreateView, ListView, TemplateView
 from django.urls import reverse_lazy
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 # REST Framework imports
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
+from rest_framework import serializers
 from django_filters.rest_framework import DjangoFilterBackend
 
 # Local imports
@@ -22,9 +24,11 @@ from .models import (
     Department,
     ProductImage,
     ProductComment,
+    ProductFeature,
     Label,
     LabelGroup,
     LabelComboSeoPage,
+    CategoryRequest,
 )
 from .forms import ProductForm
 from .serializers import (
@@ -39,6 +43,8 @@ from .serializers import (
     LabelSerializer,
     LabelGroupSerializer,
     LabelComboSeoPageSerializer,
+    CategoryRequestSerializer,
+    CategoryRequestCreateSerializer,
 )
 
 # --- DJANGO DASHBOARD VIEWS ---
@@ -144,9 +150,35 @@ class ProductViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         try:
+            # Handle subcategories before saving
+            subcategory_ids = self._get_subcategory_ids()
+            if subcategory_ids:
+                # Remove subcategories from validated_data if present, we'll handle it manually
+                if 'subcategories' in serializer.validated_data:
+                    serializer.validated_data.pop('subcategories')
+            
             product = serializer.save()
+            
+            # Set subcategories manually
+            if subcategory_ids:
+                product.subcategories.set(subcategory_ids)
+            
+            # Link to category request if provided
+            category_request_id = self.request.data.get('category_request_id')
+            if category_request_id:
+                try:
+                    category_request = CategoryRequest.objects.get(
+                        id=category_request_id,
+                        supplier__vendor=self.request.user
+                    )
+                    category_request.product = product
+                    category_request.save()
+                except CategoryRequest.DoesNotExist:
+                    pass  # Category request not found or doesn't belong to user
+            
             self._ensure_primary_category(product)
             self._handle_image_uploads(product)
+            self._handle_features(product)
         except serializers.ValidationError:
             raise
         except Exception as e:
@@ -156,15 +188,50 @@ class ProductViewSet(viewsets.ModelViewSet):
     
     def perform_update(self, serializer):
         try:
+            # Handle subcategories before saving
+            subcategory_ids = self._get_subcategory_ids()
+            if subcategory_ids:
+                # Remove subcategories from validated_data if present, we'll handle it manually
+                if 'subcategories' in serializer.validated_data:
+                    serializer.validated_data.pop('subcategories')
+            
             product = serializer.save()
+            
+            # Set subcategories manually
+            if subcategory_ids:
+                product.subcategories.set(subcategory_ids)
+            
             self._ensure_primary_category(product)
             self._handle_image_uploads(product)
+            self._handle_features(product)
         except serializers.ValidationError:
             raise
         except Exception as e:
             raise serializers.ValidationError({
                 'detail': f'خطا در بروزرسانی محصول: {str(e)}'
             })
+    
+    def _get_subcategory_ids(self):
+        """Extract subcategory IDs from request data"""
+        subcategory_ids = []
+        
+        # Handle FormData - can be single value or list
+        subcategories_data = self.request.data.getlist('subcategories', [])
+        if not subcategories_data:
+            # Try single value
+            subcategory_value = self.request.data.get('subcategories')
+            if subcategory_value:
+                subcategories_data = [subcategory_value]
+        
+        for subcategory_value in subcategories_data:
+            try:
+                subcategory_id = int(subcategory_value)
+                subcategory_ids.append(subcategory_id)
+            except (ValueError, TypeError):
+                # Skip invalid values
+                continue
+        
+        return subcategory_ids if subcategory_ids else None
     
     def _handle_image_uploads(self, product):
         """Handle multiple image uploads from FormData"""
@@ -184,6 +251,43 @@ class ProductViewSet(viewsets.ModelViewSet):
                         image=image_file,
                         is_primary=is_primary,
                         sort_order=existing_count + i
+                    )
+    
+    def _handle_features(self, product):
+        """Handle product features from request data"""
+        # Get features from request data (can be JSON string or list)
+        features_data = self.request.data.get('features', [])
+        
+        # If features is a string, try to parse it as JSON
+        if isinstance(features_data, str):
+            import json
+            try:
+                features_data = json.loads(features_data)
+            except (json.JSONDecodeError, ValueError):
+                features_data = []
+        
+        # Validate max 10 features
+        if len(features_data) > 10:
+            raise serializers.ValidationError({
+                'features': 'حداکثر ۱۰ ویژگی برای هر محصول مجاز است'
+            })
+        
+        # Delete existing features if updating
+        if self.request.method in ['PUT', 'PATCH']:
+            ProductFeature.objects.filter(product=product).delete()
+        
+        # Create new features
+        for i, feature_data in enumerate(features_data):
+            if isinstance(feature_data, dict):
+                name = feature_data.get('name', '').strip()
+                value = feature_data.get('value', '').strip()
+                
+                if name and value:  # Only create if both name and value are provided
+                    ProductFeature.objects.create(
+                        product=product,
+                        name=name,
+                        value=value,
+                        sort_order=i
                     )
     
     def _ensure_primary_category(self, product):
@@ -308,6 +412,7 @@ class SubcategoryViewSet(viewsets.ModelViewSet):
     serializer_class = SubcategorySerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', 'description']
+    pagination_class = None  # Disable pagination to return all subcategories
     
     def get_queryset(self):
         """
@@ -523,3 +628,108 @@ def global_search(request):
         'blogs': blog_serializer.data,
         'total': len(products) + len(blogs)
     })
+
+class CategoryRequestViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing category requests.
+    Suppliers can create requests, admins can approve/reject them.
+    """
+    queryset = CategoryRequest.objects.all()
+    serializer_class = CategoryRequestSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['status', 'supplier']
+    search_fields = ['requested_name', 'supplier__name']
+    permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action"""
+        if hasattr(self, 'action') and self.action in ['create', 'update', 'partial_update']:
+            return CategoryRequestCreateSerializer
+        return CategoryRequestSerializer
+    
+    def get_queryset(self):
+        """Filter queryset based on user role"""
+        queryset = CategoryRequest.objects.all().order_by('-created_at')
+        
+        # Only filter if request and user are available (not during URL registration)
+        if hasattr(self, 'request') and hasattr(self.request, 'user') and self.request.user.is_authenticated:
+            # Non-admin users can only see their own requests
+            if not self.request.user.is_staff:
+                try:
+                    supplier = self.request.user.suppliers.first()
+                    if supplier:
+                        queryset = queryset.filter(supplier=supplier)
+                    else:
+                        # If no supplier, return empty queryset
+                        queryset = queryset.none()
+                except:
+                    queryset = queryset.none()
+        
+        return queryset
+    
+    def create(self, request, *args, **kwargs):
+        """Override create to use the correct serializer"""
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    def perform_create(self, serializer):
+        """Create category request and link to product if provided"""
+        category_request = serializer.save()
+        
+        # Link to product if product_id is provided
+        product_id = self.request.data.get('product_id')
+        if product_id:
+            try:
+                product = Product.objects.get(id=product_id, vendor=self.request.user)
+                product.category_request = category_request
+                product.save()
+            except Product.DoesNotExist:
+                pass  # Product not found or doesn't belong to user
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def approve(self, request, pk=None):
+        """Approve a category request (admin only)"""
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Only admins can approve requests'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        category_request = self.get_object()
+        category_request.status = 'approved'
+        category_request.reviewed_by = request.user
+        category_request.reviewed_at = timezone.now()
+        category_request.save()
+        
+        # Create notification for supplier
+        # TODO: Implement notification system
+        
+        serializer = self.get_serializer(category_request)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def reject(self, request, pk=None):
+        """Reject a category request (admin only)"""
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Only admins can reject requests'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        category_request = self.get_object()
+        admin_notes = request.data.get('admin_notes', '')
+        
+        category_request.status = 'rejected'
+        category_request.admin_notes = admin_notes
+        category_request.reviewed_by = request.user
+        category_request.reviewed_at = timezone.now()
+        category_request.save()
+        
+        # Create notification for supplier
+        # TODO: Implement notification system
+        
+        serializer = self.get_serializer(category_request)
+        return Response(serializer.data)

@@ -41,3 +41,5 @@ REDIS_PASSWORD=<your-staging-redis-password-if-set>
 USE_TLS=True
 SITE_URL=https://staging.indexo.ir
 
+
+

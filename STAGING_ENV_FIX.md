@@ -123,3 +123,5 @@ If PostgreSQL staging app already exists but doesn't have the `multivendor-db-st
 3. ✅ Added missing domains to `CSRF_TRUSTED_ORIGINS`
 4. ✅ Verified database credentials match PostgreSQL app
 
+
+

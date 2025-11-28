@@ -106,6 +106,13 @@
             <v-alert v-else-if="product && !product.vendor" type="warning" density="compact">
               No vendor assigned to this product
             </v-alert>
+
+            <!-- Social Media Sharing Buttons -->
+            <ProductShareButtons
+              v-if="product"
+              :url="productUrl"
+              :title="product.name"
+            />
           </v-card>
 
           <v-card elevation="1" rounded="xl" class="pa-6">
@@ -137,7 +144,72 @@
       <v-row class="mt-8">
         <v-col cols="12" md="8">
           <v-card elevation="1" rounded="xl" class="pa-6">
-            <h2 class="text-h5 font-weight-bold mb-4 readable-heading">{{ t('productDescription') }}</h2>
+            <h2 class="text-h5 font-weight-bold mb-4 readable-heading">توضیحات محصول</h2>
+            
+            <!-- Product Status Information -->
+            <div v-if="product.availability_status || product.condition || product.origin || product.lead_time_days" class="mb-6">
+              <v-divider class="mb-4"></v-divider>
+              
+              <div class="d-flex flex-column gap-3">
+                <!-- Availability Status -->
+                <div v-if="product.availability_status" class="d-flex align-center gap-2">
+                  <v-icon color="primary">mdi-package-variant-closed</v-icon>
+                  <span class="font-weight-medium">وضعیت موجودی:</span>
+                  <v-chip size="small" :color="product.availability_status === 'in_stock' ? 'success' : 'warning'">
+                    {{ product.availability_status === 'in_stock' ? 'موجود در انبار' : 'سفارشی' }}
+                  </v-chip>
+                </div>
+
+                <!-- Condition (if in stock) -->
+                <div v-if="product.availability_status === 'in_stock' && product.condition" class="d-flex align-center gap-2">
+                  <v-icon color="info">mdi-check-circle</v-icon>
+                  <span class="font-weight-medium">وضعیت:</span>
+                  <v-chip size="small" :color="product.condition === 'new' ? 'success' : 'default'">
+                    {{ product.condition === 'new' ? 'نو' : 'دست دوم' }}
+                  </v-chip>
+                </div>
+
+                <!-- Lead Time (if made to order) -->
+                <div v-if="product.availability_status === 'made_to_order' && product.lead_time_days" class="d-flex align-center gap-2">
+                  <v-icon color="warning">mdi-calendar-clock</v-icon>
+                  <span class="font-weight-medium">زمان تحویل:</span>
+                  <span>{{ product.lead_time_days }} روز کاری</span>
+                </div>
+
+                <!-- Origin -->
+                <div v-if="product.origin" class="d-flex align-center gap-2">
+                  <v-icon color="secondary">mdi-earth</v-icon>
+                  <span class="font-weight-medium">مبدا:</span>
+                  <v-chip size="small" color="secondary" variant="tonal">
+                    {{ product.origin === 'iran' ? 'ساخت ایران' : 'وارداتی' }}
+                  </v-chip>
+                </div>
+              </div>
+
+              <v-divider class="mt-4"></v-divider>
+            </div>
+
+            <!-- Key Features Table -->
+            <div v-if="product.features && product.features.length > 0" class="mb-6">
+              <h3 class="text-h6 font-weight-bold mb-3">ویژگی‌های کلیدی</h3>
+              <v-table density="comfortable">
+                <thead>
+                  <tr>
+                    <th class="text-right">نام ویژگی</th>
+                    <th class="text-right">مقدار</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="feature in product.features" :key="feature.id">
+                    <td class="font-weight-medium">{{ feature.name }}</td>
+                    <td>{{ feature.value }}</td>
+                  </tr>
+                </tbody>
+              </v-table>
+              <v-divider class="mt-4"></v-divider>
+            </div>
+
+            <!-- Description -->
             <div class="content content-body" v-html="product.description"></div>
           </v-card>
         </v-col>
@@ -293,6 +365,15 @@ watch(
 
 const config = useRuntimeConfig()
 const baseUrl = config.public.siteUrl || (process.client ? window.location.origin : 'https://indexo.ir')
+
+// Product URL for sharing
+const productUrl = computed(() => {
+  if (!product.value) return ''
+  if (product.value.canonical_url) {
+    return product.value.canonical_url
+  }
+  return `${baseUrl}/products/${product.value.slug}`
+})
 
 // Generate schemas
 const productSchema = computed(() => {

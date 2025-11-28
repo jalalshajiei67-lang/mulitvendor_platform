@@ -7,9 +7,11 @@ from .models import (
     Department,
     ProductImage,
     ProductComment,
+    ProductFeature,
     Label,
     LabelGroup,
     LabelComboSeoPage,
+    CategoryRequest,
 )
 from .utils import build_absolute_uri
 
@@ -134,6 +136,14 @@ class LabelSubcategorySerializer(serializers.ModelSerializer):
         model = Subcategory
         fields = ['id', 'name', 'slug']
 
+class ProductFeatureSerializer(serializers.ModelSerializer):
+    """Serializer for product key features"""
+    
+    class Meta:
+        model = ProductFeature
+        fields = ['id', 'name', 'value', 'sort_order', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
 class ProductImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField(read_only=True)
     
@@ -216,6 +226,84 @@ class LabelComboSeoPageSerializer(serializers.ModelSerializer):
             'display_order', 'created_at', 'updated_at'
         ]
 
+class CategoryRequestSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    reviewed_by_name = serializers.CharField(source='reviewed_by.username', read_only=True)
+    
+    class Meta:
+        model = CategoryRequest
+        fields = [
+            'id', 'supplier', 'supplier_name', 'product', 'product_name',
+            'requested_name', 'status', 'admin_notes', 'reviewed_by', 'reviewed_by_name',
+            'reviewed_at', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['status', 'admin_notes', 'reviewed_by', 'reviewed_at', 'created_at', 'updated_at']
+    
+    def validate_requested_name(self, value):
+        """Validate requested category name"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("نام دسته‌بندی نمی‌تواند خالی باشد")
+        
+        if len(value.strip()) < 2:
+            raise serializers.ValidationError("نام دسته‌بندی باید حداقل ۲ کاراکتر باشد")
+        
+        return value.strip()
+
+class CategoryRequestCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating category requests (supplier side)"""
+    
+    class Meta:
+        model = CategoryRequest
+        fields = ['id', 'requested_name', 'product', 'status', 'created_at']
+        read_only_fields = ['id', 'status', 'created_at']
+        extra_kwargs = {
+            'requested_name': {
+                'required': True,
+                'error_messages': {
+                    'required': 'نام دسته‌بندی الزامی است',
+                    'blank': 'نام دسته‌بندی نمی‌تواند خالی باشد'
+                }
+            },
+            'product': {'required': False}
+        }
+    
+    def validate_requested_name(self, value):
+        """Validate requested category name"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("نام دسته‌بندی نمی‌تواند خالی باشد")
+        
+        if len(value.strip()) < 2:
+            raise serializers.ValidationError("نام دسته‌بندی باید حداقل ۲ کاراکتر باشد")
+        
+        return value.strip()
+    
+    def create(self, validated_data):
+        """Create category request and link to supplier"""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError("Authentication required")
+        
+        # Get supplier from user
+        try:
+            supplier = request.user.suppliers.first()
+            if not supplier:
+                # Try to get from vendor profile
+                if hasattr(request.user, 'vendor_profile'):
+                    # Create supplier from vendor profile if needed
+                    from users.models import Supplier
+                    supplier, _ = Supplier.objects.get_or_create(
+                        vendor=request.user,
+                        defaults={'name': request.user.vendor_profile.store_name}
+                    )
+                else:
+                    raise serializers.ValidationError("شما به عنوان تأمین‌کننده ثبت نشده‌اید")
+        except Exception as e:
+            raise serializers.ValidationError(f"خطا در دریافت اطلاعات تأمین‌کننده: {str(e)}")
+        
+        validated_data['supplier'] = supplier
+        return super().create(validated_data)
+
 class ProductSerializer(serializers.ModelSerializer):
     vendor_name = serializers.CharField(source='vendor.username', read_only=True)
     subcategory_name = serializers.CharField(source='primary_subcategory.name', read_only=True)
@@ -229,6 +317,8 @@ class ProductSerializer(serializers.ModelSerializer):
     og_image_url = serializers.SerializerMethodField(read_only=True)
     labels = LabelMinimalSerializer(many=True, read_only=True)
     promotional_labels = serializers.SerializerMethodField()
+    category_request = serializers.SerializerMethodField(read_only=True)
+    features = ProductFeatureSerializer(many=True, read_only=True)
     
     class Meta:
         model = Product
@@ -238,7 +328,8 @@ class ProductSerializer(serializers.ModelSerializer):
             'name', 'slug', 'description', 'price', 'stock', 'image', 'images', 'primary_image',
             'image_alt_text', 'og_image', 'og_image_url', 'meta_title', 'meta_description',
             'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
-            'labels', 'promotional_labels', 'created_at', 'updated_at'
+            'labels', 'promotional_labels', 'category_request', 'availability_status', 'condition',
+            'origin', 'lead_time_days', 'features', 'created_at', 'updated_at'
         ]
         extra_kwargs = {
             'name': {
@@ -317,7 +408,21 @@ class ProductSerializer(serializers.ModelSerializer):
             context=self.context
         ).data
     
+    def get_category_request(self, obj):
+        """Return category request information if exists"""
+        if hasattr(obj, 'category_request') and obj.category_request:
+            return {
+                'id': obj.category_request.id,
+                'requested_name': obj.category_request.requested_name,
+                'status': obj.category_request.status,
+                'created_at': obj.category_request.created_at
+            }
+        return None
+    
     def create(self, validated_data):
+        # Remove subcategories from validated_data - it will be handled in the view
+        validated_data.pop('subcategories', None)
+        
         # Set the vendor to the current authenticated user, unless it's an admin specifying a different vendor
         request = self.context.get('request')
         if request and request.user.is_staff and 'vendor' in validated_data and validated_data['vendor']:
@@ -327,6 +432,11 @@ class ProductSerializer(serializers.ModelSerializer):
             # Set vendor to current user (for both regular users and admins who didn't specify vendor)
             validated_data['vendor'] = request.user
         return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        # Remove subcategories from validated_data - it will be handled in the view
+        validated_data.pop('subcategories', None)
+        return super().update(instance, validated_data)
     
     def validate(self, data):
         # Check if images are being uploaded via FormData
@@ -370,6 +480,27 @@ class ProductSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     "description": "توضیحات نمی‌تواند خالی باشد"
                 })
+        
+        # Validate availability status and related fields
+        availability_status = data.get('availability_status')
+        if availability_status == 'in_stock':
+            # Condition is required when in stock
+            if 'condition' not in data or not data.get('condition'):
+                raise serializers.ValidationError({
+                    "condition": "وضعیت محصول (نو یا دست دوم) برای محصولات موجود در انبار الزامی است"
+                })
+        elif availability_status == 'made_to_order':
+            # Lead time is required when made to order
+            if 'lead_time_days' not in data or not data.get('lead_time_days'):
+                raise serializers.ValidationError({
+                    "lead_time_days": "زمان تحویل برای محصولات سفارشی الزامی است"
+                })
+            # Validate lead_time_days is positive
+            if 'lead_time_days' in data and data['lead_time_days'] is not None:
+                if data['lead_time_days'] <= 0:
+                    raise serializers.ValidationError({
+                        "lead_time_days": "زمان تحویل باید بیشتر از صفر باشد"
+                    })
         
         return data
     
@@ -479,6 +610,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
     labels = LabelMinimalSerializer(many=True, read_only=True)
     promotional_labels = serializers.SerializerMethodField()
+    features = ProductFeatureSerializer(many=True, read_only=True)
     
     class Meta:
         model = Product
@@ -489,7 +621,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'image_alt_text', 'og_image', 'og_image_url', 'meta_title', 'meta_description',
             'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
             'comments', 'comment_count', 'average_rating',
-            'labels', 'promotional_labels',
+            'labels', 'promotional_labels', 'availability_status', 'condition',
+            'origin', 'lead_time_days', 'features',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['vendor', 'created_at', 'updated_at']

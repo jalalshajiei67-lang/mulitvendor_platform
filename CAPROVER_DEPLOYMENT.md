@@ -142,3 +142,6 @@ Configure in CapRover → Apps → Select App → HTTP Settings → Add Domain
 - ✅ HTTPS is managed by CapRover automatically
 
 
+
+
+

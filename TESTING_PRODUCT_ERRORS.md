@@ -327,3 +327,6 @@ fetch('http://localhost:8000/api/products/', {
 ✅ Console logs provide detailed error information for debugging
 
 
+
+
+

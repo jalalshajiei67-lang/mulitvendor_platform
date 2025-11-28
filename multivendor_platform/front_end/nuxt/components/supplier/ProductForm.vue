@@ -70,6 +70,136 @@
                   ></v-text-field>
                 </v-col>
               </v-row>
+
+              <!-- Product Availability Status -->
+              <v-select
+                v-model="product.availability_status"
+                :items="availabilityStatusOptions"
+                item-title="label"
+                item-value="value"
+                label="وضعیت موجودی"
+                prepend-inner-icon="mdi-package-variant-closed"
+                variant="outlined"
+                class="mb-4"
+                :rules="[v => !!v || 'وضعیت موجودی الزامی است']"
+                required
+              ></v-select>
+
+              <!-- Condition (shown only when in stock) -->
+              <v-select
+                v-if="product.availability_status === 'in_stock'"
+                v-model="product.condition"
+                :items="conditionOptions"
+                item-title="label"
+                item-value="value"
+                label="وضعیت محصول"
+                prepend-inner-icon="mdi-check-circle"
+                variant="outlined"
+                class="mb-4"
+                :rules="[v => !!v || 'وضعیت محصول الزامی است']"
+                required
+              ></v-select>
+
+              <!-- Lead Time (shown only when made to order) -->
+              <v-text-field
+                v-if="product.availability_status === 'made_to_order'"
+                v-model.number="product.lead_time_days"
+                label="زمان تحویل (روز کاری)"
+                prepend-inner-icon="mdi-calendar-clock"
+                variant="outlined"
+                type="number"
+                min="1"
+                class="mb-4"
+                :rules="[
+                  v => !!v || 'زمان تحویل الزامی است',
+                  v => v > 0 || 'زمان تحویل باید بیشتر از صفر باشد'
+                ]"
+                required
+              ></v-text-field>
+
+              <!-- Origin -->
+              <v-select
+                v-model="product.origin"
+                :items="originOptions"
+                item-title="label"
+                item-value="value"
+                label="مبدا"
+                prepend-inner-icon="mdi-earth"
+                variant="outlined"
+                class="mb-4"
+              ></v-select>
+            </v-card-text>
+          </v-card>
+
+          <!-- Key Features -->
+          <v-card elevation="2" rounded="lg" class="mb-4">
+            <v-card-title class="text-h6 font-weight-bold bg-info pa-4">
+              <v-icon class="ml-2">mdi-feature-search</v-icon>
+              ویژگی‌های کلیدی
+            </v-card-title>
+            <v-card-text class="pa-4">
+              <v-alert 
+                type="info" 
+                variant="tonal" 
+                density="compact"
+                class="mb-4"
+              >
+                <div class="text-body-2">
+                  <v-icon size="small" class="ml-1">mdi-information</v-icon>
+                  می‌توانید حداکثر ۱۰ ویژگی کلیدی برای محصول خود اضافه کنید.
+                </div>
+              </v-alert>
+
+              <div v-for="(feature, index) in productFeatures" :key="index" class="mb-3">
+                <v-row>
+                  <v-col cols="12" sm="5">
+                    <v-text-field
+                      v-model="feature.name"
+                      :label="`نام ویژگی ${index + 1}`"
+                      placeholder="مثال: وزن، ابعاد، قدرت موتور، ظرفیت"
+                      hint="نام ویژگی محصول را وارد کنید"
+                      persistent-hint
+                      variant="outlined"
+                      density="compact"
+                      :rules="[v => !!v || 'نام ویژگی الزامی است']"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="feature.value"
+                      :label="`مقدار ${index + 1}`"
+                      placeholder="مثال: 100 کیلوگرم، 50x30x20 سانتی‌متر، 5 اسب بخار"
+                      hint="مقدار یا اندازه ویژگی را وارد کنید"
+                      persistent-hint
+                      variant="outlined"
+                      density="compact"
+                      :rules="[v => !!v || 'مقدار الزامی است']"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="1" class="d-flex align-center">
+                    <v-btn
+                      icon="mdi-delete"
+                      variant="text"
+                      color="error"
+                      size="small"
+                      @click="removeFeature(index)"
+                      :disabled="productFeatures.length <= 1"
+                    ></v-btn>
+                  </v-col>
+                </v-row>
+              </div>
+
+              <v-btn
+                v-if="productFeatures.length < 10"
+                color="primary"
+                variant="outlined"
+                prepend-icon="mdi-plus"
+                @click="addFeature"
+                block
+                class="mt-2"
+              >
+                افزودن ویژگی
+              </v-btn>
             </v-card-text>
           </v-card>
 
@@ -80,7 +210,20 @@
               دسته‌بندی
             </v-card-title>
             <v-card-text class="pa-4">
+              <v-alert 
+                type="info" 
+                variant="tonal" 
+                density="compact"
+                class="mb-4"
+              >
+                <div class="text-body-2">
+                  <v-icon size="small" class="ml-1">mdi-information</v-icon>
+                  اگر دسته‌بندی مناسب محصول خود را پیدا نکردید، می‌توانید درخواست ایجاد دسته‌بندی جدید دهید.
+                </div>
+              </v-alert>
+              
               <!-- Searchable Subcategory Selector -->
+              <div class="d-flex gap-2 align-center mb-2">
               <v-autocomplete
                 v-model="product.subcategory"
                 :items="filteredSearchableSubcategories"
@@ -90,10 +233,11 @@
                 label="جستجو و انتخاب زیردسته"
                 prepend-inner-icon="mdi-magnify"
                 variant="outlined"
-                :rules="[v => !!v || 'زیردسته الزامی است']"
-                required
+                  :rules="subcategoryRules"
+                  :required="!showCategoryRequest"
                 clearable
                 data-tour="product-category-input"
+                  class="flex-grow-1"
                 @update:model-value="onSubcategorySelect"
                 @update:search="onSubcategorySearch"
               >
@@ -118,6 +262,85 @@
                   </v-list-item>
                 </template>
               </v-autocomplete>
+                
+                <!-- Always visible category request button -->
+                <v-btn
+                  v-if="!showCategoryRequest"
+                  color="orange"
+                  variant="outlined"
+                  prepend-icon="mdi-plus-circle"
+                  @click="showCategoryRequest = true"
+                  class="mt-n2"
+                >
+                  درخواست دسته‌بندی جدید
+                </v-btn>
+              </div>
+
+              <!-- Category Request Option (when search fails) -->
+              <v-alert 
+                v-if="subcategorySearch && subcategorySearch.length > 2 && !product.subcategory && filteredSearchableSubcategories.length === 0 && !showCategoryRequest"
+                type="info" 
+                variant="tonal" 
+                class="mt-3"
+              >
+                <div class="d-flex align-center justify-space-between">
+                  <div>
+                    <strong class="d-block mb-1">دسته‌بندی مناسب پیدا نشد؟</strong>
+                    <div class="text-body-2">می‌توانید درخواست ایجاد دسته‌بندی جدید دهید</div>
+                  </div>
+                  <v-btn
+                    color="primary"
+                    variant="outlined"
+                    size="small"
+                    @click="showCategoryRequest = true"
+                  >
+                    درخواست دسته‌بندی جدید
+                  </v-btn>
+                </div>
+              </v-alert>
+
+              <!-- Category Request Form (Inline) -->
+              <v-card 
+                v-if="showCategoryRequest" 
+                elevation="1" 
+                variant="outlined"
+                class="mt-3"
+              >
+                <v-card-title class="text-subtitle-1 font-weight-bold pa-3 bg-orange-lighten-5">
+                  <v-icon class="ml-2" color="orange">mdi-plus-circle</v-icon>
+                  درخواست دسته‌بندی جدید
+                </v-card-title>
+                <v-card-text class="pa-4">
+                  <v-text-field
+                    v-model="categoryRequest.name"
+                    label="نام دسته‌بندی پیشنهادی"
+                    prepend-inner-icon="mdi-tag-plus"
+                    variant="outlined"
+                    :rules="[v => !!v || 'نام دسته‌بندی الزامی است']"
+                    required
+                    class="mb-3"
+                    :disabled="requestingCategory"
+                  ></v-text-field>
+                  
+                  <div class="d-flex gap-2">
+                    <v-btn
+                      @click="submitCategoryRequest"
+                      color="primary"
+                      :loading="requestingCategory"
+                      prepend-icon="mdi-send"
+                    >
+                      ارسال درخواست
+                    </v-btn>
+                    <v-btn
+                      @click="cancelCategoryRequest"
+                      variant="outlined"
+                      :disabled="requestingCategory"
+                    >
+                      انصراف
+                    </v-btn>
+                  </div>
+                </v-card-text>
+              </v-card>
 
               <!-- Full Path Display -->
               <v-alert 
@@ -411,7 +634,20 @@ const gamificationStore = useGamificationStore()
 const formRef = ref<any>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
-const product = ref({
+const product = ref<{
+  name: string
+  slug: string
+  description: string
+  price: number
+  stock: number
+  subcategory: number | null
+  is_active: boolean
+  is_featured: boolean
+  availability_status: string
+  condition: string
+  origin: string
+  lead_time_days: number | null
+}>({
   name: '',
   slug: '',
   description: '',
@@ -419,8 +655,41 @@ const product = ref({
   stock: 0,
   subcategory: null,
   is_active: true,
-  is_featured: false
+  is_featured: false,
+  availability_status: '',
+  condition: '',
+  origin: '',
+  lead_time_days: null
 })
+
+const productFeatures = ref<Array<{ name: string; value: string }>>([{ name: '', value: '' }])
+
+const availabilityStatusOptions = [
+  { label: 'موجود در انبار', value: 'in_stock' },
+  { label: 'سفارشی', value: 'made_to_order' }
+]
+
+const conditionOptions = [
+  { label: 'نو', value: 'new' },
+  { label: 'دست دوم', value: 'used' }
+]
+
+const originOptions = [
+  { label: 'ساخت ایران', value: 'iran' },
+  { label: 'وارداتی', value: 'imported' }
+]
+
+const addFeature = () => {
+  if (productFeatures.value.length < 10) {
+    productFeatures.value.push({ name: '', value: '' })
+  }
+}
+
+const removeFeature = (index: number) => {
+  if (productFeatures.value.length > 1) {
+    productFeatures.value.splice(index, 1)
+  }
+}
 
 const departments = ref<any[]>([])
 const categories = ref<any[]>([])
@@ -431,6 +700,9 @@ const selectedDepartment = ref<number | null>(null)
 const selectedCategory = ref<number | null>(null)
 const subcategorySearch = ref('')
 const searchableSubcategories = ref<Array<{ id: number; name: string; label: string; path: string; category: number; department: number }>>([])
+const showCategoryRequest = ref(false)
+const categoryRequest = ref({ name: '' })
+const requestingCategory = ref(false)
 
 const uploadedImages = ref<any[]>([])
 const existingImageCount = ref(props.productData?.images?.length ?? 0)
@@ -663,8 +935,19 @@ const buildSearchableSubcategories = () => {
   searchableSubcategories.value = searchable
 }
 
+const subcategoryRules = computed(() => {
+  if (showCategoryRequest.value) {
+    return [] // No validation when category request is shown
+  }
+  return [(v: any) => !!v || 'زیردسته الزامی است']
+})
+
 const onSubcategorySearch = (value: string) => {
   subcategorySearch.value = value
+  // Hide category request form if user starts searching again
+  if (value && showCategoryRequest.value) {
+    showCategoryRequest.value = false
+  }
 }
 
 const onSubcategorySelect = (subcategoryId: number | null) => {
@@ -769,16 +1052,115 @@ const fetchFormData = async () => {
   }
 }
 
-const saveProduct = async () => {
-  descriptionTouched.value = true
+const submitCategoryRequest = async () => {
+  if (!categoryRequest.value.name || !categoryRequest.value.name.trim()) {
+    errorMessage.value = 'نام دسته‌بندی الزامی است'
+    showErrorSnackbar.value = true
+    return
+  }
 
+  // Validate product form first
+  descriptionTouched.value = true
   const formInstance = formRef.value
   if (!formInstance) return
 
   const { valid } = await formInstance.validate()
-  if (!valid) return
+  if (!valid) {
+    errorMessage.value = 'لطفاً تمام فیلدهای الزامی محصول را پر کنید'
+    showErrorSnackbar.value = true
+    return
+  }
 
-  if (!descriptionValid.value) return
+  if (!descriptionValid.value) {
+    errorMessage.value = 'توضیحات محصول الزامی است'
+    showErrorSnackbar.value = true
+    return
+  }
+
+  requestingCategory.value = true
+
+  try {
+    const { useApiFetch } = await import('~/composables/useApiFetch')
+    
+    // First create the category request
+    const requestResponse = await useApiFetch('/category-requests/', {
+      method: 'POST',
+      body: {
+        requested_name: categoryRequest.value.name.trim()
+      }
+    })
+
+    console.log('Category request response:', requestResponse)
+
+    if (requestResponse && (requestResponse as any).id) {
+      // Now save the product with the category request linked
+      await saveProductWithRequest((requestResponse as any).id)
+    } else {
+      console.error('Invalid response from category request:', requestResponse)
+      throw new Error('درخواست دسته‌بندی ایجاد نشد. لطفاً دوباره تلاش کنید.')
+    }
+  } catch (error: any) {
+    console.error('Error submitting category request:', error)
+    const { formatErrorMessage } = await import('~/utils/apiErrors')
+    errorMessage.value = formatErrorMessage(error) || 'خطا در ایجاد درخواست دسته‌بندی'
+    showErrorSnackbar.value = true
+  } finally {
+    requestingCategory.value = false
+  }
+}
+
+const cancelCategoryRequest = () => {
+  categoryRequest.value.name = ''
+  showCategoryRequest.value = false
+  subcategorySearch.value = ''
+}
+
+const saveProductWithRequest = async (categoryRequestId: number) => {
+  descriptionTouched.value = true
+
+  // Validate form fields
+  const formInstance = formRef.value
+  if (formInstance) {
+    const { valid } = await formInstance.validate()
+    if (!valid) {
+      errorMessage.value = 'لطفاً تمام فیلدهای الزامی را پر کنید'
+      showErrorSnackbar.value = true
+      return
+    }
+  }
+
+  // Validate description
+  if (!descriptionValid.value) {
+    errorMessage.value = 'توضیحات محصول الزامی است'
+    showErrorSnackbar.value = true
+    return
+  }
+
+  // Validate availability status and related fields
+  const missingFields: string[] = []
+  
+  if (!product.value.availability_status) {
+    missingFields.push('وضعیت موجودی')
+  } else {
+    if (product.value.availability_status === 'in_stock' && !product.value.condition) {
+      missingFields.push('وضعیت محصول (نو یا دست دوم)')
+    }
+    if (product.value.availability_status === 'made_to_order' && !product.value.lead_time_days) {
+      missingFields.push('زمان تحویل')
+    }
+  }
+
+  // Validate features (if any are partially filled)
+  const incompleteFeatures = productFeatures.value.filter(f => (f.name && !f.value) || (!f.name && f.value))
+  if (incompleteFeatures.length > 0) {
+    missingFields.push('ویژگی‌های کلیدی (نام و مقدار باید هر دو پر شوند)')
+  }
+
+  if (missingFields.length > 0) {
+    errorMessage.value = `لطفاً فیلدهای زیر را پر کنید:\n• ${missingFields.join('\n• ')}`
+    showErrorSnackbar.value = true
+    return
+  }
 
   submitting.value = true
 
@@ -793,13 +1175,157 @@ const saveProduct = async () => {
       }
     })
 
+    // Don't require subcategory if we have a category request
+    // Handle subcategories (ManyToMany field - needs to be integer)
     if (product.value.subcategory) {
-      formData.append('subcategories', String(product.value.subcategory))
+      const subcategoryId = Number(product.value.subcategory)
+      if (!isNaN(subcategoryId)) {
+        formData.append('subcategories', String(subcategoryId))
+      }
     }
 
     if (selectedCategory.value) {
       formData.append('primary_category', String(selectedCategory.value))
     }
+
+    // Add features
+    const validFeatures = productFeatures.value.filter(f => f.name && f.value)
+    if (validFeatures.length > 0) {
+      formData.append('features', JSON.stringify(validFeatures))
+    }
+
+    // Link to category request
+    formData.append('category_request_id', String(categoryRequestId))
+
+    const response: any = await productApi.createProduct(formData)
+    successMessage.value = `محصول "${(response as any)?.name || 'محصول'}" با موفقیت ایجاد شد! درخواست دسته‌بندی "${categoryRequest.value.name}" در حال بررسی است.`
+    showSuccessSnackbar.value = true
+    
+    // Reset category request form
+    categoryRequest.value.name = ''
+    showCategoryRequest.value = false
+
+    setTimeout(() => {
+      emit('saved', response)
+    }, 1500)
+  } catch (error: any) {
+    console.error('Error saving product:', error)
+    const { formatErrorMessage } = await import('~/utils/apiErrors')
+    let formattedError = formatErrorMessage(error)
+    
+    // If error contains field-specific errors, format them nicely
+    if (error?.response?.data) {
+      const errorData = error.response.data
+      const fieldErrors: string[] = []
+      
+      // Check for field-specific errors
+      Object.keys(errorData).forEach(field => {
+        if (Array.isArray(errorData[field])) {
+          fieldErrors.push(`${getFieldLabel(field)}: ${errorData[field].join(', ')}`)
+        } else if (typeof errorData[field] === 'string') {
+          fieldErrors.push(`${getFieldLabel(field)}: ${errorData[field]}`)
+        } else if (typeof errorData[field] === 'object') {
+          // Handle nested errors
+          Object.keys(errorData[field]).forEach(subField => {
+            if (Array.isArray(errorData[field][subField])) {
+              fieldErrors.push(`${getFieldLabel(field)} - ${getFieldLabel(subField)}: ${errorData[field][subField].join(', ')}`)
+            }
+          })
+        }
+      })
+      
+      if (fieldErrors.length > 0) {
+        formattedError = `خطا در ذخیره محصول:\n• ${fieldErrors.join('\n• ')}`
+      }
+    }
+    
+    errorMessage.value = formattedError
+    showErrorSnackbar.value = true
+  } finally {
+    submitting.value = false
+  }
+}
+
+const saveProduct = async () => {
+  descriptionTouched.value = true
+
+  const formInstance = formRef.value
+  if (!formInstance) return
+
+  // Validate form fields
+  const { valid } = await formInstance.validate()
+  if (!valid) {
+    errorMessage.value = 'لطفاً تمام فیلدهای الزامی را پر کنید'
+    showErrorSnackbar.value = true
+    return
+  }
+
+  // Validate description
+  if (!descriptionValid.value) {
+    errorMessage.value = 'توضیحات محصول الزامی است'
+    showErrorSnackbar.value = true
+    return
+  }
+
+  // Validate availability status and related fields
+  const missingFields: string[] = []
+  
+  if (!product.value.availability_status) {
+    missingFields.push('وضعیت موجودی')
+  } else {
+    if (product.value.availability_status === 'in_stock' && !product.value.condition) {
+      missingFields.push('وضعیت محصول (نو یا دست دوم)')
+    }
+    if (product.value.availability_status === 'made_to_order' && !product.value.lead_time_days) {
+      missingFields.push('زمان تحویل')
+    }
+  }
+
+  // Validate features (if any are partially filled)
+  const incompleteFeatures = productFeatures.value.filter(f => (f.name && !f.value) || (!f.name && f.value))
+  if (incompleteFeatures.length > 0) {
+    missingFields.push('ویژگی‌های کلیدی (نام و مقدار باید هر دو پر شوند)')
+  }
+
+  if (missingFields.length > 0) {
+    errorMessage.value = `لطفاً فیلدهای زیر را پر کنید:\n• ${missingFields.join('\n• ')}`
+    showErrorSnackbar.value = true
+    return
+  }
+
+  submitting.value = true
+
+  try {
+    const formData = new FormData()
+
+    Object.keys(product.value).forEach(key => {
+      if (['subcategory'].includes(key)) return
+      const value = product.value[key as keyof typeof product.value]
+      if (value !== null && value !== undefined && value !== '') {
+        formData.append(key, String(value))
+      }
+    })
+
+    // Handle subcategories (ManyToMany field - needs to be integer)
+    if (product.value.subcategory) {
+      const subcategoryId = Number(product.value.subcategory)
+      if (!isNaN(subcategoryId)) {
+        formData.append('subcategories', String(subcategoryId))
+      }
+    }
+
+    if (selectedCategory.value) {
+      formData.append('primary_category', String(selectedCategory.value))
+    }
+
+    // Add features
+    const validFeatures = productFeatures.value.filter(f => f.name && f.value)
+    if (validFeatures.length > 0) {
+      formData.append('features', JSON.stringify(validFeatures))
+    }
+
+    // If category request was submitted, link it to the product
+    // This will be handled in the backend when product is created
 
     uploadedImages.value.forEach(image => {
       if (image.file) {
@@ -826,11 +1352,59 @@ const saveProduct = async () => {
     
     // Import and use the error formatting utility
     const { formatErrorMessage } = await import('~/utils/apiErrors')
-    errorMessage.value = formatErrorMessage(error)
+    let formattedError = formatErrorMessage(error)
+    
+    // If error contains field-specific errors, format them nicely
+    if (error?.response?.data) {
+      const errorData = error.response.data
+      const fieldErrors: string[] = []
+      
+      // Check for field-specific errors
+      Object.keys(errorData).forEach(field => {
+        const fieldValue = errorData[field as keyof typeof errorData]
+        if (Array.isArray(fieldValue)) {
+          fieldErrors.push(`${getFieldLabel(field)}: ${fieldValue.join(', ')}`)
+        } else if (typeof fieldValue === 'string') {
+          fieldErrors.push(`${getFieldLabel(field)}: ${fieldValue}`)
+        } else if (typeof fieldValue === 'object' && fieldValue !== null) {
+          // Handle nested errors
+          Object.keys(fieldValue).forEach(subField => {
+            const subFieldValue = (fieldValue as Record<string, any>)[subField]
+            if (Array.isArray(subFieldValue)) {
+              fieldErrors.push(`${getFieldLabel(field)} - ${getFieldLabel(subField)}: ${subFieldValue.join(', ')}`)
+            }
+          })
+        }
+      })
+      
+      if (fieldErrors.length > 0) {
+        formattedError = `خطا در ذخیره محصول:\n• ${fieldErrors.join('\n• ')}`
+      }
+    }
+    
+    errorMessage.value = formattedError
     showErrorSnackbar.value = true
   } finally {
     submitting.value = false
   }
+}
+
+const getFieldLabel = (field: string): string => {
+  const labels: Record<string, string> = {
+    'name': 'نام محصول',
+    'description': 'توضیحات',
+    'price': 'قیمت',
+    'stock': 'موجودی',
+    'availability_status': 'وضعیت موجودی',
+    'condition': 'وضعیت محصول',
+    'origin': 'مبدا',
+    'lead_time_days': 'زمان تحویل',
+    'features': 'ویژگی‌های کلیدی',
+    'subcategories': 'دسته‌بندی',
+    'primary_category': 'دسته‌بندی اصلی',
+    'images': 'تصاویر'
+  }
+  return labels[field] || field
 }
 
 onMounted(async () => {
@@ -840,16 +1414,40 @@ onMounted(async () => {
   if (props.editMode && props.productData) {
     product.value = { ...props.productData }
     
+    // Populate features
+    if (props.productData.features && Array.isArray(props.productData.features)) {
+      productFeatures.value = props.productData.features.map((f: any) => ({
+        name: f.name || '',
+        value: f.value || ''
+      }))
+      if (productFeatures.value.length === 0) {
+        productFeatures.value = [{ name: '', value: '' }]
+      }
+    }
+    
     // Set selected values for dropdowns
+    // Handle subcategory - could be from subcategory field or subcategories array
+    let subcategoryId: number | null = null
     if (props.productData.subcategory) {
+      subcategoryId = typeof props.productData.subcategory === 'number' 
+        ? props.productData.subcategory 
+        : Number(props.productData.subcategory)
+    } else if (props.productData.subcategories && Array.isArray(props.productData.subcategories) && props.productData.subcategories.length > 0) {
+      // If subcategories array exists, use the first one
+      const firstSub = props.productData.subcategories[0]
+      subcategoryId = typeof firstSub === 'object' ? firstSub.id : (typeof firstSub === 'number' ? firstSub : Number(firstSub))
+    }
+    
+    if (subcategoryId && !isNaN(subcategoryId)) {
+      product.value.subcategory = subcategoryId as number
       // Find subcategory in searchable list
-      const sub = searchableSubcategories.value.find(s => s.id === props.productData.subcategory)
+      const sub = searchableSubcategories.value.find(s => s.id === subcategoryId)
       if (sub) {
         selectedCategory.value = sub.category
         selectedDepartment.value = sub.department
       } else {
         // Fallback: find in subcategories array
-        const subcategory = subcategories.value.find(s => s.id === props.productData.subcategory)
+        const subcategory = subcategories.value.find(s => s.id === subcategoryId)
         if (subcategory) {
           const categoryId = typeof subcategory.category === 'object' ? subcategory.category?.id : subcategory.category
           selectedCategory.value = categoryId

@@ -79,3 +79,6 @@ NUXT_PUBLIC_API_BASE=https://multivendor-backend.indexo.ir/api
 
 
 
+
+
+

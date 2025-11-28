@@ -60,3 +60,5 @@ After deploying:
 - `multivendor_platform/front_end/nuxt/composables/useApiFetch.ts` - API fetch composable
 - `multivendor_platform/front_end/nuxt/nuxt.config.ts` - Nuxt configuration
 
+
+

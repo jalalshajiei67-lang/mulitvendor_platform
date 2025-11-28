@@ -24,6 +24,7 @@ from .models import (
     Label,
     LabelGroup,
     LabelComboSeoPage,
+    CategoryRequest,
 )
 from .scraper import WordPressScraper
 from .universal_scraper import UniversalProductScraper, create_product_from_scraped_data
@@ -1398,12 +1399,79 @@ class ProductScrapeJobAdmin(admin.ModelAdmin):
             return JsonResponse({'error': str(e)})
 
 
+@admin.register(CategoryRequest)
+class CategoryRequestAdmin(admin.ModelAdmin):
+    list_display = ['id', 'requested_name', 'supplier', 'product_link', 'status_display', 'reviewed_by', 'created_at', 'reviewed_at']
+    list_filter = ['status', 'created_at', 'reviewed_at']
+    search_fields = ['requested_name', 'supplier__name', 'product__name']
+    readonly_fields = ['created_at', 'updated_at', 'reviewed_at']
+    actions = ['approve_requests', 'reject_requests']
+    
+    fieldsets = (
+        ('Request Information', {
+            'fields': ('supplier', 'product', 'requested_name', 'status')
+        }),
+        ('Review Information', {
+            'fields': ('reviewed_by', 'reviewed_at', 'admin_notes')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def product_link(self, obj):
+        if obj.product:
+            url = f'/admin/products/product/{obj.product.id}/change/'
+            return format_html(
+                '<a href="{}" style="color: #667eea;">{}</a>',
+                url, obj.product.name[:50]
+            )
+        return '-'
+    product_link.short_description = 'Product'
+    
+    def status_display(self, obj):
+        status_colors = {
+            'pending': '#FFA500',
+            'approved': '#28a745',
+            'rejected': '#dc3545',
+        }
+        color = status_colors.get(obj.status, '#999')
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color, obj.get_status_display()
+        )
+    status_display.short_description = 'Status'
+    
+    @admin.action(description='Approve selected requests')
+    def approve_requests(self, request, queryset):
+        """Approve category requests"""
+        from django.utils import timezone
+        updated = queryset.filter(status='pending').update(
+            status='approved',
+            reviewed_by=request.user,
+            reviewed_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} request(s) approved.')
+    
+    @admin.action(description='Reject selected requests')
+    def reject_requests(self, request, queryset):
+        """Reject category requests"""
+        from django.utils import timezone
+        updated = queryset.filter(status='pending').update(
+            status='rejected',
+            reviewed_by=request.user,
+            reviewed_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} request(s) rejected.')
+
         ordered_models = [
             (Product, ProductAdmin),
             (Department, DepartmentAdmin),
             (Category, CategoryAdmin),
             (Subcategory, SubcategoryAdmin),
             (ProductComment, ProductCommentAdmin),
+            (CategoryRequest, CategoryRequestAdmin),
             (ProductScrapeJob, ProductScrapeJobAdmin),
             (ScrapeJobBatch, ScrapeJobBatchAdmin),
         ]
