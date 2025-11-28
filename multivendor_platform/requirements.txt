@@ -20,7 +20,7 @@ channels-redis>=4.1.0
 redis>=5.0.0
 
 # Rich Text Editor
-django-tinymce>=3.6.0
+django-tinymce>=3.7.1
 
 # Scraping Dependencies
 beautifulsoup4>=4.12.0
