@@ -4,46 +4,34 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV DJANGO_SETTINGS_MODULE=multivendor_platform.settings_caprover
 
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies with retry logic
-RUN for i in 1 2 3; do \
-    apt-get update && \
+# Install system dependencies
+RUN apt-get update && \
     apt-get install -y \
     postgresql-client \
     build-essential \
     libpq-dev \
     curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && break || sleep 5; \
-    done
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt /app/
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy entire Django project
-COPY multivendor_platform/multivendor_platform/ /app/
+# Copy the entire Django project
+COPY multivendor_platform/ /app/
 
-# Create necessary directories
-RUN mkdir -p /app/static /app/media
+# Create the non-root user
+RUN adduser --disabled-password --gecos '' appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
-# Collect static files (will run again in CMD with proper settings)
-RUN python manage.py collectstatic --noinput || true
+# Expose the port Daphne will run on
+EXPOSE 8000
 
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:80/api/ || exit 1
-
-# Expose port (CapRover expects port 80)
-EXPOSE 80
-
-# Run migrations and start server with Daphne (ASGI for WebSocket support)
-CMD python manage.py migrate --noinput --fake-initial; \
-    python manage.py collectstatic --noinput && \
-    daphne -b 0.0.0.0 -p 80 multivendor_platform.asgi:application
-
+# The command to run the application
+# Daphne will be started by docker-compose, but this is a good default
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "multivendor_platform.asgi:application"]
