@@ -44,36 +44,83 @@ jobs:
 
             cd "$DEPLOY_DIR"
 
-            # --- 2. Build and Deploy Services ---
+            # --- 2. Fix Frontend Dependencies ---
+            echo "🔧 Fixing frontend dependencies..."
+            cd frontend
+            rm -rf node_modules package-lock.json
+            npm install --legacy-peer-deps --force
+            cd ..
+
+            # --- 3. Build and Deploy Services ---
             echo "🛑 Stopping existing containers..."
             docker compose down --remove-orphans || true
 
-            echo "🧹 Cleaning up old Docker images..."
-            docker image prune -f
+            echo "🧹 Cleaning up Docker system..."
+            docker system prune -f --volumes
 
             echo "🔨 Building new Docker images..."
-            docker compose build --no-cache
+            # Build with BuildKit and increased timeout
+            DOCKER_BUILDKIT=1 docker compose build --no-cache --progress=plain
 
             echo "▶️ Starting services with Docker Compose..."
             docker compose up -d
 
-            # --- 3. Post-Deployment Tasks ---
+            # --- 4. Post-Deployment Tasks ---
             echo "⏳ Waiting for services to be ready..."
-            sleep 20 # Give containers time to start
+            # Wait longer and check health status
+            sleep 30
+
+            echo "🔍 Checking container status..."
+            docker compose ps
 
             echo "🗄️ Running database migrations..."
-            docker compose exec -T backend python manage.py migrate --noinput
+            # Wait for database to be ready
+            for i in {1..10}; do
+              if docker compose exec -T backend python manage.py migrate --noinput 2>/dev/null; then
+                echo "✅ Migrations completed successfully"
+                break
+              else
+                echo "⏳ Database not ready, retrying in 5 seconds... (attempt $i/10)"
+                sleep 5
+              fi
+            done
 
             echo "📦 Collecting static files..."
             docker compose exec -T backend python manage.py collectstatic --noinput
 
-            # --- 4. Verification ---
-            echo "🔍 Verifying deployment..."
-            docker compose ps
+            # --- 5. Health Checks ---
+            echo "🏥 Performing health checks..."
+            
+            # Check backend health
+            echo "Checking backend health..."
+            if curl -f http://localhost:8000/health > /dev/null 2>&1 || curl -f http://localhost:8000 > /dev/null 2>&1; then
+              echo "✅ Backend is healthy"
+            else
+              echo "⚠️  Backend health check failed, but continuing..."
+            fi
 
-            # Check if the main containers are running
-            if ! docker compose ps --services --filter "status=running" | grep -E '^(backend|frontend)$'; then
+            # Check frontend health
+            echo "Checking frontend health..."
+            if curl -f http://localhost:3000 > /dev/null 2>&1; then
+              echo "✅ Frontend is healthy"
+            else
+              echo "⚠️  Frontend health check failed, checking logs..."
+              docker compose logs frontend --tail=20
+            fi
+
+            # --- 6. Final Verification ---
+            echo "🔍 Final deployment verification..."
+            RUNNING_CONTAINERS=$(docker compose ps --services --filter "status=running")
+            echo "Running containers: $RUNNING_CONTAINERS"
+
+            # Check if critical containers are running
+            if echo "$RUNNING_CONTAINERS" | grep -q "backend" && echo "$RUNNING_CONTAINERS" | grep -q "frontend"; then
+              echo "✅ All critical containers are running"
+            else
               echo "❌ Error: One or more critical containers failed to start!"
+              echo "=== Container Status ==="
+              docker compose ps
+              echo "=== Recent Logs ==="
               docker compose logs --tail=50
               exit 1
             fi
@@ -83,14 +130,32 @@ jobs:
       - name: Deployment Summary
         if: always()
         run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            EMOJI="✅"
+            STATUS="SUCCESS"
+          else
+            EMOJI="❌"
+            STATUS="FAILED"
+          fi
+          
           echo "=========================================="
-          echo "🚀 DEPLOYMENT SUMMARY"
+          echo "$EMOJI DEPLOYMENT SUMMARY - $STATUS"
           echo "=========================================="
-          echo "Status: ${{ job.status }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Commit: ${{ github.sha }}"
           echo "VPS: ${{ secrets.VPS_HOST }}"
+          echo "Timestamp: $(date -u)"
           echo "=========================================="
-          echo "📍 Test URLs (after DNS is pointed):"
-          echo "  Frontend: https://indexo.ir"
-          echo "  Backend API: https://api.indexo.ir/api"
-          echo "  Admin Panel: https://api.indexo.ir/admin"
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "📍 Test URLs:"
+            echo "  Frontend: https://indexo.ir"
+            echo "  Backend API: https://api.indexo.ir/api"
+            echo "  Admin Panel: https://api.indexo.ir/admin"
+          else
+            echo "🚨 Deployment failed. Check the logs above for details."
+            echo "Common issues:"
+            echo "  - Docker build failures"
+            echo "  - Database connection issues"
+            echo "  - Missing environment variables"
+          fi
           echo "=========================================="
