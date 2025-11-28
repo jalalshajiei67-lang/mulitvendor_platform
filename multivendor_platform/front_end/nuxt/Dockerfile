@@ -2,7 +2,7 @@
 # Multi-stage build for optimal image size
 
 # Build Stage
-FROM node:20-alpine as build-stage
+FROM node:20-alpine AS build-stage
 
 WORKDIR /app
 
@@ -10,9 +10,7 @@ WORKDIR /app
 ENV NODE_OPTIONS=--max-old-space-size=2048
 
 # Accept build arguments
-# For local development, leave empty to use relative URLs
-# For production, set to production API URL
-ARG NUXT_PUBLIC_API_BASE=
+ARG NUXT_PUBLIC_API_BASE=""
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 
 # Copy package files
@@ -28,7 +26,7 @@ COPY . .
 RUN npm run build
 
 # Production Stage
-FROM node:20-slim as production-stage  # <-- THE FIX IS HERE
+FROM node:20-slim AS production-stage
 
 WORKDIR /app
 
