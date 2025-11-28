@@ -21,8 +21,8 @@ RUN rm -rf node_modules package-lock.json && \
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application with a fallback
+RUN npm run build || npm run build
 
 # Production Stage
 FROM node:20-slim AS production-stage
@@ -50,5 +50,15 @@ ENV NUXT_PORT=3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+
+
+# ... (other commands)
+
+# Debug: List the contents of the output directory
+RUN ls -la /app/.output || true
+
+# The command to run the application
+CMD ["node", ".output/server/index.mjs"]
+
 
 CMD ["node", ".output/server/index.mjs"]
