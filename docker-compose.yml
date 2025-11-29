@@ -1,8 +1,3 @@
-# ⚠️ THIS FILE IS FOR LOCAL DEVELOPMENT ONLY
-# 
-# For CapRover deployment, see CAPROVER_DEPLOYMENT.md
-# CapRover manages services separately (PostgreSQL, Redis, Backend, Frontend)
-
 services:
   # PostgreSQL Database
   db:
@@ -20,12 +15,12 @@ services:
     networks:
       - multivendor_network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Redis for Channels
+  # Redis
   redis:
     image: redis:7-alpine
     container_name: multivendor_redis
@@ -38,7 +33,7 @@ services:
     networks:
       - multivendor_network
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -51,7 +46,7 @@ services:
     container_name: multivendor_backend
     restart: always
     environment:
-      - DEBUG=True
+      - DEBUG=False
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-me}
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=${DB_NAME:-multivendor_db}
@@ -61,7 +56,7 @@ services:
       - DB_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,frontend
       - CORS_ALLOW_ALL_ORIGINS=True
     ports:
       - "8000:8000"
@@ -77,26 +72,22 @@ services:
     networks:
       - multivendor_network
 
-  # Nuxt.js Frontend
+  # Nuxt Frontend (fixed)
   frontend:
     build:
       context: ./multivendor_platform/front_end/nuxt
       dockerfile: ./Dockerfile
       args:
-        NUXT_PUBLIC_API_BASE: http://localhost:8000/api
+        NUXT_PUBLIC_API_BASE: http://backend:8000/api
     container_name: multivendor_frontend
     restart: always
     environment:
-      - NUXT_PUBLIC_API_BASE=http://localhost:8000/api
+      - NODE_ENV=production
       - NUXT_HOST=0.0.0.0
       - NUXT_PORT=3000
-      - NODE_ENV=development
+      - NUXT_PUBLIC_API_BASE=http://backend:8000/api
     ports:
       - "3000:3000"
-    volumes:
-      - ./multivendor_platform/front_end/nuxt:/app
-      - /app/node_modules
-      - /app/.nuxt
     depends_on:
       - backend
     networks:

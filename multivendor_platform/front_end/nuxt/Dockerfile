@@ -48,6 +48,10 @@ ENV NODE_ENV=production
 ENV NUXT_HOST=0.0.0.0
 ENV NUXT_PORT=3000
 
+# Start the application
+CMD ["node", ".output/server/index.mjs"]
+
+
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
 
@@ -56,9 +60,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Debug: List the contents of the output directory
 RUN ls -la /app/.output || true
-
-# The command to run the application
-CMD ["node", ".output/server/index.mjs"]
-
-
-CMD ["node", ".output/server/index.mjs"]
