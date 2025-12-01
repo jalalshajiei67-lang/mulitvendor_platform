@@ -1,127 +1,86 @@
-name: Deploy to CapRover Staging
+name: Deploy Staging
 
+# Trigger this workflow ONLY when pushing to the 'staging' branch
 on:
   push:
-    branches: [ staging ]
-  workflow_dispatch:
+    branches:
+      - staging
+
+env:
+  # Use your actual GitHub username and repo name
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  deploy-backend-staging:
-    name: Deploy Backend to Staging
+  build-and-push:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/staging'
-    
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
         with:
-          node-version: '20'
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install CapRover CLI
-        run: npm install -g caprover
-
-      - name: Create backend deployment tarball
-        run: |
-          cp captain-definition-backend captain-definition
-          tar -czf backend-deploy.tar.gz \
-            --exclude='multivendor_platform/front_end' \
-            --exclude='multivendor_platform/multivendor_platform/venv' \
-            --exclude='multivendor_platform/multivendor_platform/__pycache__' \
-            --exclude='multivendor_platform/multivendor_platform/*/__pycache__' \
-            --exclude='multivendor_platform/multivendor_platform/*/migrations/__pycache__' \
-            --exclude='*.pyc' \
-            --exclude='*.pyo' \
-            captain-definition \
-            Dockerfile.backend \
-            docker-entrypoint.sh \
-            multivendor_platform/ \
-            requirements.txt
-
-      - name: Deploy Backend to CapRover (Staging)
-        env:
-          CAPROVER_URL: ${{ secrets.CAPROVER_URL }}
-          CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
-          CAPROVER_APP_NAME: ${{ secrets.CAPROVER_BACKEND_STAGING_APP_NAME }}
-        run: |
-          caprover deploy \
-            --caproverUrl "$CAPROVER_URL" \
-            --caproverPassword "$CAPROVER_PASSWORD" \
-            --appName "$CAPROVER_APP_NAME" \
-            --tarFile backend-deploy.tar.gz
-          
-          echo "✅ Backend deployed successfully to CapRover (Staging)!"
-          echo "🔗 Backend URL: https://staging-api.indexo.ir"
-
-  deploy-frontend-staging:
-    name: Deploy Frontend to Staging
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/staging'
-    needs: deploy-backend-staging
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      # --- Build Backend (Staging) ---
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
         with:
-          node-version: '20'
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:staging
 
-      - name: Install CapRover CLI
-        run: npm install -g caprover
+      # --- Build Frontend (Staging) ---
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./multivendor_platform/front_end/nuxt
+          file: ./multivendor_platform/front_end/nuxt/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:staging
 
-      - name: Create frontend deployment tarball (Staging)
-        run: |
-          cp captain-definition-frontend-staging captain-definition
-          tar -czf frontend-deploy.tar.gz \
-            --exclude='multivendor_platform/front_end/nuxt/node_modules' \
-            --exclude='multivendor_platform/front_end/nuxt/.nuxt' \
-            --exclude='multivendor_platform/front_end/nuxt/.output' \
-            --exclude='multivendor_platform/front_end/node_modules' \
-            --exclude='multivendor_platform/front_end/dist' \
-            captain-definition \
-            Dockerfile.frontend.staging.nuxt \
-            multivendor_platform/front_end/
-          echo "✅ Created deployment tarball with staging configuration"
-
-      - name: Deploy Frontend to CapRover (Staging)
-        env:
-          CAPROVER_URL: ${{ secrets.CAPROVER_URL }}
-          CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
-          CAPROVER_APP_NAME: ${{ secrets.CAPROVER_FRONTEND_STAGING_APP_NAME }}
-        run: |
-          caprover deploy \
-            --caproverUrl "$CAPROVER_URL" \
-            --caproverPassword "$CAPROVER_PASSWORD" \
-            --appName "$CAPROVER_APP_NAME" \
-            --tarFile frontend-deploy.tar.gz
-
-      - name: Frontend deployment successful (Staging)
-        run: |
-          echo "✅ Frontend deployed successfully to CapRover (Staging)!"
-          echo "🔗 Frontend URL: https://staging.indexo.ir"
-
-  deployment-summary-staging:
-    name: Deployment Summary (Staging)
+  deploy:
+    needs: build-and-push
     runs-on: ubuntu-latest
-    needs: [deploy-backend-staging, deploy-frontend-staging]
-    if: always()
-    
+
     steps:
-      - name: Deployment Status (Staging)
-        run: |
-          echo "=========================================="
-          echo "🚀 DEPLOYMENT SUMMARY (STAGING)"
-          echo "=========================================="
-          echo "Backend Status: ${{ needs.deploy-backend-staging.result }}"
-          echo "Frontend Status: ${{ needs.deploy-frontend-staging.result }}"
-          echo "=========================================="
-          echo "📍 URLs (Staging):"
-          echo "  Frontend: https://staging.indexo.ir"
-          echo "  Backend: https://staging-api.indexo.ir/api"
-          echo "  Admin: https://staging-api.indexo.ir/admin"
-          echo "=========================================="
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            # 1. Create a SEPARATE directory for staging so we don't touch Production
+            mkdir -p ~/indexo_staging
+            cd ~/indexo_staging
 
+            # 2. Initialize git if not present, or pull latest changes
+            if [ ! -d ".git" ]; then
+              git clone -b staging https://github.com/${{ github.repository }}.git .
+            else
+              git fetch origin staging
+              git reset --hard origin/staging
+            fi
 
+            # 3. Login to GHCR on the server to pull private images
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+            # 4. Pull the new staging images
+            docker compose -f docker-compose.staging.yml pull
+
+            # 5. Start the Staging containers (detached)
+            # Ensure .env.staging exists in this folder before running this!
+            docker compose -f docker-compose.staging.yml up -d --remove-orphans
+            
+            # 6. Clean up unused images to save space (Optional but recommended)
+            docker image prune -f
