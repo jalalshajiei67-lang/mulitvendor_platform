@@ -55,16 +55,20 @@ jobs:
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VPS_HOST }}
+          host: ${{ secrets.VPS_IP }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          # We force BASH execution using a Heredoc (<<EOF)
           script: |
-            # 1. Create a SEPARATE directory for staging so we don't touch Production
+            /bin/bash -s <<EOF
+            set -e  # Stop on first error
+            
+            # 1. Setup Directory
             mkdir -p ~/indexo_staging
             cd ~/indexo_staging
 
-            # 2. Initialize git if not present, or pull latest changes
+            # 2. Git Logic (Bash Syntax)
             if [ ! -d ".git" ]; then
               git clone -b staging https://github.com/${{ github.repository }}.git .
             else
@@ -72,15 +76,13 @@ jobs:
               git reset --hard origin/staging
             fi
 
-            # 3. Login to GHCR on the server to pull private images
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            # 3. Docker Login
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # 4. Pull the new staging images
+            # 4. Deploy
             docker compose -f docker-compose.staging.yml pull
-
-            # 5. Start the Staging containers (detached)
-            # Ensure .env.staging exists in this folder before running this!
             docker compose -f docker-compose.staging.yml up -d --remove-orphans
             
-            # 6. Clean up unused images to save space (Optional but recommended)
+            # 5. Cleanup
             docker image prune -f
+            EOF
