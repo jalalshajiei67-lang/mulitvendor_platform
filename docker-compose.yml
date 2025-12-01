@@ -108,7 +108,8 @@ services:
     env_file:
       - .env
     environment:
-      - NUXT_PUBLIC_API_BASE=https://api.indexo.ir
+      - NUXT_PUBLIC_API_BASE=https://api.indexo.ir/api
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
     networks:
       - multivendor_network
     labels:
