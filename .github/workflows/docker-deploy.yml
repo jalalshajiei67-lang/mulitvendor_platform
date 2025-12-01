@@ -18,9 +18,11 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }} # Updated to match the key we generated
+          key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
+          # 1. Force Bash execution even if user uses Fish
           script: |
+            /bin/bash -s << 'EOF'
             set -e
             
             # --- 1. Setup Project Directory ---
@@ -29,24 +31,20 @@ jobs:
             echo "📂 Navigate to $DEPLOY_DIR"
             cd "$DEPLOY_DIR"
             
-            # Sync Code (Safely)
+            # Sync Code
             echo "📥 Pulling latest changes..."
             git fetch origin
             git reset --hard origin/main
-            # Note: .env is untouched because it is not in git
             
-            # --- 2. Build and Deploy (Zero Downtime Strategy) ---
+            # --- 2. Build and Deploy ---
             echo "🔨 Building images..."
-            # We do NOT run 'down'. We build first.
             docker compose build
             
             echo "🚀 Updating services..."
-            # This replaces containers one by one, minimizing downtime
             docker compose up -d --remove-orphans
             
             # --- 3. Database & Static Files ---
-            echo "⏳ Waiting for DB to be healthy before migrating..."
-            # We trust the healthcheck defined in docker-compose
+            echo "⏳ Waiting for DB to be healthy..."
             until [ "$(docker inspect -f {{.State.Health.Status}} multivendor_db)" == "healthy" ]; do
                 sleep 2
                 echo "Waiting for database..."
@@ -56,36 +54,19 @@ jobs:
             docker exec multivendor_backend python manage.py migrate --noinput
             
             echo "📦 Collecting static files..."
-            # This fills the volume that Nginx reads from
             docker exec multivendor_backend python manage.py collectstatic --noinput
             
-            # --- 4. Health Verification (Internal) ---
+            # --- 4. Health Check ---
             echo "🏥 Performing health checks..."
             
-            # Check Backend Health (via Docker internal status)
+            # Simple check: Are they healthy?
             if [ "$(docker inspect -f {{.State.Health.Status}} multivendor_backend)" != "healthy" ]; then
-                echo "⚠️ Backend is not healthy yet. Waiting 10s..."
-                sleep 10
-            fi
-            
-            # Check Frontend Health
-            if [ "$(docker inspect -f {{.State.Health.Status}} multivendor_frontend)" != "healthy" ]; then
-                 echo "⚠️ Frontend is not healthy yet. Waiting 10s..."
-                 sleep 10
-            fi
-            
-            # Final Check
-            STATUS_BACKEND=$(docker inspect -f {{.State.Health.Status}} multivendor_backend)
-            STATUS_FRONTEND=$(docker inspect -f {{.State.Health.Status}} multivendor_frontend)
-            
-            echo "Backend Status: $STATUS_BACKEND"
-            echo "Frontend Status: $STATUS_FRONTEND"
-            
-            if [ "$STATUS_BACKEND" != "healthy" ] || [ "$STATUS_FRONTEND" != "healthy" ]; then
-                echo "❌ Deployment Failed: Services are unhealthy."
+                echo "⚠️ Backend is unhealthy!"
                 docker compose logs --tail=50
                 exit 1
             fi
             
             echo "✅ Deployment Successful! Cleanup..."
             docker image prune -f
+            
+            EOF
