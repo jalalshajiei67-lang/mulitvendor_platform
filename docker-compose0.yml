@@ -71,14 +71,6 @@ services:
         condition: service_healthy
     networks:
       - multivendor_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`indexo.ir`) || Host(`www.indexo.ir`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
-
-
 
   # Nuxt Frontend (fixed)
   frontend:
@@ -100,12 +92,7 @@ services:
       - backend
     networks:
       - multivendor_network
-    labels:  # FIX: Wrong indentation
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`indexo.ir`) || Host(`www.indexo.ir`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+
 
   # Traefik Reverse Proxy
   traefik:
@@ -132,22 +119,7 @@ services:
     networks:
       - multivendor_network
 
- # Add nginx service (it's missing!)
-  nginx:
-    image: nginx:alpine
-    container_name: multivendor_nginx
-    restart: always
-    volumes:
-      - static_files:/usr/share/nginx/html/static:ro
-      - media_files:/usr/share/nginx/html/media:ro
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    networks:
-      - multivendor_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nginx.rule=Host(`api.indexo.ir`) && PathPrefix(`/static`, `/media`)"
-      - "traefik.http.routers.nginx.entrypoints=websecure"
-      - "traefik.http.routers.nginx.tls.certresolver=letsencrypt"
+
 
 volumes:
   postgres_data:
@@ -158,3 +130,4 @@ volumes:
 networks:
   multivendor_network:
     driver: bridge
+

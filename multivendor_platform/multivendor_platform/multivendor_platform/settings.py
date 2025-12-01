@@ -140,7 +140,9 @@ STATICFILES_DIRS = [
 STATICFILES_STORAGE = 'whitenoise.storage.ManifestStaticFilesStorage'
 
 # Media files (user uploaded content)
-MEDIA_URL = '/media/'
+# Use an absolute URL in production if the PUBLIC_MEDIA_URL env var is set,
+# otherwise, fall back to the relative '/media/' for local development.
+MEDIA_URL = os.getenv('PUBLIC_MEDIA_URL', '/media/')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Site URL for SEO (robots.txt, sitemap, canonical URLs)
