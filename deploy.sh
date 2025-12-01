@@ -1,38 +1,39 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting Deployment..."
+echo "🚀 Starting Deployment Script..."
 
-# Build images
+# 1. Build Images
+# We use --no-cache for the final build stage to ensure latest code is picked up
 echo "🔨 Building Docker images..."
-docker compose build --no-cache
+docker compose build
 
-# Stop old containers
-echo "🛑 Stopping old containers..."
-docker compose down
-
-# Start new containers
-echo "▶️ Starting services..."
+# 2. Update Containers
+echo "🚀 Updating services..."
 docker compose up -d --remove-orphans
 
-# Wait for database
-echo "⏳ Waiting for database..."
-until [ "$(docker inspect -f '{{.State.Health.Status}}' multivendor_db 2>/dev/null)" == "healthy" ]; do
+# 3. Wait for Database
+echo "⏳ Waiting for Database to be healthy..."
+until [ "$(docker inspect -f '{{.State.Health.Status}}' multivendor_db)" == "healthy" ]; do
     sleep 2
+    echo "Waiting..."
 done
 
-# Run migrations
-echo "🗄️ Running migrations..."
-docker compose exec -T backend python manage.py migrate --noinput
+# 4. Migrations & Static Files
+echo "🗄️ Running Migrations..."
+docker exec multivendor_backend python manage.py migrate --noinput
 
-# Collect static files
-echo "📦 Collecting static files..."
-docker compose exec -T backend python manage.py collectstatic --noinput
+echo "📦 Collecting Static Files..."
+docker exec multivendor_backend python manage.py collectstatic --noinput
 
-# Cleanup
-echo "🧹 Cleaning up..."
+# 5. Health Check
+echo "🏥 Checking Health..."
+
+if [ "$(docker inspect -f '{{.State.Health.Status}}' multivendor_backend)" != "healthy" ]; then
+    echo "❌ Backend is unhealthy!"
+    docker compose logs --tail=50
+    exit 1
+fi
+
+echo "✅ Deployment Successful! Cleaning up..."
 docker image prune -f
-
-# Show status
-echo "✅ Deployment Complete!"
-docker compose ps
