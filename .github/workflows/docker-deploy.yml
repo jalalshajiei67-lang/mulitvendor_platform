@@ -9,28 +9,23 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true # This stops the script if any command fails
           script: |
-            # Stop on any error
-            set -e
-            
-            # Navigate to project folder
             cd /home/${{ secrets.VPS_USER }}/docker-deploy
             
-            # Pull latest code
-            git pull origin main
+            # 1. FORCE reset changes (Fixes the git abort error)
+            git fetch --all
+            git reset --hard origin/main
             
-            # FIX: Remove Windows Carriage Returns from deploy.sh if present
+            # 2. Fix line endings just in case
             sed -i 's/\r$//' deploy.sh
             chmod +x deploy.sh
             
-            # Run the deployment script
+            # 3. Run deploy
             ./deploy.sh

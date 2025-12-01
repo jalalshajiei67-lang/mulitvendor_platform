@@ -1,27 +1,45 @@
 #!/bin/bash
 
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+echo "🚀 Starting Deployment Script..."
+
 # 1. Build Images
-echo "🐳 Building Docker images..."
+echo "🔨 Building Docker images..."
 docker compose build
 
-# 2. Start Services (Zero Downtime)
-echo "🚀 Starting services..."
+# 2. Start Services
+echo "🚀 Updating services..."
 docker compose up -d --remove-orphans
 
-# 3. Wait for DB to be ready before migrating
-echo "⏳ Waiting for Database..."
-sleep 10
+# 3. Run Migrations
+echo "⏳ Waiting for Database to be healthy..."
+# (Docker compose depends_on handles the wait, but we can pause slightly)
+sleep 10 
 
-# 4. Run Migrations
-echo "🔄 Running Migrations..."
+echo "🗄️ Running Migrations..."
 docker exec multivendor_backend python manage.py migrate --noinput
 
-# 5. Collect Static Files
 echo "📦 Collecting Static Files..."
 docker exec multivendor_backend python manage.py collectstatic --noinput
 
-# 6. Clean up
-echo "🧹 Cleaning up unused images..."
+echo "🧹 Cleaning up..."
 docker image prune -f
 
-echo "✅ Deployment Complete!"
+# 4. Verify Deployment
+echo "🏥 Checking Backend Health..."
+
+# Get the health status
+HEALTH_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' multivendor_backend)
+
+echo "Current Status: $HEALTH_STATUS"
+
+if [ "$HEALTH_STATUS" == "healthy" ] || [ "$HEALTH_STATUS" == "running" ]; then
+    echo "✅ Deployment Successful!"
+else
+    echo "❌ Backend is not healthy (Status: $HEALTH_STATUS)"
+    # We don't exit 1 here to avoid breaking the pipeline if it's just slow, 
+    # but strictly for CI/CD you might want to fail.
+    exit 1
+fi
