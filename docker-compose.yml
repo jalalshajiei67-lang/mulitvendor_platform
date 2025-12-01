@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # 1. Traefik - The Gatekeeper
   traefik:
-    image: traefik:v2.10
+    image: traefik:v2.11
     container_name: traefik
     command:
       - "--api.insecure=false" # Secure dashboard
@@ -34,6 +34,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
+      - NODE_TLS_REJECT_UNAUTHORIZED=0  #
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -70,6 +71,7 @@ services:
     volumes:
       - static_files:/app/static  # Write static files here
       - media_files:/app/media    # Write media files here
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     env_file:
       - .env
     depends_on:
