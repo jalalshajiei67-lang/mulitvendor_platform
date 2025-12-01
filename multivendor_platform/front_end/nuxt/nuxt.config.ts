@@ -278,7 +278,7 @@ export default defineNuxtConfig({
     compressPublicAssets: true,
     minify: true,
     // Allow self-signed certificates for staging API calls
-    // This is safe for staging environments with CapRover's self-signed certs
+    // This is safe for staging environments with self-signed certs
     devServer: {
       watch: []
     }

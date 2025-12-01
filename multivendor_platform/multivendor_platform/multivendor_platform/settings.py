@@ -210,7 +210,7 @@ else:
         "http://127.0.0.1:3000",  # Nuxt dev server
     ]
 
-# Security settings for production behind reverse proxy (nginx/CapRover)
+# Security settings for production behind reverse proxy (nginx/Traefik)
 # This ensures Django correctly builds HTTPS URLs when behind a proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_TLS = os.environ.get('USE_TLS', 'False') == 'True'

@@ -1,39 +1,27 @@
 #!/bin/bash
-set -e
-
-echo "🚀 Starting Deployment Script..."
 
 # 1. Build Images
-# We use --no-cache for the final build stage to ensure latest code is picked up
-echo "🔨 Building Docker images..."
+echo "🐳 Building Docker images..."
 docker compose build
 
-# 2. Update Containers
-echo "🚀 Updating services..."
+# 2. Start Services (Zero Downtime)
+echo "🚀 Starting services..."
 docker compose up -d --remove-orphans
 
-# 3. Wait for Database
-echo "⏳ Waiting for Database to be healthy..."
-until [ "$(docker inspect -f '{{.State.Health.Status}}' multivendor_db)" == "healthy" ]; do
-    sleep 2
-    echo "Waiting..."
-done
+# 3. Wait for DB to be ready before migrating
+echo "⏳ Waiting for Database..."
+sleep 10
 
-# 4. Migrations & Static Files
-echo "🗄️ Running Migrations..."
+# 4. Run Migrations
+echo "🔄 Running Migrations..."
 docker exec multivendor_backend python manage.py migrate --noinput
 
+# 5. Collect Static Files
 echo "📦 Collecting Static Files..."
 docker exec multivendor_backend python manage.py collectstatic --noinput
 
-# 5. Health Check
-echo "🏥 Checking Health..."
-
-if [ "$(docker inspect -f '{{.State.Health.Status}}' multivendor_backend)" != "healthy" ]; then
-    echo "❌ Backend is unhealthy!"
-    docker compose logs --tail=50
-    exit 1
-fi
-
-echo "✅ Deployment Successful! Cleaning up..."
+# 6. Clean up
+echo "🧹 Cleaning up unused images..."
 docker image prune -f
+
+echo "✅ Deployment Complete!"

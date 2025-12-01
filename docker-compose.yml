@@ -1,33 +1,52 @@
 version: '3.8'
 
 services:
+  # 1. Traefik - The Gatekeeper
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--api.insecure=false" # Secure dashboard
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=jalal.shajiei67@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - multivendor_network
+    restart: always
 
-  # --- PostgreSQL Database ---
+  # 2. Database (Hidden inside network)
   db:
     image: postgres:15-alpine
     container_name: multivendor_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     networks:
       - multivendor_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+    restart: always
 
-  # --- Redis ---
+  # 3. Redis (Hidden inside network)
   redis:
     image: redis:7-alpine
     container_name: multivendor_redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
     networks:
@@ -35,37 +54,21 @@ services:
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      timeout: 5s
       retries: 5
+    restart: always
 
-  # --- Backend API ---
+  # 4. Backend (Django)
   backend:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: Dockerfile
     container_name: multivendor_backend
-    restart: always
-    environment:
-      - DEBUG=${DEBUG}
-      - SECRET_KEY=${SECRET_KEY}
-      - DB_ENGINE=django.db.backends.postgresql
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - CORS_ALLOW_ALL_ORIGINS=True
-      - DJANGO_SETTINGS_MODULE=multivendor_platform.settings
-    expose:
-      - "8000"
+    command: daphne -b 0.0.0.0 -p 8000 multivendor_platform.asgi:application
     volumes:
-      - ./multivendor_platform/multivendor_platform:/app
-      # Backend writes to these volumes
-      - media_files:/app/media:rw
-      - static_files:/app/static:rw
+      - static_files:/app/static  # Write static files here
+      - media_files:/app/media    # Write media files here
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -75,105 +78,52 @@ services:
       - multivendor_network
     labels:
       - "traefik.enable=true"
-      # API Routing
-      - "traefik.http.routers.backend.rule=Host(`indexo.ir`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.backend.entrypoints=web,websecure"
-      - "traefik.http.routers.backend.tls=true"
-      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.backend.priority=20"
-      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+      - "traefik.http.routers.backend.rule=Host(`api.indexo.ir`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=myresolver"
+    restart: always
 
-  # --- NGINX (Static & Media Server) ---
-  nginx:
-    image: nginx:alpine
-    container_name: multivendor_nginx
-    restart: unless-stopped
-    volumes:
-      # Nginx reads from these volumes
-      - static_files:/usr/share/nginx/html/static:ro
-      - media_files:/usr/share/nginx/html/media:ro
-    networks:
-      - multivendor_network
-    labels:
-      - "traefik.enable=true"
-      # Serve /static and /media
-      - "traefik.http.routers.nginx-static.rule=Host(`indexo.ir`) && (PathPrefix(`/static`) || PathPrefix(`/media`))"
-      - "traefik.http.routers.nginx-static.entrypoints=web,websecure"
-      - "traefik.http.routers.nginx-static.tls=true"
-      - "traefik.http.routers.nginx-static.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.nginx-static.priority=30"
-      - "traefik.http.services.nginx-static.loadbalancer.server.port=80"
-
-  # --- Nuxt Frontend ---
+  # 5. Frontend (Nuxt)
   frontend:
     build:
       context: ./multivendor_platform/front_end/nuxt
-      dockerfile: ./Dockerfile
-      args:
-        NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE}
+      dockerfile: Dockerfile
     container_name: multivendor_frontend
-    restart: always
+    env_file:
+      - .env
     environment:
-      - NODE_ENV=${NODE_ENV}
-      - NUXT_HOST=${NUXT_HOST}
-      - NUXT_PORT=${NUXT_PORT}
-      - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
-    expose:
-      - "3000"
-    depends_on:
-      - backend
+      - NUXT_PUBLIC_API_BASE=https://api.indexo.ir
     networks:
       - multivendor_network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`indexo.ir`) || Host(`www.indexo.ir`)"
-      - "traefik.http.routers.frontend.entrypoints=web,websecure"
-      - "traefik.http.routers.frontend.tls=true"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.frontend.priority=5"
-      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+    restart: always
 
-  # --- Traefik ---
-  traefik:
-    image: traefik:v2.11
-    container_name: multivendor_traefik
-    restart: unless-stopped
-    command:
-      - --configfile=/etc/traefik/traefik.yml
-    ports:
-      - "80:80"
-      - "443:443"
+  # 6. Nginx (Serves Static/Media)
+  nginx:
+    image: nginx:alpine
+    container_name: multivendor_nginx
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./letsencrypt:/letsencrypt
-      - ./traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./certs:/certs:ro
-      - ./traefik-users:/etc/traefik/traefik-users:ro
+      - static_files:/usr/share/nginx/html/static:ro
+      - media_files:/usr/share/nginx/html/media:ro
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - multivendor_network
     labels:
-      - "traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/etc/traefik/traefik-users"
-      - "traefik.http.routers.dashboard.rule=Host(`91.107.172.234`) && PathPrefix(`/dashboard`)"
-      - "traefik.http.routers.dashboard.entrypoints=web"
-      - "traefik.http.routers.dashboard.middlewares=dashboard-auth@docker"
-      - "traefik.http.routers.dashboard.service=api@internal"
-
-volumes:
-  postgres_data:
-  redis_data:
-  media_files:
-    external: true
-    name: docker-deploy_media_files
-  static_files:
-    external: true
-    name: docker-deploy_static_files
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx-static.rule=Host(`api.indexo.ir`) && PathPrefix(`/static`)"
+      - "traefik.http.routers.nginx-media.rule=Host(`api.indexo.ir`) && PathPrefix(`/media`)"
+      - "traefik.http.routers.nginx-static.tls.certresolver=myresolver"
 
 networks:
   multivendor_network:
     driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_files:
+  media_files:
