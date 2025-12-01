@@ -10,27 +10,34 @@ jobs:
     name: Build and Deploy on VPS
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            # 1. Navigate to the project folder
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        run: |
+          # 1. Create the SSH key file
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          # 2. Connect and run the script
+          # We use -o StrictHostKeyChecking=no to bypass the error you are seeing
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            set -e
+            
+            # Go to project folder
             cd /home/${{ secrets.VPS_USER }}/docker-deploy
             
-            # 2. Pull the latest code from GitHub
-            echo "📥 Pulling latest code..."
+            # Pull changes
+            echo '📥 Pulling latest code...'
             git fetch origin
             git reset --hard origin/main
             
-            # 3. FIX: Remove Windows line endings from the script
-            # This prevents the '\r: command not found' error
+            # Fix Windows line endings
             sed -i 's/\r$//' deploy.sh
             
-            # 4. Execute the deployment script
-            echo "🔌 Executing deployment script..."
+            # Run Deployment
+            echo '🔌 Executing deployment script...'
             chmod +x deploy.sh
             bash deploy.sh
+          "
