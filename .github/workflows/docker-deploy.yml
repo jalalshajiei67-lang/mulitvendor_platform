@@ -20,53 +20,15 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
-          # 1. Force Bash execution even if user uses Fish
+          # This script is safe for Fish Shell
           script: |
-            /bin/bash -s << 'EOF'
-            set -e
+            cd /home/${{ secrets.VPS_USER }}/docker-deploy
             
-            # --- 1. Setup Project Directory ---
-            DEPLOY_DIR="/home/${{ secrets.VPS_USER }}/docker-deploy"
-            
-            echo "📂 Navigate to $DEPLOY_DIR"
-            cd "$DEPLOY_DIR"
-            
-            # Sync Code
-            echo "📥 Pulling latest changes..."
+            echo "📥 Pulling latest code..."
             git fetch origin
             git reset --hard origin/main
             
-            # --- 2. Build and Deploy ---
-            echo "🔨 Building images..."
-            docker compose build
-            
-            echo "🚀 Updating services..."
-            docker compose up -d --remove-orphans
-            
-            # --- 3. Database & Static Files ---
-            echo "⏳ Waiting for DB to be healthy..."
-            until [ "$(docker inspect -f {{.State.Health.Status}} multivendor_db)" == "healthy" ]; do
-                sleep 2
-                echo "Waiting for database..."
-            done
-            
-            echo "🗄️ Running migrations..."
-            docker exec multivendor_backend python manage.py migrate --noinput
-            
-            echo "📦 Collecting static files..."
-            docker exec multivendor_backend python manage.py collectstatic --noinput
-            
-            # --- 4. Health Check ---
-            echo "🏥 Performing health checks..."
-            
-            # Simple check: Are they healthy?
-            if [ "$(docker inspect -f {{.State.Health.Status}} multivendor_backend)" != "healthy" ]; then
-                echo "⚠️ Backend is unhealthy!"
-                docker compose logs --tail=50
-                exit 1
-            fi
-            
-            echo "✅ Deployment Successful! Cleanup..."
-            docker image prune -f
-            
-            EOF
+            echo "🔌 Executing deployment script..."
+            # We explicitly call bash to run the file we just pulled
+            chmod +x deploy.sh
+            bash deploy.sh
