@@ -95,6 +95,7 @@ if DB_ENGINE == 'django.db.backends.postgresql':
             'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
             'HOST': os.environ.get('DB_HOST', 'localhost'),
             'PORT': os.environ.get('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 60,
         }
     }
 else:
