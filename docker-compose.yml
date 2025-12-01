@@ -62,7 +62,7 @@ services:
       - "8000:8000"
     volumes:
       - ./multivendor_platform/multivendor_platform:/app
-      - media_files:/app/media
+      - media_files:/app/media:rw
       - static_files:/app/static
     depends_on:
       db:
@@ -93,6 +93,34 @@ services:
     networks:
       - multivendor_network
 
+
+  # Traefik Reverse Proxy
+  traefik:
+    image: traefik:v2.10
+    container_name: multivendor_traefik
+    restart: always
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true  # We'll secure this later
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=jalal.shajiei67@gmail.com
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - multivendor_network
+
+
+
 volumes:
   postgres_data:
   redis_data:
@@ -102,3 +130,4 @@ volumes:
 networks:
   multivendor_network:
     driver: bridge
+
