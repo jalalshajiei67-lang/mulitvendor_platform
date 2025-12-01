@@ -22,8 +22,7 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the entire Django project
-COPY multivendor_platform/ /app/
-
+COPY multivendor_platform/multivendor_platform/ /app/
 # Create the non-root user
 RUN adduser --disabled-password --gecos '' appuser
 RUN chown -R appuser:appuser /app
