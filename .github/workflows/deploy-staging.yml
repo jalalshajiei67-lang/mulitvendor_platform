@@ -57,7 +57,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_IP }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           # We force BASH execution using a Heredoc (<<EOF)
           script: |
