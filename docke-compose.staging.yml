@@ -11,7 +11,7 @@ services:
     env_file:
       - .env.staging  # IMPORTANT: You need a separate env file
     networks:
-      - traefik_public
+      - docker-deploy_multivendor_network 
       - internal_staging
     labels:
       - "traefik.enable=true"
@@ -26,7 +26,7 @@ services:
     container_name: indexo_frontend_staging
     restart: always
     networks:
-      - traefik_public
+      - docker-deploy_multivendor_network 
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend-staging.rule=Host(`staging.indexo.ir`)"
@@ -47,8 +47,7 @@ services:
       - internal_staging
 
 networks:
-  traefik_public:
-    name: docker-deploy_multivendor_network  # <--- The real name of your network
+  docker-deploy_multivendor_network:  # <--- The real name of your network
     external: true
   internal_staging:
     driver: bridge
