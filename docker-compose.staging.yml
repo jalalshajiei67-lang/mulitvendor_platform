@@ -32,6 +32,10 @@ services:
       context: ./multivendor_platform/front_end/nuxt
       dockerfile: Dockerfile
     image: indexo-frontend:staging
+    environment:
+      - HOST=0.0.0.0  # Force IPv4 binding
+      - PORT=3000
+      - NODE_ENV=production
     container_name: indexo_frontend_staging
     restart: always
     
