@@ -1,5 +1,5 @@
 services:
-  # --- Backend (No Changes, but included for context) ---
+  # --- Backend (Django) ---
   backend:
     build:
       context: .
@@ -19,13 +19,14 @@ services:
       - internal_staging
     labels:
       - "traefik.enable=true"
+      # FIX 1: Tell Traefik explicitly which network to use (Fixes "unable to find IP")
+      - "traefik.docker.network=docker-deploy_multivendor_network"
       - "traefik.http.routers.backend-staging.rule=Host(`api.staging.indexo.ir`)"
       - "traefik.http.routers.backend-staging.entrypoints=websecure"
       - "traefik.http.routers.backend-staging.tls.certresolver=myresolver"
       - "traefik.http.services.backend-staging.loadbalancer.server.port=8000"
 
-  
-    # --- Frontend (Nuxt) ---
+  # --- Frontend (Nuxt) ---
   frontend:
     build:
       context: ./multivendor_platform/front_end/nuxt
@@ -38,9 +39,9 @@ services:
       - HOST=0.0.0.0
       - PORT=3000
       - NODE_ENV=production
-      # FIXED: Allow Node to use up to 4GB of RAM (using your swap space)
       - NODE_OPTIONS="--max-old-space-size=4096"
 
+    # FIX 2: Increase timeout again (The logs showed 5s, implying this didn't apply last time)
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))\""]
       interval: 30s
@@ -52,11 +53,12 @@ services:
       - docker-deploy_multivendor_network
     labels:
       - "traefik.enable=true"
+      # FIX 3: Tell Traefik explicitly which network to use
+      - "traefik.docker.network=docker-deploy_multivendor_network"
       - "traefik.http.routers.frontend-staging.rule=Host(`staging.indexo.ir`)"
       - "traefik.http.routers.frontend-staging.entrypoints=websecure"
       - "traefik.http.routers.frontend-staging.tls.certresolver=myresolver"
-      - "traefik.http.services.frontend-staging.loadbalancer.server.port=3000" 
-
+      - "traefik.http.services.frontend-staging.loadbalancer.server.port=3000"
 
   # --- Database (No Changes) ---
   db:
