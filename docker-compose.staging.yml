@@ -1,17 +1,17 @@
 services:
   # --- Backend (Django) ---
   backend:
-    image: ghcr.io/jalalshajiei67-lang/mulitvendor_platform-backend:staging
+    image: ghcr.io/YOUR_GITHUB_USERNAME/indexo-backend:staging  # We will build this image later
     container_name: indexo_backend_staging
     restart: always
-    command: sh -c "python manage.py migrate && daphne -b 0.0.0.0 -p 8000 --application-close-timeout 60 multivendor_platform.asgi:application"
+    command: sh -c "python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:8000"
     volumes:
       - media_volume_staging:/app/media
       - static_volume_staging:/app/static
     env_file:
       - .env.staging  # IMPORTANT: You need a separate env file
     networks:
-      - traefik_public
+      - docker-deploy_multivendor_network 
       - internal_staging
     labels:
       - "traefik.enable=true"
@@ -22,11 +22,11 @@ services:
 
   # --- Frontend (Nuxt) ---
   frontend:
-    image: ghcr.io/jalalshajiei67-lang/mulitvendor_platform-frontend:staging
+    image: ghcr.io/YOUR_GITHUB_USERNAME/indexo-frontend:staging
     container_name: indexo_frontend_staging
     restart: always
     networks:
-      - traefik_public
+      - docker-deploy_multivendor_network 
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend-staging.rule=Host(`staging.indexo.ir`)"
@@ -47,7 +47,7 @@ services:
       - internal_staging
 
 networks:
-  traefik_public:
+  docker-deploy_multivendor_network:  # <--- The real name of your network
     external: true
   internal_staging:
     driver: bridge
