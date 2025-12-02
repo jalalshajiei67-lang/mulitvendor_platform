@@ -12,9 +12,9 @@ jobs:
       - name: Trigger Deployment on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VPS_IP }}
+          host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
             # Trigger the script on the server to Pull & Build locally
