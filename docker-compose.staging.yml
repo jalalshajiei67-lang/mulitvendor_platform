@@ -39,14 +39,14 @@ services:
     container_name: indexo_frontend_staging
     restart: always
     
-    # FIXED: Nuxt runs on Port 3000 (Node.js), not Port 80 (Nginx)
+    # FIXED: Use Node.js instead of wget (Guaranteed to exist)
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000"]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 30s  # Give Nuxt more time to build/start
-
+      start_period: 30s
+      
     networks:
       - docker-deploy_multivendor_network
     labels:
