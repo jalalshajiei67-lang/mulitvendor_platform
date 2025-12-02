@@ -1,5 +1,4 @@
 services:
-  # --- Backend (Django) ---
   backend:
     build:
       context: .
@@ -8,15 +7,15 @@ services:
     container_name: indexo_backend_staging
     restart: always
     
-    # CRITICAL FIX 1: Set the working directory to where manage.py lives
-    working_dir: /app/multivendor_platform/multivendor_platform
+    # FIXED: Point to the folder containing manage.py
+    working_dir: /app/multivendor_platform
     
-    # CRITICAL FIX 2: Updated 'core.wsgi' to 'multivendor_platform.wsgi' based on your folder structure
+    # Command stays the same (Gunicorn will find wsgi because it is in ./multivendor_platform/wsgi.py)
     command: sh -c "python manage.py migrate && gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:8000"
     
     volumes:
-      - media_volume_staging:/app/media
-      - static_volume_staging:/app/static
+      - media_volume_staging:/app/multivendor_platform/media   # Update media path too!
+      - static_volume_staging:/app/multivendor_platform/static # Update static path too!
     env_file:
       - .env.staging
     networks:
