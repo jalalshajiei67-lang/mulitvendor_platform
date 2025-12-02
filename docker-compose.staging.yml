@@ -38,7 +38,7 @@ services:
       - HOST=0.0.0.0
       - PORT=3000
       - NODE_ENV=production
-      - NODE_OPTIONS="--max-old-space-size=4096"
+      - NODE_OPTIONS="--max-old-space-size=3072"
 
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))\""]
@@ -60,7 +60,7 @@ services:
       
       # Explicitly point to the service (Good practice)
       - "traefik.http.routers.stage-front.service=stage-front-svc"
-      - "traefik.http.services.stage-front-svc.loadbalancer.server.port=3000"
+      - "traefik.http.services.indexo-frontend-staging.loadbalancer.server.port=3000"
 
   # --- Database ---
   db:
