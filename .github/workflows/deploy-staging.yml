@@ -59,16 +59,17 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
-          # We force BASH execution using a Heredoc (<<EOF)
+          # Fix: We wrap everything in single quotes passed to bash -c
+          # This works perfectly on Fish shell servers.
           script: |
-            /bin/bash -s <<EOF
-            set -e  # Stop on first error
+            bash -c '
+            set -e
             
             # 1. Setup Directory
             mkdir -p ~/indexo_staging
             cd ~/indexo_staging
 
-            # 2. Git Logic (Bash Syntax)
+            # 2. Git Logic (Standard Bash)
             if [ ! -d ".git" ]; then
               git clone -b staging https://github.com/${{ github.repository }}.git .
             else
@@ -85,4 +86,4 @@ jobs:
             
             # 5. Cleanup
             docker image prune -f
-            EOF
+            '
