@@ -2,14 +2,18 @@ services:
   # --- Backend (Django) ---
   backend:
     build:
-      context: .                      # Dockerfile is in the root (~/indexo_staging/Dockerfile)
+      context: .
       dockerfile: Dockerfile
     image: indexo-backend:staging
     container_name: indexo_backend_staging
     restart: always
-    # ⚠️ NOTE: If manage.py is inside 'multivendor_platform', ensure your Dockerfile sets WORKDIR there.
-    # If not, you might need to change this to: "python multivendor_platform/manage.py migrate ..."
-    command: sh -c "python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:8000"
+    
+    # CRITICAL FIX 1: Set the working directory to where manage.py lives
+    working_dir: /app/multivendor_platform/multivendor_platform
+    
+    # CRITICAL FIX 2: Updated 'core.wsgi' to 'multivendor_platform.wsgi' based on your folder structure
+    command: sh -c "python manage.py migrate && gunicorn multivendor_platform.wsgi:application --bind 0.0.0.0:8000"
+    
     volumes:
       - media_volume_staging:/app/media
       - static_volume_staging:/app/static
@@ -28,7 +32,7 @@ services:
   # --- Frontend (Nuxt) ---
   frontend:
     build:
-      context: ./multivendor_platform/front_end  # <--- Points to the subfolder you found
+      context: ./multivendor_platform/front_end
       dockerfile: Dockerfile
     image: indexo-frontend:staging
     container_name: indexo_frontend_staging
