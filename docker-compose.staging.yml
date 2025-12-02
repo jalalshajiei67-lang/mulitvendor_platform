@@ -19,7 +19,6 @@ services:
       - internal_staging
     labels:
       - "traefik.enable=true"
-      # FIX 1: Tell Traefik explicitly which network to use (Fixes "unable to find IP")
       - "traefik.docker.network=docker-deploy_multivendor_network"
       - "traefik.http.routers.backend-staging.rule=Host(`api.staging.indexo.ir`)"
       - "traefik.http.routers.backend-staging.entrypoints=websecure"
@@ -41,7 +40,6 @@ services:
       - NODE_ENV=production
       - NODE_OPTIONS="--max-old-space-size=4096"
 
-    # FIX 2: Increase timeout again (The logs showed 5s, implying this didn't apply last time)
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))\""]
       interval: 30s
@@ -54,14 +52,17 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=docker-deploy_multivendor_network"
-      - "traefik.http.routers.frontend-staging-new.rule=Host(`staging.indexo.ir`)"
-      - "traefik.http.routers.frontend-staging-new.entrypoints=websecure"
-      - "traefik.http.routers.frontend-staging-new.tls.certresolver=myresolver"
-      - "traefik.http.routers.frontend-staging-new.service=frontend-staging-new"
-      - "traefik.http.routers.frontend-staging-http.entrypoints=web"
-      - "traefik.http.services.frontend-staging-new.loadbalancer.server.port=3000
+      
+      # RENAMED ROUTER (Forces Traefik to register it fresh)
+      - "traefik.http.routers.frontend-staging-v2.rule=Host(`staging.indexo.ir`)"
+      - "traefik.http.routers.frontend-staging-v2.entrypoints=websecure"
+      - "traefik.http.routers.frontend-staging-v2.tls.certresolver=myresolver"
+      - "traefik.http.routers.frontend-staging-v2.service=frontend-staging-v2"
+      
+      # Service Definition
+      - "traefik.http.services.frontend-staging-v2.loadbalancer.server.port=3000"
 
-  # --- Database (No Changes) ---
+  # --- Database ---
   db:
     image: postgres:15
     container_name: indexo_db_staging
