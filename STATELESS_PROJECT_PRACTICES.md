@@ -343,3 +343,4 @@ Your current setup with persistent volumes in CapRover is good for:
 - The `:rw` flag ensures proper read-write access to media files, which is important for file uploads.
 
 
+

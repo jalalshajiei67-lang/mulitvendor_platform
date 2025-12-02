@@ -1,0 +1,99 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Deployment on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            # We pass the token so the script can pull the private code
+            ~/deploy_staging.sh "${{ secrets.GITHUB_TOKEN }}" "${{ github.actor }}"
+
+name: Deploy Staging
+
+# Trigger this workflow ONLY when pushing to the 'staging' branch
+on:
+  push:
+    branches:
+      - staging
+
+env:
+  # Use your actual GitHub username and repo name
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- NEW STEP: Set up QEMU (Required for ARM builds) ---
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # --- NEW STEP: Set up Docker Buildx ---
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Build Backend (TARGET ARM64) ---
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          platforms: linux/arm64  # <--- CRITICAL FIX
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- Build Frontend (TARGET ARM64) ---
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          platforms: linux/arm64  # <--- CRITICAL FIX
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          # Fix: We wrap everything in single quotes passed to bash -c
+          # This works perfectly on Fish shell servers.
+          script: |
+            ~/deploy_staging.sh "${{secrets.GITHUB_TOKEN}}" "${{github.actor}}"
