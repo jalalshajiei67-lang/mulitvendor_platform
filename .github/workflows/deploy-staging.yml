@@ -62,28 +62,4 @@ jobs:
           # Fix: We wrap everything in single quotes passed to bash -c
           # This works perfectly on Fish shell servers.
           script: |
-            bash -c '
-            set -e
-            
-            # 1. Setup Directory
-            mkdir -p ~/indexo_staging
-            cd ~/indexo_staging
-
-            # 2. Git Logic (Standard Bash)
-            if [ ! -d ".git" ]; then
-              git clone -b staging https://github.com/${{ github.repository }}.git .
-            else
-              git fetch origin staging
-              git reset --hard origin/staging
-            fi
-
-            # 3. Docker Login
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-            # 4. Deploy
-            docker compose -f docker-compose.staging.yml pull
-            docker compose -f docker-compose.staging.yml up -d --remove-orphans
-            
-            # 5. Cleanup
-            docker image prune -f
-            '
+            ~/deploy_staging.sh "${{secrets.GITHUB_TOKEN}}" "${{github.actor}}"
