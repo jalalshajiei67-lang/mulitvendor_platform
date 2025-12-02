@@ -28,25 +28,26 @@ services:
     # --- Frontend (Nuxt) ---
   frontend:
     build:
-      # FIXED: Point explicitly to the 'nuxt' subfolder
       context: ./multivendor_platform/front_end/nuxt
       dockerfile: Dockerfile
     image: indexo-frontend:staging
-    environment:
-      - HOST=0.0.0.0  # Force IPv4 binding
-      - PORT=3000
-      - NODE_ENV=production
     container_name: indexo_frontend_staging
     restart: always
     
-    # FIXED: Use Node.js instead of wget (Guaranteed to exist)
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3000
+      - NODE_ENV=production
+      # FIXED: Allow Node to use up to 4GB of RAM (using your swap space)
+      - NODE_OPTIONS="--max-old-space-size=4096"
+
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 30s
-      
+
     networks:
       - docker-deploy_multivendor_network
     labels:
@@ -54,8 +55,7 @@ services:
       - "traefik.http.routers.frontend-staging.rule=Host(`staging.indexo.ir`)"
       - "traefik.http.routers.frontend-staging.entrypoints=websecure"
       - "traefik.http.routers.frontend-staging.tls.certresolver=myresolver"
-      # FIXED: Back to Port 3000 for Nuxt
-      - "traefik.http.services.frontend-staging.loadbalancer.server.port=3000"
+      - "traefik.http.services.frontend-staging.loadbalancer.server.port=3000" 
 
 
   # --- Database (No Changes) ---
