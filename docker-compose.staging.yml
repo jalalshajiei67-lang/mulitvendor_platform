@@ -53,14 +53,14 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=docker-deploy_multivendor_network"
       
-      # RENAMED ROUTER (Forces Traefik to register it fresh)
-      - "traefik.http.routers.frontend-staging-v2.rule=Host(`staging.indexo.ir`)"
-      - "traefik.http.routers.frontend-staging-v2.entrypoints=websecure"
-      - "traefik.http.routers.frontend-staging-v2.tls.certresolver=myresolver"
-      - "traefik.http.routers.frontend-staging-v2.service=frontend-staging-v2"
+      # Simplified Router Name & Rule
+      - "traefik.http.routers.stage-front.rule=Host(`staging.indexo.ir`)"
+      - "traefik.http.routers.stage-front.entrypoints=websecure"
+      - "traefik.http.routers.stage-front.tls.certresolver=myresolver"
       
-      # Service Definition
-      - "traefik.http.services.frontend-staging-v2.loadbalancer.server.port=3000"
+      # Explicitly point to the service (Good practice)
+      - "traefik.http.routers.stage-front.service=stage-front-svc"
+      - "traefik.http.services.stage-front-svc.loadbalancer.server.port=3000"
 
   # --- Database ---
   db:
