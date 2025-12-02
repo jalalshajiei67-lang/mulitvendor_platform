@@ -1,7 +1,7 @@
 services:
   # --- Backend (Django) ---
   backend:
-    image: ghcr.io/YOUR_GITHUB_USERNAME/indexo-backend:staging  # We will build this image later
+    image: ghcr.io/jalalshajiei67-lang/mulitvendor_platform-backend:staging
     container_name: indexo_backend_staging
     restart: always
     command: sh -c "python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:8000"
@@ -22,7 +22,7 @@ services:
 
   # --- Frontend (Nuxt) ---
   frontend:
-    image: ghcr.io/YOUR_GITHUB_USERNAME/indexo-frontend:staging
+    image: ghcr.io/jalalshajiei67-lang/mulitvendor_platform-frontend:staging
     container_name: indexo_frontend_staging
     restart: always
     networks:
