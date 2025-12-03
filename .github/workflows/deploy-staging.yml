@@ -17,5 +17,8 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
+            # Ensure Traefik network exists (required for staging)
+            docker network create multivendor_network --driver bridge || true
+            
             # Trigger the script on the server to Pull & Build locally
             ~/deploy_staging.sh "${{ secrets.GITHUB_TOKEN }}" "${{ github.actor }}"
