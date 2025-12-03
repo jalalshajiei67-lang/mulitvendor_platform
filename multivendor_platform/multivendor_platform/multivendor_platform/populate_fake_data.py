@@ -13,8 +13,10 @@ import os
 import sys
 import django
 from django.utils import timezone
+from django.utils.text import slugify
 from datetime import timedelta
 import random
+import re
 
 # Setup Django environment
 if __name__ == '__main__':
@@ -176,6 +178,37 @@ class PersianProvider(BaseProvider):
 fake.add_provider(PersianProvider)
 
 
+def generate_persian_slug(name, model_class, existing_pk=None):
+    """
+    Generate a slug from Persian text.
+    Falls back to transliteration or ID-based slug if slugify returns empty.
+    """
+    # Try to slugify the name
+    base_slug = slugify(name)
+    
+    # If slugify returns empty (common with Persian), create a fallback
+    if not base_slug or base_slug.strip() == '':
+        # Remove special characters and create a simple slug
+        base_slug = re.sub(r'[^\w\s-]', '', name.lower())
+        base_slug = re.sub(r'[-\s]+', '-', base_slug)
+        # If still empty, use a hash-based fallback
+        if not base_slug or base_slug.strip() == '':
+            base_slug = f"item-{abs(hash(name)) % 100000}"
+    
+    # Ensure uniqueness
+    slug = base_slug
+    counter = 1
+    queryset = model_class.objects.all()
+    if existing_pk:
+        queryset = queryset.exclude(pk=existing_pk)
+    
+    while queryset.filter(slug=slug).exists():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+    
+    return slug
+
+
 def create_departments(count=10):
     """Create fake departments"""
     print(f"Creating {count} departments...")
@@ -186,8 +219,12 @@ def create_departments(count=10):
         while Department.objects.filter(name=dept_name).exists():
             dept_name = fake.persian_department()
         
+        # Generate slug manually to avoid empty slug issues
+        dept_slug = generate_persian_slug(dept_name, Department)
+        
         dept = Department.objects.create(
             name=dept_name,
+            slug=dept_slug,
             description=fake.text(max_nb_chars=200),
             meta_title=f"{dept_name} - خرید آنلاین",
             meta_description=fake.text(max_nb_chars=160),
@@ -195,7 +232,7 @@ def create_departments(count=10):
             sort_order=i,
         )
         departments.append(dept)
-        print(f"  ✓ Created department: {dept.name}")
+        print(f"  ✓ Created department: {dept.name} (slug: {dept.slug})")
     return departments
 
 
@@ -211,8 +248,12 @@ def create_categories(departments, count_per_dept=3):
             while Category.objects.filter(name=cat_name).exists():
                 cat_name = fake.persian_category(dept.name)
             
+            # Generate slug manually
+            cat_slug = generate_persian_slug(cat_name, Category)
+            
             cat = Category.objects.create(
                 name=cat_name,
+                slug=cat_slug,
                 description=fake.text(max_nb_chars=200),
                 meta_title=f"{cat_name} - خرید آنلاین",
                 meta_description=fake.text(max_nb_chars=160),
@@ -238,8 +279,12 @@ def create_subcategories(categories, count_per_cat=2):
             while Subcategory.objects.filter(name=subcat_name).exists():
                 subcat_name = fake.persian_subcategory(cat.name)
             
+            # Generate slug manually
+            subcat_slug = generate_persian_slug(subcat_name, Subcategory)
+            
             subcat = Subcategory.objects.create(
                 name=subcat_name,
+                slug=subcat_slug,
                 description=fake.text(max_nb_chars=200),
                 meta_title=f"{subcat_name} - خرید آنلاین",
                 meta_description=fake.text(max_nb_chars=160),
@@ -350,13 +395,8 @@ def create_products(vendors, suppliers, subcategories, count_per_vendor=20):
             primary_category = subcategory.categories.first()
             
             product_name = fake.persian_product_name(subcategory.name)
-            # Ensure slug uniqueness
-            base_slug = fake.slug()
-            slug = base_slug
-            counter = 1
-            while Product.objects.filter(slug=slug).exists():
-                slug = f"{base_slug}-{counter}"
-                counter += 1
+            # Generate slug manually to avoid empty slug issues
+            slug = generate_persian_slug(product_name, Product)
             
             availability = random.choice(availability_choices)
             condition = random.choice(condition_choices) if availability == 'in_stock' else None
@@ -410,8 +450,12 @@ def create_blog_categories(count=8):
         while BlogCategory.objects.filter(name=name).exists():
             name = name + " " + str(random.randint(1, 100))
         
+        # Generate slug manually
+        blog_cat_slug = generate_persian_slug(name, BlogCategory)
+        
         blog_cat = BlogCategory.objects.create(
             name=name,
+            slug=blog_cat_slug,
             description=fake.text(max_nb_chars=200),
             color=colors[i % len(colors)],
             is_active=True,
@@ -434,13 +478,8 @@ def create_blog_posts(blog_categories, vendors, count_per_category=5):
             author = random.choice(vendors).user
             
             title = fake.sentence(nb_words=6)
-            # Ensure slug uniqueness
-            base_slug = fake.slug()
-            slug = base_slug
-            counter = 1
-            while BlogPost.objects.filter(slug=slug).exists():
-                slug = f"{base_slug}-{counter}"
-                counter += 1
+            # Generate slug manually to avoid empty slug issues
+            slug = generate_persian_slug(title, BlogPost)
             
             status = random.choice(status_choices)
             published_at = timezone.now() - timedelta(days=random.randint(0, 90)) if status == 'published' else None
@@ -465,11 +504,61 @@ def create_blog_posts(blog_categories, vendors, count_per_category=5):
     return blog_posts
 
 
+def fix_empty_slugs():
+    """Fix any existing empty slugs in the database"""
+    print("\nChecking for empty slugs...")
+    
+    # Fix Department empty slugs
+    depts_with_empty_slug = Department.objects.filter(slug__isnull=True) | Department.objects.filter(slug='')
+    for dept in depts_with_empty_slug:
+        dept.slug = generate_persian_slug(dept.name, Department, existing_pk=dept.pk)
+        dept.save(update_fields=['slug'])
+        print(f"  ✓ Fixed slug for department: {dept.name}")
+    
+    # Fix Category empty slugs
+    cats_with_empty_slug = Category.objects.filter(slug__isnull=True) | Category.objects.filter(slug='')
+    for cat in cats_with_empty_slug:
+        cat.slug = generate_persian_slug(cat.name, Category, existing_pk=cat.pk)
+        cat.save(update_fields=['slug'])
+        print(f"  ✓ Fixed slug for category: {cat.name}")
+    
+    # Fix Subcategory empty slugs
+    subcats_with_empty_slug = Subcategory.objects.filter(slug__isnull=True) | Subcategory.objects.filter(slug='')
+    for subcat in subcats_with_empty_slug:
+        subcat.slug = generate_persian_slug(subcat.name, Subcategory, existing_pk=subcat.pk)
+        subcat.save(update_fields=['slug'])
+        print(f"  ✓ Fixed slug for subcategory: {subcat.name}")
+    
+    # Fix BlogCategory empty slugs
+    blog_cats_with_empty_slug = BlogCategory.objects.filter(slug__isnull=True) | BlogCategory.objects.filter(slug='')
+    for blog_cat in blog_cats_with_empty_slug:
+        blog_cat.slug = generate_persian_slug(blog_cat.name, BlogCategory, existing_pk=blog_cat.pk)
+        blog_cat.save(update_fields=['slug'])
+        print(f"  ✓ Fixed slug for blog category: {blog_cat.name}")
+    
+    # Fix BlogPost empty slugs
+    posts_with_empty_slug = BlogPost.objects.filter(slug__isnull=True) | BlogPost.objects.filter(slug='')
+    for post in posts_with_empty_slug:
+        post.slug = generate_persian_slug(post.title, BlogPost, existing_pk=post.pk)
+        post.save(update_fields=['slug'])
+        print(f"  ✓ Fixed slug for blog post: {post.title}")
+    
+    # Fix Product empty slugs
+    products_with_empty_slug = Product.objects.filter(slug__isnull=True) | Product.objects.filter(slug='')
+    for product in products_with_empty_slug:
+        product.slug = generate_persian_slug(product.name, Product, existing_pk=product.pk)
+        product.save(update_fields=['slug'])
+        print(f"  ✓ Fixed slug for product: {product.name}")
+
+
 def main():
     """Main function to populate all fake data"""
     print("=" * 60)
     print("Starting fake data population (Persian/Farsi)")
     print("=" * 60)
+    
+    # Fix any existing empty slugs first
+    fix_empty_slugs()
     
     # Check if data already exists
     if Department.objects.exists():
