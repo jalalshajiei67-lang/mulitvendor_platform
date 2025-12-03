@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # 1. Traefik - The Gatekeeper
+  # 1. Traefik - The Staging Gatekeeper (Different ports to run alongside production)
   traefik:
     image: traefik:v2.11
     container_name: traefik_staging
@@ -10,16 +10,10 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=jalal.shajiei67@gmail.com"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      # Note: SSL is handled by host nginx, so we don't need HTTPS entrypoint or cert resolver
+      # Host nginx proxies HTTP to this Traefik instance
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"   # Different port to avoid conflict with production (nginx handles SSL)
     volumes:
       - "./letsencrypt_staging:/letsencrypt"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -98,8 +92,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`api.staging.indexo.ir`)"
-      - "traefik.http.routers.backend.entrypoints=websecure"
-      - "traefik.http.routers.backend.tls.certresolver=myresolver"
+      - "traefik.http.routers.backend.entrypoints=web"
+      # SSL is handled by host nginx, so no TLS config needed here
     restart: always
 
   # 5. Frontend (Nuxt)
@@ -118,8 +112,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`staging.indexo.ir`) || Host(`www.staging.indexo.ir`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      # SSL is handled by host nginx, so no TLS config needed here
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
     restart: always
 
@@ -136,9 +130,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.nginx-static.rule=Host(`api.staging.indexo.ir`) && PathPrefix(`/static`)"
+      - "traefik.http.routers.nginx-static.entrypoints=web"
       - "traefik.http.routers.nginx-media.rule=Host(`api.staging.indexo.ir`) && PathPrefix(`/media`)"
-      - "traefik.http.routers.nginx-static.tls.certresolver=myresolver"
-      - "traefik.http.routers.nginx-media.tls.certresolver=myresolver"
+      - "traefik.http.routers.nginx-media.entrypoints=web"
+      # SSL is handled by host nginx, so no TLS config needed here
     restart: always
 
 networks:
