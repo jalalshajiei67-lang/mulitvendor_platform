@@ -1,7 +1,7 @@
 # GitHub Actions CI/CD Setup Guide
 
 ## Overview
-Automated deployment pipeline for the Nuxt multivendor platform using GitHub Actions and CapRover.
+Automated deployment pipeline for the multivendor platform using GitHub Actions and VPS (Docker Compose).
 
 ---
 
@@ -9,28 +9,19 @@ Automated deployment pipeline for the Nuxt multivendor platform using GitHub Act
 
 Two workflows have been created:
 
-1. **`test.yml`** - Runs on every push/PR
-   - Tests Django backend
-   - Builds Nuxt frontend
-   - Validates code quality
+1. **`docker-deploy.yml`** - Runs on push to main
+   - Deploys to production VPS via SSH
+   - Uses Docker Compose for deployment
 
-2. **`deploy.yml`** - Runs on push to main/master
-   - Deploys backend to CapRover
-   - Deploys frontend to CapRover
-   - Sequential deployment (backend first, then frontend)
+2. **`deploy-staging.yml`** - Runs on push to staging
+   - Deploys to staging VPS via SSH
+   - Uses Docker Compose for staging deployment
 
 ---
 
 ## 📋 Setup Instructions
 
-### Step 1: Get CapRover App Token
-
-1. Login to CapRover: https://captain.indexo.ir
-2. Go to **Settings** → **Deployment**
-3. Copy your **App Token** (or generate new one)
-4. Save it securely - you'll need it for GitHub
-
-### Step 2: Configure GitHub Secrets
+### Step 1: Configure GitHub Secrets
 
 1. Go to your GitHub repository
 2. Click **Settings** → **Secrets and variables** → **Actions**
@@ -39,10 +30,24 @@ Two workflows have been created:
 
 | Secret Name | Value | Description |
 |------------|-------|-------------|
-| `CAPROVER_SERVER` | `https://captain.indexo.ir` | Your CapRover URL |
-| `CAPROVER_APP_TOKEN` | `your-app-token-here` | From Step 1 |
-| `CAPROVER_BACKEND_APP` | `multivendor-backend` | Backend app name |
-| `CAPROVER_FRONTEND_APP` | `multivendor-frontend` | Frontend app name |
+| `VPS_HOST` | `185.208.172.76` | Your VPS IP address |
+| `VPS_USER` | `root` or your SSH username | SSH username for VPS |
+| `VPS_SSH_KEY` | Your SSH private key | Private key for SSH access |
+
+### Step 2: Generate SSH Key (if needed)
+
+If you don't have an SSH key:
+
+```bash
+# Generate SSH key pair
+ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github_actions
+
+# Copy public key to VPS
+ssh-copy-id -i ~/.ssh/github_actions.pub user@your-vps-ip
+
+# Copy private key content for GitHub secret
+cat ~/.ssh/github_actions
+```
 
 ### Step 3: Verify Workflow Files
 
@@ -51,40 +56,36 @@ Check that these files exist:
 ```
 .github/
 └── workflows/
-    ├── deploy.yml    ✅ Created
-    └── test.yml      ✅ Created
+    ├── docker-deploy.yml      ✅ Production deployment
+    └── deploy-staging.yml     ✅ Staging deployment
 ```
 
-### Step 4: Configure CapRover Apps
+### Step 4: Configure VPS
 
-#### Backend App Configuration
+#### On Your VPS:
 
-1. Go to CapRover dashboard
-2. Select `multivendor-backend` app
-3. Go to **App Configs** tab
-4. Add environment variables:
-   ```
-   DEBUG=False
-   SECRET_KEY=your-secret-key
-   ALLOWED_HOSTS=multivendor-backend.indexo.ir,indexo.ir
-   CORS_ALLOWED_ORIGINS=https://indexo.ir
-   DB_ENGINE=django.db.backends.postgresql
-   DB_NAME=multivendor_db
-   DB_USER=postgres
-   DB_PASSWORD=your-db-password
-   DB_HOST=srv-captain--postgres
-   DB_PORT=5432
+1. **Clone repository** (if not already):
+   ```bash
+   git clone <your-repo-url> /path/to/project
+   cd /path/to/project
    ```
 
-#### Frontend App Configuration
+2. **Create `.env` file**:
+   ```bash
+   cp .env.template .env
+   nano .env  # Edit with your production values
+   ```
 
-1. Select `multivendor-frontend` app
-2. Go to **App Configs** tab
-3. Add environment variable:
+3. **Ensure Docker and Docker Compose are installed**:
+   ```bash
+   docker --version
+   docker-compose --version
    ```
-   NUXT_PUBLIC_API_BASE=https://multivendor-backend.indexo.ir/api
+
+4. **Test deployment manually**:
+   ```bash
+   docker-compose up -d --build
    ```
-4. **Important**: Set this BEFORE first deployment
 
 ### Step 5: Test the Pipeline
 
@@ -109,45 +110,35 @@ git push origin main
 
 ## 🔄 Workflow Details
 
-### Test Workflow (`test.yml`)
+### Production Deployment (`docker-deploy.yml`)
 
 **Triggers:**
-- Push to `main`, `master`, or `develop`
-- Pull requests to these branches
+- Push to `main` branch
+- Manual trigger via GitHub UI
 
-**Jobs:**
-
-1. **test-backend**
-   - Sets up PostgreSQL
-   - Installs Python dependencies
-   - Runs Django tests
-
-2. **test-frontend**
-   - Sets up Node.js 20
-   - Installs npm dependencies
-   - Builds Nuxt app
-   - Validates build output
+**Steps:**
+1. SSH to VPS
+2. Navigate to project directory
+3. Pull latest changes from `main` branch
+4. Run `deploy.sh` script
+5. Deploy using Docker Compose
 
 **Duration:** ~5-10 minutes
 
-### Deploy Workflow (`deploy.yml`)
+### Staging Deployment (`deploy-staging.yml`)
 
 **Triggers:**
-- Push to `main` or `master`
+- Push to `staging` branch
 - Manual trigger via GitHub UI
 
-**Jobs:**
+**Steps:**
+1. Ensure Traefik network exists
+2. SSH to VPS
+3. Navigate to staging project directory
+4. Pull latest changes from `staging` branch
+5. Deploy using `docker-compose.staging.yml`
 
-1. **deploy-backend**
-   - Deploys Django backend to CapRover
-   - Uses `captain-definition-backend`
-
-2. **deploy-frontend** (runs after backend)
-   - Deploys Nuxt frontend to CapRover
-   - Uses Nuxt Dockerfile
-   - Sets correct build context
-
-**Duration:** ~10-15 minutes
+**Duration:** ~5-10 minutes
 
 ---
 
@@ -155,7 +146,7 @@ git push origin main
 
 ### Change Deployment Branch
 
-Edit `.github/workflows/deploy.yml`:
+Edit `.github/workflows/docker-deploy.yml`:
 
 ```yaml
 on:
@@ -164,112 +155,64 @@ on:
       - production  # Change this
 ```
 
-### Add Staging Environment
+### Change VPS Project Path
 
-Create `.github/workflows/deploy-staging.yml`:
+Edit the workflow file:
 
 ```yaml
-name: Deploy to Staging
-
-on:
-  push:
-    branches:
-      - develop
-
-jobs:
-  deploy-frontend-staging:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: caprover/deploy-from-github@v1.1.2
-        with:
-          server: '${{ secrets.CAPROVER_SERVER }}'
-          app: 'multivendor-frontend-staging'
-          token: '${{ secrets.CAPROVER_APP_TOKEN }}'
-          dockerfile: './multivendor_platform/front_end/nuxt/Dockerfile'
-          context: './multivendor_platform/front_end/nuxt'
+script: |
+  cd /custom/path/to/project  # Change this
 ```
 
-### Add Slack Notifications
+### Add Environment Variables
 
-Add to end of deploy job:
-
-```yaml
-      - name: Notify Slack
-        if: always()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-```
-
-### Add Build Caching
-
-For faster builds, add caching:
+You can pass environment variables via GitHub secrets and use them in workflows:
 
 ```yaml
-      - name: Cache Node modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+env:
+  DEPLOY_ENV: production
 ```
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Deployment Fails: "App not found"
+### Deployment Fails: "Permission denied (publickey)"
 
-**Problem:** CapRover app doesn't exist
-
-**Solution:**
-1. Create app in CapRover dashboard
-2. Verify app name matches GitHub secret
-3. Check spelling (case-sensitive)
-
-### Deployment Fails: "Invalid token"
-
-**Problem:** App token is wrong or expired
+**Problem:** SSH key not configured correctly
 
 **Solution:**
-1. Generate new token in CapRover
-2. Update `CAPROVER_APP_TOKEN` secret in GitHub
-3. Retry deployment
+1. Verify SSH key is added to GitHub secrets
+2. Ensure public key is in VPS `~/.ssh/authorized_keys`
+3. Test SSH connection manually: `ssh -i ~/.ssh/key user@vps-ip`
 
-### Frontend Build Fails: "NUXT_PUBLIC_API_BASE not set"
+### Deployment Fails: "git reset --hard" error
 
-**Problem:** Environment variable missing
-
-**Solution:**
-1. Add `NUXT_PUBLIC_API_BASE` in CapRover app config
-2. Redeploy from GitHub Actions
-3. Or add to workflow:
-   ```yaml
-   env:
-     NUXT_PUBLIC_API_BASE: https://multivendor-backend.indexo.ir/api
-   ```
-
-### Tests Fail: "Database connection error"
-
-**Problem:** PostgreSQL service not starting
+**Problem:** Git repository state issues
 
 **Solution:**
-- Check `test.yml` service configuration
-- Verify PostgreSQL version compatibility
-- Check database credentials in workflow
+1. SSH to VPS and check git status
+2. Ensure working directory is clean
+3. Check git permissions
 
-### Deploy Hangs or Times Out
+### Deployment Fails: "docker-compose: command not found"
 
-**Problem:** Large build or slow network
+**Problem:** Docker Compose not installed on VPS
 
 **Solution:**
-1. Increase timeout in workflow:
-   ```yaml
-   timeout-minutes: 30
-   ```
-2. Check CapRover server resources
-3. Optimize Docker build (use cache)
+1. Install Docker Compose on VPS
+2. Or use `docker compose` (v2) instead of `docker-compose`
+
+### Services Not Starting
+
+**Problem:** Docker containers fail to start
+
+**Solution:**
+1. SSH to VPS
+2. Check logs: `docker-compose logs`
+3. Verify `.env` file is configured correctly
+4. Check disk space: `df -h`
+5. Check Docker status: `docker ps -a`
 
 ---
 
@@ -283,26 +226,23 @@ For faster builds, add caching:
 3. Click on job name
 4. Expand steps to see logs
 
-**In CapRover:**
-1. Go to app page
-2. Click **App Logs** tab
-3. View real-time logs
+**On VPS:**
+```bash
+# View all logs
+docker-compose logs -f
+
+# View specific service
+docker-compose logs -f backend
+docker-compose logs -f frontend
+```
 
 ### Deployment Status Badge
 
 Add to your README.md:
 
 ```markdown
-![Deploy Status](https://github.com/your-username/mulitvendor_platform/workflows/Deploy%20to%20CapRover/badge.svg)
+![Deploy Status](https://github.com/your-username/mulitvendor_platform/workflows/CI%2FCD%20Pipeline/badge.svg)
 ```
-
-### Email Notifications
-
-GitHub automatically sends emails on:
-- Workflow failures
-- First successful run after failure
-
-Configure in: Settings → Notifications
 
 ---
 
@@ -310,81 +250,38 @@ Configure in: Settings → Notifications
 
 ### 1. Test Before Deploy
 
-Always run tests before deploying:
-```yaml
-deploy-frontend:
-  needs: [test-backend, test-frontend]
+Always test locally before pushing:
+```bash
+docker-compose up -d --build
+# Test your changes
+docker-compose down
 ```
 
 ### 2. Use Environment-Specific Configs
 
-```yaml
-- name: Set production config
-  run: |
-    echo "NUXT_PUBLIC_API_BASE=${{ secrets.PROD_API_URL }}" >> $GITHUB_ENV
-```
+- Production: `docker-compose.yml` with production `.env`
+- Staging: `docker-compose.staging.yml` with staging `.env`
 
 ### 3. Implement Rollback Strategy
 
-```yaml
-- name: Save deployment info
-  run: |
-    echo "DEPLOYED_AT=$(date)" >> deployment.txt
-    git tag "deploy-$(date +%Y%m%d-%H%M%S)"
+```bash
+# On VPS, if deployment fails:
+cd /path/to/project
+git checkout <previous-commit>
+docker-compose up -d --build
 ```
 
-### 4. Add Manual Approval
+### 4. Monitor Resources
 
-For production deployments:
-```yaml
-deploy-production:
-  environment:
-    name: production
-    url: https://indexo.ir
-  # Requires manual approval in GitHub
-```
+```bash
+# Check container status
+docker-compose ps
 
-### 5. Separate Secrets per Environment
+# Check resource usage
+docker stats
 
-- `PROD_CAPROVER_TOKEN`
-- `STAGING_CAPROVER_TOKEN`
-- `DEV_CAPROVER_TOKEN`
-
----
-
-## 📝 Workflow Files Reference
-
-### deploy.yml
-```yaml
-name: Deploy to CapRover
-on:
-  push:
-    branches: [main, master]
-  workflow_dispatch:
-
-jobs:
-  deploy-backend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: caprover/deploy-from-github@v1.1.2
-        with:
-          server: '${{ secrets.CAPROVER_SERVER }}'
-          app: '${{ secrets.CAPROVER_BACKEND_APP }}'
-          token: '${{ secrets.CAPROVER_APP_TOKEN }}'
-
-  deploy-frontend:
-    needs: deploy-backend
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: caprover/deploy-from-github@v1.1.2
-        with:
-          server: '${{ secrets.CAPROVER_SERVER }}'
-          app: '${{ secrets.CAPROVER_FRONTEND_APP }}'
-          token: '${{ secrets.CAPROVER_APP_TOKEN }}'
-          dockerfile: './multivendor_platform/front_end/nuxt/Dockerfile'
-          context: './multivendor_platform/front_end/nuxt'
+# Check disk space
+df -h
 ```
 
 ---
@@ -393,12 +290,13 @@ jobs:
 
 After setup, verify:
 
-- [ ] GitHub secrets configured
-- [ ] CapRover apps created
-- [ ] Environment variables set in CapRover
-- [ ] Workflow files committed
-- [ ] Test workflow passes
-- [ ] Deploy workflow succeeds
+- [ ] GitHub secrets configured (`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`)
+- [ ] SSH access works from local machine
+- [ ] Project cloned on VPS
+- [ ] `.env` file created on VPS
+- [ ] Docker and Docker Compose installed on VPS
+- [ ] Workflow files committed to repository
+- [ ] Test deployment succeeds
 - [ ] Frontend loads correctly
 - [ ] API calls work
 - [ ] No console errors
@@ -408,36 +306,23 @@ After setup, verify:
 ## 🎉 Success!
 
 Your CI/CD pipeline is now configured! Every push to main will automatically:
-1. Run tests
-2. Deploy backend
-3. Deploy frontend
+1. SSH to VPS
+2. Pull latest code
+3. Deploy using Docker Compose
 4. Update your production site
 
-**Deployment Time:** ~10-15 minutes from push to live
+**Deployment Time:** ~5-10 minutes from push to live
 
 **Next Steps:**
 - Add more tests
-- Setup staging environment
 - Configure monitoring
 - Add performance checks
+- Setup automated backups
 
+---
 
+## 📚 Related Documentation
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- `DEPLOYMENT_GUIDE.md` - Detailed deployment guide
+- `TRAEFIK_DUAL_DEPLOYMENT.md` - Production + Staging setup
+- `CI_CD_CHECKLIST.md` - Deployment checklist

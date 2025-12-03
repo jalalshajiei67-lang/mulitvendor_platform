@@ -1,127 +1,119 @@
-# GitHub Actions CI/CD & CapRover Quick Checklist
+# GitHub Actions CI/CD & VPS Deployment Checklist
 
 ## ✅ GitHub Secrets (Required)
-- [ ] `CAPROVER_URL` = `https://captain.indexo.ir`
-- [ ] `CAPROVER_PASSWORD` = Your CapRover password
-- [ ] `CAPROVER_BACKEND_APP_NAME` = `multivendor-backend`
-- [ ] `CAPROVER_FRONTEND_APP_NAME` = `multivendor-frontend`
+
+- [ ] `VPS_HOST` = Your VPS IP address (e.g., `185.208.172.76`)
+- [ ] `VPS_USER` = SSH username (e.g., `root`)
+- [ ] `VPS_SSH_KEY` = Your SSH private key
 
 **How to add:** GitHub Repo → Settings → Secrets and variables → Actions → New repository secret
 
 ---
 
-## ✅ CapRover Apps Setup
+## ✅ VPS Server Setup
 
-### Backend App:
-- [ ] App Name: `multivendor-backend`
-- [ ] Domain: `multivendor-backend.indexo.ir`
-- [ ] Environment Variables:
-  - `DJANGO_SETTINGS_MODULE=multivendor_platform.settings_caprover`
-  - Database credentials (if not using secrets)
-  - `SECRET_KEY`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`
-- [ ] Persistent Directories:
-  - `/app/staticfiles` → `/captain/data/backend-static` (Label: `static-files`)
-  - `/app/media` → `/captain/data/backend-media` (Label: `media-files`)
+### Docker & Docker Compose:
+- [ ] Docker installed
+- [ ] Docker Compose installed
+- [ ] Docker service running
+- [ ] User has Docker permissions
 
-### Frontend App:
-- [ ] App Name: `multivendor-frontend`
-- [ ] Domain: `indexo.ir`
-- [ ] Environment Variables:
-  - `VITE_API_BASE_URL=https://multivendor-backend.indexo.ir/api`
+### Network & Firewall:
+- [ ] Ports 80, 443 open
+- [ ] Port 22 (SSH) open
+- [ ] Firewall configured (UFW recommended)
 
-### Nginx Static Server App (Optional - for caching):
-- [ ] App Name: `nginx-static-server`
-- [ ] Build Method: Dockerfile
-- [ ] Dockerfile Path: `./Dockerfile.nginx-static`
-- [ ] Persistent Directories:
-  - `/captain/data/backend-static` → `/captain/data/backend-static` (Label: `static`)
-  - `/captain/data/backend-media` → `/captain/data/backend-media` (Label: `media`)
-- [ ] HTTP Settings: Custom Nginx config for routing (see `NGINX_STATIC_SETUP.md`)
+### Project Directory:
+- [ ] Project cloned to VPS
+- [ ] `.env` file created with production values
+- [ ] Git repository configured
 
 ---
 
-## ✅ Database Setup
-- [ ] PostgreSQL installed in CapRover (One-Click App)
-- [ ] Database created
-- [ ] Connection credentials configured in backend app environment variables
+## ✅ Environment Configuration
+
+### Backend Environment Variables (`.env`):
+- [ ] `DB_NAME` = Database name
+- [ ] `DB_USER` = Database user
+- [ ] `DB_PASSWORD` = Strong database password
+- [ ] `DB_HOST` = `db` (Docker service name)
+- [ ] `DB_PORT` = `5432`
+- [ ] `SECRET_KEY` = Django secret key
+- [ ] `DEBUG` = `False`
+- [ ] `ALLOWED_HOSTS` = Your domains (comma-separated)
+- [ ] `CORS_ALLOWED_ORIGINS` = Your frontend URLs
+
+### Frontend Environment Variables:
+- [ ] `NUXT_PUBLIC_API_BASE` = Backend API URL
+- [ ] `NODE_ENV` = `production`
 
 ---
 
 ## ✅ DNS Configuration
-- [ ] `indexo.ir` → A record → `185.208.172.76`
-- [ ] `multivendor-backend.indexo.ir` → A record → `185.208.172.76`
-- [ ] `www.indexo.ir` → A record → `185.208.172.76` (optional)
+
+- [ ] `indexo.ir` → A record → Your VPS IP
+- [ ] `api.indexo.ir` → A record → Your VPS IP
+- [ ] `www.indexo.ir` → A record → Your VPS IP (optional)
+- [ ] `staging.indexo.ir` → A record → Your VPS IP (for staging)
 
 ---
 
 ## ✅ Required Files Exist
-- [ ] `.github/workflows/ci.yml`
-- [ ] `.github/workflows/deploy-caprover.yml`
-- [ ] `Dockerfile.backend`
-- [ ] `Dockerfile.frontend`
-- [ ] `Dockerfile.nginx-static` (if using Nginx static server)
-- [ ] `captain-definition-backend`
-- [ ] `captain-definition-frontend`
-- [ ] `captain-definition-nginx-static` (if using Nginx static server)
-- [ ] `multivendor_platform/multivendor_platform/settings_caprover.py`
+
+- [ ] `.github/workflows/docker-deploy.yml` (production)
+- [ ] `.github/workflows/deploy-staging.yml` (staging)
+- [ ] `docker-compose.yml` (production)
+- [ ] `docker-compose.staging.yml` (staging)
+- [ ] `Dockerfile` (backend)
+- [ ] `multivendor_platform/front_end/nuxt/Dockerfile` (frontend)
 - [ ] `requirements.txt`
-- [ ] `nginx/frontend.conf`
-- [ ] `nginx/static-server.conf` (if using Nginx static server)
-
----
-
-## ✅ VPS Server
-- [ ] CapRover installed and accessible at `https://captain.indexo.ir`
-- [ ] Ports 80, 443, 3000 open
-- [ ] Sufficient disk space
-- [ ] Docker running
+- [ ] `.env` (on VPS, not in git)
 
 ---
 
 ## ✅ Test Deployment
+
 1. [ ] Push to `main` branch
 2. [ ] Check GitHub Actions workflow status
-3. [ ] Verify backend deployed successfully
-4. [ ] Verify frontend deployed successfully
-5. [ ] Test backend API: `https://multivendor-backend.indexo.ir/api/`
-6. [ ] Test frontend: `https://indexo.ir`
-7. [ ] Test admin panel: `https://multivendor-backend.indexo.ir/admin`
+3. [ ] Verify deployment succeeded
+4. [ ] Test backend API: `https://api.indexo.ir/api/`
+5. [ ] Test frontend: `https://indexo.ir`
+6. [ ] Test admin panel: `https://api.indexo.ir/admin`
 
 ---
 
 ## 🔧 Quick Commands
 
-### Check CapRover Status:
+### Check VPS Status:
 ```bash
-ssh root@185.208.172.76
-docker ps | grep captain
+ssh user@your-vps-ip
+docker ps
+docker-compose ps
 ```
 
-### View App Logs:
+### View Logs:
 ```bash
-# Via CapRover Dashboard
-Apps → multivendor-backend → App Logs
+# On VPS
+cd /path/to/project
+docker-compose logs -f backend
+docker-compose logs -f frontend
 ```
 
 ### Manual Deploy (if needed):
 ```bash
-npm install -g caprover
-caprover deploy \
-  --caproverUrl "https://captain.indexo.ir" \
-  --caproverPassword "your-password" \
-  --appName "multivendor-backend" \
-  --tarFile backend-deploy.tar.gz
+# SSH to VPS
+ssh user@your-vps-ip
+cd /path/to/project
+
+# Pull latest
+git pull origin main
+
+# Deploy
+docker-compose up -d --build
 ```
 
 ---
 
 ## 📚 Full Documentation
-See `REQUIREMENTS_CI_CD_CAPROVER.md` for detailed requirements and troubleshooting.
 
-
-
-
-
-
-
-
+See `DEPLOYMENT_GUIDE.md` and `TRAEFIK_DUAL_DEPLOYMENT.md` for detailed setup and troubleshooting.

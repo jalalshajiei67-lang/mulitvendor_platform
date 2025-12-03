@@ -1,45 +1,36 @@
-name: Deploy to Staging VPS
+name: Deploy Staging
 
 on:
   push:
     branches:
-      - staging  # This triggers ONLY when you push to the 'staging' branch
+      - staging
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Copy Files to VPS
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USERNAME }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          # We copy the whole project to the server
-          source: "."
-          # ⚠️ IMPORTANT: This matches the path you are actually using on the server
-          target: "/indexo-staging-var"
-
-      - name: Execute Deployment Command
+      - name: Deploy to Staging VPS
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USERNAME }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
           script: |
-            # 1. Go to the project folder
-            cd /indexo-staging-var
-
-            # 2. Stop the current containers (optional, but safer for juniors)
-            docker compose down
-
-            # 3. Rebuild and Start containers in the background
-            # We use --build to make sure it picks up the new code changes
-            docker compose up -d --build
+            # Ensure Traefik network exists (required for staging)
+            docker network create multivendor_network --driver bridge || true
             
-            # 4. Prune unused images to save disk space on the VPS
+            # Navigate to staging project directory
+            cd /path/to/staging/project || cd /indexo-staging-var || cd ~/docker-deploy-staging
+            
+            # Pull latest changes from staging branch
+            git fetch --all
+            git reset --hard origin/staging
+            
+            # Deploy staging using docker-compose
+            docker-compose -f docker-compose.staging.yml down
+            docker-compose -f docker-compose.staging.yml up -d --build
+            
+            # Clean up unused images
             docker image prune -f

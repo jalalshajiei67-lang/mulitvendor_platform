@@ -1,8 +1,15 @@
 <template>
-  <v-card :loading="loading" class="form-quality-score" rounded="xl">
-    <v-card-text>
+  <v-card 
+    :loading="loading" 
+    class="form-quality-score h-100" 
+    rounded="xl"
+    elevation="0"
+    variant="tonal"
+    :color="scoreColorVariant"
+  >
+    <v-card-text class="pa-4 pa-md-6">
       <div class="d-flex justify-space-between align-start flex-wrap mb-4 gap-4">
-        <div>
+        <div class="flex-grow-1">
           <p class="text-caption text-medium-emphasis mb-1">{{ caption }}</p>
           <h3 class="text-h6 font-weight-bold">{{ title }}</h3>
         </div>
@@ -11,16 +18,17 @@
             <span class="text-h4 font-weight-bold">{{ score }}</span>
             <span class="text-caption">/100</span>
           </div>
-          <small class="d-block text-medium-emphasis mt-2">{{ mood }}</small>
+          <small class="d-block text-medium-emphasis mt-2 font-weight-medium">{{ mood }}</small>
         </div>
       </div>
 
       <v-progress-linear
         :model-value="score"
-        height="10"
+        height="12"
         rounded
         :color="progressColor"
         class="mb-4"
+        :bg-color="progressBgColor"
       ></v-progress-linear>
 
       <v-list density="comfortable" class="bg-transparent">
@@ -31,23 +39,39 @@
           class="metric-row"
         >
           <template #prepend>
-            <v-avatar size="32" :color="metric.passed ? 'success' : 'warning'" class="me-2">
-              <v-icon size="18">{{ metric.passed ? 'mdi-check' : 'mdi-alert' }}</v-icon>
+            <v-avatar 
+              size="36" 
+              :color="metric.passed ? 'success' : 'warning'" 
+              class="me-3"
+              variant="flat"
+            >
+              <v-icon size="18" color="white">
+                {{ metric.passed ? 'mdi-check-circle' : 'mdi-alert-circle' }}
+              </v-icon>
             </v-avatar>
           </template>
           <template #subtitle>
-            <span class="text-caption text-medium-emphasis">{{ metric.tip }}</span>
+            <span class="text-caption text-medium-emphasis mt-1 d-block">{{ metric.tip }}</span>
           </template>
           <template #append>
-            <span class="text-caption text-medium-emphasis">{{ Math.round(metric.weight * 100) }}%</span>
+            <v-chip 
+              size="x-small" 
+              :color="metric.passed ? 'success' : 'warning'"
+              variant="flat"
+            >
+              {{ Math.round(metric.weight * 100) }}%
+            </v-chip>
           </template>
         </v-list-item>
       </v-list>
 
-      <div v-if="tips.length" class="mt-4 p-3 rounded-lg bg-grey-lighten-4">
-        <p class="text-subtitle-2 font-weight-bold mb-2">
-          {{ t('suggestions') }}
-        </p>
+      <div v-if="tips.length" class="mt-4 p-4 rounded-lg" :class="tipsBgClass">
+        <div class="d-flex align-center gap-2 mb-2">
+          <v-icon :color="tipsIconColor" size="20">mdi-lightbulb-on</v-icon>
+          <p class="text-subtitle-2 font-weight-bold mb-0">
+            {{ t('suggestions') }}
+          </p>
+        </div>
         <ul class="text-caption suggestions">
           <li v-for="tip in tips" :key="tip">
             {{ tip }}
@@ -93,6 +117,30 @@ const mood = computed(() => {
   return 'نیازمند توجه'
 })
 
+const scoreColorVariant = computed(() => {
+  if (props.score >= 70) return 'success'
+  if (props.score >= 40) return 'warning'
+  return 'error'
+})
+
+const progressBgColor = computed(() => {
+  if (props.score >= 70) return 'success-lighten-5'
+  if (props.score >= 40) return 'warning-lighten-5'
+  return 'error-lighten-5'
+})
+
+const tipsBgClass = computed(() => {
+  if (props.score >= 70) return 'bg-success-lighten-5'
+  if (props.score >= 40) return 'bg-warning-lighten-5'
+  return 'bg-error-lighten-5'
+})
+
+const tipsIconColor = computed(() => {
+  if (props.score >= 70) return 'success'
+  if (props.score >= 40) return 'warning'
+  return 'error'
+})
+
 const t = (key: string) => {
   const dict: Record<string, string> = {
     suggestions: 'پیشنهادهای فوری'
@@ -103,8 +151,13 @@ const t = (key: string) => {
 
 <style scoped>
 .form-quality-score {
-  min-height: 100%;
+  transition: transform 0.2s ease;
 }
+
+.form-quality-score:hover {
+  transform: translateY(-2px);
+}
+
 .score-circle {
   width: 96px;
   height: 96px;
@@ -114,22 +167,69 @@ const t = (key: string) => {
   align-items: center;
   justify-content: center;
   border: 4px solid transparent;
+  transition: transform 0.2s ease;
 }
+
+.score-circle:hover {
+  transform: scale(1.05);
+}
+
 .score-success {
-  border-color: #2e7d32;
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.1);
 }
+
 .score-warning {
-  border-color: #fdd835;
+  border-color: #ff9800;
+  background: rgba(255, 152, 0, 0.1);
 }
+
 .score-danger {
-  border-color: #e53935;
+  border-color: #f44336;
+  background: rgba(244, 67, 54, 0.1);
 }
+
+.metric-row {
+  transition: background 0.2s ease;
+  border-radius: 8px;
+  margin: 2px 0;
+}
+
+.metric-row:hover {
+  background: rgba(var(--v-theme-surface), 0.5);
+}
+
 .metric-row + .metric-row {
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
+
 ul.suggestions {
   list-style-type: '• ';
   padding-inline-start: 1.2rem;
   margin: 0;
+}
+
+ul.suggestions li {
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+.gap-4 {
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .score-circle {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .score-circle .text-h4 {
+    font-size: 1.5rem !important;
+  }
 }
 </style>

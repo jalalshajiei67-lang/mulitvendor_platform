@@ -30,60 +30,42 @@ docker-compose exec backend python manage.py createsuperuser
 # Admin: http://localhost:8000/admin
 ```
 
-## For CapRover Production Deployment
+## For VPS Production Deployment
 
 ### Prerequisites
-- CapRover server running on VPS (185.208.172.76)
+- VPS with Docker and Docker Compose installed
 - Domain pointed to your server (indexo.ir)
+- SSH access to VPS
 - GitHub repository
 
 ### One-Time Setup
 
-#### 1. Setup CapRover Apps
+#### 1. Setup VPS
 
-**PostgreSQL Database:**
-```
-1. CapRover → One-Click Apps → PostgreSQL
-2. Name: multivendor-db
-3. Password: <strong-password>
-4. Deploy
-```
+**On your VPS:**
+```bash
+# Clone repository
+git clone <your-repo-url>
+cd mulitvendor_platform
 
-**Redis:**
-```
-1. CapRover → One-Click Apps → Redis
-2. Name: multivendor-redis
-3. Deploy
-```
+# Create .env file
+cp .env.template .env
+# Edit .env with your production values
 
-**Backend App:**
-```
-1. CapRover → Apps → Create New App
-2. Name: multivendor-backend
-3. Enable HTTPS
-4. Set environment variables (see CAPROVER_DEPLOYMENT.md)
+# Start services
+docker-compose up -d --build
 ```
 
-**Frontend App:**
-```
-1. CapRover → Apps → Create New App
-2. Name: multivendor-frontend
-3. Enable HTTPS
-4. Set environment variables (see CAPROVER_DEPLOYMENT.md)
-```
-
-#### 2. Setup GitHub Secrets
+#### 2. Setup GitHub Secrets (for CI/CD)
 
 Go to GitHub repo → Settings → Secrets → Actions
 
 Add these secrets:
-- `CAPROVER_SERVER`: https://captain.indexo.ir
-- `CAPROVER_APP_BACKEND`: multivendor-backend
-- `CAPROVER_APP_FRONTEND`: multivendor-frontend
-- `CAPROVER_APP_TOKEN_BACKEND`: <get from CapRover>
-- `CAPROVER_APP_TOKEN_FRONTEND`: <get from CapRover>
+- `VPS_HOST`: Your VPS IP (e.g., 185.208.172.76)
+- `VPS_USER`: SSH username (e.g., root)
+- `VPS_SSH_KEY`: Your SSH private key
 
-See `GITHUB_SECRETS_SETUP.md` for details.
+See `GITHUB_ACTIONS_SETUP.md` for details.
 
 #### 3. Deploy
 
@@ -93,34 +75,37 @@ git add .
 git commit -m "Deploy to production"
 git push origin main
 ```
-GitHub Actions will automatically deploy!
+GitHub Actions will automatically deploy via SSH!
 
-**Option B: Manual (CapRover CLI)**
+**Option B: Manual (SSH)**
 ```bash
-# Install CapRover CLI
-npm install -g caprover
+# SSH to VPS
+ssh user@your-vps-ip
 
-# Deploy backend
-caprover deploy -a multivendor-backend
+# Navigate to project
+cd /path/to/mulitvendor_platform
 
-# Deploy frontend
-cd multivendor_platform/front_end/nuxt
-caprover deploy -a multivendor-frontend
+# Pull latest changes
+git pull origin main
+
+# Deploy
+docker-compose up -d --build
 ```
 
 #### 4. Create Superuser on Production
-```
-1. CapRover → Apps → multivendor-backend
-2. Click "Deployment" tab
-3. Open "Execute Command"
-4. Run: python manage.py createsuperuser
+```bash
+# SSH to VPS
+ssh user@your-vps-ip
+
+# Run command
+docker-compose exec backend python manage.py createsuperuser
 ```
 
 ## 📚 Documentation
 
-- **Local Development**: `docker-compose.yml` + `LOCAL_VS_CAPROVER.md`
-- **CapRover Deployment**: `CAPROVER_DEPLOYMENT.md`
-- **GitHub CI/CD**: `GITHUB_SECRETS_SETUP.md`
+- **Local Development**: `docker-compose.yml` + `README_LOCAL_SETUP.md`
+- **VPS Deployment**: `DEPLOYMENT_GUIDE.md`
+- **GitHub CI/CD**: `GITHUB_ACTIONS_SETUP.md`
 - **Chat System**: `CHAT_SYSTEM_README.md`
 
 ## 🐛 Troubleshooting
@@ -132,15 +117,15 @@ docker-compose down -v
 docker-compose up --build -d
 ```
 
-### CapRover Deployment Failed?
+### VPS Deployment Failed?
 1. Check GitHub Actions logs
-2. Check CapRover app logs
-3. Verify all secrets are set
-4. Verify environment variables in CapRover
+2. SSH to VPS and check Docker logs: `docker-compose logs`
+3. Verify all secrets are set in GitHub
+4. Verify environment variables in `.env` file
 
 ### Database Connection Issues?
 - Local: Check `DB_HOST=db` in docker-compose
-- CapRover: Check `DB_HOST=srv-captain--multivendor-db`
+- VPS: Check `DB_HOST=db` in docker-compose (service name)
 
 ### Chat Not Working?
 - Check Redis is running
@@ -180,28 +165,33 @@ docker-compose exec backend python manage.py shell
 docker-compose exec backend python manage.py migrate
 ```
 
-### CapRover
+### VPS Production
 ```bash
-# View app status
-caprover list
+# SSH to VPS
+ssh user@your-vps-ip
+cd /path/to/mulitvendor_platform
+
+# View container status
+docker-compose ps
 
 # View logs
-caprover logs -a multivendor-backend -f
+docker-compose logs -f backend
+docker-compose logs -f frontend
 
-# Restart app
-# (Do this in CapRover Dashboard)
+# Restart services
+docker-compose restart
 ```
 
 ## 🆘 Need Help?
 
 1. Check the relevant documentation file
 2. Check GitHub Actions logs for deployment issues
-3. Check CapRover app logs for runtime issues
+3. SSH to VPS and check Docker logs for runtime issues
 4. Check Docker logs for local issues
 
 ---
 
 **Remember**: 
-- `docker-compose.yml` = Local development ONLY
-- CapRover = Production deployment
+- `docker-compose.yml` = Production deployment on VPS
+- `docker-compose.local.yml` = Local development
 - Never commit secrets to Git!
