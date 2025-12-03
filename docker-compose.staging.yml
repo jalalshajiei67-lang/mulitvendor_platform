@@ -1,9 +1,7 @@
-# docker-compose.staging.yml
-
 version: '3.8'
 
 services:
-  # 1. Traefik - The Staging Gatekeeper
+  # 1. Traefik - The Gatekeeper
   traefik:
     image: traefik:v2.11
     container_name: traefik_staging
@@ -14,16 +12,16 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=jalal.shajiei67@gmail.com"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-    # Using different ports for staging to avoid conflict with production
     ports:
-      - "8080:80"
-      - "8443:443"
+      - "80:80"
+      - "443:443"
     volumes:
-      - "./letsencrypt_staging:/letsencrypt" # Staging-specific letsencrypt dir
+      - "./letsencrypt_staging:/letsencrypt"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
       - multivendor_network_staging
@@ -68,21 +66,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: indexo-backend:staging
     container_name: multivendor_backend_staging
     environment:
       - DB_ENGINE=django.db.backends.postgresql
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - ALLOWED_HOSTS=api.staging.indexo.ir,staging.indexo.ir,www.staging.indexo.ir,localhost,127.0.0.1
+      - DB_NAME=multivendor_db
+      - DB_USER=postgres
+      - ALLOWED_HOSTS=api.staging.indexo.ir,staging.indexo.ir,www.staging.indexo.ir,158.255.74.123,localhost,127.0.0.1
       - CSRF_TRUSTED_ORIGINS=https://staging.indexo.ir,https://www.staging.indexo.ir,https://api.staging.indexo.ir
       - CORS_ALLOWED_ORIGINS=https://staging.indexo.ir,https://www.staging.indexo.ir
       - CORS_ALLOW_ALL_ORIGINS=True
-      - NODE_ENV=staging
     command: daphne -b 0.0.0.0 -p 8000 --application-close-timeout 60 multivendor_platform.asgi:application
     volumes:
-      - static_files_staging:/app/static
-      - media_files_staging:/app/media
+      - static_files_staging:/app/static  # Write static files here
+      - media_files_staging:/app/media    # Write media files here
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     env_file:
       - .env.staging
     depends_on:
@@ -91,7 +88,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/"] # Or a valid endpoint
       interval: 30s
       timeout: 10s
       retries: 3
@@ -100,9 +97,9 @@ services:
       - multivendor_network_staging
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend-staging.rule=Host(`api.staging.indexo.ir`)"
-      - "traefik.http.routers.backend-staging.entrypoints=websecure"
-      - "traefik.http.routers.backend-staging.tls.certresolver=myresolver"
+      - "traefik.http.routers.backend.rule=Host(`api.staging.indexo.ir`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=myresolver"
     restart: always
 
   # 5. Frontend (Nuxt)
@@ -110,31 +107,20 @@ services:
     build:
       context: ./multivendor_platform/front_end/nuxt
       dockerfile: Dockerfile
-    image: indexo-frontend:staging
     container_name: multivendor_frontend_staging
     env_file:
       - .env.staging
     environment:
       - NUXT_PUBLIC_API_BASE=https://api.staging.indexo.ir/api
       - NODE_TLS_REJECT_UNAUTHORIZED=0
-      - HOST=0.0.0.0
-      - PORT=3000
-      - NODE_ENV=staging
-      - NODE_OPTIONS="--max-old-space-size=4096"
     networks:
       - multivendor_network_staging
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend-staging.rule=Host(`staging.indexo.ir`) || Host(`www.staging.indexo.ir`)"
-      - "traefik.http.routers.frontend-staging.entrypoints=websecure"
-      - "traefik.http.routers.frontend-staging.tls.certresolver=myresolver"
-      - "traefik.http.services.frontend-staging.loadbalancer.server.port=3000"
-    healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))\""]
-      interval: 30s
-      timeout: 30s
-      retries: 3
-      start_period: 60s
+      - "traefik.http.routers.frontend.rule=Host(`staging.indexo.ir`) || Host(`www.staging.indexo.ir`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
     restart: always
 
   # 6. Nginx (Serves Static/Media)
@@ -149,9 +135,10 @@ services:
       - multivendor_network_staging
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nginx-static-staging.rule=Host(`api.staging.indexo.ir`) && PathPrefix(`/static`)"
-      - "traefik.http.routers.nginx-media-staging.rule=Host(`api.staging.indexo.ir`) && PathPrefix(`/media`)"
-      - "traefik.http.routers.nginx-static-staging.tls.certresolver=myresolver"
+      - "traefik.http.routers.nginx-static.rule=Host(`api.staging.indexo.ir`) && PathPrefix(`/static`)"
+      - "traefik.http.routers.nginx-media.rule=Host(`api.staging.indexo.ir`) && PathPrefix(`/media`)"
+      - "traefik.http.routers.nginx-static.tls.certresolver=myresolver"
+      - "traefik.http.routers.nginx-media.tls.certresolver=myresolver"
     restart: always
 
 networks:
