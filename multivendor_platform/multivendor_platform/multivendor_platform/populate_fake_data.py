@@ -240,30 +240,45 @@ def create_categories(departments, count_per_dept=3):
     """Create fake categories linked to departments"""
     print(f"\nCreating categories (about {count_per_dept} per department)...")
     categories = []
-    for dept in departments:
+    for dept_idx, dept in enumerate(departments, 1):
+        print(f"  Processing department {dept_idx}/{len(departments)}: {dept.name}")
         dept_categories = []
         for i in range(count_per_dept):
             cat_name = fake.persian_category(dept.name)
-            # Ensure uniqueness
-            while Category.objects.filter(name=cat_name).exists():
+            # Ensure uniqueness with loop protection
+            attempts = 0
+            max_attempts = 50
+            while Category.objects.filter(name=cat_name).exists() and attempts < max_attempts:
                 cat_name = fake.persian_category(dept.name)
+                attempts += 1
+                # Add suffix if still duplicate after many attempts
+                if attempts >= max_attempts - 10:
+                    cat_name = f"{cat_name} {random.randint(1, 9999)}"
             
-            # Generate slug manually
-            cat_slug = generate_persian_slug(cat_name, Category)
+            if attempts >= max_attempts:
+                print(f"    ⚠️  Warning: Could not generate unique category name after {max_attempts} attempts")
+                continue
             
-            cat = Category.objects.create(
-                name=cat_name,
-                slug=cat_slug,
-                description=fake.text(max_nb_chars=200),
-                meta_title=f"{cat_name} - خرید آنلاین",
-                meta_description=fake.text(max_nb_chars=160),
-                is_active=True,
-                sort_order=i,
-            )
-            cat.departments.add(dept)
-            categories.append(cat)
-            dept_categories.append(cat)
-            print(f"  ✓ Created category: {cat.name} (in {dept.name})")
+            try:
+                # Generate slug manually
+                cat_slug = generate_persian_slug(cat_name, Category)
+                
+                cat = Category.objects.create(
+                    name=cat_name,
+                    slug=cat_slug,
+                    description=fake.text(max_nb_chars=200),
+                    meta_title=f"{cat_name} - خرید آنلاین",
+                    meta_description=fake.text(max_nb_chars=160),
+                    is_active=True,
+                    sort_order=i,
+                )
+                cat.departments.add(dept)
+                categories.append(cat)
+                dept_categories.append(cat)
+                print(f"    ✓ Created category: {cat.name} (in {dept.name})")
+            except Exception as e:
+                print(f"    ❌ Error creating category '{cat_name}': {str(e)}")
+                continue
     return categories
 
 
@@ -271,30 +286,47 @@ def create_subcategories(categories, count_per_cat=2):
     """Create fake subcategories linked to categories"""
     print(f"\nCreating subcategories (about {count_per_cat} per category)...")
     subcategories = []
-    for cat in categories:
+    for cat_idx, cat in enumerate(categories, 1):
+        if cat_idx % 10 == 0:
+            print(f"  Processing category {cat_idx}/{len(categories)}: {cat.name}")
         cat_subcategories = []
         for i in range(count_per_cat):
             subcat_name = fake.persian_subcategory(cat.name)
-            # Ensure uniqueness
-            while Subcategory.objects.filter(name=subcat_name).exists():
+            # Ensure uniqueness with loop protection
+            attempts = 0
+            max_attempts = 50
+            while Subcategory.objects.filter(name=subcat_name).exists() and attempts < max_attempts:
                 subcat_name = fake.persian_subcategory(cat.name)
+                attempts += 1
+                # Add suffix if still duplicate after many attempts
+                if attempts >= max_attempts - 10:
+                    subcat_name = f"{subcat_name} {random.randint(1, 9999)}"
             
-            # Generate slug manually
-            subcat_slug = generate_persian_slug(subcat_name, Subcategory)
+            if attempts >= max_attempts:
+                print(f"    ⚠️  Warning: Could not generate unique subcategory name after {max_attempts} attempts")
+                continue
             
-            subcat = Subcategory.objects.create(
-                name=subcat_name,
-                slug=subcat_slug,
-                description=fake.text(max_nb_chars=200),
-                meta_title=f"{subcat_name} - خرید آنلاین",
-                meta_description=fake.text(max_nb_chars=160),
-                is_active=True,
-                sort_order=i,
-            )
-            subcat.categories.add(cat)
-            subcategories.append(subcat)
-            cat_subcategories.append(subcat)
-            print(f"  ✓ Created subcategory: {subcat.name} (in {cat.name})")
+            try:
+                # Generate slug manually
+                subcat_slug = generate_persian_slug(subcat_name, Subcategory)
+                
+                subcat = Subcategory.objects.create(
+                    name=subcat_name,
+                    slug=subcat_slug,
+                    description=fake.text(max_nb_chars=200),
+                    meta_title=f"{subcat_name} - خرید آنلاین",
+                    meta_description=fake.text(max_nb_chars=160),
+                    is_active=True,
+                    sort_order=i,
+                )
+                subcat.categories.add(cat)
+                subcategories.append(subcat)
+                cat_subcategories.append(subcat)
+                if cat_idx % 10 == 0 or len(categories) <= 10:
+                    print(f"    ✓ Created subcategory: {subcat.name} (in {cat.name})")
+            except Exception as e:
+                print(f"    ❌ Error creating subcategory '{subcat_name}': {str(e)}")
+                continue
     return subcategories
 
 
@@ -380,11 +412,14 @@ def create_products(vendors, suppliers, subcategories, count_per_vendor=20):
     condition_choices = ['new', 'used']
     origin_choices = ['iran', 'imported']
     
-    for vendor in vendors:
+    for vendor_idx, vendor in enumerate(vendors, 1):
+        print(f"  Processing vendor {vendor_idx}/{len(vendors)}: {vendor.store_name}")
         vendor_suppliers = [s for s in suppliers if s.vendor == vendor.user]
         vendor_products = []
         
         for i in range(count_per_vendor):
+            if (i + 1) % 5 == 0:
+                print(f"    Creating product {i + 1}/{count_per_vendor} for {vendor.store_name}")
             # Select random subcategory
             subcategory = random.choice(subcategories)
             
@@ -402,26 +437,30 @@ def create_products(vendors, suppliers, subcategories, count_per_vendor=20):
             condition = random.choice(condition_choices) if availability == 'in_stock' else None
             lead_time = random.randint(7, 30) if availability == 'made_to_order' else None
             
-            product = Product.objects.create(
-                vendor=vendor.user,
-                supplier=supplier,
-                name=product_name,
-                slug=slug,
-                description=fake.text(max_nb_chars=1000),
-                price=random.randint(100000, 50000000),  # Price in smallest currency unit
-                stock=random.randint(0, 1000) if availability == 'in_stock' else 0,
-                availability_status=availability,
-                condition=condition,
-                origin=random.choice(origin_choices),
-                lead_time_days=lead_time,
-                meta_title=f"{product_name} - خرید آنلاین",
-                meta_description=fake.text(max_nb_chars=160),
-                is_active=True,
-                primary_category=primary_category,
-            )
-            product.subcategories.add(subcategory)
-            products.append(product)
-            vendor_products.append(product)
+            try:
+                product = Product.objects.create(
+                    vendor=vendor.user,
+                    supplier=supplier,
+                    name=product_name,
+                    slug=slug,
+                    description=fake.text(max_nb_chars=1000),
+                    price=random.randint(100000, 50000000),  # Price in smallest currency unit
+                    stock=random.randint(0, 1000) if availability == 'in_stock' else 0,
+                    availability_status=availability,
+                    condition=condition,
+                    origin=random.choice(origin_choices),
+                    lead_time_days=lead_time,
+                    meta_title=f"{product_name} - خرید آنلاین",
+                    meta_description=fake.text(max_nb_chars=160),
+                    is_active=True,
+                    primary_category=primary_category,
+                )
+                product.subcategories.add(subcategory)
+                products.append(product)
+                vendor_products.append(product)
+            except Exception as e:
+                print(f"    ❌ Error creating product '{product_name}': {str(e)}")
+                continue
         
         print(f"  ✓ Created {len(vendor_products)} products for {vendor.store_name}")
     
