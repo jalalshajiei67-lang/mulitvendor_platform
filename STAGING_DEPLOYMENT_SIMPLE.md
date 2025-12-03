@@ -6,12 +6,21 @@ Since you already have **Traefik** in production, we use it for staging too! No 
 
 ## 🚀 Deployment (CI/CD Ready)
 
-### Production (if not running)
+### Step 1: Ensure Traefik Network Exists
+
+**Option A: Start Production First (Recommended)**
 ```bash
 docker-compose up -d
 ```
 
-### Staging
+**Option B: Create Network Manually**
+```bash
+./ensure-traefik-network.sh
+# OR
+docker network create multivendor_network --driver bridge
+```
+
+### Step 2: Start Staging
 ```bash
 docker-compose -f docker-compose.staging.yml up -d --build
 ```

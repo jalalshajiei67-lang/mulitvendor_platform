@@ -35,13 +35,22 @@ Routes based on Host header:
 
 ## 🚀 Deployment (CI/CD Ready!)
 
-### Step 1: Start Production (if not running)
+### Step 1: Ensure Traefik Network Exists
 
+**Option A: Start Production First (Recommended)**
 ```bash
 docker-compose up -d
 ```
-
 This creates the `multivendor_network` that staging will use.
+
+**Option B: Create Network Manually (if production not running)**
+```bash
+./ensure-traefik-network.sh
+```
+Or manually:
+```bash
+docker network create multivendor_network --driver bridge
+```
 
 ### Step 2: Start Staging
 
@@ -60,14 +69,27 @@ That's it! Traefik automatically discovers staging services and routes them.
 
 ## 📝 CI/CD Integration
 
-Your CI/CD can simply:
+Your CI/CD should:
 
 ```yaml
-# Production deployment
-- docker-compose up -d --build
+# Step 1: Ensure Traefik network exists
+- name: Ensure Traefik network
+  run: |
+    docker network create multivendor_network --driver bridge || true
 
-# Staging deployment  
-- docker-compose -f docker-compose.staging.yml up -d --build
+# Step 2: Deploy Production (if needed)
+- name: Deploy Production
+  run: docker-compose up -d --build
+
+# Step 3: Deploy Staging
+- name: Deploy Staging
+  run: docker-compose -f docker-compose.staging.yml up -d --build
+```
+
+**Or use the helper script:**
+```yaml
+- name: Deploy Staging
+  run: ./deploy-staging.sh
 ```
 
 **No special setup needed!** Traefik automatically:

@@ -128,7 +128,7 @@ networks:
   multivendor_network_staging:
     driver: bridge
   multivendor_network:
-    external: true  # Use production Traefik network
+    external: true  # Use production Traefik network (must exist - start production first or create manually)
 
 volumes:
   postgres_data_staging:
