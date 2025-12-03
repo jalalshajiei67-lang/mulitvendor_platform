@@ -1,24 +1,45 @@
-name: Deploy Staging
+name: Deploy to Staging VPS
 
 on:
   push:
     branches:
-      - staging
+      - staging  # This triggers ONLY when you push to the 'staging' branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Trigger Deployment on VPS
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Copy Files to VPS
+        uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USERNAME }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          # We copy the whole project to the server
+          source: "."
+          # ⚠️ IMPORTANT: This matches the path you are actually using on the server
+          target: "/indexo-staging-var"
+
+      - name: Execute Deployment Command
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USERNAME }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
-            # Ensure Traefik network exists (required for staging)
-            docker network create multivendor_network --driver bridge || true
+            # 1. Go to the project folder
+            cd /indexo-staging-var
+
+            # 2. Stop the current containers (optional, but safer for juniors)
+            docker compose down
+
+            # 3. Rebuild and Start containers in the background
+            # We use --build to make sure it picks up the new code changes
+            docker compose up -d --build
             
-            # Trigger the script on the server to Pull & Build locally
-            ~/deploy_staging.sh "${{ secrets.GITHUB_TOKEN }}" "${{ github.actor }}"
+            # 4. Prune unused images to save disk space on the VPS
+            docker image prune -f
