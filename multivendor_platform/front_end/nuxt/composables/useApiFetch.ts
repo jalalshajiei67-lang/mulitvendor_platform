@@ -3,7 +3,15 @@ import type { FetchOptions } from 'ofetch'
 const isFormData = (value: unknown): value is FormData =>
   typeof FormData !== 'undefined' && value instanceof FormData
 
-export const useApiFetch = async <T>(endpoint: string, options: FetchOptions<T> = {}) => {
+interface ExtendedFetchOptions<T> extends FetchOptions<T> {
+  params?: FetchOptions<T>['query']
+  /**
+   * If true, 404 errors will not redirect to 404 page (default: false)
+   */
+  skip404Redirect?: boolean
+}
+
+export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOptions<T> = {}) => {
   // Try to get Nuxt app - if not available during SSR, handle gracefully
   let config: any
   let authToken: string | null = null
@@ -69,14 +77,42 @@ export const useApiFetch = async <T>(endpoint: string, options: FetchOptions<T> 
     }
   }
 
-  type ExtendedFetchOptions = FetchOptions<T> & { params?: FetchOptions<T>['query'] }
-  const { params, ...restOptions } = (options ?? {}) as ExtendedFetchOptions
+  const { params, skip404Redirect, ...restOptions } = options
 
-  return $fetch<T>(url, {
-    ...restOptions,
-    query: restOptions.query ?? params,
-    headers,
-    credentials: restOptions.credentials ?? 'include'
-  })
+  try {
+    return await $fetch<T>(url, {
+      ...restOptions,
+      query: restOptions.query ?? params,
+      headers,
+      credentials: restOptions.credentials ?? 'include'
+    })
+  } catch (error: any) {
+    // Handle 404 errors - redirect to 404 page
+    const statusCode = error?.statusCode || error?.status || error?.response?.status
+    
+    if (statusCode === 404 && !skip404Redirect) {
+      // Only redirect for GET requests (page resources like products, blogs, etc.)
+      const isGetRequest = !options.method || options.method === 'GET' || options.method === 'get'
+      
+      if (isGetRequest && process.client) {
+        try {
+          const route = useRoute()
+          // Check if we're already on the 404 page to avoid redirect loops
+          if (route.path !== '/404') {
+            // Navigate to 404 page - this will handle the user experience
+            navigateTo('/404').catch(() => {
+              // If navigation fails silently, continue with error handling
+            })
+          }
+        } catch (navError) {
+          // If navigation fails, continue with normal error handling
+          console.warn('Failed to navigate to 404 page:', navError)
+        }
+      }
+    }
+    
+    // Re-throw the error so calling code can handle it (for cleanup, logging, etc.)
+    throw error
+  }
 }
 
