@@ -19,6 +19,9 @@ from products.sitemaps import ProductSitemap, DepartmentSitemap, CategorySitemap
 from blog.sitemaps import BlogSitemap
 from users.sitemaps import SupplierSitemap
 
+# Ensure custom admin app/model ordering is applied
+from . import admin_ordering  # noqa: F401
+
 # Import the new dashboard views
 from products.views import HomeView, VendorDashboardView, ProductCreateView
 
