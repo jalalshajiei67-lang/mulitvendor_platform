@@ -85,19 +85,101 @@ export const useChatStore = defineStore('chat', () => {
     
     // Determine WebSocket URL
     const apiBase = config.public.apiBase || ''
-    let wsUrl = ''
     
-    if (apiBase) {
-      // Convert HTTP URL to WebSocket URL
-      wsUrl = apiBase.replace('http://', 'ws://').replace('https://', 'wss://').replace('/api', '')
-    } else {
-      // Use current host
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      wsUrl = `${protocol}//${window.location.host}`
+    // Debug: Log the raw apiBase value
+    console.log('API Base URL:', apiBase)
+    console.log('Current window location:', {
+      protocol: window.location.protocol,
+      host: window.location.host,
+      hostname: window.location.hostname,
+      origin: window.location.origin
+    })
+    
+    // Helper to extract host from API base URL
+    const getWebSocketUrl = (apiUrl: string): string => {
+      try {
+        // If apiUrl is empty or invalid, use current host
+        if (!apiUrl || typeof apiUrl !== 'string' || apiUrl.trim() === '') {
+          console.warn('API base URL is empty, using current host for WebSocket')
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+          return `${protocol}//${window.location.host}`
+        }
+        
+        let cleanUrl = apiUrl.trim()
+        
+        // Check if URL starts with a dot (invalid hostname)
+        if (cleanUrl.startsWith('.')) {
+          console.error('Invalid API base URL (starts with dot), using current host:', cleanUrl)
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+          return `${protocol}//${window.location.host}`
+        }
+        
+        // Remove trailing /api if present
+        if (cleanUrl.endsWith('/api')) {
+          cleanUrl = cleanUrl.slice(0, -4)
+        } else if (cleanUrl.endsWith('/api/')) {
+          cleanUrl = cleanUrl.slice(0, -5)
+        }
+        
+        // Remove trailing slash
+        cleanUrl = cleanUrl.replace(/\/$/, '')
+        
+        // Extract protocol and host
+        let protocol = 'wss'
+        let host = ''
+        
+        if (cleanUrl.startsWith('https://')) {
+          protocol = 'wss'
+          host = cleanUrl.replace('https://', '')
+        } else if (cleanUrl.startsWith('http://')) {
+          protocol = 'ws'
+          host = cleanUrl.replace('http://', '')
+        } else if (cleanUrl.startsWith('/')) {
+          // Relative URL - use current host
+          console.warn('API base URL is relative, using current host')
+          protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+          return `${protocol}://${window.location.host}`
+        } else {
+          // Assume it's a hostname without protocol - use current protocol
+          protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+          host = cleanUrl
+        }
+        
+        // Remove any path from host (everything after first /)
+        const hostParts = host.split('/')
+        host = hostParts[0]
+        
+        // Validate host is not empty and doesn't start with dot
+        if (!host || host.trim() === '' || host.startsWith('.')) {
+          throw new Error(`Invalid host: ${host}`)
+        }
+        
+        // Construct WebSocket URL
+        const wsUrl = `${protocol}://${host}`
+        
+        // Final validation
+        try {
+          new URL(wsUrl)
+        } catch {
+          throw new Error(`Invalid WebSocket URL: ${wsUrl}`)
+        }
+        
+        return wsUrl
+      } catch (error) {
+        console.error('Error parsing API base URL, using current host:', error, 'Original URL:', apiUrl)
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        return `${protocol}//${window.location.host}`
+      }
     }
     
+    const wsUrl = getWebSocketUrl(apiBase)
+    console.log('Constructed WebSocket base URL:', wsUrl)
+    
+    // Ensure wsUrl doesn't end with a slash (we'll add the path next)
+    const cleanWsUrl = wsUrl.replace(/\/$/, '')
+    
     // Build connection URL with auth
-    let connectionUrl = `${wsUrl}/ws/chat/?`
+    let connectionUrl = `${cleanWsUrl}/ws/chat/?`
     
     // IMPORTANT: Use token if authenticated, guest session only for anonymous users
     if (authStore.isAuthenticated && authStore.token) {
