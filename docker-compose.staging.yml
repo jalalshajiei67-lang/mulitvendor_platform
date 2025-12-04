@@ -1,12 +1,13 @@
 version: '3.8'
 
 services:
-  # Same structure as production, just different env files and domains
   traefik:
     image: traefik:v2.11
     container_name: traefik
     command:
       - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
@@ -72,7 +73,6 @@ services:
     volumes:
       - static_files:/app/static
       - media_files:/app/media
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     env_file:
       - .env.staging
     depends_on:
@@ -87,3 +87,54 @@ services:
     networks:
       - multivendor_network
     labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`${API_DOMAIN}`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=myresolver"
+    restart: always
+
+  frontend:
+    build:
+      context: ./multivendor_platform/front_end/nuxt
+      dockerfile: Dockerfile
+    container_name: multivendor_frontend
+    env_file:
+      - .env.staging
+    environment:
+      - NUXT_PUBLIC_API_BASE=https://${API_DOMAIN}/api
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    networks:
+      - multivendor_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${MAIN_DOMAIN}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    container_name: multivendor_nginx
+    volumes:
+      - static_files:/usr/share/nginx/html/static:ro
+      - media_files:/usr/share/nginx/html/media:ro
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - multivendor_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx-static.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/static`)"
+      - "traefik.http.routers.nginx-media.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/media`)"
+      - "traefik.http.routers.nginx-static.tls.certresolver=myresolver"
+    restart: always
+
+networks:
+  multivendor_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_files:
+  media_files:
