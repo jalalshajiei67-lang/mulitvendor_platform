@@ -1,4 +1,5 @@
-name: indexo-staging
+
+version: '3.8'
 
 services:
   traefik:
@@ -30,9 +31,10 @@ services:
     container_name: multivendor_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # We load the file directly. Ensure POSTGRES_PASSWORD is in .env.staging!
-    env_file:
-      - .env.staging
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     networks:
       - multivendor_network
     healthcheck:
@@ -60,13 +62,27 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: multivendor_backend
-    # Load all variables from the file automatically
-    env_file:
-      - .env.staging
+    environment:
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS}
     command: daphne -b 0.0.0.0 -p 8000 --application-close-timeout 60 multivendor_platform.asgi:application
     volumes:
       - static_files:/app/static
       - media_files:/app/media
+    env_file:
+      - .env.staging
     depends_on:
       db:
         condition: service_healthy
@@ -86,6 +102,7 @@ services:
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
     restart: always
 
+
   frontend:
     build:
       context: ./multivendor_platform/front_end/nuxt
@@ -94,7 +111,6 @@ services:
     env_file:
       - .env.staging
     environment:
-      # This constructs a new variable from existing ones, so we keep it here
       - NUXT_PUBLIC_API_BASE=https://${API_DOMAIN}/api
       - NODE_TLS_REJECT_UNAUTHORIZED=0
     networks:
