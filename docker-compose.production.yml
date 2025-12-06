@@ -4,7 +4,7 @@ services:
   # Traefik - Reverse Proxy and Load Balancer
   traefik:
     image: traefik:v2.11
-    container_name: traefik_staging
+    container_name: traefik_production
     command:
       - "--api.insecure=false"
       - "--providers.docker=true"
@@ -29,9 +29,9 @@ services:
   # PostgreSQL Database
   db:
     image: postgres:15-alpine
-    container_name: multivendor_db_staging
+    container_name: multivendor_db_production
     volumes:
-      - postgres_data_staging:/var/lib/postgresql/data
+      - postgres_data_production:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
@@ -48,9 +48,9 @@ services:
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: multivendor_redis_staging
+    container_name: multivendor_redis_production
     volumes:
-      - redis_data_staging:/data
+      - redis_data_production:/data
     networks:
       - multivendor_network
     healthcheck:
@@ -64,7 +64,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    container_name: multivendor_backend_staging
+    container_name: multivendor_backend_production
     environment:
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=${DB_NAME}
@@ -85,10 +85,10 @@ services:
              python manage.py collectstatic --noinput &&
              daphne -b 0.0.0.0 -p 8000 --application-close-timeout 60 multivendor_platform.asgi:application"
     volumes:
-      - static_files_staging:/app/static
-      - media_files_staging:/app/media
+      - static_files_production:/app/static
+      - media_files_production:/app/media
     env_file:
-      - .env.staging
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -117,9 +117,9 @@ services:
       dockerfile: Dockerfile.frontend
       args:
         NUXT_PUBLIC_API_BASE: https://${API_DOMAIN}/api
-    container_name: multivendor_frontend_staging
+    container_name: multivendor_frontend_production
     env_file:
-      - .env.staging
+      - .env
     environment:
       - NUXT_PUBLIC_API_BASE=https://${API_DOMAIN}/api
       - NODE_TLS_REJECT_UNAUTHORIZED=0
@@ -136,10 +136,10 @@ services:
   # Nginx - Serves Static and Media Files
   nginx:
     image: nginx:alpine
-    container_name: multivendor_nginx_staging
+    container_name: multivendor_nginx_production
     volumes:
-      - static_files_staging:/usr/share/nginx/html/static:ro
-      - media_files_staging:/usr/share/nginx/html/media:ro
+      - static_files_production:/usr/share/nginx/html/static:ro
+      - media_files_production:/usr/share/nginx/html/media:ro
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - multivendor_network
@@ -160,8 +160,8 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data_staging:
-  redis_data_staging:
-  static_files_staging:
-  media_files_staging:
+  postgres_data_production:
+  redis_data_production:
+  static_files_production:
+  media_files_production:
 

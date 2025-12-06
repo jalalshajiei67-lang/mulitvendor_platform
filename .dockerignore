@@ -16,6 +16,7 @@ ENV/
 .eggs/
 dist/
 build/
+*.egg
 
 # Node
 node_modules/
@@ -37,30 +38,54 @@ yarn-error.log*
 htmlcov/
 .pytest_cache/
 .tox/
+*.cover
 
 # Environment
+.env
 .env.local
 .env.development
 .env.test
+.env.staging
+.env.production
 
 # Documentation
 *.md
 docs/
+README.md
 
 # Deployment
 deploy.tar.gz
 *.backup
+*.tar.gz
 
 # Database
 *.sqlite3
 db.sqlite3
+*.sql
+*.sql.gz
 
 # Logs
 *.log
+logs/
 
 # OS
 Thumbs.db
 .DS_Store
 
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
 
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Static and media (will be generated in container)
+static/
+staticfiles/
+media/
+
+# Frontend build artifacts (not needed for backend)
+multivendor_platform/front_end/
 

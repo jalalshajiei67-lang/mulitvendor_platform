@@ -1,0 +1,64 @@
+# Multi-stage build for Django backend
+# Stage 1: Build dependencies
+FROM python:3.11-slim as builder
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Install system dependencies for building Python packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Stage 2: Production image
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PATH=/home/appuser/.local/bin:$PATH
+
+WORKDIR /app
+
+# Install runtime system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    postgresql-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN adduser --disabled-password --gecos '' appuser
+
+# Copy Python dependencies from builder stage
+COPY --from=builder /root/.local /home/appuser/.local
+
+# Copy Django project
+COPY multivendor_platform/multivendor_platform/ /app/
+
+# Create necessary directories and set permissions
+RUN mkdir -p /app/static /app/media && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose the port Daphne will run on
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/ || exit 1
+
+# The command to run the application
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "--application-close-timeout", "60", "multivendor_platform.asgi:application"]
+

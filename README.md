@@ -15,12 +15,12 @@ A complete dockerized deployment solution for your Django + Vue.js multivendor e
 
 ## 🎯 Getting Started
 
-### **👉 [START DEPLOYMENT HERE](START_DEPLOYMENT_HERE.md)** 👈
+### **👉 [START DEPLOYMENT HERE](docs/deployment/START_DEPLOYMENT_HERE.md)** 👈
 
 Choose your deployment path:
 
-1. **5-Minute Deploy**: See [QUICK_START.md](QUICK_START.md)
-2. **Detailed Guide**: See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
+1. **5-Minute Deploy**: See [QUICK_START.md](docs/development/QUICK_START.md)
+2. **Detailed Guide**: See [DEPLOYMENT_GUIDE.md](docs/deployment/DEPLOYMENT_GUIDE.md)
 3. **One Command**: Run `./deploy-one-command.sh` (Linux/Mac)
 
 ---
@@ -52,11 +52,19 @@ Choose your deployment path:
 - `verify-setup.sh` - Pre-deployment verification
 
 ### 📚 Documentation
-- [START_DEPLOYMENT_HERE.md](START_DEPLOYMENT_HERE.md) - Complete getting started
-- [QUICK_START.md](QUICK_START.md) - 5-minute deployment
-- [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Comprehensive guide
-- [README_DEPLOYMENT.md](README_DEPLOYMENT.md) - Technical overview
-- [DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md) - What was created
+- [START_DEPLOYMENT_HERE.md](docs/deployment/START_DEPLOYMENT_HERE.md) - Complete getting started
+- [QUICK_START.md](docs/development/QUICK_START.md) - 5-minute deployment
+- [DEPLOYMENT_GUIDE.md](docs/deployment/DEPLOYMENT_GUIDE.md) - Comprehensive guide
+- [README_DEPLOYMENT.md](docs/deployment/README_DEPLOYMENT.md) - Technical overview
+- [DEPLOYMENT_SUMMARY.md](docs/deployment/DEPLOYMENT_SUMMARY.md) - What was created
+
+#### Documentation Categories
+- 📦 **[Deployment](docs/deployment/)** - Deployment guides, CI/CD, infrastructure
+- 🐛 **[Fixes](docs/fixes/)** - Troubleshooting and bug fixes
+- ✨ **[Features](docs/features/)** - Feature documentation and guides
+- ⚙️ **[Setup](docs/setup/)** - Configuration and setup guides
+- 💻 **[Development](docs/development/)** - Development and testing guides
+- 🔄 **[Migration](docs/migration/)** - Migration guides and notes
 
 ---
 
@@ -241,13 +249,14 @@ damirco/
 ├── test-connection.sh
 ├── verify-setup.sh
 │
-├── Documentation/
-├── START_DEPLOYMENT_HERE.md
-├── QUICK_START.md
-├── DEPLOYMENT_GUIDE.md
-├── README_DEPLOYMENT.md
-├── DEPLOYMENT_SUMMARY.md
-└── README.md (this file)
+├── docs/                      # All documentation organized by category
+│   ├── deployment/            # Deployment guides, CI/CD, infrastructure
+│   ├── fixes/                 # Troubleshooting and bug fixes
+│   ├── features/              # Feature documentation
+│   ├── setup/                 # Configuration and setup
+│   ├── development/           # Development and testing
+│   └── migration/             # Migration guides
+└── README.md                  # This file (main entry point)
 ```
 
 ---
@@ -288,7 +297,7 @@ docker-compose exec db psql -U postgres -d multivendor_db
 ./backup-database.sh
 ```
 
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed troubleshooting.
+See [DEPLOYMENT_GUIDE.md](docs/deployment/DEPLOYMENT_GUIDE.md) for detailed troubleshooting.
 
 ---
 
@@ -356,10 +365,10 @@ docker-compose exec backend python manage.py collectstatic --noinput
 ## 📞 Support & Documentation
 
 ### Essential Documents
-1. **Getting Started**: [START_DEPLOYMENT_HERE.md](START_DEPLOYMENT_HERE.md)
-2. **Quick Deploy**: [QUICK_START.md](QUICK_START.md)
-3. **Full Guide**: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
-4. **Tech Details**: [README_DEPLOYMENT.md](README_DEPLOYMENT.md)
+1. **Getting Started**: [START_DEPLOYMENT_HERE.md](docs/deployment/START_DEPLOYMENT_HERE.md)
+2. **Quick Deploy**: [QUICK_START.md](docs/development/QUICK_START.md)
+3. **Full Guide**: [DEPLOYMENT_GUIDE.md](docs/deployment/DEPLOYMENT_GUIDE.md)
+4. **Tech Details**: [README_DEPLOYMENT.md](docs/deployment/README_DEPLOYMENT.md)
 
 ### External Resources
 - [Docker Documentation](https://docs.docker.com)
@@ -413,9 +422,9 @@ docker-compose exec backend python manage.py collectstatic --noinput
 ### Choose Your Path:
 
 **🚀 Fastest**: `./deploy-one-command.sh`  
-**📖 Guided**: [START_DEPLOYMENT_HERE.md](START_DEPLOYMENT_HERE.md)  
-**⚡ Quick**: [QUICK_START.md](QUICK_START.md)  
-**📚 Detailed**: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
+**📖 Guided**: [START_DEPLOYMENT_HERE.md](docs/deployment/START_DEPLOYMENT_HERE.md)  
+**⚡ Quick**: [QUICK_START.md](docs/development/QUICK_START.md)  
+**📚 Detailed**: [DEPLOYMENT_GUIDE.md](docs/deployment/DEPLOYMENT_GUIDE.md)
 
 ---
 
@@ -427,7 +436,7 @@ This deployment configuration is part of your multivendor platform project.
 
 **Questions?** Check the documentation files or review the deployment scripts for details.
 
-**Ready to start?** → [Click here to begin deployment](START_DEPLOYMENT_HERE.md)
+**Ready to start?** → [Click here to begin deployment](docs/deployment/START_DEPLOYMENT_HERE.md)
 
 
 
