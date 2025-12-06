@@ -242,3 +242,4 @@ docker exec -it <backend_container_id> python manage.py createsuperuser
 
 
 
+

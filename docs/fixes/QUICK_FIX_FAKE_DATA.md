@@ -66,3 +66,4 @@ docker exec -it multivendor_backend python manage.py shell -c "from multivendor_
 
 If you get `ModuleNotFoundError`, the file doesn't exist in the container. Then use Solution 3 or 4.
 
+

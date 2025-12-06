@@ -1,3 +1,8 @@
+<<<<<<< Updated upstream
+=======
+version: '3.8'
+
+>>>>>>> Stashed changes
 services:
   # Traefik - Reverse Proxy and Load Balancer
   traefik:
@@ -16,6 +21,7 @@ services:
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=jalal.shajiei67@gmail.com"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=DEBUG"  # Temporary for debugging
     ports:
       - "80:80"
       - "443:443"
@@ -90,7 +96,7 @@ services:
       - static_files_staging:/app/static
       - media_files_staging:/app/media
     env_file:
-      - .env.staging
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -106,13 +112,29 @@ services:
       - multivendor_network
     labels:
       - "traefik.enable=true"
+<<<<<<< Updated upstream
       - "traefik.http.routers.backend.rule=Host(`${API_DOMAIN}`)"
+=======
+      # HTTP to HTTPS redirect
+      - "traefik.http.routers.backend-http.rule=Host(`api-staging.indexo.ir`)"
+      - "traefik.http.routers.backend-http.entrypoints=web"
+      - "traefik.http.routers.backend-http.middlewares=redirect-to-https"
+      # HTTPS
+      - "traefik.http.routers.backend.rule=Host(`api-staging.indexo.ir`)"
+>>>>>>> Stashed changes
       - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls=true"
       - "traefik.http.routers.backend.tls.certresolver=myresolver"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
+      # Middleware
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
     restart: always
 
+<<<<<<< Updated upstream
   # Nuxt.js Frontend
+=======
+>>>>>>> Stashed changes
   frontend:
     build:
       context: ./multivendor_platform/front_end/nuxt
@@ -121,16 +143,26 @@ services:
         NUXT_PUBLIC_API_BASE: https://${API_DOMAIN}/api
     container_name: multivendor_frontend_staging
     env_file:
-      - .env.staging
+      - .env
     environment:
-      - NUXT_PUBLIC_API_BASE=https://${API_DOMAIN}/api
+      - NUXT_PUBLIC_API_BASE=https://api-staging.indexo.ir/api
       - NODE_TLS_REJECT_UNAUTHORIZED=0
     networks:
       - multivendor_network
     labels:
       - "traefik.enable=true"
+<<<<<<< Updated upstream
       - "traefik.http.routers.frontend.rule=Host(`${MAIN_DOMAIN}`) || Host(`www.${MAIN_DOMAIN}`)"
+=======
+      # HTTP to HTTPS redirect
+      - "traefik.http.routers.frontend-http.rule=Host(`staging.indexo.ir`)"
+      - "traefik.http.routers.frontend-http.entrypoints=web"
+      - "traefik.http.routers.frontend-http.middlewares=redirect-to-https"
+      # HTTPS
+      - "traefik.http.routers.frontend.rule=Host(`staging.indexo.ir`)"
+>>>>>>> Stashed changes
       - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls=true"
       - "traefik.http.routers.frontend.tls.certresolver=myresolver"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
     restart: always
@@ -149,11 +181,25 @@ services:
       - multivendor_network
     labels:
       - "traefik.enable=true"
+<<<<<<< Updated upstream
       - "traefik.http.services.nginx.loadbalancer.server.port=80"
       - "traefik.http.routers.nginx.rule=Host(`${API_DOMAIN}`) && (PathPrefix(`/static`) || PathPrefix(`/media`))"
       - "traefik.http.routers.nginx.entrypoints=websecure"
       - "traefik.http.routers.nginx.tls.certresolver=myresolver"
       - "traefik.http.routers.nginx.service=nginx"
+=======
+      # Static files
+      - "traefik.http.routers.nginx-static.rule=Host(`api-staging.indexo.ir`) && PathPrefix(`/static`)"
+      - "traefik.http.routers.nginx-static.entrypoints=websecure"
+      - "traefik.http.routers.nginx-static.tls=true"
+      - "traefik.http.routers.nginx-static.tls.certresolver=myresolver"
+      - "traefik.http.services.nginx-static.loadbalancer.server.port=80"
+      # Media files
+      - "traefik.http.routers.nginx-media.rule=Host(`api-staging.indexo.ir`) && PathPrefix(`/media`)"
+      - "traefik.http.routers.nginx-media.entrypoints=websecure"
+      - "traefik.http.routers.nginx-media.tls=true"
+      - "traefik.http.routers.nginx-media.tls.certresolver=myresolver"
+>>>>>>> Stashed changes
     restart: always
 
 networks:
