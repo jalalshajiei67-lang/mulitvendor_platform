@@ -59,7 +59,7 @@ services:
 
   backend:
     build:
-      context: .
+      context: ./multivendor_platform/
       dockerfile: Dockerfile
     container_name: multivendor_backend
     environment:
