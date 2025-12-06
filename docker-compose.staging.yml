@@ -5,6 +5,8 @@ services:
   traefik:
     image: traefik:v2.11
     container_name: traefik_staging
+    env_file:
+      - .env.staging
     command:
       - "--api.insecure=false"
       - "--providers.docker=true"
@@ -32,6 +34,8 @@ services:
     container_name: multivendor_db_staging
     volumes:
       - postgres_data_staging:/var/lib/postgresql/data
+    env_file:
+      - .env.staging
     environment:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
@@ -104,7 +108,7 @@ services:
       - multivendor_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`${API_DOMAIN:-api-staging.indexo.ir}`)"
+      - "traefik.http.routers.backend.rule=Host(`${API_DOMAIN}`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=myresolver"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
@@ -116,18 +120,18 @@ services:
       context: ./multivendor_platform/front_end/nuxt
       dockerfile: Dockerfile.frontend
       args:
-        NUXT_PUBLIC_API_BASE: https://${API_DOMAIN:-api-staging.indexo.ir}/api
+        NUXT_PUBLIC_API_BASE: https://${API_DOMAIN}/api
     container_name: multivendor_frontend_staging
     env_file:
       - .env.staging
     environment:
-      - NUXT_PUBLIC_API_BASE=https://${API_DOMAIN:-api-staging.indexo.ir}/api
+      - NUXT_PUBLIC_API_BASE=https://${API_DOMAIN}/api
       - NODE_TLS_REJECT_UNAUTHORIZED=0
     networks:
       - multivendor_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`${MAIN_DOMAIN:-staging.indexo.ir}`) || Host(`www.${MAIN_DOMAIN:-staging.indexo.ir}`)"
+      - "traefik.http.routers.frontend.rule=Host(`${MAIN_DOMAIN}`) || Host(`www.${MAIN_DOMAIN}`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=myresolver"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
@@ -137,6 +141,8 @@ services:
   nginx:
     image: nginx:alpine
     container_name: multivendor_nginx_staging
+    env_file:
+      - .env.staging
     volumes:
       - static_files_staging:/usr/share/nginx/html/static:ro
       - media_files_staging:/usr/share/nginx/html/media:ro
@@ -145,10 +151,11 @@ services:
       - multivendor_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nginx.rule=Host(`${API_DOMAIN:-api-staging.indexo.ir}`) && (PathPrefix(`/static`) || PathPrefix(`/media`))"
+      - "traefik.http.services.nginx.loadbalancer.server.port=80"
+      - "traefik.http.routers.nginx.rule=Host(`${API_DOMAIN}`) && (PathPrefix(`/static`) || PathPrefix(`/media`))"
       - "traefik.http.routers.nginx.entrypoints=websecure"
       - "traefik.http.routers.nginx.tls.certresolver=myresolver"
-      - "traefik.http.services.nginx.loadbalancer.server.port=80"
+      - "traefik.http.routers.nginx.service=nginx"
     restart: always
 
 networks:

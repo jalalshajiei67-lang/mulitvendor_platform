@@ -5,6 +5,8 @@ services:
   traefik:
     image: traefik:v2.11
     container_name: traefik_production
+    env_file:
+      - .env
     command:
       - "--api.insecure=false"
       - "--providers.docker=true"
@@ -32,6 +34,8 @@ services:
     container_name: multivendor_db_production
     volumes:
       - postgres_data_production:/var/lib/postgresql/data
+    env_file:
+      - .env
     environment:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
@@ -137,6 +141,8 @@ services:
   nginx:
     image: nginx:alpine
     container_name: multivendor_nginx_production
+    env_file:
+      - .env
     volumes:
       - static_files_production:/usr/share/nginx/html/static:ro
       - media_files_production:/usr/share/nginx/html/media:ro
@@ -145,14 +151,11 @@ services:
       - multivendor_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nginx-static.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/static`)"
-      - "traefik.http.routers.nginx-media.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/media`)"
-      - "traefik.http.routers.nginx-static.entrypoints=websecure"
-      - "traefik.http.routers.nginx-media.entrypoints=websecure"
-      - "traefik.http.routers.nginx-static.tls.certresolver=myresolver"
-      - "traefik.http.routers.nginx-media.tls.certresolver=myresolver"
-      - "traefik.http.services.nginx-static.loadbalancer.server.port=80"
-      - "traefik.http.services.nginx-media.loadbalancer.server.port=80"
+      - "traefik.http.services.nginx.loadbalancer.server.port=80"
+      - "traefik.http.routers.nginx.rule=Host(`${API_DOMAIN}`) && (PathPrefix(`/static`) || PathPrefix(`/media`))"
+      - "traefik.http.routers.nginx.entrypoints=websecure"
+      - "traefik.http.routers.nginx.tls.certresolver=myresolver"
+      - "traefik.http.routers.nginx.service=nginx"
     restart: always
 
 networks:
