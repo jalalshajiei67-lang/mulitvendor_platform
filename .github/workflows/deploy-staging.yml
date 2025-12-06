@@ -22,6 +22,12 @@ jobs:
           target: "/root/indexo-staging"
           rm: true
 
+# .github/workflows/deploy-staging.yml
+# ... existing code ...
+
+# .github/workflows/deploy-staging.yml
+# ... existing code ...
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -29,12 +35,31 @@ jobs:
           username: ${{ secrets.STAGING_USERNAME }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
-            # Stop and remove old containers
-            docker stop multivendor_backend multivendor_frontend multivendor_db multivendor_redis multivendor_nginx traefik 2>/dev/null || true
-            docker rm multivendor_backend multivendor_frontend multivendor_db multivendor_redis multivendor_nginx traefik 2>/dev/null || true
+            # Navigate to project directory
+            cd /root/indexo-staging
+            
+            # Backup .env.staging if it exists
+            if [ -f .env.staging ]; then
+              cp .env.staging /root/.env.staging.backup
+            fi
+            
+            # Stop and remove old containers using docker compose (more reliable)
+            docker compose -f docker-compose.staging.yml down || true
+            
+            # Also manually stop containers with staging suffix (in case compose down fails)
+            docker stop multivendor_backend_staging multivendor_frontend_staging multivendor_db_staging multivendor_redis_staging multivendor_nginx_staging traefik_staging 2>/dev/null || true
+            docker rm multivendor_backend_staging multivendor_frontend_staging multivendor_db_staging multivendor_redis_staging multivendor_nginx_staging traefik_staging 2>/dev/null || true
+            
+            # Ensure network exists
+            docker network create multivendor_network --driver bridge || true
+            
+            # Restore .env.staging after files are copied (but before deployment)
+            if [ -f /root/.env.staging.backup ]; then
+              cp /root/.env.staging.backup /root/indexo-staging/.env.staging
+            fi
             
             # Deploy new version
-            cd /root/indexo-staging
-            docker network create multivendor_network --driver bridge || true
             docker compose -f docker-compose.staging.yml up -d --build
+            
+            # Clean up unused images
             docker image prune -f
