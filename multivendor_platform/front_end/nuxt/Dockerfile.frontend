@@ -17,7 +17,9 @@ COPY package*.json ./
 # Install dependencies
 # Using npm install instead of npm ci to avoid optional dependencies bug
 # See: https://github.com/npm/cli/issues/4828
-RUN npm install --legacy-peer-deps && \
+# Using --ignore-scripts to skip postinstall (nuxt prepare) which requires source code
+# nuxt prepare will run automatically during npm run build when source files are available
+RUN npm install --legacy-peer-deps --ignore-scripts && \
     npm rebuild
 
 # Copy source code
