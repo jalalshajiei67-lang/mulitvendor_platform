@@ -18,15 +18,20 @@ jobs:
           script_stop: true # This stops the script if any command fails
           debug: true # Enable debug output to troubleshoot SSH issues
           script: |
-            cd /home/${{ secrets.VPS_USER }}/docker-deploy
+            cd /home/deploy/docker-deploy
             
             # 1. FORCE reset changes (Fixes the git abort error)
             git fetch --all
             git reset --hard origin/main
             
-            # 2. Fix line endings just in case
+            # 2. Ensure docker-compose.yml exists (copy from production if needed)
+            if [ ! -f docker-compose.yml ] && [ -f docker-compose.production.yml ]; then
+              cp docker-compose.production.yml docker-compose.yml
+            fi
+            
+            # 3. Fix line endings just in case
             sed -i 's/\r$//' deploy.sh
             chmod +x deploy.sh
             
-            # 3. Run deploy
+            # 4. Run deploy
             ./deploy.sh
