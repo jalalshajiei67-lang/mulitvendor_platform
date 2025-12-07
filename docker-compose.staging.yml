@@ -31,7 +31,7 @@ services:
     image: postgres:15-alpine
     container_name: multivendor_db_staging
     volumes:
-      - indexo-staging_postgres_data_staging:/var/lib/postgresql/data
+      - postgres_data_staging:/var/lib/postgresql/data
     env_file:
       - .env.staging
     environment:
