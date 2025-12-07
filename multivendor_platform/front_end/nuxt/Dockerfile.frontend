@@ -11,18 +11,20 @@ ENV NODE_OPTIONS=--max-old-space-size=2048
 ARG NUXT_PUBLIC_API_BASE=""
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 
-# Copy package files
+# Copy package files and nuxt config (needed for nuxt prepare during install)
 COPY package*.json ./
+COPY nuxt.config.ts* ./
 
 # Install dependencies
-# Using npm install instead of npm ci to avoid optional dependencies bug
+# Remove package-lock.json to avoid optional dependencies bug (as suggested by npm error)
 # See: https://github.com/npm/cli/issues/4828
-# Using --ignore-scripts to skip postinstall (nuxt prepare) which requires source code
-# nuxt prepare will run automatically during npm run build when source files are available
-RUN npm install --legacy-peer-deps --ignore-scripts && \
-    npm rebuild
+# Install normally to get native bindings (oxc-parser needs them)
+# nuxt prepare will run during install and needs at least nuxt.config.ts
+RUN rm -f package-lock.json && \
+    npm install --legacy-peer-deps || \
+    (rm -rf node_modules && npm install --legacy-peer-deps)
 
-# Copy source code
+# Copy remaining source code
 COPY . .
 
 # Build the application
