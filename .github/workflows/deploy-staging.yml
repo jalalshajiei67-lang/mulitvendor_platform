@@ -49,7 +49,7 @@ jobs:
             MAIN_DOMAIN=staging.indexo.ir
             API_DOMAIN=api-staging.indexo.ir
             CSRF_TRUSTED_ORIGINS=https://staging.indexo.ir,https://api-staging.indexo.ir
-            CORS_ALLOWED_ORIGINS=https://staging.indexo.ir
+            CORS_ALLOWED_ORIGINS=https://staging.indexo.ir,https://api-staging.indexo.ir
             CORS_ALLOW_ALL_ORIGINS=False
             NODE_ENV=production
             NUXT_HOST=0.0.0.0
