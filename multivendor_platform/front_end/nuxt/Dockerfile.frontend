@@ -42,15 +42,11 @@ ENV NODE_ENV=production
 ENV NUXT_HOST=0.0.0.0
 ENV NUXT_PORT=3000
 
-# Copy package files
-COPY package*.json ./
-
-# Install production dependencies only
-# Using npm install instead of npm ci to avoid optional dependencies bug
-RUN npm install --omit=dev --legacy-peer-deps
-
-# Copy built application from build stage
+# Copy built application and production node_modules from build stage
+# Nuxt's .output contains the built app, but we may need runtime dependencies
 COPY --from=build-stage /app/.output /app/.output
+COPY --from=build-stage /app/node_modules /app/node_modules
+COPY --from=build-stage /app/package*.json /app/
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser && \
