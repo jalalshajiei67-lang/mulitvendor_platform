@@ -11,13 +11,25 @@ if [ ! -f docker-compose.yml ] && [ -f docker-compose.production.yml ]; then
   cp docker-compose.production.yml docker-compose.yml
 fi
 
+# Detect which docker compose command is available
+if command -v docker-compose &> /dev/null; then
+  DOCKER_COMPOSE="docker-compose"
+elif docker compose version &> /dev/null; then
+  DOCKER_COMPOSE="docker compose"
+else
+  echo "❌ Error: Neither 'docker-compose' nor 'docker compose' is available"
+  exit 1
+fi
+
+echo "✅ Using: $DOCKER_COMPOSE"
+
 # 2. Build Images
 echo "🔨 Building Docker images..."
-docker compose build
+$DOCKER_COMPOSE build
 
 # 3. Start Services
 echo "🚀 Updating services..."
-docker compose up -d --remove-orphans
+$DOCKER_COMPOSE up -d --remove-orphans
 
 # 3. Run Migrations
 echo "⏳ Waiting for Database to be healthy..."
