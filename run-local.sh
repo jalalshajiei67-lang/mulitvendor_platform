@@ -87,7 +87,7 @@ echo "Press Ctrl+C to stop all services"
 echo ""
 
 # Start services
-$DOCKER_COMPOSE --env-file .env.local -f docker-compose.local.yml up --build
+"$DOCKER_COMPOSE" --env-file .env.local -f docker-compose.local.yml up --build
 
 
 

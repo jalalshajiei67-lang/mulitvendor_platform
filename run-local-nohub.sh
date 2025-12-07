@@ -53,5 +53,5 @@ echo "Press Ctrl+C to stop all services"
 echo ""
 
 # Start services (no need for .env.local since we set env vars in docker-compose)
-$DOCKER_COMPOSE -f docker-compose.local-nohub.yml up --build
+"$DOCKER_COMPOSE" -f docker-compose.local-nohub.yml up --build
 
