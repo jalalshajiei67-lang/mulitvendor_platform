@@ -32,10 +32,30 @@ jobs:
             # Navigate to project directory
             cd /root/indexo-staging
             
-            # Ensure .env.staging file exists (should already be on VPS, not in git)
-            if [ ! -f .env.staging ]; then
-              echo "ERROR: .env.staging file not found!"
-              exit 1
+            # Generate SECRET_KEY if .env.staging doesn't exist or SECRET_KEY is invalid
+            if [ ! -f .env.staging ] || ! grep -q "SECRET_KEY=django-insecure-" .env.staging; then
+              SECRET_KEY=$(openssl rand -base64 48 | tr -d '\n')
+              cat > .env.staging << EOF
+            DB_NAME=multivendor_db_staging
+            DB_USER=postgres
+            DB_PASSWORD=MySecurePassword123!
+            DB_HOST=db
+            DB_PORT=5432
+            REDIS_HOST=redis
+            REDIS_PORT=6379
+            SECRET_KEY=django-insecure-${SECRET_KEY}
+            DEBUG=False
+            ALLOWED_HOSTS=localhost,127.0.0.1,backend,staging.indexo.ir,api-staging.indexo.ir
+            MAIN_DOMAIN=staging.indexo.ir
+            API_DOMAIN=api-staging.indexo.ir
+            CSRF_TRUSTED_ORIGINS=https://staging.indexo.ir,https://api-staging.indexo.ir
+            CORS_ALLOWED_ORIGINS=https://staging.indexo.ir,https://api-staging.indexo.ir
+            CORS_ALLOW_ALL_ORIGINS=False
+            NODE_ENV=production
+            NUXT_HOST=0.0.0.0
+            NUXT_PORT=3000
+            NUXT_PUBLIC_API_BASE=https://api-staging.indexo.ir/api
+            EOF
             fi
             
             # Copy .env.staging to .env for Docker Compose variable substitution
@@ -49,7 +69,7 @@ jobs:
             docker stop multivendor_backend_staging multivendor_frontend_staging multivendor_db_staging multivendor_redis_staging multivendor_nginx_staging traefik_staging 2>/dev/null || true
             docker rm multivendor_backend_staging multivendor_frontend_staging multivendor_db_staging multivendor_redis_staging multivendor_nginx_staging traefik_staging 2>/dev/null || true
             
-            # Ensure network exists
+            # Ensure network exists (will be created by docker compose if not exists)
             docker network create multivendor_network --driver bridge || true
             
             # Deploy new version (Docker Compose will use .env for variable substitution)

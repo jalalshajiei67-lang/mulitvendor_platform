@@ -129,7 +129,7 @@ services:
       - multivendor_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`${MAIN_DOMAIN}`) || Host(`www.${MAIN_DOMAIN}`)"
+      - "traefik.http.routers.frontend.rule=Host(`${MAIN_DOMAIN}`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=myresolver"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
@@ -162,7 +162,11 @@ networks:
 
 volumes:
   postgres_data_staging:
+    external: true
+    name: indexo-staging_postgres_data_staging
   redis_data_staging:
+    name: redis_data_staging
   static_files_staging:
+    name: static_files_staging
   media_files_staging:
-
+    name: media_files_staging
