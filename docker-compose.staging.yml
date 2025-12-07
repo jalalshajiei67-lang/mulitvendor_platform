@@ -135,7 +135,7 @@ services:
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
     restart: always
 
-  # Nginx - Serves Static and Media Files
+  # Nginx - Serves Static and Media Files-staging
   nginx:
     image: nginx:alpine
     container_name: multivendor_nginx_staging
