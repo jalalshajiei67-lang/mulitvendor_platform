@@ -29,29 +29,7 @@ jobs:
           username: ${{ secrets.STAGING_USERNAME }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
-<<<<<<< Updated upstream
             # Navigate to project directory
-            cd /root/indexo-staging
-            
-            # Ensure .env.staging file exists (should already be on VPS, not in git)
-            if [ ! -f .env.staging ]; then
-              echo "ERROR: .env.staging file not found!"
-              exit 1
-            fi
-            
-            # Copy .env.staging to .env for Docker Compose variable substitution
-            # Docker Compose automatically reads .env file for ${VARIABLE} substitution
-            cp .env.staging .env
-            
-            # Stop and remove old containers using docker compose (more reliable)
-            docker compose -f docker-compose.staging.yml down || true
-            
-            # Also manually stop containers with staging suffix (in case compose down fails)
-            docker stop multivendor_backend_staging multivendor_frontend_staging multivendor_db_staging multivendor_redis_staging multivendor_nginx_staging traefik_staging 2>/dev/null || true
-            docker rm multivendor_backend_staging multivendor_frontend_staging multivendor_db_staging multivendor_redis_staging multivendor_nginx_staging traefik_staging 2>/dev/null || true
-            
-            # Ensure network exists
-=======
             cd /root/indexo-staging
             
             # Generate SECRET_KEY if .env.staging doesn't exist or SECRET_KEY is invalid
@@ -80,20 +58,22 @@ jobs:
             EOF
             fi
             
-            # Stop and remove old containers
-            docker stop multivendor_backend multivendor_frontend multivendor_db multivendor_redis multivendor_nginx traefik 2>/dev/null || true
-            docker rm multivendor_backend multivendor_frontend multivendor_db multivendor_redis multivendor_nginx traefik 2>/dev/null || true
+            # Copy .env.staging to .env for Docker Compose variable substitution
+            # Docker Compose automatically reads .env file for ${VARIABLE} substitution
+            cp .env.staging .env
             
-            # Deploy new version
->>>>>>> Stashed changes
+            # Stop and remove old containers using docker compose (more reliable)
+            docker compose -f docker-compose.staging.yml down || true
+            
+            # Also manually stop containers with staging suffix (in case compose down fails)
+            docker stop multivendor_backend_staging multivendor_frontend_staging multivendor_db_staging multivendor_redis_staging multivendor_nginx_staging traefik_staging 2>/dev/null || true
+            docker rm multivendor_backend_staging multivendor_frontend_staging multivendor_db_staging multivendor_redis_staging multivendor_nginx_staging traefik_staging 2>/dev/null || true
+            
+            # Ensure network exists (will be created by docker compose if not exists)
             docker network create multivendor_network --driver bridge || true
             
             # Deploy new version (Docker Compose will use .env for variable substitution)
             docker compose -f docker-compose.staging.yml up -d --build
-<<<<<<< Updated upstream
             
             # Clean up unused images
             docker image prune -f
-=======
-            docker image prune -f
->>>>>>> Stashed changes
