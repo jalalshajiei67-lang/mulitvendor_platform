@@ -15,7 +15,9 @@ ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --legacy-peer-deps --force && \
+# Using npm install instead of npm ci to avoid optional dependencies bug
+# See: https://github.com/npm/cli/issues/4828
+RUN npm install --legacy-peer-deps && \
     npm rebuild
 
 # Copy source code
@@ -44,7 +46,8 @@ ENV NUXT_PORT=3000
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --omit=dev --legacy-peer-deps --force
+# Using npm install instead of npm ci to avoid optional dependencies bug
+RUN npm install --omit=dev --legacy-peer-deps
 
 # Copy built application from build stage
 COPY --from=build-stage /app/.output /app/.output
