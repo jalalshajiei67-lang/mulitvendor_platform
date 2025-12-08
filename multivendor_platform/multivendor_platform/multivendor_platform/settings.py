@@ -164,7 +164,10 @@ if not CORS_ALLOW_ALL_ORIGINS:
     # Parse CORS origins from environment
     cors_origins_str = os.environ.get('CORS_ALLOWED_ORIGINS', '')
     if cors_origins_str:
-        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',')]
+        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',') if origin.strip()]
+        # Debug: Log CORS origins in development
+        if DEBUG:
+            print(f"[CORS] Allowed origins: {CORS_ALLOWED_ORIGINS}")
     else:
         CORS_ALLOWED_ORIGINS = [
             "http://localhost:8080",
@@ -176,6 +179,8 @@ if not CORS_ALLOW_ALL_ORIGINS:
         ]
 else:
     CORS_ALLOWED_ORIGINS = []
+    if DEBUG:
+        print("[CORS] Allowing all origins (CORS_ALLOW_ALL_ORIGINS=True)")
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
