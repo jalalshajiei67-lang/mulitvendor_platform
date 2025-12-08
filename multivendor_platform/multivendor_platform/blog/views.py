@@ -1,11 +1,12 @@
 # blog/views.py
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 from django.urls import reverse_lazy
 from django.db.models import Q, Count
 from django.utils import timezone
+from django.conf import settings
 
 # REST Framework imports
 from rest_framework import viewsets, status, filters
@@ -262,20 +263,22 @@ class MyBlogPostsView(viewsets.ReadOnlyModelViewSet):
 # Django Template Views for Dashboard
 class BlogDashboardView(LoginRequiredMixin, TemplateView):
     """
-    Blog dashboard view that redirects to Vue.js frontend
+    Blog dashboard view that redirects to Nuxt frontend
     """
     template_name = 'blog/dashboard.html'
     
     def get(self, request, *args, **kwargs):
-        # Redirect to Vue.js frontend blog dashboard
-        return redirect('http://localhost:8080/blog/dashboard')
+        # Redirect to Nuxt frontend blog dashboard
+        frontend_url = getattr(settings, 'SITE_URL', 'http://localhost:3000')
+        return redirect(f'{frontend_url.rstrip("/")}/admin/dashboard/blog')
 
 class BlogCategoryManageView(LoginRequiredMixin, TemplateView):
     """
-    Blog category management view that redirects to Vue.js frontend
+    Blog category management view that redirects to Nuxt frontend
     """
     template_name = 'blog/categories.html'
     
     def get(self, request, *args, **kwargs):
-        # Redirect to Vue.js frontend blog categories page
-        return redirect('http://localhost:8080/blog/categories')
+        # Redirect to Nuxt frontend blog categories page
+        frontend_url = getattr(settings, 'SITE_URL', 'http://localhost:3000')
+        return redirect(f'{frontend_url.rstrip("/")}/admin/dashboard/blog')

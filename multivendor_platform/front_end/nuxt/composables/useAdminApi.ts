@@ -45,8 +45,23 @@ export const useAdminApi = () => {
       })
     },
 
+    async getAdminProductDetail(id: number) {
+      return useApiFetch<any>(`auth/admin/products/${id}/`)
+    },
+
+    async updateProductStatus(id: number, isActive: boolean) {
+      // Use bulk action endpoint for single product status update
+      return useApiFetch('auth/admin/products/bulk-action/', {
+        method: 'POST',
+        body: {
+          action: isActive ? 'activate' : 'deactivate',
+          product_ids: [id]
+        }
+      })
+    },
+
     async deleteProduct(id: number) {
-      return useApiFetch(`auth/admin/products/${id}/`, {
+      return useApiFetch(`auth/admin/products/${id}/delete/`, {
         method: 'DELETE'
       })
     },

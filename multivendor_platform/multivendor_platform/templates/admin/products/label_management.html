@@ -1,0 +1,259 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        .label-management-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .label-management-table th,
+        .label-management-table td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .label-management-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+        .label-management-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        .url-cell {
+            max-width: 400px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-copy, .btn-view {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-copy {
+            background-color: #2196F3;
+            color: white;
+        }
+        .btn-copy:hover {
+            background-color: #1976D2;
+        }
+        .btn-view {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-view:hover {
+            background-color: #45a049;
+        }
+        .type-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .type-label {
+            background-color: #FF9800;
+            color: white;
+        }
+        .type-combo {
+            background-color: #9C27B0;
+            color: white;
+        }
+        .filters-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .filters-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .filter-group select,
+        .filter-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .stats-bar {
+            background: #e3f2fd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1>مدیریت لیبل‌های SEO</h1>
+    
+    <div class="stats-bar">
+        <div>
+            <strong>تعداد کل:</strong> {{ total_count }} لیبل SEO
+        </div>
+        <div>
+            <a href="{% url 'admin:products_label_changelist' %}" class="button">مدیریت لیبل‌ها</a>
+            <a href="{% url 'admin:products_labelcomboseopage_changelist' %}" class="button">مدیریت کامبوها</a>
+        </div>
+    </div>
+    
+    <div class="filters-section">
+        <form method="get" action="{% url 'admin:products_labelmanagementproxy_changelist' %}">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>جستجو (نام یا slug):</label>
+                    <input type="text" name="q" value="{{ current_search }}" placeholder="جستجو...">
+                </div>
+                <div class="filter-group">
+                    <label>دپارتمان:</label>
+                    <select name="department">
+                        <option value="">همه دپارتمان‌ها</option>
+                        {% for dept in departments %}
+                            <option value="{{ dept.id }}" {% if current_department == dept.id|stringformat:"s" %}selected{% endif %}>
+                                {{ dept.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>دسته‌بندی:</label>
+                    <select name="category">
+                        <option value="">همه دسته‌بندی‌ها</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if current_category == cat.id|stringformat:"s" %}selected{% endif %}>
+                                {{ cat.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>نوع:</label>
+                    <select name="type">
+                        <option value="">همه</option>
+                        <option value="label" {% if current_type == "label" %}selected{% endif %}>لیبل</option>
+                        <option value="combo" {% if current_type == "combo" %}selected{% endif %}>کامبو</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <button type="submit" class="button" style="width: auto; padding: 8px 20px;">فیلتر</button>
+                    <a href="{% url 'admin:products_labelmanagementproxy_changelist' %}" class="button" style="width: auto; padding: 8px 20px; margin-top: 5px; display: block; text-align: center;">پاک کردن</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <table class="label-management-table">
+        <thead>
+            <tr>
+                <th>نام</th>
+                <th>نوع</th>
+                <th>URL کامل</th>
+                <th>تعداد محصولات</th>
+                <th>دپارتمان</th>
+                <th>دسته‌بندی</th>
+                <th>عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+                <tr>
+                    <td>
+                        <strong>{{ item.name }}</strong>
+                        <br>
+                        <small style="color: #666;">{{ item.slug }}</small>
+                    </td>
+                    <td>
+                        <span class="type-badge type-{{ item.type|lower }}">
+                            {{ item.type }}
+                        </span>
+                    </td>
+                    <td class="url-cell">{{ item.url }}</td>
+                    <td>
+                        <strong>{{ item.product_count }}</strong>
+                    </td>
+                    <td>{{ item.departments }}</td>
+                    <td>{{ item.categories }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-copy" onclick="copyToClipboard('{{ item.url }}', this)">
+                                کپی URL
+                            </button>
+                            <a href="{{ item.url }}" target="_blank" class="btn-view">
+                                مشاهده در سایت
+                            </a>
+                            <a href="{{ item.edit_url }}" class="button" style="padding: 6px 12px;">
+                                ویرایش
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+                        هیچ لیبل SEO یافت نشد.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if items.has_other_pages %}
+        <div class="paginator" style="margin-top: 20px;">
+            {% if items.has_previous %}
+                <a href="?page={{ items.previous_page_number }}{% if current_search %}&q={{ current_search }}{% endif %}{% if current_department %}&department={{ current_department }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="button">قبلی</a>
+            {% endif %}
+            <span style="margin: 0 15px;">
+                صفحه {{ items.number }} از {{ items.paginator.num_pages }}
+            </span>
+            {% if items.has_next %}
+                <a href="?page={{ items.next_page_number }}{% if current_search %}&q={{ current_search }}{% endif %}{% if current_department %}&department={{ current_department }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="button">بعدی</a>
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    <script>
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(function() {
+                const originalText = button.textContent;
+                button.textContent = 'کپی شد!';
+                button.style.backgroundColor = '#4CAF50';
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.style.backgroundColor = '#2196F3';
+                }, 2000);
+            }).catch(function(err) {
+                alert('خطا در کپی کردن: ' + err);
+            });
+        }
+    </script>
+{% endblock %}
+

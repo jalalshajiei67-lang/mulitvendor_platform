@@ -3,7 +3,8 @@
 # Script to fix PostgreSQL password mismatch in staging
 # This resets the database password to match what's in .env.staging
 
-set -e
+# Don't exit on error for verification steps
+set +e
 
 echo "=========================================="
 echo "🔧 Fixing PostgreSQL Password in Staging"
@@ -25,7 +26,7 @@ fi
 
 # Read password from .env.staging (if exists) or use default
 if [ -f ".env.staging" ]; then
-    DB_PASSWORD=$(grep "^DB_PASSWORD=" .env.staging | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+    DB_PASSWORD=$(grep "^DB_PASSWORD=" .env.staging | cut -d '=' -f2 | tr -d '"' | tr -d "'" | xargs)
 else
     DB_PASSWORD="MySecurePassword123!"
     echo -e "${YELLOW}⚠️  .env.staging not found, using default password${NC}"
@@ -35,6 +36,16 @@ if [ -z "$DB_PASSWORD" ]; then
     DB_PASSWORD="MySecurePassword123!"
     echo -e "${YELLOW}⚠️  DB_PASSWORD not found in .env.staging, using default${NC}"
 fi
+
+# Check if password is already correct
+echo "Checking current database password..."
+if docker exec -e PGPASSWORD="$DB_PASSWORD" multivendor_db_staging psql -U postgres -c "SELECT 1;" > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Database password is already correct! No need to reset.${NC}"
+    exit 0
+fi
+
+echo -e "${YELLOW}⚠️  Password mismatch detected. Proceeding with password reset...${NC}"
+set -e
 
 echo -e "${YELLOW}📋 Resetting password to: ${DB_PASSWORD:0:5}***${NC}"
 echo ""
@@ -105,10 +116,19 @@ docker start multivendor_db_staging
 echo "Step 8: Verifying password..."
 sleep 3
 
-if docker exec multivendor_db_staging psql -U postgres -c "SELECT 1;" > /dev/null 2>&1; then
+set +e
+if docker exec -e PGPASSWORD="$DB_PASSWORD" multivendor_db_staging psql -U postgres -c "SELECT 1;" > /dev/null 2>&1; then
     echo -e "${GREEN}✅ Password reset successful!${NC}"
+    set -e
 else
-    echo -e "${YELLOW}⚠️  Could not auto-verify, but password should be reset${NC}"
+    echo -e "${YELLOW}⚠️  Could not auto-verify with new password${NC}"
+    echo -e "${YELLOW}   Trying to verify without password...${NC}"
+    if docker exec multivendor_db_staging psql -U postgres -c "SELECT 1;" > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ Database is accessible (password may need manual verification)${NC}"
+    else
+        echo -e "${RED}❌ Warning: Could not verify password reset${NC}"
+    fi
+    set -e
 fi
 
 echo ""

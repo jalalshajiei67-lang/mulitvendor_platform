@@ -148,8 +148,11 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Site URL for SEO (robots.txt, sitemap, canonical URLs)
 # Used for generating absolute URLs in sitemaps and robots.txt
+# This should point to the FRONTEND (Nuxt) URL, not the Django backend
 # Falls back to request if not set
-SITE_URL = os.environ.get('SITE_URL', '')  # e.g., 'https://indexo.ir'
+# Development example: 'http://localhost:3000'
+# Production example: 'https://indexo.ir'
+SITE_URL = os.environ.get('SITE_URL', '')  # e.g., 'https://indexo.ir' or 'http://localhost:3000'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
