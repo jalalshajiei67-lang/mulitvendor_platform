@@ -47,10 +47,63 @@ test_db_connection() {
     fi
 }
 
+# Function to fix migration sequence (PostgreSQL only)
+fix_migration_sequence() {
+    echo ""
+    echo "[3/8] Checking migration sequence..."
+    
+    # Use Python to fix the sequence (checks DB engine automatically)
+    python << 'PYTHON_EOF'
+import os
+import sys
+import django
+
+# Set up Django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', os.getenv('DJANGO_SETTINGS_MODULE', 'multivendor_platform.settings'))
+django.setup()
+
+from django.db import connection
+from django.conf import settings
+
+try:
+    # Check if we're using PostgreSQL
+    db_engine = settings.DATABASES['default']['ENGINE']
+    
+    if 'postgresql' not in db_engine.lower():
+        print("   Skipping sequence check (not PostgreSQL)")
+        sys.exit(0)
+    
+    print("   Detected PostgreSQL, checking sequence...")
+    
+    with connection.cursor() as cursor:
+        # Get max ID
+        cursor.execute("SELECT MAX(id) FROM django_migrations;")
+        max_id = cursor.fetchone()[0]
+        
+        if max_id is not None:
+            # Get current sequence value
+            cursor.execute("SELECT last_value FROM django_migrations_id_seq;")
+            current_seq = cursor.fetchone()[0]
+            
+            if current_seq <= max_id:
+                new_seq_value = max_id + 1
+                cursor.execute(f"SELECT setval('django_migrations_id_seq', {new_seq_value}, false);")
+                print(f"   ✓ Sequence reset from {current_seq} to {new_seq_value}")
+            else:
+                print(f"   ✓ Sequence is correct (current: {current_seq}, max_id: {max_id})")
+        else:
+            print("   ✓ No migrations found, sequence will be set on first migration")
+except Exception as e:
+    print(f"   ⚠️  Could not check sequence (non-critical): {e}")
+    # Don't exit with error - this is a non-critical check
+    sys.exit(0)
+PYTHON_EOF
+}
+
 # Function to run migrations
 run_migrations() {
     echo ""
-    echo "[3/7] Running database migrations..."
+    echo "[4/8] Running database migrations..."
     
     if python manage.py migrate --noinput; then
         echo "✅ Migrations completed successfully!"
@@ -67,7 +120,7 @@ run_migrations() {
 # Function to collect static files
 collect_static() {
     echo ""
-    echo "[4/7] Collecting static files..."
+    echo "[5/8] Collecting static files..."
     
     if python manage.py collectstatic --noinput --clear; then
         echo "✅ Static files collected successfully!"
@@ -80,7 +133,7 @@ collect_static() {
 # Function to create media directories
 setup_directories() {
     echo ""
-    echo "[5/7] Setting up media directories..."
+    echo "[6/8] Setting up media directories..."
     
     mkdir -p /app/logs
     mkdir -p /app/staticfiles
@@ -101,7 +154,7 @@ setup_directories() {
 # Function to verify Django configuration
 check_django() {
     echo ""
-    echo "[6/7] Verifying Django configuration..."
+    echo "[7/8] Verifying Django configuration..."
     
     python manage.py check --deploy 2>&1 || echo "⚠️  Django check found issues (non-critical)"
     
@@ -111,18 +164,22 @@ check_django() {
 # Function to start Daphne (ASGI server for WebSocket support)
 start_server() {
     echo ""
-    echo "[7/7] Starting Daphne ASGI server..."
-    echo "   Binding to: 0.0.0.0:80"
+    echo "[8/8] Starting Daphne ASGI server..."
+    
+    # Use PORT environment variable if set, otherwise default to 8000 (Docker Compose) or 80 (CapRover)
+    PORT=${PORT:-8000}
+    echo "   Binding to: 0.0.0.0:${PORT}"
     echo "   Application: multivendor_platform.asgi:application"
     echo "=========================================="
     echo ""
     
-    exec daphne -b 0.0.0.0 -p 80 multivendor_platform.asgi:application
+    exec daphne -b 0.0.0.0 -p "${PORT}" multivendor_platform.asgi:application
 }
 
 # Main execution flow
 wait_for_db
 test_db_connection
+fix_migration_sequence
 run_migrations
 setup_directories
 collect_static

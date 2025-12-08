@@ -45,6 +45,10 @@ COPY --from=builder /root/.local /home/appuser/.local
 # Copy Django project
 COPY multivendor_platform/multivendor_platform/ /app/
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
 # Create necessary directories and set permissions
 RUN mkdir -p /app/static /app/media && \
     chown -R appuser:appuser /app
@@ -59,6 +63,6 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/api/ || exit 1
 
-# The command to run the application
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "--application-close-timeout", "60", "multivendor_platform.asgi:application"]
+# Use entrypoint script (which handles migrations and then starts the server)
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 

@@ -82,10 +82,9 @@ services:
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS}
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-             python manage.py collectstatic --noinput &&
-             daphne -b 0.0.0.0 -p 8000 --application-close-timeout 60 multivendor_platform.asgi:application"
+    # Use entrypoint script which handles migrations, static files, and starts server
+    # The entrypoint script will fix migration sequence automatically
+    command: []
     volumes:
       - static_files_staging:/app/static
       - media_files_staging:/app/media
