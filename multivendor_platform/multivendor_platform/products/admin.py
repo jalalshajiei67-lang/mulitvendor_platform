@@ -416,22 +416,36 @@ class LabelManagementAdmin(admin.ModelAdmin):
         
         # If still not set, use intelligent defaults
         if not site_url:
+            scheme = 'https' if request.is_secure() else 'http'
+            host = request.get_host().split(':')[0]  # Get hostname without port
+            
             if settings.DEBUG:
                 # In development, Nuxt typically runs on port 3000
-                # Check if request is from localhost
-                host = request.get_host().split(':')[0]  # Get hostname without port
                 if host in ['localhost', '127.0.0.1']:
                     site_url = "http://localhost:3000"
                 else:
                     # For other dev setups, try to use same host
-                    scheme = 'https' if request.is_secure() else 'http'
-                    site_url = f"{scheme}://{request.get_host().split(':')[0]}:3000"
+                    site_url = f"{scheme}://{host}:3000"
             else:
-                # Production: assume frontend is on same domain as backend
-                # This is common in production where nginx routes both
-                scheme = 'https' if request.is_secure() else 'http'
-                host = request.get_host().split(':')[0]  # Remove port if present
-                site_url = f"{scheme}://{host}"
+                # Production: detect if we're on API domain and convert to frontend domain
+                # Common patterns: api-staging.indexo.ir -> staging.indexo.ir
+                #                  api.indexo.ir -> indexo.ir
+                #                  api-staging -> staging (if subdomain pattern)
+                if host.startswith('api-'):
+                    # Remove 'api-' prefix to get frontend domain
+                    frontend_host = host.replace('api-', '', 1)
+                    site_url = f"{scheme}://{frontend_host}"
+                elif host.startswith('api.'):
+                    # Remove 'api.' prefix to get frontend domain
+                    frontend_host = host.replace('api.', '', 1)
+                    site_url = f"{scheme}://{frontend_host}"
+                elif '.api.' in host:
+                    # Handle cases like staging.api.indexo.ir -> staging.indexo.ir
+                    frontend_host = host.replace('.api.', '.', 1)
+                    site_url = f"{scheme}://{frontend_host}"
+                else:
+                    # Fallback: assume frontend is on same domain (for same-domain setups)
+                    site_url = f"{scheme}://{host}"
         
         # Get filter parameters
         department_filter = request.GET.get('department', '')
