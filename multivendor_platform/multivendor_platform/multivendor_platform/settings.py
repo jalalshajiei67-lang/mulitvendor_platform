@@ -164,17 +164,6 @@ if not CORS_ALLOW_ALL_ORIGINS:
     cors_origins_str = os.environ.get('CORS_ALLOWED_ORIGINS', '')
     if cors_origins_str:
         CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',') if origin.strip()]
-<<<<<<< HEAD
-        # Log CORS configuration for debugging (only in development)
-        if DEBUG:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"CORS_ALLOWED_ORIGINS configured: {CORS_ALLOWED_ORIGINS}")
-=======
-        # Debug: Log CORS origins in development
-        if DEBUG:
-            print(f"[CORS] Allowed origins: {CORS_ALLOWED_ORIGINS}")
->>>>>>> f1b1477436056dc3bbbd51c392b3313a488027b9
     else:
         CORS_ALLOWED_ORIGINS = [
             "http://localhost:8080",
