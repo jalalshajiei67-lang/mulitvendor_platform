@@ -1,4 +1,5 @@
 # products/models.py
+from typing import Optional
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.text import slugify
@@ -581,14 +582,14 @@ class LabelGroup(models.Model):
     def is_global(self):
         return not self.subcategories.exists()
 
-    def applies_to_subcategory(self, subcategory_id: int | None):
+    def applies_to_subcategory(self, subcategory_id: Optional[int]):
         if not subcategory_id:
             return True
         if self.is_global():
             return True
         return self.subcategories.filter(id=subcategory_id).exists()
 
-    def get_labels_for_subcategory(self, subcategory_id: int | None):
+    def get_labels_for_subcategory(self, subcategory_id: Optional[int]):
         """
         Return labels that should be displayed for `subcategory_id`.
         Global labels always show; others must explicitly attach to the subcategory.
@@ -691,7 +692,7 @@ class Label(models.Model):
         self.product_count = self.products.filter(is_active=True).count()
         self.save(update_fields=['product_count'])
 
-    def applies_to_subcategory(self, subcategory_id: int | None):
+    def applies_to_subcategory(self, subcategory_id: Optional[int]):
         if not subcategory_id:
             return True
         if not self.subcategories.exists():
@@ -702,7 +703,7 @@ class Label(models.Model):
         """Return True when the label applies to every subcategory."""
         return not self.subcategories.exists()
 
-    def is_relevant_for_subcategory(self, subcategory_id: int | None) -> bool:
+    def is_relevant_for_subcategory(self, subcategory_id: Optional[int]) -> bool:
         if not subcategory_id:
             return True
         if self.is_global():
