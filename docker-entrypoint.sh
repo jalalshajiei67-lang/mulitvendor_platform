@@ -47,12 +47,12 @@ test_db_connection() {
     fi
 }
 
-# Function to fix migration sequence (PostgreSQL only)
+# Function to fix all database sequences (PostgreSQL only)
 fix_migration_sequence() {
     echo ""
-    echo "[3/8] Checking migration sequence..."
+    echo "[3/8] Checking and fixing database sequences..."
     
-    # Use Python to fix the sequence (checks DB engine automatically)
+    # Use Python to fix all sequences (checks DB engine automatically)
     python << 'PYTHON_EOF'
 import os
 import sys
@@ -73,28 +73,71 @@ try:
         print("   Skipping sequence check (not PostgreSQL)")
         sys.exit(0)
     
-    print("   Detected PostgreSQL, checking sequence...")
+    print("   Detected PostgreSQL, checking all sequences...")
     
     with connection.cursor() as cursor:
-        # Get max ID
-        cursor.execute("SELECT MAX(id) FROM django_migrations;")
-        max_id = cursor.fetchone()[0]
+        # Get all sequences and their associated tables
+        # This query works with PostgreSQL 9.1+ (more compatible than pg_sequences)
+        cursor.execute("""
+            SELECT 
+                t.oid::regclass::text as table_name,
+                a.attname as column_name,
+                pg_get_serial_sequence(t.oid::regclass::text, a.attname) as sequence_name
+            FROM pg_class t
+            JOIN pg_attribute a ON a.attrelid = t.oid
+            JOIN pg_namespace n ON n.oid = t.relnamespace
+            WHERE n.nspname = 'public'
+            AND a.attnum > 0
+            AND NOT a.attisdropped
+            AND a.attname = 'id'
+            AND pg_get_serial_sequence(t.oid::regclass::text, a.attname) IS NOT NULL
+            ORDER BY t.relname;
+        """)
         
-        if max_id is not None:
-            # Get current sequence value
-            cursor.execute("SELECT last_value FROM django_migrations_id_seq;")
-            current_seq = cursor.fetchone()[0]
-            
-            if current_seq <= max_id:
-                new_seq_value = max_id + 1
-                cursor.execute(f"SELECT setval('django_migrations_id_seq', {new_seq_value}, false);")
-                print(f"   ✓ Sequence reset from {current_seq} to {new_seq_value}")
-            else:
-                print(f"   ✓ Sequence is correct (current: {current_seq}, max_id: {max_id})")
+        sequences = cursor.fetchall()
+        fixed_count = 0
+        
+        for table_name, column_name, sequence_name in sequences:
+            try:
+                # Get max ID from the table
+                cursor.execute(f'SELECT MAX("{column_name}") FROM {table_name};')
+                max_id_result = cursor.fetchone()
+                max_id = max_id_result[0] if max_id_result else None
+                
+                if max_id is None:
+                    # Table is empty, set sequence to 1
+                    cursor.execute(f"SELECT setval('{sequence_name}', 1, false);")
+                    continue
+                
+                # Get current sequence value
+                cursor.execute(f"SELECT last_value, is_called FROM {sequence_name};")
+                seq_result = cursor.fetchone()
+                current_seq = seq_result[0] if seq_result else 0
+                is_called = seq_result[1] if seq_result else False
+                
+                # Calculate what the next value would be
+                if is_called:
+                    next_seq = current_seq + 1
+                else:
+                    next_seq = current_seq
+                
+                if next_seq <= max_id:
+                    new_seq_value = max_id + 1
+                    cursor.execute(f"SELECT setval('{sequence_name}', {new_seq_value}, false);")
+                    print(f"   ✓ Fixed {sequence_name}: {next_seq} → {new_seq_value} (max_id: {max_id})")
+                    fixed_count += 1
+                # else: sequence is correct, no need to print
+            except Exception as e:
+                # Some tables might have issues, skip silently
+                pass
+        
+        if fixed_count == 0:
+            print("   ✓ All sequences are correct")
         else:
-            print("   ✓ No migrations found, sequence will be set on first migration")
+            print(f"   ✓ Fixed {fixed_count} sequence(s)")
+            
 except Exception as e:
-    print(f"   ⚠️  Could not check sequence (non-critical): {e}")
+    print(f"   ⚠️  Could not check sequences (non-critical): {e}")
     # Don't exit with error - this is a non-critical check
     sys.exit(0)
 PYTHON_EOF
