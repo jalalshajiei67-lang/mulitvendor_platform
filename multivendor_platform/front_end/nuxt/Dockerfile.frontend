@@ -9,7 +9,9 @@ ENV NODE_OPTIONS=--max-old-space-size=2048
 
 # Accept build arguments
 ARG NUXT_PUBLIC_API_BASE=""
+ARG NUXT_PUBLIC_SITE_URL=""
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
+ENV NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
 
 # Copy package files
 COPY package*.json ./
