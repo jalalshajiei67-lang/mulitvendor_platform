@@ -281,7 +281,9 @@ export default defineNuxtConfig({
     // Enable prefetching for likely next pages
     '/products/**': { prerender: false },
     '/blog/**': { prerender: false },
-    '/suppliers/**': { prerender: false }
+    '/suppliers/**': { prerender: false },
+    // Machinery routes - client-side only, no SSR prefetch
+    '/machinery/**': { prerender: false, ssr: true }
   },
   nitro: {
     compressPublicAssets: true,
@@ -299,6 +301,7 @@ export default defineNuxtConfig({
     registerType: 'autoUpdate',
     workbox: {
       navigateFallback: '/offline',
+      navigateFallbackDenylist: [/^\/api/, /^\/admin/, /^\/_nuxt/],
       globPatterns: ['**/*.{js,css,html,png,svg,ico,jpg,jpeg,woff,woff2}'],
       runtimeCaching: [
         {

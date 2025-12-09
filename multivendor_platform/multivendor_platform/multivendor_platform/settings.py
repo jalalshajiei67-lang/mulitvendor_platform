@@ -270,10 +270,6 @@ REST_FRAMEWORK = {
     ]
 }
 
-# Media files configuration
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
 # TinyMCE Configuration
 TINYMCE_DEFAULT_CONFIG = {
     'height': 400,

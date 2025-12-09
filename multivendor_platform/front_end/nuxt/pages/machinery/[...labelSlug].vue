@@ -5,7 +5,7 @@
       <p class="text-body-1 text-medium-emphasis">{{ t('loading') }}</p>
     </v-container>
 
-    <template v-else>
+    <div v-else>
       <section class="hero">
         <v-container class="py-10 text-white">
           <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
@@ -106,7 +106,7 @@
         </div>
       </section>
     </v-container>
-    </template>
+    </div>
   </div>
 </template>
 
@@ -196,16 +196,21 @@ const loadSeoContent = async () => {
 
   if (comboSlug.value) {
     try {
-      payload = await useApiFetch(`label-combos/${comboSlug.value}/`)
+      // Use skip404Redirect to prevent navigation on expected 404s
+      payload = await useApiFetch(`label-combos/${comboSlug.value}/`, {
+        skip404Redirect: true
+      })
     } catch (err) {
-      // Fallback to single label if combo is not defined
+      // Fallback to single label if combo is not defined - this is expected
     }
   }
 
   if (!payload) {
     const fallback = slugSegments.value[slugSegments.value.length - 1]
     try {
-      payload = await useApiFetch(`labels/seo-content/${fallback}/`)
+      payload = await useApiFetch(`labels/seo-content/${fallback}/`, {
+        skip404Redirect: true
+      })
     } catch (err) {
       console.error('Error loading label SEO content:', err)
     }
@@ -267,9 +272,56 @@ const fetchProductsForPage = async (pageNumber = 1) => {
 const loadLabelPage = async () => {
   await loadSeoContent()
   await fetchProductsForPage(1)
+  // Return the data to ensure it's available for SSR
+  return { 
+    labelSeo: labelSeo.value, 
+    products: products.value,
+    pagination: { ...pagination }
+  }
 }
 
-await useAsyncData(`label-page-${comboSlug.value}`, loadLabelPage)
+const { data: pageData, pending, error: asyncError, refresh } = await useAsyncData(
+  `label-page-${comboSlug.value}`,
+  loadLabelPage,
+  {
+    // Ensure data is available during SSR
+    server: true,
+    default: () => ({ labelSeo: null, products: [], pagination: { count: 0, next: null, previous: null } })
+  }
+)
+
+// Sync data from useAsyncData to refs (for reactivity)
+if (pageData.value) {
+  if (pageData.value.labelSeo) {
+    labelSeo.value = pageData.value.labelSeo
+  }
+  if (pageData.value.products) {
+    products.value = pageData.value.products
+  }
+  if (pageData.value.pagination) {
+    Object.assign(pagination, pageData.value.pagination)
+  }
+}
+
+// Set pageError if asyncData failed
+if (asyncError.value) {
+  pageError.value = asyncError.value.message || 'خطا در بارگذاری صفحه'
+}
+
+// Watch for route changes and reload data
+watch(
+  () => route.params.labelSlug,
+  async (newSlug, oldSlug) => {
+    if (newSlug !== oldSlug) {
+      // Reset state
+      labelSeo.value = null
+      products.value = []
+      pageError.value = null
+      // Reload data
+      await refresh()
+    }
+  }
+)
 
 const pageTitle = computed(() => labelSeo.value?.seo_h1 ?? labelSeo.value?.name ?? t('products'))
 const breadcrumbs = computed(() => [

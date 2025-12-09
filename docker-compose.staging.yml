@@ -130,11 +130,13 @@ services:
       dockerfile: Dockerfile.frontend
       args:
         NUXT_PUBLIC_API_BASE: https://${API_DOMAIN}/api
+        NUXT_PUBLIC_SITE_URL: https://${MAIN_DOMAIN}
     container_name: multivendor_frontend_staging
     env_file:
       - .env.staging
     environment:
       - NUXT_PUBLIC_API_BASE=https://${API_DOMAIN}/api
+      - NUXT_PUBLIC_SITE_URL=https://${MAIN_DOMAIN}
       - NODE_TLS_REJECT_UNAUTHORIZED=0
     networks:
       - multivendor_network
