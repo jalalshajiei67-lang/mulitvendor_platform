@@ -1,60 +1,65 @@
-// Deep merge utility function
-function deepMerge(target: any, source: any): any {
-  const output = { ...target }
-  if (isObject(target) && isObject(source)) {
-    Object.keys(source).forEach((key) => {
-      if (isObject(source[key])) {
-        if (!(key in target)) {
-          Object.assign(output, { [key]: source[key] })
-        } else {
-          output[key] = deepMerge(target[key], source[key])
+export default defineNuxtPlugin({
+  name: 'vuetify-locale-fix',
+  enforce: 'post', // Run after Vuetify module is initialized
+  setup(nuxtApp) {
+    // Wait for client-side only
+    if (process.client) {
+      // Use app:mounted hook to ensure Vuetify is fully initialized
+      nuxtApp.hook('app:mounted', () => {
+        try {
+          const vuetify = (nuxtApp as any).$vuetify
+
+          if (!vuetify?.locale) {
+            return
+          }
+
+          // Get current messages
+          const messages = vuetify.locale.messages?.value || vuetify.locale.messages || {}
+          const faMessages = messages.fa || {}
+          const currentVuetify = faMessages.$vuetify || {}
+
+          // Ensure input object exists with all required keys
+          if (!currentVuetify.input) {
+            currentVuetify.input = {}
+          }
+
+          // Set missing input keys
+          currentVuetify.input = {
+            clear: 'پاک کردن',
+            appendAction: 'عملیات اضافی',
+            prependAction: 'عملیات اولیه',
+            otp: 'لطفاً کد OTP خود را وارد کنید',
+            ...currentVuetify.input // Preserve existing keys
+          }
+
+          // Ensure other top-level keys exist
+          if (!currentVuetify.open) {
+            currentVuetify.open = 'باز کردن'
+          }
+          if (!currentVuetify.close) {
+            currentVuetify.close = 'بستن'
+          }
+
+          // Update messages with the fixed translations
+          const updatedMessages = {
+            ...messages,
+            fa: {
+              ...faMessages,
+              $vuetify: currentVuetify
+            }
+          }
+
+          // Update reactive structure
+          if (vuetify.locale.messages?.value !== undefined) {
+            vuetify.locale.messages.value = updatedMessages
+          } else if (vuetify.locale.messages) {
+            vuetify.locale.messages = updatedMessages
+          }
+        } catch (error) {
+          // Silently fail - translations should be set in nuxt.config.ts anyway
+          console.debug('Vuetify locale plugin:', error)
         }
-      } else {
-        Object.assign(output, { [key]: source[key] })
-      }
-    })
-  }
-  return output
-}
-
-function isObject(item: any): boolean {
-  return item && typeof item === 'object' && !Array.isArray(item)
-}
-
-export default defineNuxtPlugin((nuxtApp) => {
-  const vuetify = (nuxtApp as any).$vuetify
-
-  // Ensure translations are properly set (fallback in case config didn't apply)
-  if (!vuetify?.locale) {
-    return
-  }
-
-  const messages = vuetify.locale.messages.value || {}
-  const faMessages = messages.fa || {}
-  const currentVuetify = faMessages.$vuetify || {}
-
-  // Ensure critical missing keys are present
-  const requiredKeys = {
-    open: 'باز کردن',
-    close: 'بستن',
-    input: {
-      clear: 'پاک کردن',
-      appendAction: 'عملیات اضافی',
-      prependAction: 'عملیات اولیه'
-    }
-  }
-
-  // Deep merge to ensure all keys are present
-  const mergedVuetify = deepMerge(currentVuetify, requiredKeys)
-
-  // Only update if we actually merged something new
-  if (JSON.stringify(mergedVuetify) !== JSON.stringify(currentVuetify)) {
-    vuetify.locale.messages.value = {
-      ...messages,
-      fa: {
-        ...faMessages,
-        $vuetify: mergedVuetify
-      }
+      })
     }
   }
 })

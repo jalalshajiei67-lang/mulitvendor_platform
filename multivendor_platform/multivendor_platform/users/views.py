@@ -880,58 +880,94 @@ class SellerAdViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAdminUser])
 def admin_dashboard_view(request):
     """Get admin dashboard data"""
+    import logging
+    logger = logging.getLogger(__name__)
     
-    # Get user statistics
-    total_users = User.objects.filter(is_staff=False).count()
-    buyers = UserProfile.objects.filter(role__in=['buyer', 'both']).count()
-    sellers = UserProfile.objects.filter(role__in=['seller', 'both']).count()
-    blocked_users = UserProfile.objects.filter(is_blocked=True).count()
-    unverified_users = UserProfile.objects.filter(is_verified=False).count()
-    
-    # Get product statistics
-    from products.models import Product
-    total_products = Product.objects.count()
-    active_products = Product.objects.filter(is_active=True).count()
-    pending_products = Product.objects.filter(is_active=False).count()
-    
-    # Get order statistics
-    total_orders = Order.objects.count()
-    pending_orders = Order.objects.filter(status='pending').count()
-    completed_orders = Order.objects.filter(status='delivered').count()
-    
-    # Get RFQ statistics
-    total_rfqs = Order.objects.filter(is_rfq=True).count()
-    pending_rfqs = Order.objects.filter(is_rfq=True, status='pending').count()
-    
-    # Get recent activities
-    recent_activities = UserActivity.objects.all()[:20]
-    
-    dashboard_data = {
-        'users': {
-            'total': total_users,
-            'buyers': buyers,
-            'sellers': sellers,
-            'blocked': blocked_users,
-            'unverified': unverified_users
-        },
-        'products': {
-            'total': total_products,
-            'active': active_products,
-            'pending': pending_products
-        },
-        'orders': {
-            'total': total_orders,
-            'pending': pending_orders,
-            'completed': completed_orders
-        },
-        'rfqs': {
-            'total': total_rfqs,
-            'pending': pending_rfqs
-        },
-        'recent_activities': UserActivitySerializer(recent_activities, many=True).data
-    }
-    
-    return Response(dashboard_data)
+    try:
+        # Get user statistics with error handling
+        try:
+            total_users = User.objects.filter(is_staff=False).count()
+        except Exception as e:
+            logger.warning(f"Error counting total users: {str(e)}")
+            total_users = 0
+        
+        try:
+            buyers = UserProfile.objects.filter(role__in=['buyer', 'both']).count()
+            sellers = UserProfile.objects.filter(role__in=['seller', 'both']).count()
+            blocked_users = UserProfile.objects.filter(is_blocked=True).count()
+            unverified_users = UserProfile.objects.filter(is_verified=False).count()
+        except Exception as e:
+            logger.warning(f"Error counting user profiles: {str(e)}")
+            buyers = sellers = blocked_users = unverified_users = 0
+        
+        # Get product statistics with error handling
+        try:
+            from products.models import Product
+            total_products = Product.objects.count()
+            active_products = Product.objects.filter(is_active=True).count()
+            pending_products = Product.objects.filter(is_active=False).count()
+        except Exception as e:
+            logger.warning(f"Error counting products: {str(e)}")
+            total_products = active_products = pending_products = 0
+        
+        # Get order statistics with error handling
+        try:
+            total_orders = Order.objects.count()
+            pending_orders = Order.objects.filter(status='pending').count()
+            completed_orders = Order.objects.filter(status='delivered').count()
+        except Exception as e:
+            logger.warning(f"Error counting orders: {str(e)}")
+            total_orders = pending_orders = completed_orders = 0
+        
+        # Get RFQ statistics with error handling
+        try:
+            total_rfqs = Order.objects.filter(is_rfq=True).count()
+            pending_rfqs = Order.objects.filter(is_rfq=True, status='pending').count()
+        except Exception as e:
+            logger.warning(f"Error counting RFQs: {str(e)}")
+            total_rfqs = pending_rfqs = 0
+        
+        # Get recent activities - handle potential issues with deleted users
+        activities_data = []
+        try:
+            recent_activities = UserActivity.objects.select_related('user').all()[:20]
+            activities_data = UserActivitySerializer(recent_activities, many=True).data
+        except Exception as e:
+            logger.warning(f"Error loading recent activities: {str(e)}")
+            activities_data = []
+        
+        dashboard_data = {
+            'users': {
+                'total': total_users,
+                'buyers': buyers,
+                'sellers': sellers,
+                'blocked': blocked_users,
+                'unverified': unverified_users
+            },
+            'products': {
+                'total': total_products,
+                'active': active_products,
+                'pending': pending_products
+            },
+            'orders': {
+                'total': total_orders,
+                'pending': pending_orders,
+                'completed': completed_orders
+            },
+            'rfqs': {
+                'total': total_rfqs,
+                'pending': pending_rfqs
+            },
+            'recent_activities': activities_data
+        }
+        
+        return Response(dashboard_data)
+    except Exception as e:
+        logger.error(f"Error in admin_dashboard_view: {str(e)}", exc_info=True)
+        return Response(
+            {'error': 'Failed to load dashboard data', 'detail': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])

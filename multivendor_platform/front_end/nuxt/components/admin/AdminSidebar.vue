@@ -47,28 +47,21 @@
         @click="handleNavigate('users')"
       ></v-list-item>
 
-      <v-list-group value="products">
+      <v-list-group value="catalog">
         <template #activator="{ props }">
           <v-list-item
             v-bind="props"
-            prepend-icon="mdi-package-variant"
-            title="مدیریت محصولات"
+            prepend-icon="mdi-folder-tree"
+            title="مدیریت کاتالوگ"
           ></v-list-item>
         </template>
 
         <v-list-item
-          prepend-icon="mdi-format-list-bulleted"
-          title="لیست محصولات"
-          value="products-list"
+          prepend-icon="mdi-package-variant"
+          title="مدیریت محصولات"
+          value="products"
           :active="activeView === 'products'"
-          @click="handleNavigate('products')"
-        ></v-list-item>
-
-        <v-list-item
-          prepend-icon="mdi-plus-circle"
-          title="افزودن محصول"
-          value="products-create"
-          @click="handleCreateProduct"
+          @click.stop="handleNavigate('products')"
         ></v-list-item>
 
         <v-list-item
@@ -161,7 +154,6 @@ const emit = defineEmits<{
   'update:drawer': [value: boolean]
   'update:rail': [value: boolean]
   navigate: [view: string]
-  'create-product': []
   'create-blog-post': []
 }>()
 
@@ -178,10 +170,6 @@ const toggleRail = () => {
 
 const handleNavigate = (view: string) => {
   emit('navigate', view)
-}
-
-const handleCreateProduct = () => {
-  emit('create-product')
 }
 
 const handleCreateBlogPost = () => {

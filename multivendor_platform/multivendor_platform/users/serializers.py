@@ -92,13 +92,20 @@ class SupplierCommentSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'is_approved', 'supplier_replied_at', 'created_at', 'updated_at']
 
 class UserActivitySerializer(serializers.ModelSerializer):
-    user_username = serializers.CharField(source='user.username', read_only=True)
+    user_username = serializers.SerializerMethodField()
     action_display = serializers.CharField(source='get_action_display', read_only=True)
     
     class Meta:
         model = UserActivity
         fields = ['id', 'user', 'user_username', 'action', 'action_display', 'description', 'ip_address', 'created_at']
         read_only_fields = ['created_at']
+    
+    def get_user_username(self, obj):
+        """Safely get username, handling deleted users"""
+        try:
+            return obj.user.username if obj.user else 'Deleted User'
+        except Exception:
+            return 'Unknown User'
 
 class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150, help_text="Mobile number used as username")

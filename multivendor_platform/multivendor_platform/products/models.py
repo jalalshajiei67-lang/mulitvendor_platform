@@ -659,11 +659,13 @@ class Label(models.Model):
         null=True,
         help_text='OpenGraph image for SEO pages'
     )
+    canonical_url = models.URLField(max_length=500, blank=True, null=True, help_text="Canonical URL for SEO")
     schema_markup = models.TextField(
         blank=True,
         null=True,
         help_text='Optional JSON-LD markup'
     )
+    image_alt_text = models.CharField(max_length=125, blank=True, null=True, help_text="Alt text for the image (for SEO and accessibility)")
     
     # Meta
     product_count = models.PositiveIntegerField(default=0)

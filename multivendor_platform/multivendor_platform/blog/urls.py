@@ -15,7 +15,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('my-posts/', MyBlogPostsView.as_view({'get': 'list'}), name='my-blog-posts'),
     
-    # Dashboard URLs (redirect to Vue.js frontend)
+    # Dashboard URLs (redirect to Nuxt frontend)
     path('dashboard/', BlogDashboardView.as_view(), name='blog-dashboard'),
     path('categories/manage/', BlogCategoryManageView.as_view(), name='blog-category-manage'),
 ]

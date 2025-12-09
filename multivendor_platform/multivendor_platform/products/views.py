@@ -51,7 +51,7 @@ from .serializers import (
 
 class HomeView(TemplateView):
     """
-    Simple home page view that redirects to Vue.js frontend.
+    Simple home page view that redirects to Nuxt frontend.
     """
     template_name = 'products/home.html'
     
@@ -62,7 +62,7 @@ class HomeView(TemplateView):
 
 class VendorDashboardView(LoginRequiredMixin, TemplateView):
     """
-    Redirects to Vue.js frontend dashboard.
+    Redirects to Nuxt frontend dashboard.
     """
     template_name = 'products/home.html'
     
@@ -73,7 +73,7 @@ class VendorDashboardView(LoginRequiredMixin, TemplateView):
 
 class ProductCreateView(LoginRequiredMixin, TemplateView):
     """
-    Redirects to Vue.js frontend product creation form.
+    Redirects to Nuxt frontend product creation form.
     """
     template_name = 'products/home.html'
     
@@ -571,10 +571,14 @@ class LabelViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['get'], url_path='seo-content', permission_classes=[AllowAny])
-    def seo_content(self, request, pk=None):
-        label = self.get_object()
-        serializer = self.get_serializer(label)
+    def seo_content(self, request, slug=None):
+        """
+        Retrieve label SEO content by slug instead of primary key.
+        This method is called via custom URL route in urls.py: labels/seo-content/<slug>/
+        """
+        queryset = self.get_queryset()
+        label = get_object_or_404(queryset, slug=slug)
+        serializer = self.get_serializer(label, context={'request': request})
         return Response(serializer.data)
 
 class LabelComboSeoPageViewSet(viewsets.ReadOnlyModelViewSet):

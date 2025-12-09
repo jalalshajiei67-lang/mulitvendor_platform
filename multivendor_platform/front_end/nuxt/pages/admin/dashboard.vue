@@ -24,21 +24,6 @@
             <v-card class="stat-card" elevation="0" variant="outlined">
               <v-card-text class="pa-4">
                 <div class="d-flex align-center justify-space-between mb-2">
-                  <v-icon color="success" size="32">mdi-package-variant</v-icon>
-                </div>
-                <div class="text-h4 font-weight-bold mb-1">{{ dashboardData.products?.total || 0 }}</div>
-                <div class="text-body-2 text-grey">کل محصولات</div>
-                <div class="text-caption text-grey mt-2">
-                  فعال: {{ dashboardData.products?.active || 0 }}
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-
-          <v-col cols="12" sm="6" md="3">
-            <v-card class="stat-card" elevation="0" variant="outlined">
-              <v-card-text class="pa-4">
-                <div class="d-flex align-center justify-space-between mb-2">
                   <v-icon color="info" size="32">mdi-cart</v-icon>
                 </div>
                 <div class="text-h4 font-weight-bold mb-1">{{ dashboardData.orders?.total || 0 }}</div>
@@ -97,31 +82,6 @@
         </v-card>
       </div>
 
-      <!-- Products Management View -->
-      <div v-if="activeView === 'products'" class="products-view">
-        <v-card elevation="0" variant="outlined">
-          <v-card-title class="pa-4">لیست محصولات</v-card-title>
-          <v-divider></v-divider>
-          <v-card-text>
-            <v-data-table
-              :headers="productHeaders"
-              :items="products"
-              :loading="loadingProducts"
-              item-value="id"
-            >
-              <template v-slot:item.name="{ item }">
-                <strong>{{ item.name }}</strong>
-              </template>
-              <template v-slot:item.actions="{ item }">
-                <v-btn size="small" variant="text" @click="deleteProduct(item)">
-                  حذف
-                </v-btn>
-              </template>
-            </v-data-table>
-          </v-card-text>
-        </v-card>
-      </div>
-
       <!-- Departments Management View -->
       <div v-if="activeView === 'departments'" class="departments-view">
         <AdminDepartmentManagement />
@@ -135,6 +95,174 @@
       <!-- Subcategories Management View -->
       <div v-if="activeView === 'subcategories'" class="subcategories-view">
         <AdminSubcategoryManagement />
+      </div>
+
+      <!-- Products Management View -->
+      <div v-if="activeView === 'products'" class="products-view">
+        <v-card elevation="0" variant="outlined">
+          <v-card-title class="pa-4 d-flex justify-space-between align-center">
+            <span>مدیریت محصولات</span>
+            <v-btn color="primary" :to="'/admin/dashboard/products/new'" prepend-icon="mdi-plus">
+              افزودن محصول
+            </v-btn>
+          </v-card-title>
+          <v-divider></v-divider>
+          
+          <!-- Filters -->
+          <v-card-text>
+            <v-row class="mb-4">
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model="productFilters.search"
+                  label="جستجو (نام یا توضیحات)"
+                  prepend-inner-icon="mdi-magnify"
+                  variant="outlined"
+                  density="compact"
+                  clearable
+                  @update:model-value="loadProducts"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6" md="2">
+                <v-select
+                  v-model="productFilters.category"
+                  :items="filterCategories"
+                  item-title="name"
+                  item-value="id"
+                  label="دسته‌بندی"
+                  variant="outlined"
+                  density="compact"
+                  clearable
+                  @update:model-value="loadProducts"
+                ></v-select>
+              </v-col>
+              <v-col cols="12" sm="6" md="2">
+                <v-select
+                  v-model="productFilters.supplier"
+                  :items="filterSuppliers"
+                  item-title="name"
+                  item-value="id"
+                  label="تامین‌کننده"
+                  variant="outlined"
+                  density="compact"
+                  clearable
+                  @update:model-value="loadProducts"
+                ></v-select>
+              </v-col>
+              <v-col cols="12" sm="6" md="2">
+                <v-select
+                  v-model="productFilters.status"
+                  :items="statusOptions"
+                  label="وضعیت"
+                  variant="outlined"
+                  density="compact"
+                  clearable
+                  @update:model-value="loadProducts"
+                ></v-select>
+              </v-col>
+              <v-col cols="12" sm="6" md="2">
+                <v-btn
+                  color="secondary"
+                  variant="outlined"
+                  block
+                  @click="resetProductFilters"
+                  prepend-icon="mdi-refresh"
+                >
+                  پاک کردن
+                </v-btn>
+              </v-col>
+            </v-row>
+
+            <v-data-table
+              :headers="productHeaders"
+              :items="products"
+              :loading="loadingProducts"
+              item-value="id"
+              class="elevation-0"
+            >
+              <template v-slot:item.image="{ item }">
+                <v-avatar size="48" rounded>
+                  <v-img
+                    v-if="item.primary_image || item.image"
+                    :src="item.primary_image || item.image"
+                    cover
+                  ></v-img>
+                  <v-icon v-else>mdi-image-off</v-icon>
+                </v-avatar>
+              </template>
+              <template v-slot:item.name="{ item }">
+                <div>
+                  <div class="font-weight-bold">{{ item.name }}</div>
+                  <div v-if="item.slug" class="text-caption text-grey">{{ item.slug }}</div>
+                </div>
+              </template>
+              <template v-slot:item.supplier="{ item }">
+                <div>
+                  <div class="font-weight-medium">{{ item.supplier?.name || item.vendor_name || 'نامشخص' }}</div>
+                </div>
+              </template>
+              <template v-slot:item.category_path="{ item }">
+                <div class="text-caption">
+                  {{ item.category_path || 'بدون دسته‌بندی' }}
+                </div>
+              </template>
+              <template v-slot:item.price="{ item }">
+                <div class="font-weight-bold">
+                  {{ formatPrice(item.price) }}
+                </div>
+              </template>
+              <template v-slot:item.stock="{ item }">
+                <v-chip size="small" :color="item.stock > 0 ? 'success' : 'warning'">
+                  {{ item.stock || 0 }}
+                </v-chip>
+              </template>
+              <template v-slot:item.is_active="{ item }">
+                <v-chip size="small" :color="item.is_active ? 'success' : 'error'">
+                  {{ item.is_active ? 'فعال' : 'غیرفعال' }}
+                </v-chip>
+              </template>
+              <template v-slot:item.created_at="{ item }">
+                {{ formatDate(item.created_at) }}
+              </template>
+              <template v-slot:item.actions="{ item }">
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  @click="viewProductDetail(item)"
+                >
+                  <v-icon>mdi-eye</v-icon>
+                </v-btn>
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  :to="`/admin/dashboard/products/${item.id}/edit`"
+                >
+                  <v-icon>mdi-pencil</v-icon>
+                </v-btn>
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  @click="toggleProductStatus(item)"
+                >
+                  <v-icon :color="item.is_active ? 'warning' : 'success'">
+                    {{ item.is_active ? 'mdi-eye-off' : 'mdi-eye' }}
+                  </v-icon>
+                </v-btn>
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  color="error"
+                  @click="deleteProduct(item)"
+                >
+                  <v-icon>mdi-delete</v-icon>
+                </v-btn>
+              </template>
+            </v-data-table>
+          </v-card-text>
+        </v-card>
       </div>
 
       <!-- Activities View -->
@@ -451,6 +579,131 @@
         </v-card>
       </v-dialog>
 
+      <!-- Product Detail Dialog -->
+      <v-dialog v-model="showProductDetailDialog" max-width="900px" scrollable>
+        <v-card v-if="selectedProduct">
+          <v-card-title class="d-flex justify-space-between align-center pa-4" style="background: rgb(var(--v-theme-primary)); color: white;">
+            <div>
+              <div class="text-h6">جزئیات محصول</div>
+              <div class="text-caption">{{ selectedProduct.name }}</div>
+            </div>
+            <v-btn icon variant="text" color="white" @click="showProductDetailDialog = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+
+          <v-divider></v-divider>
+
+          <v-card-text v-if="loadingProductDetail" class="pa-6">
+            <div class="d-flex justify-center align-center" style="min-height: 200px;">
+              <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+            </div>
+          </v-card-text>
+
+          <v-card-text v-else class="pa-6">
+            <v-row>
+              <!-- Product Image -->
+              <v-col cols="12" md="4">
+                <v-card variant="outlined" class="pa-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-image</v-icon>
+                    تصویر محصول
+                  </div>
+                  <v-img
+                    v-if="selectedProduct.primary_image || selectedProduct.image"
+                    :src="selectedProduct.primary_image || selectedProduct.image"
+                    aspect-ratio="1"
+                    cover
+                    class="rounded-lg"
+                  ></v-img>
+                  <div v-else class="text-center text-grey pa-8">
+                    <v-icon size="64">mdi-image-off</v-icon>
+                    <div class="mt-2">بدون تصویر</div>
+                  </div>
+                </v-card>
+              </v-col>
+
+              <!-- Product Information -->
+              <v-col cols="12" md="8">
+                <v-card variant="outlined" class="pa-4 mb-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-information</v-icon>
+                    اطلاعات محصول
+                  </div>
+                  <v-list density="compact">
+                    <v-list-item>
+                      <v-list-item-title>نام محصول</v-list-item-title>
+                      <v-list-item-subtitle class="font-weight-bold">{{ selectedProduct.name }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item v-if="selectedProduct.slug">
+                      <v-list-item-title>Slug</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedProduct.slug }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>قیمت</v-list-item-title>
+                      <v-list-item-subtitle class="font-weight-bold">{{ formatPrice(selectedProduct.price) }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>موجودی</v-list-item-title>
+                      <v-list-item-subtitle>
+                        <v-chip size="small" :color="selectedProduct.stock > 0 ? 'success' : 'warning'">
+                          {{ selectedProduct.stock || 0 }}
+                        </v-chip>
+                      </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>وضعیت</v-list-item-title>
+                      <v-list-item-subtitle>
+                        <v-chip size="small" :color="selectedProduct.is_active ? 'success' : 'error'">
+                          {{ selectedProduct.is_active ? 'فعال' : 'غیرفعال' }}
+                        </v-chip>
+                      </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item v-if="selectedProduct.category_path">
+                      <v-list-item-title>دسته‌بندی</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedProduct.category_path }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item v-if="selectedProduct.supplier?.name || selectedProduct.vendor_name">
+                      <v-list-item-title>تامین‌کننده</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedProduct.supplier?.name || selectedProduct.vendor_name }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>تاریخ ایجاد</v-list-item-title>
+                      <v-list-item-subtitle>{{ formatDate(selectedProduct.created_at) }}</v-list-item-subtitle>
+                    </v-list-item>
+                  </v-list>
+                </v-card>
+
+                <!-- Description -->
+                <v-card v-if="selectedProduct.description" variant="outlined" class="pa-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-text-box</v-icon>
+                    توضیحات
+                  </div>
+                  <div v-html="selectedProduct.description" class="text-body-1"></div>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-card-text>
+
+          <v-divider></v-divider>
+
+          <v-card-actions class="pa-4">
+            <v-spacer></v-spacer>
+            <v-btn variant="text" @click="showProductDetailDialog = false">
+              بستن
+            </v-btn>
+            <v-btn
+              color="primary"
+              :to="`/admin/dashboard/products/${selectedProduct.id}/edit`"
+              @click="showProductDetailDialog = false"
+            >
+              ویرایش محصول
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
       <!-- Create Lead Dialog -->
       <v-dialog v-model="showCreateLeadDialog" max-width="800px" scrollable persistent>
         <v-card>
@@ -689,20 +942,37 @@ const supplierApi = useSupplierApi()
 const activeView = ref((route.query.view as string) || 'dashboard')
 const dashboardData = ref<any>({})
 const users = ref<any[]>([])
-const products = ref<any[]>([])
 const activities = ref<any[]>([])
 const blogPosts = ref<any[]>([])
 const rfqs = ref<any[]>([])
+const products = ref<any[]>([])
 
 const loading = ref(false)
 const loadingUsers = ref(false)
-const loadingProducts = ref(false)
 const loadingActivities = ref(false)
 const loadingBlog = ref(false)
 const loadingRFQs = ref(false)
+const loadingProducts = ref(false)
 const showRFQDetailDialog = ref(false)
 const selectedRFQ = ref<any>(null)
 const loadingRFQDetail = ref(false)
+const showProductDetailDialog = ref(false)
+const selectedProduct = ref<any>(null)
+const loadingProductDetail = ref(false)
+
+// Product filters
+const productFilters = ref({
+  search: '',
+  category: null as number | null,
+  supplier: null as number | null,
+  status: null as string | null
+})
+const filterCategories = ref<any[]>([])
+const filterSuppliers = ref<any[]>([])
+const statusOptions = [
+  { title: 'فعال', value: 'true' },
+  { title: 'غیرفعال', value: 'false' }
+]
 
 // Create Lead Dialog
 const showCreateLeadDialog = ref(false)
@@ -744,13 +1014,6 @@ const userHeaders = [
   { title: 'عملیات', key: 'actions' }
 ]
 
-const productHeaders = [
-  { title: 'نام', key: 'name' },
-  { title: 'قیمت', key: 'price' },
-  { title: 'وضعیت', key: 'is_active' },
-  { title: 'عملیات', key: 'actions' }
-]
-
 const activityHeaders = [
   { title: 'کاربر', key: 'user_username' },
   { title: 'عملیات', key: 'action' },
@@ -774,6 +1037,18 @@ const rfqHeaders = [
   { title: 'عملیات', key: 'actions' }
 ]
 
+const productHeaders = [
+  { title: 'تصویر', key: 'image', sortable: false },
+  { title: 'نام محصول', key: 'name' },
+  { title: 'تامین‌کننده', key: 'supplier' },
+  { title: 'دسته‌بندی', key: 'category_path' },
+  { title: 'قیمت', key: 'price' },
+  { title: 'موجودی', key: 'stock' },
+  { title: 'وضعیت', key: 'is_active' },
+  { title: 'تاریخ ایجاد', key: 'created_at' },
+  { title: 'عملیات', key: 'actions', sortable: false }
+]
+
 const loadDashboardData = async () => {
   loading.value = true
   try {
@@ -795,18 +1070,6 @@ const loadUsers = async () => {
     console.error('Failed to load users:', error)
   } finally {
     loadingUsers.value = false
-  }
-}
-
-const loadProducts = async () => {
-  loadingProducts.value = true
-  try {
-    const data = await adminApi.getAdminProducts()
-    products.value = Array.isArray(data) ? data : data.results || []
-  } catch (error) {
-    console.error('Failed to load products:', error)
-  } finally {
-    loadingProducts.value = false
   }
 }
 
@@ -847,23 +1110,61 @@ const loadRFQs = async () => {
   }
 }
 
+const loadProducts = async () => {
+  loadingProducts.value = true
+  try {
+    const params: any = {}
+    if (productFilters.value.search) {
+      params.search = productFilters.value.search
+    }
+    if (productFilters.value.category) {
+      params.category = productFilters.value.category
+    }
+    if (productFilters.value.supplier) {
+      params.supplier = productFilters.value.supplier
+    }
+    if (productFilters.value.status !== null) {
+      params.is_active = productFilters.value.status === 'true'
+    }
+    
+    const data = await adminApi.getAdminProducts(params)
+    products.value = Array.isArray(data) ? data : data.results || []
+  } catch (error) {
+    console.error('Failed to load products:', error)
+  } finally {
+    loadingProducts.value = false
+  }
+}
+
+const loadFilterData = async () => {
+  try {
+    // Load categories for filter
+    const categoriesResponse = await categoryApi.getCategories()
+    filterCategories.value = Array.isArray(categoriesResponse) ? categoriesResponse : categoriesResponse.results || []
+    
+    // Load suppliers for filter
+    filterSuppliers.value = await supplierApi.getSuppliers()
+  } catch (error) {
+    console.error('Failed to load filter data:', error)
+  }
+}
+
+const resetProductFilters = () => {
+  productFilters.value = {
+    search: '',
+    category: null,
+    supplier: null,
+    status: null
+  }
+  loadProducts()
+}
+
 const toggleBlockUser = async (user: any) => {
   try {
     await adminApi.blockUser(user.id, !user.profile?.is_blocked)
     await loadUsers()
   } catch (error) {
     console.error('Failed to toggle block user:', error)
-  }
-}
-
-const deleteProduct = async (product: any) => {
-  if (confirm(`آیا مطمئن هستید که می‌خواهید محصول "${product.name}" را حذف کنید؟`)) {
-    try {
-      await adminApi.deleteProduct(product.id)
-      await loadProducts()
-    } catch (error) {
-      console.error('Failed to delete product:', error)
-    }
   }
 }
 
@@ -874,6 +1175,46 @@ const deleteBlogPost = async (post: any) => {
       await loadBlogPosts()
     } catch (error) {
       console.error('Failed to delete blog post:', error)
+    }
+  }
+}
+
+const viewProductDetail = async (product: any) => {
+  loadingProductDetail.value = true
+  try {
+    // Try to get full product detail from API
+    const detail = await adminApi.getAdminProductDetail(product.id)
+    selectedProduct.value = detail
+  } catch (error) {
+    console.error('Failed to load product detail:', error)
+    // Fallback to using the data we already have
+    selectedProduct.value = product
+  } finally {
+    loadingProductDetail.value = false
+    showProductDetailDialog.value = true
+  }
+}
+
+const toggleProductStatus = async (product: any) => {
+  try {
+    await adminApi.updateProductStatus(product.id, !product.is_active)
+    await loadProducts()
+    await loadDashboardData()
+  } catch (error) {
+    console.error('Failed to toggle product status:', error)
+    alert('خطا در تغییر وضعیت محصول')
+  }
+}
+
+const deleteProduct = async (product: any) => {
+  if (confirm(`آیا مطمئن هستید که می‌خواهید محصول "${product.name}" را حذف کنید؟`)) {
+    try {
+      await adminApi.deleteProduct(product.id)
+      await loadProducts()
+      await loadDashboardData()
+    } catch (error) {
+      console.error('Failed to delete product:', error)
+      alert('خطا در حذف محصول')
     }
   }
 }
@@ -908,6 +1249,11 @@ const formatDate = (dateString: string) => {
     hour: '2-digit',
     minute: '2-digit'
   }).format(date)
+}
+
+const formatPrice = (price: number) => {
+  if (!price) return '0'
+  return new Intl.NumberFormat('fa-IR').format(price) + ' تومان'
 }
 
 const viewRFQDetail = async (rfq: any) => {
@@ -959,14 +1305,15 @@ watch(activeView, (newView) => {
     loadDashboardData()
   } else if (newView === 'users') {
     loadUsers()
-  } else if (newView === 'products') {
-    loadProducts()
   } else if (newView === 'activities') {
     loadActivities()
   } else if (newView === 'blog') {
     loadBlogPosts()
   } else if (newView === 'rfqs') {
     loadRFQs()
+  } else if (newView === 'products') {
+    loadFilterData()
+    loadProducts()
   }
 })
 
