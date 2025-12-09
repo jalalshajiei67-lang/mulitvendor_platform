@@ -9,7 +9,6 @@
       @update:drawer="drawer = $event"
       @update:rail="rail = $event"
       @navigate="handleNavigate"
-      @create-product="handleCreateProduct"
       @create-blog-post="handleCreateBlogPost"
     />
 
@@ -164,10 +163,6 @@ const handleNavigate = (view: string) => {
       query: { view }
     })
   }
-}
-
-const handleCreateProduct = () => {
-  navigateTo('/admin/dashboard/products/new')
 }
 
 const handleCreateBlogPost = () => {

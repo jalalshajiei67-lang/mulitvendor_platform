@@ -8,6 +8,10 @@
     
     <!-- Chat Widget - Available site-wide -->
     <ChatWidget />
+    
+    <!-- PWA Components -->
+    <PwaInstallPrompt />
+    <PwaUpdateAvailable />
   </v-layout>
 </template>
 
@@ -15,6 +19,8 @@
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import ChatWidget from '@/components/chat/ChatWidget.vue'
+import PwaInstallPrompt from '@/components/pwa/InstallPrompt.vue'
+import PwaUpdateAvailable from '@/components/pwa/UpdateAvailable.vue'
 
 useSeoMeta({
   title: 'صفحه اصلی',

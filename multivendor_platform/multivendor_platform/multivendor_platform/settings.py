@@ -148,8 +148,11 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Site URL for SEO (robots.txt, sitemap, canonical URLs)
 # Used for generating absolute URLs in sitemaps and robots.txt
+# This should point to the FRONTEND (Nuxt) URL, not the Django backend
 # Falls back to request if not set
-SITE_URL = os.environ.get('SITE_URL', '')  # e.g., 'https://indexo.ir'
+# Development example: 'http://localhost:3000'
+# Production example: 'https://indexo.ir'
+SITE_URL = os.environ.get('SITE_URL', '')  # e.g., 'https://indexo.ir' or 'http://localhost:3000'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -161,7 +164,10 @@ if not CORS_ALLOW_ALL_ORIGINS:
     # Parse CORS origins from environment
     cors_origins_str = os.environ.get('CORS_ALLOWED_ORIGINS', '')
     if cors_origins_str:
-        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',')]
+        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',') if origin.strip()]
+        # Debug: Log CORS origins in development
+        if DEBUG:
+            print(f"[CORS] Allowed origins: {CORS_ALLOWED_ORIGINS}")
     else:
         CORS_ALLOWED_ORIGINS = [
             "http://localhost:8080",
@@ -173,6 +179,8 @@ if not CORS_ALLOW_ALL_ORIGINS:
         ]
 else:
     CORS_ALLOWED_ORIGINS = []
+    if DEBUG:
+        print("[CORS] Allowing all origins (CORS_ALLOW_ALL_ORIGINS=True)")
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -186,6 +194,8 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
     'x-guest-session-id',
+    'access-control-request-method',  # Required for preflight requests
+    'access-control-request-headers',  # Required for preflight requests
 ]
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -195,6 +205,20 @@ CORS_ALLOW_METHODS = [
     'POST',
     'PUT',
 ]
+
+# CORS Expose Headers - Headers that can be accessed by the frontend
+CORS_EXPOSE_HEADERS = [
+    'content-type',
+    'authorization',
+    'x-csrftoken',
+    'x-guest-session-id',
+]
+
+# CORS Preflight Max Age - Cache preflight requests for 1 hour (3600 seconds)
+CORS_PREFLIGHT_MAX_AGE = 3600
+
+# CORS URL Regex - Only apply CORS to API endpoints
+CORS_URLS_REGEX = r'^/api/.*$'
 
 # CSRF Trusted Origins - Required for admin login and API requests from frontend
 csrf_trusted_origins_str = os.environ.get('CSRF_TRUSTED_ORIGINS', '')

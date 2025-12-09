@@ -72,7 +72,85 @@ jobs:
             # Ensure network exists (will be created by docker compose if not exists)
             docker network create multivendor_network --driver bridge || true
             
-            # Deploy new version (Docker Compose will use .env for variable substitution)
+            # Start database first to fix password if needed (stateless solution)
+            echo "Starting database container..."
+            docker compose -f docker-compose.staging.yml up -d db
+            
+            # Wait for database to be ready
+            echo "Waiting for database to be ready..."
+            for i in {1..30}; do
+              if docker exec multivendor_db_staging pg_isready -U postgres > /dev/null 2>&1; then
+                echo "Database is ready!"
+                break
+              fi
+              echo "  Waiting for database... ($i/30)"
+              sleep 2
+            done
+            
+            # Read DB_PASSWORD from .env.staging
+            DB_PASSWORD=$(grep "^DB_PASSWORD=" .env.staging | cut -d '=' -f2 | tr -d '"' | tr -d "'" | xargs)
+            
+            # Stateless password fix: Check and reset if needed
+            echo "Checking database password..."
+            if ! docker exec -e PGPASSWORD="$DB_PASSWORD" multivendor_db_staging psql -U postgres -c "SELECT 1;" > /dev/null 2>&1; then
+              echo "Password mismatch detected. Resetting database password (stateless fix)..."
+              
+              # Stop database to modify pg_hba.conf
+              docker stop multivendor_db_staging
+              
+              # Temporarily enable trust authentication
+              docker run --rm \
+                -v indexo-staging_postgres_data_staging:/var/lib/postgresql/data \
+                postgres:15-alpine \
+                sh -c "
+                  cp /var/lib/postgresql/data/pg_hba.conf /var/lib/postgresql/data/pg_hba.conf.backup 2>/dev/null || true
+                  echo 'local   all             all                                     trust' > /var/lib/postgresql/data/pg_hba.conf
+                  echo 'host    all             all             127.0.0.1/32            trust' >> /var/lib/postgresql/data/pg_hba.conf
+                  echo 'host    all             all             ::1/128                 trust' >> /var/lib/postgresql/data/pg_hba.conf
+                  echo 'host    all             all             0.0.0.0/0               trust' >> /var/lib/postgresql/data/pg_hba.conf
+                " || echo "Warning: Could not modify pg_hba.conf"
+              
+              # Start database with trust auth
+              docker start multivendor_db_staging
+              sleep 5
+              
+              # Wait for database
+              for i in {1..30}; do
+                if docker exec multivendor_db_staging pg_isready -U postgres > /dev/null 2>&1; then
+                  break
+                fi
+                sleep 1
+              done
+              
+              # Reset password
+              docker exec multivendor_db_staging psql -U postgres -c "ALTER USER postgres WITH PASSWORD '$DB_PASSWORD';" || echo "Warning: Could not reset password"
+              
+              # Restore pg_hba.conf
+              docker stop multivendor_db_staging
+              docker run --rm \
+                -v indexo-staging_postgres_data_staging:/var/lib/postgresql/data \
+                postgres:15-alpine \
+                sh -c "
+                  if [ -f /var/lib/postgresql/data/pg_hba.conf.backup ]; then
+                    cp /var/lib/postgresql/data/pg_hba.conf.backup /var/lib/postgresql/data/pg_hba.conf
+                  else
+                    echo 'local   all             all                                     md5' > /var/lib/postgresql/data/pg_hba.conf
+                    echo 'host    all             all             127.0.0.1/32            md5' >> /var/lib/postgresql/data/pg_hba.conf
+                    echo 'host    all             all             ::1/128                 md5' >> /var/lib/postgresql/data/pg_hba.conf
+                    echo 'host    all             all             0.0.0.0/0               md5' >> /var/lib/postgresql/data/pg_hba.conf
+                  fi
+                " || echo "Warning: Could not restore pg_hba.conf"
+              
+              # Start database with password auth
+              docker start multivendor_db_staging
+              sleep 3
+              echo "Database password reset complete"
+            else
+              echo "Database password is correct"
+            fi
+            
+            # Deploy all services (Docker Compose will use .env for variable substitution)
+            echo "Starting all services..."
             docker compose -f docker-compose.staging.yml up -d --build
             
             # Clean up unused images

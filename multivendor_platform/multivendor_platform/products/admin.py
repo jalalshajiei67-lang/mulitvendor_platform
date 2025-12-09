@@ -7,10 +7,12 @@ from django.utils.html import format_html
 from django import forms
 from django.core.files.base import ContentFile
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import path
+from django.urls import path, reverse
 from django.contrib import messages
 from django.utils import timezone
 from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.conf import settings
+from django.db.models import Q
 from tinymce.widgets import TinyMCE
 from .models import (
     Department,
@@ -279,7 +281,7 @@ class LabelAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('SEO Settings', {
-            'fields': ('seo_title', 'seo_description', 'seo_h1', 'seo_intro_text', 'seo_faq', 'og_image', 'schema_markup'),
+            'fields': ('seo_title', 'seo_description', 'seo_h1', 'seo_intro_text', 'seo_faq', 'og_image', 'canonical_url', 'image_alt_text', 'schema_markup'),
             'classes': ('collapse',),
         }),
     )
@@ -367,6 +369,248 @@ class LabelComboSeoPageAdmin(admin.ModelAdmin):
     def unmark_indexable(self, request, queryset):
         updated = queryset.update(is_indexable=False)
         self.message_user(request, f'{updated} combo page(s) marked non-indexable.')
+
+
+class LabelManagementAdmin(admin.ModelAdmin):
+    """
+    Unified admin view for managing SEO label pages.
+    Shows both Labels (with is_seo_page=True) and LabelComboSeoPage in one table.
+    """
+    change_list_template = 'admin/products/label_management.html'
+    
+    def __init__(self, model, admin_site):
+        super().__init__(model, admin_site)
+        self.model = model
+    
+    def has_add_permission(self, request):
+        """Disable add permission - use individual model admins"""
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        """Allow viewing - redirects to individual model admin for editing"""
+        return request.user.is_staff
+    
+    def has_delete_permission(self, request, obj=None):
+        """Disable delete permission - use individual model admins"""
+        return False
+    
+    def changelist_view(self, request, extra_context=None):
+        """Override changelist to show our custom label management view"""
+        return self.label_management_view(request)
+    
+    def label_management_view(self, request):
+        """
+        Custom view that displays unified table of SEO labels and combos
+        """
+        from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+        
+        # Get frontend URL from settings
+        # SITE_URL should point to the frontend (Nuxt), not the Django backend
+        site_url = getattr(settings, 'SITE_URL', '').strip().rstrip('/')
+        
+        # If SITE_URL is not set, try to detect frontend URL
+        if not site_url:
+            # Check for FRONTEND_URL environment variable
+            import os
+            site_url = os.environ.get('FRONTEND_URL', '').strip().rstrip('/')
+        
+        # If still not set, use intelligent defaults
+        if not site_url:
+            if settings.DEBUG:
+                # In development, Nuxt typically runs on port 3000
+                # Check if request is from localhost
+                host = request.get_host().split(':')[0]  # Get hostname without port
+                if host in ['localhost', '127.0.0.1']:
+                    site_url = "http://localhost:3000"
+                else:
+                    # For other dev setups, try to use same host
+                    scheme = 'https' if request.is_secure() else 'http'
+                    site_url = f"{scheme}://{request.get_host().split(':')[0]}:3000"
+            else:
+                # Production: assume frontend is on same domain as backend
+                # This is common in production where nginx routes both
+                scheme = 'https' if request.is_secure() else 'http'
+                host = request.get_host().split(':')[0]  # Remove port if present
+                site_url = f"{scheme}://{host}"
+        
+        # Get filter parameters
+        department_filter = request.GET.get('department', '')
+        category_filter = request.GET.get('category', '')
+        search_query = request.GET.get('q', '')
+        type_filter = request.GET.get('type', '')  # 'label', 'combo', or ''
+        
+        # Build queryset for Labels
+        labels_qs = Label.objects.filter(is_seo_page=True, is_active=True)
+        
+        # Build queryset for LabelComboSeoPage
+        combos_qs = LabelComboSeoPage.objects.all()
+        
+        # Apply filters
+        if department_filter:
+            labels_qs = labels_qs.filter(
+                Q(departments__id=department_filter) | Q(departments__isnull=True)
+            ).distinct()
+            # For combos, filter by labels' departments
+            combos_qs = combos_qs.filter(
+                labels__departments__id=department_filter
+            ).distinct()
+        
+        if category_filter:
+            labels_qs = labels_qs.filter(
+                Q(categories__id=category_filter) | Q(categories__isnull=True)
+            ).distinct()
+            combos_qs = combos_qs.filter(
+                labels__categories__id=category_filter
+            ).distinct()
+        
+        if search_query:
+            labels_qs = labels_qs.filter(
+                Q(name__icontains=search_query) | Q(slug__icontains=search_query)
+            )
+            combos_qs = combos_qs.filter(
+                Q(name__icontains=search_query) | Q(slug__icontains=search_query)
+            )
+        
+        if type_filter == 'label':
+            combos_qs = combos_qs.none()
+        elif type_filter == 'combo':
+            labels_qs = labels_qs.none()
+        
+        # Prepare data for display
+        label_items = []
+        for label in labels_qs:
+            # Get product count
+            product_count = label.product_count or label.products.filter(is_active=True).count()
+            
+            # Build URL
+            url = f"{site_url}/machinery/{label.slug}/"
+            
+            # Get departments/categories
+            departments = ", ".join([d.name for d in label.departments.all()[:3]])
+            if label.departments.count() > 3:
+                departments += f" (+{label.departments.count() - 3})"
+            if not departments:
+                departments = "همه دپارتمان‌ها"
+            
+            categories = ", ".join([c.name for c in label.categories.all()[:3]])
+            if label.categories.count() > 3:
+                categories += f" (+{label.categories.count() - 3})"
+            if not categories:
+                categories = "همه دسته‌بندی‌ها"
+            
+            label_items.append({
+                'id': f"label-{label.id}",
+                'name': label.name,
+                'type': 'Label',
+                'url': url,
+                'product_count': product_count,
+                'departments': departments,
+                'categories': categories,
+                'slug': label.slug,
+                'edit_url': reverse('admin:products_label_change', args=[label.id]),
+            })
+        
+        combo_items = []
+        for combo in combos_qs:
+            # Get product count (products that have ALL labels in combo)
+            label_ids = list(combo.labels.values_list('id', flat=True))
+            if label_ids:
+                products = Product.objects.filter(is_active=True)
+                for label_id in label_ids:
+                    products = products.filter(labels__id=label_id)
+                product_count = products.distinct().count()
+            else:
+                product_count = 0
+            
+            # Build URL
+            url = f"{site_url}/machinery/{combo.slug}/"
+            
+            # Get departments/categories from labels
+            all_departments = set()
+            all_categories = set()
+            for label in combo.labels.all():
+                all_departments.update(label.departments.all())
+                all_categories.update(label.categories.all())
+            
+            departments = ", ".join([d.name for d in list(all_departments)[:3]])
+            if len(all_departments) > 3:
+                departments += f" (+{len(all_departments) - 3})"
+            if not departments:
+                departments = "همه دپارتمان‌ها"
+            
+            categories = ", ".join([c.name for c in list(all_categories)[:3]])
+            if len(all_categories) > 3:
+                categories += f" (+{len(all_categories) - 3})"
+            if not categories:
+                categories = "همه دسته‌بندی‌ها"
+            
+            combo_items.append({
+                'id': f"combo-{combo.id}",
+                'name': combo.name,
+                'type': 'Combo',
+                'url': url,
+                'product_count': product_count,
+                'departments': departments,
+                'categories': categories,
+                'slug': combo.slug,
+                'edit_url': reverse('admin:products_labelcomboseopage_change', args=[combo.id]),
+            })
+        
+        # Combine and sort
+        all_items = label_items + combo_items
+        all_items.sort(key=lambda x: x['name'])
+        
+        # Pagination
+        paginator = Paginator(all_items, 50)  # 50 items per page
+        page = request.GET.get('page', 1)
+        try:
+            items = paginator.page(page)
+        except PageNotAnInteger:
+            items = paginator.page(1)
+        except EmptyPage:
+            items = paginator.page(paginator.num_pages)
+        
+        # Get filter options
+        departments = Department.objects.all().order_by('name')
+        categories = Category.objects.all().order_by('name')
+        
+        context = {
+            **self.admin_site.each_context(request),
+            'title': 'مدیریت لیبل‌های SEO',
+            'items': items,
+            'total_count': len(all_items),
+            'departments': departments,
+            'categories': categories,
+            'current_department': department_filter,
+            'current_category': category_filter,
+            'current_search': search_query,
+            'current_type': type_filter,
+            'site_url': site_url,
+            'opts': self.model._meta,
+            'has_add_permission': False,
+            'has_change_permission': True,
+            'has_delete_permission': False,
+        }
+        
+        return render(request, self.change_list_template, context)
+
+
+# Create a proxy model for Label Management
+from django.db import models as db_models
+
+class LabelManagementProxy(Label):
+    """Proxy model for Label Management admin view - uses Label as base but shows custom view"""
+    class Meta:
+        proxy = True
+        verbose_name = 'مدیریت لیبل‌های SEO'
+        verbose_name_plural = 'مدیریت لیبل‌های SEO'
+        app_label = 'products'
+
+
+# Register the admin
+admin.site.register(LabelManagementProxy, LabelManagementAdmin)
+
+
 class DepartmentAdminForm(forms.ModelForm):
     description = forms.CharField(
         widget=TinyMCE(attrs={'cols': 80, 'rows': 30}),

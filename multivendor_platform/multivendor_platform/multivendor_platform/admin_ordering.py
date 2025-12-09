@@ -36,6 +36,7 @@ MODEL_ORDER: Dict[str, List[str]] = {
         "Subcategory",
         "Category",
         "Department",
+        "LabelManagementProxy",
         "LabelComboSeoPage",
         "LabelGroup",
         "Label",

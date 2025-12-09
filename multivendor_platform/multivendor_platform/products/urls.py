@@ -7,6 +7,12 @@ from .views import (
     LabelGroupViewSet, LabelViewSet, LabelComboSeoPageViewSet,
     CategoryRequestViewSet
 )
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from .models import Label
+from .serializers import LabelSerializer
+from django.shortcuts import get_object_or_404
 from .test_scraper_api import test_scraper_connection, test_network_access
 
 router = DefaultRouter()
@@ -20,10 +26,23 @@ router.register(r'labels', LabelViewSet, basename='label')
 router.register(r'label-combos', LabelComboSeoPageViewSet, basename='label-combo')
 router.register(r'category-requests', CategoryRequestViewSet, basename='category-request')
 
+# Custom view function for label SEO content by slug
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def label_seo_content_view(request, slug):
+    """Retrieve label SEO content by slug"""
+    label = get_object_or_404(Label.objects.all(), slug=slug)
+    serializer = LabelSerializer(label, context={'request': request})
+    return Response(serializer.data)
+
 urlpatterns = [
     # Put specific routes FIRST before router
     path('products/my_products/', MyProductsView.as_view({'get': 'list'}), name='my-products'),
     path('search/', global_search, name='global-search'),
+    
+    # Label SEO content by slug (custom route before router)
+    # Using a more specific path to avoid router conflicts
+    path('labels/seo-content/<slug>/', label_seo_content_view, name='label-seo-content'),
     
     # Scraper test endpoints (admin only)
     path('test-scraper/', test_scraper_connection, name='test-scraper'),

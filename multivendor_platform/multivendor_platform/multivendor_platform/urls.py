@@ -36,8 +36,9 @@ sitemaps = {
     'static': StaticViewSitemap,
 }
 
-FRONTEND_DIST_DIR = Path(settings.BASE_DIR).parent / 'front_end' / 'dist'
-FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / 'assets'
+# Frontend is now served by separate Nuxt server - no longer needed
+# FRONTEND_DIST_DIR = Path(settings.BASE_DIR).parent / 'front_end' / 'dist'
+# FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / 'assets'
 
 def favicon_view(request):
     """Simple favicon handler to prevent 404 errors"""
@@ -128,24 +129,12 @@ def cors_preflight_handler(request):
     # CORS headers will be added by corsheaders middleware
     return response
 
-class FrontendAppView(View):
-    """Serve the built Vue SPA for non-API routes."""
-
-    index_path = Path(settings.BASE_DIR).parent / 'front_end' / 'dist' / 'index.html'
-
-    def get(self, request, *args, **kwargs):
-        if not self.index_path.exists():
-            return HttpResponse(
-                "Frontend build not found. Run 'npm install && npm run build' inside front_end/.",
-                status=503,
-                content_type='text/plain'
-            )
-
-        with self.index_path.open('r', encoding='utf-8') as index_file:
-            return HttpResponse(index_file.read(), content_type='text/html')
+# FrontendAppView removed - Frontend is now served by separate Nuxt server
+# No longer needed since Nuxt runs as a separate service
 
 urlpatterns = [
-    re_path(r'^admin/dashboard(?:/.*)?$', FrontendAppView.as_view(), name='spa-admin-dashboard'),
+    # Removed old Vue dashboard route - now handled by Nuxt
+    # re_path(r'^admin/dashboard(?:/.*)?$', FrontendAppView.as_view(), name='spa-admin-dashboard'),
     path('admin/', admin.site.urls),
     
     # Health check endpoint
@@ -180,8 +169,8 @@ urlpatterns = [
     path('dashboard/', VendorDashboardView.as_view(), name='vendor-dashboard'),
     path('dashboard/create/', ProductCreateView.as_view(), name='vendor-create-product'),
     
-    # Frontend built assets
-    re_path(r'^assets/(?P<path>.*)$', static_serve, {'document_root': FRONTEND_ASSETS_DIR}, name='spa-assets'),
+    # Frontend assets are now served by Nuxt server - no longer needed here
+    # re_path(r'^assets/(?P<path>.*)$', static_serve, {'document_root': FRONTEND_ASSETS_DIR}, name='spa-assets'),
     
     # You can add other app URLs here
 ]
@@ -202,16 +191,18 @@ else:
         }),
     ]
 
-SPA_EXCLUDED_PREFIXES = (
-    'api/', 'admin/', 'static/', 'media/', 'assets/', 'health/', 'sitemap.xml',
-    'robots.txt', 'tinymce/', 'favicon.ico'
-)
-SPA_PREFIX_PATTERN = '|'.join(re.escape(prefix.rstrip('/')) for prefix in SPA_EXCLUDED_PREFIXES)
-
-urlpatterns += [
-    re_path(
-        rf'^(?!({SPA_PREFIX_PATTERN})).*$',
-        FrontendAppView.as_view(),
-        name='spa-entry'
-    ),
-]
+# Removed SPA catch-all route - Frontend is now served by separate Nuxt server
+# No longer needed since Nuxt runs as a separate service on port 3000
+# SPA_EXCLUDED_PREFIXES = (
+#     'api/', 'admin/', 'static/', 'media/', 'assets/', 'health/', 'sitemap.xml',
+#     'robots.txt', 'tinymce/', 'favicon.ico'
+# )
+# SPA_PREFIX_PATTERN = '|'.join(re.escape(prefix.rstrip('/')) for prefix in SPA_EXCLUDED_PREFIXES)
+# 
+# urlpatterns += [
+#     re_path(
+#         rf'^(?!({SPA_PREFIX_PATTERN})).*$',
+#         FrontendAppView.as_view(),
+#         name='spa-entry'
+#     ),
+# ]

@@ -13,7 +13,7 @@ export default defineNuxtConfig({
     '@/assets/css/base.css',
     '@/assets/css/main.css'
   ],
-  modules: ['@pinia/nuxt', 'vuetify-nuxt-module'],
+  modules: ['@pinia/nuxt', 'vuetify-nuxt-module', '@vite-pwa/nuxt'],
   pinia: {
     autoImports: ['defineStore', 'storeToRefs', 'acceptHMRUpdate']
   },
@@ -246,7 +246,16 @@ export default defineNuxtConfig({
           name: 'description',
           content:
             'پلتفرم چندفروشنده‌ای با تمرکز بر تجربه فارسی و سئوی قوی برای بازار ایران.'
-        }
+        },
+        { name: 'theme-color', content: '#4CAF50' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+        { name: 'apple-mobile-web-app-title', content: 'ایندکسو' },
+        { name: 'mobile-web-app-capable', content: 'yes' }
+      ],
+      link: [
+        { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
+        { rel: 'mask-icon', href: '/icons/safari-pinned-tab.svg', color: '#4CAF50' }
       ]
     }
   },
@@ -285,5 +294,105 @@ export default defineNuxtConfig({
   },
   features: {
     inlineStyles: false
+  },
+  pwa: {
+    registerType: 'autoUpdate',
+    workbox: {
+      navigateFallback: '/offline',
+      globPatterns: ['**/*.{js,css,html,png,svg,ico,jpg,jpeg,woff,woff2}'],
+      runtimeCaching: [
+        {
+          urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'image-cache',
+            expiration: {
+              maxEntries: 100,
+              maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+            },
+            cacheableResponse: {
+              statuses: [0, 200]
+            }
+          }
+        },
+        {
+          urlPattern: /^https?:\/\/.*\/api\/.*/i,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'api-cache',
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 60 * 5 // 5 minutes
+            },
+            networkTimeoutSeconds: 10,
+            cacheableResponse: {
+              statuses: [0, 200]
+            }
+          }
+        },
+        {
+          urlPattern: /^https?:\/\/.*\/static\/.*/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'static-cache',
+            expiration: {
+              maxEntries: 200,
+              maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+            }
+          }
+        },
+        {
+          urlPattern: /^https?:\/\/.*\/media\/.*/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'media-cache',
+            expiration: {
+              maxEntries: 100,
+              maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+            }
+          }
+        }
+      ]
+    },
+    client: {
+      installPrompt: true,
+      periodicSyncForUpdates: 20
+    },
+    devOptions: {
+      enabled: false,
+      type: 'module'
+    },
+    manifest: {
+      name: 'ایندکسو',
+      short_name: 'ایندکسو',
+      description: 'پلتفرم چندفروشنده‌ای با تمرکز بر تجربه فارسی و سئوی قوی برای بازار ایران.',
+      theme_color: '#4CAF50',
+      background_color: '#FFFFFF',
+      display: 'standalone',
+      orientation: 'portrait-primary',
+      scope: '/',
+      start_url: '/',
+      lang: 'fa',
+      dir: 'rtl',
+      icons: [
+        {
+          src: '/icons/pwa-192x192.png',
+          sizes: '192x192',
+          type: 'image/png',
+          purpose: 'any maskable'
+        },
+        {
+          src: '/icons/pwa-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any maskable'
+        },
+        {
+          src: '/icons/apple-touch-icon.png',
+          sizes: '180x180',
+          type: 'image/png'
+        }
+      ]
+    }
   }
 })

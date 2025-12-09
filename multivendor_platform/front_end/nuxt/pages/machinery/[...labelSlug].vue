@@ -1,22 +1,28 @@
 <template>
   <div class="label-page">
-    <section class="hero">
-      <v-container class="py-10 text-white">
-        <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
-          <template #divider>
-            <v-icon>mdi-chevron-left</v-icon>
-          </template>
-        </v-breadcrumbs>
-        <h1 class="text-h3 text-md-h2 font-weight-bold mb-3 text-center">
-          {{ pageTitle }}
-        </h1>
-        <p
-          v-if="labelSeo?.seo_intro_text"
-          class="text-subtitle-1 opacity-90 mx-auto max-w-640 text-center"
-          v-html="labelSeo.seo_intro_text"
-        />
-      </v-container>
-    </section>
+    <v-container v-if="!labelSeo && !pageError" class="py-16 text-center">
+      <v-progress-circular indeterminate color="primary" size="64" class="mb-4" />
+      <p class="text-body-1 text-medium-emphasis">{{ t('loading') }}</p>
+    </v-container>
+
+    <template v-else>
+      <section class="hero">
+        <v-container class="py-10 text-white">
+          <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
+            <template #divider>
+              <v-icon>mdi-chevron-left</v-icon>
+            </template>
+          </v-breadcrumbs>
+          <h1 class="text-h3 text-md-h2 font-weight-bold mb-3 text-center">
+            {{ pageTitle }}
+          </h1>
+          <p
+            v-if="labelSeo?.seo_intro_text"
+            class="text-subtitle-1 opacity-90 mx-auto max-w-640 text-center"
+            v-html="labelSeo.seo_intro_text"
+          />
+        </v-container>
+      </section>
 
     <v-container class="py-8">
       <div v-if="labelBadges.length" class="label-badges mb-6">
@@ -69,6 +75,29 @@
         </div>
       </template>
 
+      <v-card v-if="labelSeo?.description" elevation="4" rounded="xl" class="description-card mt-12">
+        <v-card-title class="d-flex align-center gap-3">
+          <v-avatar size="48" class="description-icon" variant="tonal" color="primary">
+            <v-icon>mdi-text-box</v-icon>
+          </v-avatar>
+          <div>
+            <h2 class="text-h6 text-md-h5 font-weight-bold mb-1">
+              درباره {{ labelSeo.name }}
+            </h2>
+            <p class="text-body-2 text-medium-emphasis mb-0">
+              توضیحاتی درباره این برچسب و کاربردهای آن
+            </p>
+          </div>
+        </v-card-title>
+        <v-card-text>
+          <div
+            v-html="descriptionHtml"
+            class="content-body"
+            data-testid="label-description"
+          />
+        </v-card-text>
+      </v-card>
+
       <section v-if="faqItems.length" class="faq-section mt-12">
         <h3 class="text-h6 mb-3">سوالات متداول</h3>
         <div v-for="item in faqItems" :key="item.question" class="faq-item mb-4">
@@ -77,6 +106,7 @@
         </div>
       </section>
     </v-container>
+    </template>
   </div>
 </template>
 
@@ -87,7 +117,7 @@ import ListSkeleton from '~/components/skeletons/ListSkeleton.vue'
 import ProductCard from '~/components/product/ProductCard.vue'
 import { useProductStore } from '~/stores/product'
 import { useApiFetch } from '~/composables/useApiFetch'
-import { createLabelPageSchema } from '~/utils/schemaMarkup'
+import { generateCollectionPageSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
 
 type Product = Record<string, any>
 type PaginatedResponse<T> = {
@@ -97,7 +127,7 @@ type PaginatedResponse<T> = {
   results: T[]
 }
 
-const runtimeConfig = useRuntimeConfig()
+const config = useRuntimeConfig()
 const productStore = useProductStore()
 const t = productStore.t
 const route = useRoute()
@@ -123,10 +153,36 @@ const pageSize = 12
 const loadingProducts = ref(false)
 const pageError = ref<string | null>(null)
 
-const labelQuery = computed(() => slugSegments.value.filter(Boolean).join(','))
+// Build label query from API response (for combo pages) or from slug segments (for single labels)
+const labelQuery = computed(() => {
+  if (labelSeo.value?.labels && Array.isArray(labelSeo.value.labels) && labelSeo.value.labels.length > 0) {
+    // For combo pages, use all label slugs from the response
+    return labelSeo.value.labels.map((l: any) => l.slug || l).join(',')
+  }
+  // For single labels, use the slug from the response or fallback to URL segments
+  if (labelSeo.value?.slug) {
+    return labelSeo.value.slug
+  }
+  return slugSegments.value.filter(Boolean).join(',')
+})
 const comboSlug = computed(() => slugSegments.value.join('-'))
 const isIndexable = computed(() => Boolean(labelSeo.value?.is_indexable ?? labelSeo.value?.is_seo_page))
-const canonicalUrl = computed(() => `/machinery/${labelSeo.value?.slug ?? slugSegments.value.join('/')}/`)
+
+const baseUrl = config.public.siteUrl || (process.client ? window.location.origin : 'https://indexo.ir')
+
+// Get canonical URL (check DB first, then fallback to slug)
+const canonicalUrl = computed(() => {
+  if (!labelSeo.value) return ''
+  if (labelSeo.value.canonical_url) {
+    return labelSeo.value.canonical_url
+  }
+  return `${baseUrl}/machinery/${labelSeo.value.slug ?? slugSegments.value.join('/')}/`
+})
+
+// Get OG image (primary image)
+const ogImage = computed(() => {
+  return labelSeo.value?.og_image_url || labelSeo.value?.og_image || ''
+})
 
 const loadSeoContent = async () => {
   if (!slugSegments.value.length) {
@@ -149,9 +205,9 @@ const loadSeoContent = async () => {
   if (!payload) {
     const fallback = slugSegments.value[slugSegments.value.length - 1]
     try {
-      payload = await useApiFetch(`labels/${fallback}/seo-content/`)
+      payload = await useApiFetch(`labels/seo-content/${fallback}/`)
     } catch (err) {
-      //
+      console.error('Error loading label SEO content:', err)
     }
   }
 
@@ -166,15 +222,23 @@ const loadSeoContent = async () => {
 }
 
 const fetchProductsForPage = async (pageNumber = 1) => {
+  // Wait for label to be loaded if not already
+  if (!labelSeo.value) {
+    await loadSeoContent()
+  }
+  
   loadingProducts.value = true
   pageError.value = null
 
   try {
+    // Use the label slug from the API response
+    const labelsParam = labelQuery.value || (labelSeo.value?.slug ? labelSeo.value.slug : undefined)
+    
     const response = await useApiFetch<PaginatedResponse<Product>>('products/', {
       query: {
         page: pageNumber,
         page_size: pageSize,
-        labels: labelQuery.value || undefined,
+        labels: labelsParam,
         ordering: '-created_at'
       }
     })
@@ -205,7 +269,7 @@ const loadLabelPage = async () => {
   await fetchProductsForPage(1)
 }
 
-await useAsyncData(() => ['label-page', comboSlug.value], loadLabelPage)
+await useAsyncData(`label-page-${comboSlug.value}`, loadLabelPage)
 
 const pageTitle = computed(() => labelSeo.value?.seo_h1 ?? labelSeo.value?.name ?? t('products'))
 const breadcrumbs = computed(() => [
@@ -230,74 +294,104 @@ const labelBadges = computed(() => {
 })
 const faqItems = computed(() => (Array.isArray(labelSeo.value?.seo_faq) ? labelSeo.value!.seo_faq : []))
 const pageCount = computed(() => Math.max(1, Math.ceil(pagination.count / pageSize)))
-const labelSchema = computed(() => {
-  if (!labelSeo.value) {
-    return []
-  }
 
-  return createLabelPageSchema({
-    label: labelSeo.value,
-    products: products.value,
-    canonical: canonicalUrl.value,
-    siteUrl: runtimeConfig.public.siteUrl
-  })
+// Format description as HTML (similar to subcategory store)
+const descriptionHtml = computed(() => {
+  if (!labelSeo.value?.description) {
+    return `<p>برای این برچسب هنوز توضیحاتی ثبت نشده است.</p>`
+  }
+  
+  const desc = labelSeo.value.description.trim()
+  // Check if it already contains HTML tags
+  const hasHtmlTags = /<\/?[a-z][\w-]*\b[^>]*>/i.test(desc)
+  // If it has HTML tags, return as is, otherwise wrap in paragraph
+  return hasHtmlTags ? desc : `<p>${desc}</p>`
 })
 
-watch(
-  () => labelSeo.value,
-  (value) => {
-    if (!value) {
-      return
+// Generate schemas using products already loaded
+const collectionSchema = computed(() => {
+  if (!labelSeo.value) return null
+  return generateCollectionPageSchema(
+    {
+      name: labelSeo.value.name,
+      description: labelSeo.value.description,
+      slug: labelSeo.value.slug,
+      meta_description: labelSeo.value.seo_description
+    },
+    products.value.slice(0, 10).map(p => ({
+      name: p.name,
+      slug: p.slug,
+      id: p.id
+    })),
+    baseUrl,
+    'Subcategory' // Using Subcategory type for CollectionPage schema
+  )
+})
+
+const breadcrumbSchema = computed(() => {
+  if (!breadcrumbs.value.length) return null
+  return generateBreadcrumbSchema(
+    breadcrumbs.value.map(item => ({
+      name: item.title,
+      url: item.to ? `${baseUrl}${item.to}` : undefined
+    })),
+    baseUrl
+  )
+})
+
+// SEO Meta Tags
+useSeoMeta({
+  title: () => labelSeo.value?.seo_title ?? labelSeo.value?.name ?? 'برچسب',
+  description: () =>
+    labelSeo.value?.seo_description ?? labelSeo.value?.description ?? '',
+  ogTitle: () => labelSeo.value?.seo_title ?? labelSeo.value?.name ?? '',
+  ogDescription: () =>
+    labelSeo.value?.seo_description ?? labelSeo.value?.description ?? '',
+  ogType: 'website',
+  ogImage: () => ogImage.value,
+  twitterCard: 'summary_large_image',
+  twitterTitle: () => labelSeo.value?.seo_title ?? labelSeo.value?.name ?? '',
+  twitterDescription: () =>
+    labelSeo.value?.seo_description ?? labelSeo.value?.description ?? '',
+  twitterImage: () => ogImage.value,
+  robots: () => isIndexable.value ? 'index, follow' : 'noindex, follow'
+})
+
+// Schema markup and canonical URL
+useHead(() => {
+  const schemas: any[] = []
+  
+  // Add custom schema_markup from DB if available
+  if (labelSeo.value?.schema_markup) {
+    try {
+      const parsed = typeof labelSeo.value.schema_markup === 'string' 
+        ? JSON.parse(labelSeo.value.schema_markup) 
+        : labelSeo.value.schema_markup
+      schemas.push(parsed)
+    } catch (e) {
+      console.warn('Failed to parse schema_markup:', e)
     }
+  }
+  
+  // Add generated collection schema
+  if (collectionSchema.value) {
+    schemas.push(collectionSchema.value)
+  }
+  
+  // Add breadcrumb schema
+  if (breadcrumbSchema.value) {
+    schemas.push(breadcrumbSchema.value)
+  }
 
-    useSeoMeta({
-      title: value.seo_title ?? `${value.name} | ${t('products')}`,
-      description: value.seo_description ?? '',
-      ogTitle: value.seo_title ?? value.name,
-      ogDescription: value.seo_description ?? '',
-      ogImage: value.og_image,
-      canonical: canonicalUrl.value,
-      robots: isIndexable.value ? 'index, follow' : 'noindex, follow'
+  return {
+    link: [
+      { rel: 'canonical', href: canonicalUrl.value }
+    ],
+    ...(schemas.length > 0 && {
+      script: prepareSchemaScripts(schemas)
     })
-  },
-  { immediate: true }
-)
-
-watch(
-  () => labelSeo.value?.schema_markup,
-  (schema) => {
-    if (!schema) {
-      return
-    }
-
-    useHead({
-      script: [
-        {
-          type: 'application/ld+json',
-          children: schema
-        }
-      ]
-    })
-  },
-  { immediate: true }
-)
-
-watch(
-  labelSchema,
-  (schema) => {
-    if (!schema.length) {
-      return
-    }
-
-    useHead({
-      script: schema.map((entry) => ({
-        type: 'application/ld+json',
-        children: JSON.stringify(entry)
-      }))
-    })
-  },
-  { immediate: true }
-)
+  }
+})
 
 const onPageChange = async (value: number) => {
   page.value = value
@@ -337,6 +431,25 @@ const onPageChange = async (value: number) => {
 
 .label-badge-chip {
   font-weight: 500;
+}
+
+.description-card {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgba(var(--v-theme-primary), 0.08);
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.08);
+  margin-top: 16px;
+}
+
+.description-icon :deep(.v-icon) {
+  color: rgb(var(--v-theme-primary));
+}
+
+/* Content body styling - matching product detail page */
+.content-body {
+  max-width: 100%;
+  line-height: 1.8;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
 }
 
 .faq-section {

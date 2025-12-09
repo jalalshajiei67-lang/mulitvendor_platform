@@ -175,6 +175,7 @@ class LabelSerializer(serializers.ModelSerializer):
     departments = DepartmentSerializer(many=True, read_only=True)
     categories = CategorySerializer(many=True, read_only=True)
     subcategories = LabelSubcategorySerializer(many=True, read_only=True)
+    og_image_url = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Label
@@ -184,9 +185,23 @@ class LabelSerializer(serializers.ModelSerializer):
             'departments', 'categories',
             'subcategories',
             'seo_title', 'seo_description', 'seo_h1', 'seo_intro_text',
-            'seo_faq', 'og_image', 'schema_markup', 'product_count',
+            'seo_faq', 'og_image', 'og_image_url', 'canonical_url', 'image_alt_text',
+            'schema_markup', 'product_count',
             'display_order', 'is_active', 'created_at', 'updated_at'
         ]
+    
+    def get_og_image_url(self, obj):
+        """Return the full URL of the Open Graph image"""
+        og_image_field = getattr(obj, 'og_image', None)
+        if not og_image_field:
+            return None
+        
+        storage = og_image_field.storage
+        if not storage.exists(og_image_field.name):
+            return None
+        
+        request = self.context.get('request')
+        return build_absolute_uri(request, og_image_field.url)
 
 class LabelGroupSerializer(serializers.ModelSerializer):
     label_count = serializers.SerializerMethodField()

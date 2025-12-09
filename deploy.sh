@@ -13,16 +13,31 @@ docker compose build
 echo "🚀 Updating services..."
 docker compose up -d --remove-orphans
 
-# 3. Run Migrations
+# 3. Wait for services and run migrations
 echo "⏳ Waiting for Database to be healthy..."
 # (Docker compose depends_on handles the wait, but we can pause slightly)
 sleep 10 
 
-echo "🗄️ Running Migrations..."
-docker exec multivendor_backend python manage.py migrate --noinput
+# Find the backend container name (handles both production and staging)
+BACKEND_CONTAINER=$(docker ps --filter "name=multivendor_backend" --format "{{.Names}}" | head -n 1)
 
-echo "📦 Collecting Static Files..."
-docker exec multivendor_backend python manage.py collectstatic --noinput
+if [ -z "$BACKEND_CONTAINER" ]; then
+    echo "❌ Backend container not found!"
+    exit 1
+fi
+
+echo "📦 Found backend container: $BACKEND_CONTAINER"
+
+# Note: The entrypoint script now handles migrations automatically, but we can run fix as backup
+echo "🔧 Fixing migration sequence (if needed)..."
+docker exec "$BACKEND_CONTAINER" python manage.py fix_migration_sequence || echo "⚠️  Sequence fix skipped (non-critical)"
+
+# Migrations are handled by entrypoint script, but run here as backup if needed
+echo "🗄️ Running Migrations (backup - entrypoint handles this automatically)..."
+docker exec "$BACKEND_CONTAINER" python manage.py migrate --noinput || echo "⚠️  Migrations may have already run via entrypoint"
+
+echo "📦 Collecting Static Files (backup - entrypoint handles this automatically)..."
+docker exec "$BACKEND_CONTAINER" python manage.py collectstatic --noinput || echo "⚠️  Static files may have already been collected via entrypoint"
 
 echo "🧹 Cleaning up..."
 docker image prune -f
@@ -31,7 +46,7 @@ docker image prune -f
 echo "🏥 Checking Backend Health..."
 
 # Get the health status
-HEALTH_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' multivendor_backend)
+HEALTH_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$BACKEND_CONTAINER")
 
 echo "Current Status: $HEALTH_STATUS"
 

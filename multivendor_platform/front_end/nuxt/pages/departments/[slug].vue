@@ -83,10 +83,10 @@
             </p>
           </div>
         </v-card-title>
-        <v-card-text class="description-text">
+        <v-card-text>
           <div
             v-html="department.description_html"
-            class="text-body-1"
+            class="content-body"
             data-testid="department-description"
           />
         </v-card-text>
@@ -223,28 +223,12 @@ useSeoMeta({
   margin-top: 16px;
 }
 
-.description-text {
-  line-height: 2;
-}
-
-.description-text :deep(table) {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1.5em 0;
-  border: 1px solid #e0e0e0;
-}
-
-.description-text :deep(table th),
-.description-text :deep(table td) {
-  padding: 0.75em;
-  border: 1px solid #e0e0e0;
-  text-align: right;
-}
-
-.description-text :deep(table th) {
-  background-color: #f5f7fa;
-  font-weight: 700;
-  color: rgba(var(--v-theme-on-surface), 0.96);
+/* Content body styling - matching product detail page */
+.content-body {
+  max-width: 100%;
+  line-height: 1.8;
+  word-spacing: 0.1em;
+  letter-spacing: 0.01em;
 }
 
 .description-icon :deep(.v-icon) {
