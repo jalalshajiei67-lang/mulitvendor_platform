@@ -46,11 +46,7 @@
                   hint="مثال: فروشگاه آرتا برای صنایع"
                   :rules="[v => !!v || 'لطفاً نام فروشگاه را وارد کنید']"
                   data-tour="store-name-input"
-                >
-                  <template #prepend>
-                    <v-icon color="primary" size="24">mdi-store</v-icon>
-                  </template>
-                </v-text-field>
+                ></v-text-field>
               </div>
 
               <!-- Description - Important -->
@@ -70,11 +66,7 @@
                   counter="500"
                   :rules="descriptionRules"
                   data-tour="store-description-input"
-                >
-                  <template #prepend>
-                    <v-icon color="primary" size="24">mdi-text</v-icon>
-                  </template>
-                </v-textarea>
+                ></v-textarea>
               </div>
 
               <!-- Slogan - Brand Statement -->
@@ -85,15 +77,10 @@
                   prepend-icon="mdi-star"
                   variant="outlined"
                   density="comfortable"
-                  placeholder="مثال: بهترین کیفیت، بهترین قیمت"
-                  hint="یک جمله کوتاه که بشرکت را خلاصه کند"
+                  hint="مثال: بهترین کیفیت، بهترین قیمت"
                   counter="100"
                   :rules="[v => !v || v.length <= 100 || 'حداکثر 100 حرف']"
-                >
-                  <template #prepend>
-                    <v-icon color="primary" size="24">mdi-star</v-icon>
-                  </template>
-                </v-text-field>
+                ></v-text-field>
               </div>
             </v-card-text>
           </v-card>
@@ -149,11 +136,7 @@
                   density="comfortable"
                   class="file-input-large"
                   hint="تصاویر JPG یا PNG"
-                >
-                  <template #prepend>
-                    <v-icon color="primary" size="24">mdi-image</v-icon>
-                  </template>
-                </v-file-input>
+                ></v-file-input>
               </div>
 
               <!-- Colors Section -->
@@ -226,14 +209,9 @@
                     prepend-icon="mdi-phone"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="09123456789"
-                    hint="شماره موبایل یا ثابت"
+                    hint="مثال: 09123456789"
                     :rules="phoneRules"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-phone</v-icon>
-                    </template>
-                  </v-text-field>
+                  ></v-text-field>
                 </v-col>
 
                 <v-col cols="12" md="6">
@@ -244,13 +222,10 @@
                     type="email"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="info@example.com"
+                    hint="مثال: info@example.com"
                     :rules="emailRules"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-email</v-icon>
-                    </template>
-                  </v-text-field>
+                    class="ltr-input-field"
+                  ></v-text-field>
                 </v-col>
               </v-row>
             </v-card-text>
@@ -280,11 +255,7 @@
                     clearable
                     item-title="label"
                     item-value="value"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-calendar</v-icon>
-                    </template>
-                  </v-select>
+                  ></v-select>
                 </v-col>
 
                 <v-col cols="12" md="6">
@@ -295,14 +266,10 @@
                     type="number"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="مثال: 50"
+                    hint="مثال: 50"
                     :min="1"
                     :rules="employeeCountRules"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-account-group</v-icon>
-                    </template>
-                  </v-text-field>
+                  ></v-text-field>
                 </v-col>
 
                 <v-col cols="12">
@@ -312,13 +279,10 @@
                     prepend-icon="mdi-web"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="example.com"
+                    hint="مثال: example.com"
                     :rules="urlRules"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-web</v-icon>
-                    </template>
-                  </v-text-field>
+                    class="ltr-input-field"
+                  ></v-text-field>
                 </v-col>
               </v-row>
             </v-card-text>
@@ -364,7 +328,7 @@
                           label="عنوان گواهینامه"
                           density="compact"
                           variant="outlined"
-                          placeholder="مثال: ISO 9001"
+                          hint="مثال: ISO 9001"
                           hide-details
                         ></v-text-field>
                       </v-col>
@@ -374,7 +338,7 @@
                           label="سازمان صادرکننده"
                           density="compact"
                           variant="outlined"
-                          placeholder="مثال: سازمان استاندارد"
+                          hint="مثال: سازمان استاندارد"
                           hide-details
                         ></v-text-field>
                       </v-col>
@@ -384,7 +348,7 @@
                           label="سال"
                           density="compact"
                           variant="outlined"
-                          placeholder="1400"
+                          hint="مثال: 1400"
                           hide-details
                         ></v-text-field>
                       </v-col>
@@ -431,7 +395,7 @@
                           label="عنوان جایزه"
                           density="compact"
                           variant="outlined"
-                          placeholder="مثال: برترین تولیدکننده"
+                          hint="مثال: برترین تولیدکننده"
                           hide-details
                         ></v-text-field>
                       </v-col>
@@ -441,7 +405,7 @@
                           label="اهدا کننده"
                           density="compact"
                           variant="outlined"
-                          placeholder="مثال: اتاق بازرگانی"
+                          hint="مثال: اتاق بازرگانی"
                           hide-details
                         ></v-text-field>
                       </v-col>
@@ -451,7 +415,7 @@
                           label="سال"
                           density="compact"
                           variant="outlined"
-                          placeholder="1400"
+                          hint="مثال: 1400"
                           hide-details
                         ></v-text-field>
                       </v-col>
@@ -499,12 +463,9 @@
                     prepend-icon="mdi-instagram"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="https://instagram.com/..."
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-instagram</v-icon>
-                    </template>
-                  </v-text-field>
+                    hint="https://instagram.com/yourpage"
+                    class="ltr-input-field social-media-field"
+                  ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
                   <v-text-field
@@ -513,12 +474,9 @@
                     prepend-icon="mdi-telegram"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="https://t.me/..."
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-telegram</v-icon>
-                    </template>
-                  </v-text-field>
+                    hint="https://t.me/yourchannel"
+                    class="ltr-input-field social-media-field"
+                  ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
                   <v-text-field
@@ -527,12 +485,9 @@
                     prepend-icon="mdi-whatsapp"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="https://wa.me/..."
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-whatsapp</v-icon>
-                    </template>
-                  </v-text-field>
+                    hint="https://wa.me/989123456789"
+                    class="ltr-input-field social-media-field"
+                  ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
                   <v-text-field
@@ -541,12 +496,9 @@
                     prepend-icon="mdi-linkedin"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="https://linkedin.com/..."
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-linkedin</v-icon>
-                    </template>
-                  </v-text-field>
+                    hint="https://linkedin.com/company/yourcompany"
+                    class="ltr-input-field social-media-field"
+                  ></v-text-field>
                 </v-col>
               </v-row>
             </v-card-text>
@@ -573,8 +525,7 @@
                       variant="outlined"
                       density="comfortable"
                       counter="60"
-                      hint="عنوانی کوتاه برای جستجو"
-                      placeholder="فروشگاه آنلاین ماشین‌آلات"
+                      hint="مثال: فروشگاه آنلاین ماشین‌آلات"
                       :rules="[v => !v || v.length <= 60 || 'حداکثر 60 حرف']"
                     ></v-text-field>
                   </v-col>
@@ -585,8 +536,7 @@
                       variant="outlined"
                       rows="3"
                       counter="160"
-                      hint="توضیح کوتاه برای نتایج جستجو"
-                      placeholder="فروشگاه آنلاین انواع ماشین‌آلات..."
+                      hint="مثال: فروشگاه آنلاین انواع ماشین‌آلات..."
                       :rules="[v => !v || v.length <= 160 || 'حداکثر 160 حرف']"
                     ></v-textarea>
                   </v-col>
@@ -618,7 +568,6 @@
           size="x-large"
           variant="outlined"
           prepend-icon="mdi-eye"
-          :disabled="!supplierId"
           :loading="loadingSettings"
           @click="previewWebsite"
           class="flex-grow-1"
@@ -1041,6 +990,10 @@ const previewWebsite = async () => {
   if (previewUrl.value) {
     const fullUrl = window.location.origin + previewUrl.value
     window.open(fullUrl, '_blank', 'noopener,noreferrer')
+  } else {
+    snackbarMessage.value = 'لطفاً ابتدا اطلاعات را ذخیره کنید تا صفحه فروشگاه شما ایجاد شود'
+    snackbarColor.value = 'warning'
+    snackbar.value = true
   }
 }
 
@@ -1118,5 +1071,17 @@ onMounted(async () => {
 
 :deep(.v-card:hover) {
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
+}
+
+/* Social media hints - LTR direction */
+.social-media-field :deep(.v-messages__message) {
+  direction: ltr;
+  text-align: left;
+}
+
+/* LTR input fields - only input text, not labels or icons */
+.ltr-input-field :deep(.v-field__input) {
+  direction: ltr;
+  text-align: left;
 }
 </style>

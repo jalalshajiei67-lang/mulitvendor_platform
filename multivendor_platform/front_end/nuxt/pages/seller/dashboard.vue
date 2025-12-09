@@ -267,7 +267,7 @@
                 </v-row>
 
                 <!-- Recent Orders Section -->
-                <v-row class="mb-4" v-if="recentOrders.length > 0">
+                <v-row class="mb-4" v-if="recentOrders && recentOrders.length > 0">
                   <v-col cols="12">
                     <v-card elevation="2" rounded="xl" class="pa-2">
                       <v-card-title class="d-flex align-center justify-space-between px-4 pt-4">
@@ -432,7 +432,158 @@
               </v-card>
             </v-window-item>
 
-            <!-- Other tabs follow same pattern: elevation="2" rounded="xl" -->
+            <!-- Orders Tab -->
+            <v-window-item value="orders">
+              <v-card elevation="2" rounded="xl" class="pa-4 mt-4">
+                <div class="d-flex align-center justify-space-between mb-6">
+                  <h3 class="text-h6 font-weight-bold">سفارشات من</h3>
+                  <v-chip v-if="orders.length > 0" color="primary" variant="tonal">
+                    {{ orders.length }} سفارش
+                  </v-chip>
+                </div>
+
+                <v-progress-linear v-if="loadingOrders" indeterminate color="primary" class="mb-4"></v-progress-linear>
+
+                <v-card v-if="orders.length === 0 && !loadingOrders" elevation="1" class="text-center pa-8">
+                  <v-icon size="80" color="grey-lighten-1">mdi-shopping-outline</v-icon>
+                  <p class="text-h6 mt-4 mb-2">هنوز سفارشی دریافت نکرده‌اید</p>
+                  <p class="text-body-2 text-grey">سفارشات شما در اینجا نمایش داده می‌شوند</p>
+                </v-card>
+
+                <v-data-table
+                  v-else
+                  :headers="orderHeaders"
+                  :items="orders"
+                  :loading="loadingOrders"
+                  item-value="id"
+                  class="elevation-0"
+                >
+                  <template v-slot:item.order_number="{ item }">
+                    <span class="font-weight-bold text-primary">#{{ item.order_number }}</span>
+                  </template>
+
+                  <template v-slot:item.buyer_username="{ item }">
+                    {{ item.buyer_username || 'کاربر مهمان' }}
+                  </template>
+
+                  <template v-slot:item.total_amount="{ item }">
+                    <span class="font-weight-medium">{{ formatPrice(item.total_amount) }} تومان</span>
+                  </template>
+
+                  <template v-slot:item.status="{ item }">
+                    <v-chip
+                      :color="getStatusColor(item.status)"
+                      size="small"
+                      variant="tonal"
+                      label
+                    >
+                      {{ getStatusLabel(item.status) }}
+                    </v-chip>
+                  </template>
+
+                  <template v-slot:item.created_at="{ item }">
+                    <span class="text-caption">{{ formatDate(item.created_at) }}</span>
+                  </template>
+                </v-data-table>
+              </v-card>
+            </v-window-item>
+
+            <!-- Reviews Tab -->
+            <v-window-item value="reviews">
+              <v-card elevation="2" rounded="xl" class="pa-4 mt-4">
+                <div class="d-flex align-center justify-space-between mb-6">
+                  <h3 class="text-h6 font-weight-bold">نظرات محصولات</h3>
+                  <v-chip v-if="reviews.length > 0" color="primary" variant="tonal">
+                    {{ reviews.length }} نظر
+                  </v-chip>
+                </div>
+
+                <v-progress-linear v-if="loadingReviews" indeterminate color="primary" class="mb-4"></v-progress-linear>
+
+                <v-card v-if="reviews.length === 0 && !loadingReviews" elevation="1" class="text-center pa-8">
+                  <v-icon size="80" color="grey-lighten-1">mdi-star-outline</v-icon>
+                  <p class="text-h6 mt-4 mb-2">هنوز نظری دریافت نکرده‌اید</p>
+                  <p class="text-body-2 text-grey">نظرات مشتریان در اینجا نمایش داده می‌شوند</p>
+                </v-card>
+
+                <v-data-table
+                  v-else
+                  :headers="reviewHeaders"
+                  :items="reviews"
+                  :loading="loadingReviews"
+                  item-value="id"
+                  class="elevation-0"
+                >
+                  <template v-slot:item.product="{ item }">
+                    <span class="font-weight-medium">{{ item.product?.name || 'محصول حذف شده' }}</span>
+                  </template>
+
+                  <template v-slot:item.author="{ item }">
+                    {{ item.author?.username || 'کاربر مهمان' }}
+                  </template>
+
+                  <template v-slot:item.rating="{ item }">
+                    <div class="d-flex align-center">
+                      <v-rating
+                        :model-value="item.rating"
+                        readonly
+                        size="small"
+                        color="warning"
+                        density="compact"
+                      ></v-rating>
+                      <span class="text-caption mr-2">({{ item.rating }})</span>
+                    </div>
+                  </template>
+
+                  <template v-slot:item.comment="{ item }">
+                    <span class="text-caption">{{ item.comment?.substring(0, 50) }}{{ item.comment?.length > 50 ? '...' : '' }}</span>
+                  </template>
+
+                  <template v-slot:item.created_at="{ item }">
+                    <span class="text-caption">{{ formatDate(item.created_at) }}</span>
+                  </template>
+                </v-data-table>
+              </v-card>
+            </v-window-item>
+
+            <!-- Mini Website Tab -->
+            <v-window-item value="miniwebsite">
+              <v-card elevation="2" rounded="xl" class="pa-4 mt-4">
+                <v-tabs v-model="miniWebsiteTab" bg-color="surface" color="primary" class="mb-4">
+                  <v-tab value="settings">
+                    <v-icon start>mdi-cog-outline</v-icon>
+                    تنظیمات
+                  </v-tab>
+                  <v-tab value="portfolio">
+                    <v-icon start>mdi-briefcase-outline</v-icon>
+                    نمونه کارها
+                  </v-tab>
+                  <v-tab value="team">
+                    <v-icon start>mdi-account-group-outline</v-icon>
+                    تیم
+                  </v-tab>
+                  <v-tab value="messages">
+                    <v-icon start>mdi-email-outline</v-icon>
+                    پیام‌ها
+                  </v-tab>
+                </v-tabs>
+
+                <v-window v-model="miniWebsiteTab">
+                  <v-window-item value="settings">
+                    <MiniWebsiteSettings />
+                  </v-window-item>
+                  <v-window-item value="portfolio">
+                    <PortfolioManager />
+                  </v-window-item>
+                  <v-window-item value="team">
+                    <TeamManager />
+                  </v-window-item>
+                  <v-window-item value="messages">
+                    <ContactMessagesInbox />
+                  </v-window-item>
+                </v-window>
+              </v-card>
+            </v-window-item>
 
             <!-- Chats Tab -->
             <v-window-item value="chats">
@@ -481,8 +632,9 @@
                           
                           <v-list-item-subtitle class="text-caption">
                             <span v-if="room.last_message" :class="room.unread_count > 0 ? 'text-high-emphasis font-weight-medium' : ''">
-                                {{ room.last_message.content.substring(0, 35) }}...
+                                {{ room.last_message.content?.substring(0, 35) || '' }}{{ room.last_message.content?.length > 35 ? '...' : '' }}
                             </span>
+                            <span v-else class="text-disabled">پیامی وجود ندارد</span>
                           </v-list-item-subtitle>
                           
                           <template #append>
@@ -567,11 +719,13 @@ import { useDisplay } from 'vuetify'
 import { useAuthStore } from '~/stores/auth'
 import { useSellerApi } from '~/composables/useSellerApi'
 import type { SellerOrder, SellerReview } from '~/composables/useSellerApi'
+import { useApiFetch } from '~/composables/useApiFetch'
 import MiniWebsiteSettings from '~/components/supplier/MiniWebsiteSettings.vue'
 import PortfolioManager from '~/components/supplier/PortfolioManager.vue'
 import TeamManager from '~/components/supplier/TeamManager.vue'
 import ContactMessagesInbox from '~/components/supplier/ContactMessagesInbox.vue'
 import SupplierProductForm from '~/components/supplier/ProductForm.vue'
+import SupplierProductList from '~/components/supplier/ProductList.vue'
 import ChatRoom from '~/components/chat/ChatRoom.vue'
 import FormQualityScore from '~/components/gamification/FormQualityScore.vue'
 import EngagementWidget from '~/components/gamification/EngagementWidget.vue'
@@ -640,27 +794,132 @@ const dashboardData = ref({
   total_reviews: 0
 })
 
-// Placeholder helper functions for logic that wasn't in the snippet but is implied
-const getUserFullName = () => 'کاربر' 
-const formatPrice = (p: any) => p
-const getStatusColor = (s: any) => 'primary'
-const getStatusLabel = (s: any) => s
-const getChatInitials = (u: any) => 'U'
-const formatChatTime = (t: any) => t
-const openProductForm = () => { showProductForm.value = true; editingProduct.value = null }
-const closeProductForm = () => { showProductForm.value = false }
-const onProductSaved = () => { closeProductForm() }
-const openEditProductForm = (p: any) => { editingProduct.value = p; showProductForm.value = true }
-const selectChatRoom = (r: any) => { selectedChatRoom.value = r }
-const handleTourStarted = () => {}
-const handleTourCompleted = () => {}
-const handleTourDismissed = () => {}
-const updateProfile = () => {}
-const formatDate = (d:any) => d
+// Helper functions
+const getUserFullName = () => {
+  if (authStore.user) {
+    const firstName = authStore.user.first_name || ''
+    const lastName = authStore.user.last_name || ''
+    return `${firstName} ${lastName}`.trim() || authStore.user.username || 'کاربر'
+  }
+  return 'کاربر'
+}
+
+const formatPrice = (price: string | number) => {
+  const numPrice = typeof price === 'string' ? parseFloat(price) : price
+  if (isNaN(numPrice)) return '0'
+  return new Intl.NumberFormat('fa-IR').format(numPrice)
+}
+
+const getStatusColor = (status: string) => {
+  const statusColors: Record<string, string> = {
+    'pending': 'warning',
+    'confirmed': 'info',
+    'processing': 'primary',
+    'shipped': 'secondary',
+    'delivered': 'success',
+    'cancelled': 'error',
+    'completed': 'success'
+  }
+  return statusColors[status?.toLowerCase()] || 'grey'
+}
+
+const getStatusLabel = (status: string) => {
+  const statusLabels: Record<string, string> = {
+    'pending': 'در انتظار',
+    'confirmed': 'تایید شده',
+    'processing': 'در حال پردازش',
+    'shipped': 'ارسال شده',
+    'delivered': 'تحویل داده شده',
+    'cancelled': 'لغو شده',
+    'completed': 'تکمیل شده'
+  }
+  return statusLabels[status?.toLowerCase()] || status
+}
+
+const getChatInitials = (user: any) => {
+  if (!user) return 'م'
+  const username = user.username || ''
+  if (username.length > 0) {
+    return username.charAt(0).toUpperCase()
+  }
+  return 'م'
+}
+
+const formatChatTime = (dateString: string) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return 'همین الان'
+  if (diffMins < 60) return `${diffMins} دقیقه پیش`
+  if (diffHours < 24) return `${diffHours} ساعت پیش`
+  if (diffDays < 7) return `${diffDays} روز پیش`
+  
+  return new Intl.DateTimeFormat('fa-IR', {
+    month: 'short',
+    day: 'numeric'
+  }).format(date)
+}
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('fa-IR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(date)
+}
+
+const openProductForm = () => {
+  showProductForm.value = true
+  editingProduct.value = null
+}
+
+const closeProductForm = () => {
+  showProductForm.value = false
+  editingProduct.value = null
+}
+
+const onProductSaved = () => {
+  closeProductForm()
+  if (productListRef.value?.loadProducts) {
+    productListRef.value.loadProducts()
+  }
+  loadDashboardData()
+  showSnackbar('محصول با موفقیت ذخیره شد', 'success')
+}
+
+const openEditProductForm = (product: any) => {
+  editingProduct.value = product
+  showProductForm.value = true
+}
+
+const selectChatRoom = (room: any) => {
+  selectedChatRoom.value = room
+}
+
+const handleTourStarted = () => {
+  // Tour started handler
+}
+
+const handleTourCompleted = () => {
+  // Tour completed handler
+}
+
+const handleTourDismissed = () => {
+  // Tour dismissed handler
+}
 
 const orders = ref<SellerOrder[]>([])
 const reviews = ref<SellerReview[]>([])
-const recentOrders = ref<any[]>([]) 
+const recentOrders = computed(() => {
+  return orders.value.slice(0, 5)
+}) 
 const chatRooms = ref<any[]>([])
 const selectedChatRoom = ref<any>(null)
 const unreadChatsCount = ref(0)
@@ -680,16 +939,185 @@ const snackbarColor = ref('success')
 const showProductForm = ref(false)
 const editingProduct = ref<any>(null)
 const productListRef = ref<any>(null)
-const orderHeaders = ref([])
-const reviewHeaders = ref([])
+const orderHeaders = ref([
+  { title: 'شماره سفارش', key: 'order_number', sortable: true },
+  { title: 'خریدار', key: 'buyer_username', sortable: true },
+  { title: 'مبلغ', key: 'total_amount', sortable: true },
+  { title: 'وضعیت', key: 'status', sortable: true },
+  { title: 'تاریخ', key: 'created_at', sortable: true }
+])
+
+const reviewHeaders = ref([
+  { title: 'محصول', key: 'product', sortable: true },
+  { title: 'نویسنده', key: 'author', sortable: true },
+  { title: 'امتیاز', key: 'rating', sortable: true },
+  { title: 'نظر', key: 'comment', sortable: false },
+  { title: 'تاریخ', key: 'created_at', sortable: true }
+])
+
+// Data loading functions
+const loadDashboardData = async () => {
+  loading.value = true
+  try {
+    const response = await sellerApi.getSellerDashboard()
+    dashboardData.value = response
+  } catch (error) {
+    console.error('Failed to load dashboard data:', error)
+    showSnackbar('خطا در بارگذاری اطلاعات داشبورد', 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadOrders = async () => {
+  loadingOrders.value = true
+  try {
+    const response = await sellerApi.getSellerOrders()
+    orders.value = response
+    recentOrders.value = response.slice(0, 5)
+  } catch (error) {
+    console.error('Failed to load orders:', error)
+    showSnackbar('خطا در بارگذاری سفارشات', 'error')
+  } finally {
+    loadingOrders.value = false
+  }
+}
+
+const loadReviews = async () => {
+  loadingReviews.value = true
+  try {
+    const response = await sellerApi.getSellerReviews()
+    reviews.value = response
+  } catch (error) {
+    console.error('Failed to load reviews:', error)
+    showSnackbar('خطا در بارگذاری نظرات', 'error')
+  } finally {
+    loadingReviews.value = false
+  }
+}
+
+const loadChatRooms = async () => {
+  loadingChats.value = true
+  try {
+    const response = await useApiFetch<any[]>('chat/vendor/rooms/')
+    chatRooms.value = response || []
+    unreadChatsCount.value = chatRooms.value.reduce((sum, room) => sum + (room.unread_count || 0), 0)
+  } catch (error) {
+    console.error('Failed to load chat rooms:', error)
+    showSnackbar('خطا در بارگذاری گفتگوها', 'error')
+  } finally {
+    loadingChats.value = false
+  }
+}
+
+const updateProfile = async () => {
+  saving.value = true
+  try {
+    await authStore.updateProfile(profileData.value)
+    showSnackbar('پروفایل با موفقیت به‌روزرسانی شد', 'success')
+    // Recalculate profile score after update
+    calculateProfileScore()
+  } catch (error: any) {
+    console.error('Failed to update profile:', error)
+    showSnackbar(error?.message || 'خطا در به‌روزرسانی پروفایل', 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+const calculateProfileScore = () => {
+  let score = 0
+  const metrics: any[] = []
+  const tips: string[] = []
+
+  if (profileData.value.first_name) {
+    score += 10
+    metrics.push({ label: 'نام', completed: true })
+  } else {
+    metrics.push({ label: 'نام', completed: false })
+    tips.push('نام خود را وارد کنید')
+  }
+
+  if (profileData.value.last_name) {
+    score += 10
+    metrics.push({ label: 'نام خانوادگی', completed: true })
+  } else {
+    metrics.push({ label: 'نام خانوادگی', completed: false })
+    tips.push('نام خانوادگی خود را وارد کنید')
+  }
+
+  if (profileData.value.email) {
+    score += 20
+    metrics.push({ label: 'ایمیل', completed: true })
+  } else {
+    metrics.push({ label: 'ایمیل', completed: false })
+    tips.push('ایمیل خود را وارد کنید')
+  }
+
+  if (profileData.value.phone) {
+    score += 20
+    metrics.push({ label: 'تلفن', completed: true })
+  } else {
+    metrics.push({ label: 'تلفن', completed: false })
+    tips.push('شماره تلفن خود را وارد کنید')
+  }
+
+  profileScore.value = score
+  profileMetrics.value = metrics
+  profileTips.value = tips
+}
+
+const showSnackbar = (message: string, color = 'success') => {
+  snackbarMessage.value = message
+  snackbarColor.value = color
+  snackbar.value = true
+}
+
+// Watch tab changes to load data
+watch(tab, (newTab) => {
+  navigateTo(`/seller/dashboard?tab=${newTab}`, { replace: true })
+  
+  if (newTab === 'orders' && orders.value.length === 0) {
+    loadOrders()
+  } else if (newTab === 'reviews' && reviews.value.length === 0) {
+    loadReviews()
+  } else if (newTab === 'chats' && chatRooms.value.length === 0) {
+    loadChatRooms()
+  }
+})
 
 // Gamification: Hydrate store on mount
 onMounted(async () => {
+  // Load user profile data
+  if (authStore.user) {
+    profileData.value = {
+      first_name: authStore.user.first_name || '',
+      last_name: authStore.user.last_name || '',
+      email: authStore.user.email || '',
+      phone: authStore.user.profile?.phone || ''
+    }
+    calculateProfileScore()
+  }
+
+  // Load dashboard data
+  await loadDashboardData()
+  await loadOrders()
+  await loadReviews()
+  await loadChatRooms()
+
+  // Load gamification data
   try {
     await gamificationStore.hydrate()
   } catch (error) {
     console.warn('Failed to load gamification data', error)
   }
+
+  // Auto-refresh chat rooms every 30 seconds
+  setInterval(() => {
+    if (tab.value === 'chats') {
+      loadChatRooms()
+    }
+  }, 30000)
 })
 
 // Gamification: Sync profile score with store

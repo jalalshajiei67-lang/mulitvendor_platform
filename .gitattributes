@@ -1,0 +1,23 @@
+# Ensure shell scripts always use Unix line endings
+*.sh text eol=lf
+
+# Python files
+*.py text eol=lf
+
+# YAML files
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Configuration files
+*.conf text eol=lf
+*.ini text eol=lf
+
+# Text files
+*.txt text eol=lf
+*.md text eol=lf
+
+# Batch files should keep Windows line endings
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+

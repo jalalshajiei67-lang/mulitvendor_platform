@@ -244,6 +244,24 @@ class SupplierPortfolioItemSerializer(serializers.ModelSerializer):
 
 class SupplierTeamMemberSerializer(serializers.ModelSerializer):
     vendor_name = serializers.CharField(source='vendor_profile.store_name', read_only=True)
+    bio = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    sort_order = serializers.IntegerField(required=False, default=0)
+    photo = serializers.ImageField(required=False, allow_null=True)
+    
+    def validate_bio(self, value):
+        """Convert empty string to None for bio field"""
+        if value == '' or (isinstance(value, str) and value.strip() == ''):
+            return None
+        return value
+    
+    def validate(self, attrs):
+        """Validate the entire object"""
+        # Ensure name and position are not empty
+        if 'name' in attrs and (not attrs['name'] or attrs['name'].strip() == ''):
+            raise serializers.ValidationError({'name': 'نام نمی‌تواند خالی باشد'})
+        if 'position' in attrs and (not attrs['position'] or attrs['position'].strip() == ''):
+            raise serializers.ValidationError({'position': 'سمت نمی‌تواند خالی باشد'})
+        return attrs
     
     class Meta:
         model = SupplierTeamMember
@@ -252,6 +270,10 @@ class SupplierTeamMemberSerializer(serializers.ModelSerializer):
             'bio', 'sort_order', 'created_at', 'updated_at'
         ]
         read_only_fields = ['vendor_profile', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'name': {'required': True},
+            'position': {'required': True},
+        }
 
 class SupplierContactMessageSerializer(serializers.ModelSerializer):
     vendor_name = serializers.CharField(source='vendor_profile.store_name', read_only=True)

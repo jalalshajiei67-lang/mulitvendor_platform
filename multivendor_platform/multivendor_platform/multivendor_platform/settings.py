@@ -20,7 +20,6 @@ else:
     ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
 # Application definition
 INSTALLED_APPS = [
-    'daphne',  # ASGI server for Channels (must be at top)
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -161,7 +160,12 @@ if not CORS_ALLOW_ALL_ORIGINS:
     # Parse CORS origins from environment
     cors_origins_str = os.environ.get('CORS_ALLOWED_ORIGINS', '')
     if cors_origins_str:
-        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',')]
+        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',') if origin.strip()]
+        # Log CORS configuration for debugging (only in development)
+        if DEBUG:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"CORS_ALLOWED_ORIGINS configured: {CORS_ALLOWED_ORIGINS}")
     else:
         CORS_ALLOWED_ORIGINS = [
             "http://localhost:8080",
@@ -171,6 +175,10 @@ if not CORS_ALLOW_ALL_ORIGINS:
             "http://localhost:3000",  # Nuxt dev server
             "http://127.0.0.1:3000",  # Nuxt dev server
         ]
+        if DEBUG:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning("CORS_ALLOW_ALL_ORIGINS is False but CORS_ALLOWED_ORIGINS is not set. Using default localhost origins.")
 else:
     CORS_ALLOWED_ORIGINS = []
 
@@ -195,6 +203,14 @@ CORS_ALLOW_METHODS = [
     'POST',
     'PUT',
 ]
+# Expose headers that frontend might need
+CORS_EXPOSE_HEADERS = [
+    'content-type',
+    'x-total-count',
+    'x-page-count',
+]
+# Cache preflight requests for 1 hour
+CORS_PREFLIGHT_MAX_AGE = 3600
 
 # CSRF Trusted Origins - Required for admin login and API requests from frontend
 csrf_trusted_origins_str = os.environ.get('CSRF_TRUSTED_ORIGINS', '')

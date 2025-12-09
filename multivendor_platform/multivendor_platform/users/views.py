@@ -6,6 +6,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from rest_framework.authtoken.models import Token
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -1667,12 +1668,27 @@ class SupplierPortfolioItemViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Set the vendor_profile to the current user's vendor profile"""
+        # Get or create vendor profile
         try:
             vendor_profile = self.request.user.vendor_profile
-            serializer.save(vendor_profile=vendor_profile)
-            log_activity(self.request.user, 'other', 'Added portfolio item', self.request)
         except VendorProfile.DoesNotExist:
-            raise Response({'error': 'User does not have a vendor profile'}, status=status.HTTP_400_BAD_REQUEST)
+            # Auto-create vendor profile if it doesn't exist
+            username = self.request.user.username
+            store_name = f"فروشگاه_{username}"
+            # Ensure uniqueness
+            counter = 1
+            while VendorProfile.objects.filter(store_name=store_name).exists():
+                store_name = f"فروشگاه_{username}_{counter}"
+                counter += 1
+            
+            vendor_profile = VendorProfile.objects.create(
+                user=self.request.user,
+                store_name=store_name,
+                description=''
+            )
+        
+        serializer.save(vendor_profile=vendor_profile)
+        log_activity(self.request.user, 'other', 'Added portfolio item', self.request)
 
 
 class SupplierTeamMemberViewSet(viewsets.ModelViewSet):
@@ -1710,14 +1726,65 @@ class SupplierTeamMemberViewSet(viewsets.ModelViewSet):
             permission_classes = []
         return [permission() for permission in permission_classes]
     
+    def create(self, request, *args, **kwargs):
+        """Override create to add better error handling and auto-create vendor profile"""
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            # Log validation errors for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Team member validation errors: {serializer.errors}")
+            logger.error(f"Request data: {request.data}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get or create vendor profile
+        try:
+            vendor_profile = request.user.vendor_profile
+        except VendorProfile.DoesNotExist:
+            # Auto-create vendor profile if it doesn't exist
+            username = request.user.username
+            store_name = f"فروشگاه_{username}"
+            # Ensure uniqueness
+            counter = 1
+            while VendorProfile.objects.filter(store_name=store_name).exists():
+                store_name = f"فروشگاه_{username}_{counter}"
+                counter += 1
+            
+            vendor_profile = VendorProfile.objects.create(
+                user=request.user,
+                store_name=store_name,
+                description=''
+            )
+        
+        serializer.save(vendor_profile=vendor_profile)
+        log_activity(request.user, 'other', 'Added team member', request)
+        
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
     def perform_create(self, serializer):
         """Set the vendor_profile to the current user's vendor profile"""
+        # Get or create vendor profile
         try:
             vendor_profile = self.request.user.vendor_profile
-            serializer.save(vendor_profile=vendor_profile)
-            log_activity(self.request.user, 'other', 'Added team member', self.request)
         except VendorProfile.DoesNotExist:
-            raise Response({'error': 'User does not have a vendor profile'}, status=status.HTTP_400_BAD_REQUEST)
+            # Auto-create vendor profile if it doesn't exist
+            username = self.request.user.username
+            store_name = f"فروشگاه_{username}"
+            # Ensure uniqueness
+            counter = 1
+            while VendorProfile.objects.filter(store_name=store_name).exists():
+                store_name = f"فروشگاه_{username}_{counter}"
+                counter += 1
+            
+            vendor_profile = VendorProfile.objects.create(
+                user=self.request.user,
+                store_name=store_name,
+                description=''
+            )
+        
+        serializer.save(vendor_profile=vendor_profile)
+        log_activity(self.request.user, 'other', 'Added team member', self.request)
 
 
 class SupplierContactMessageViewSet(viewsets.ModelViewSet):
