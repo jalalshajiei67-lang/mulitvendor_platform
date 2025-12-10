@@ -38,7 +38,9 @@ export interface SellerAd {
 
 export const useSellerApi = () => {
   const getSellerDashboard = async (): Promise<SellerDashboardData> => {
-    return await useApiFetch<SellerDashboardData>('auth/seller/dashboard/')
+    return await useApiFetch<SellerDashboardData>('auth/seller/dashboard/', {
+      skip404Redirect: true
+    })
   }
 
   const getSellerOrders = async (): Promise<SellerOrder[]> => {

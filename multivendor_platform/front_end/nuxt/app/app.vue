@@ -1,9 +1,14 @@
 <template>
   <v-app>
     <NuxtLoadingIndicator color="primary" />
+    <ToastContainer />
     <NuxtPage />
   </v-app>
 </template>
+
+<script setup lang="ts">
+import ToastContainer from '~/components/common/ToastContainer.vue'
+</script>
 
 <style>
 /* Page transition animations */

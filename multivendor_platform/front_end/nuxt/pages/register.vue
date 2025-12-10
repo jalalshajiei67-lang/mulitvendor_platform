@@ -234,6 +234,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { getErrorIcon, getErrorColor } from '~/utils/authErrors'
 
 definePageMeta({
@@ -258,6 +259,7 @@ useSeoMeta({
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const formRef = ref()
 const isValid = ref(false)
@@ -265,6 +267,25 @@ const showPassword = ref(false)
 const confirmPassword = ref('')
 const loading = computed(() => authStore.loading)
 const authError = computed(() => authStore.authError)
+
+// Capture referral code from URL query parameter
+const referralCode = ref<string>('')
+onMounted(() => {
+  const refParam = route.query.ref as string
+  if (refParam) {
+    referralCode.value = refParam
+    // Store in localStorage as backup (in case user navigates away and comes back)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('referral_code', refParam)
+    }
+  } else if (typeof window !== 'undefined') {
+    // Check localStorage for stored referral code
+    const stored = localStorage.getItem('referral_code')
+    if (stored) {
+      referralCode.value = stored
+    }
+  }
+})
 
 const form = reactive({
   username: '',
@@ -375,12 +396,21 @@ const submit = async () => {
   try {
     // Prepare payload - mobile number is username
     // Backend will normalize the mobile number format
-    const payload = {
+    const payload: any = {
       username: form.username.trim(), // Backend will clean and normalize
       first_name: form.first_name.trim(),
       last_name: form.last_name.trim(),
       password: form.password,
       role: form.role
+    }
+
+    // Add referral code if available
+    if (referralCode.value) {
+      payload.referral_code = referralCode.value
+      // Clear stored referral code after using it
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('referral_code')
+      }
     }
 
     const response = await authStore.register(payload)

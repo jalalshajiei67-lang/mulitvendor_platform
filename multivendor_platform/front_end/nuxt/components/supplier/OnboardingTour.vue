@@ -122,6 +122,12 @@ const emit = defineEmits<{
   tourDismissed: []
 }>()
 
+const props = withDefaults(defineProps<{
+  forceShow?: boolean
+}>(), {
+  forceShow: false
+})
+
 const {
   shouldShowTour,
   markTourCompleted,
@@ -131,10 +137,22 @@ const {
 
 const showWelcomeDialog = ref(false)
 
+// Helpers to check completion/dismissal
+const isTourCompleted = () => {
+  if (typeof window === 'undefined') return false
+  return localStorage.getItem('supplier_tour_completed') === 'true'
+}
+
+const isTourDismissed = () => {
+  if (typeof window === 'undefined') return false
+  return localStorage.getItem('supplier_tour_dismissed') === 'true'
+}
+
 // Check if should show welcome dialog on mount
 onMounted(() => {
   setTimeout(() => {
-    if (shouldShowTour()) {
+    const canShow = !isTourCompleted() && !isTourDismissed() && (props.forceShow || shouldShowTour())
+    if (canShow) {
       showWelcomeDialog.value = true
     }
   }, 1000) // Delay to ensure page is fully loaded

@@ -1,3 +1,6 @@
+import { defineStore, acceptHMRUpdate } from 'pinia'
+import { ref, reactive, computed } from 'vue'
+
 type Product = Record<string, any>
 
 type PaginatedResponse<T> = {

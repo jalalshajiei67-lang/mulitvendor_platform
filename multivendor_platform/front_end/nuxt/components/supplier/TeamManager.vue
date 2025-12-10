@@ -86,18 +86,18 @@
         </v-row>
 
         <!-- Empty State -->
-        <v-row v-else justify="center" class="my-8">
-          <v-col cols="12" class="text-center">
-            <v-icon size="80" color="grey-lighten-2">mdi-account-group</v-icon>
-            <h3 class="text-h6 mt-3">هنوز عضوی به تیم اضافه نشده</h3>
-            <p class="text-body-2 text-medium-emphasis mb-4">
-              اعضای تیم خود را معرفی کنید
-            </p>
-            <v-btn color="primary" prepend-icon="mdi-plus" @click="openForm()">
-              افزودن اولین عضو
-            </v-btn>
-          </v-col>
-        </v-row>
+        <EmptyState
+          v-else
+          icon="mdi-account-group"
+          icon-size="80"
+          icon-color="grey-lighten-2"
+          title="هنوز عضوی به تیم اضافه نشده"
+          description="اعضای تیم خود را معرفی کنید"
+          action-label="افزودن اولین عضو"
+          action-icon="mdi-plus"
+          :gamification-context="teamGamificationContext"
+          @action="openForm()"
+        />
       </v-card-text>
     </v-card>
 
@@ -214,11 +214,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useSupplierTeamApi, type SupplierTeamMember } from '~/composables/useSupplierTeamApi'
 import { formatImageUrl } from '~/utils/imageUtils'
+import EmptyState from '~/components/common/EmptyState.vue'
+import { useGamificationStore } from '~/stores/gamification'
 
 const teamApi = useSupplierTeamApi()
+const gamificationStore = useGamificationStore()
 
 const members = ref<SupplierTeamMember[]>([])
 const loading = ref(false)
@@ -231,6 +234,37 @@ const deleting = ref(false)
 const snackbar = ref(false)
 const snackbarMessage = ref('')
 const snackbarColor = ref('success')
+
+const teamGamificationContext = computed(() => {
+  const currentCount = members.value.length
+  const needed = 2
+  const remaining = Math.max(0, needed - currentCount)
+  
+  if (remaining > 0) {
+    return {
+      message: `${remaining} عضو دیگر اضافه کنید تا امتیاز تیم خود را افزایش دهید!`,
+      subtitle: 'حداقل 2 عضو تیم برای تکمیل این بخش نیاز است',
+      color: 'primary',
+      points: 50,
+    }
+  }
+  return undefined
+})
+
+const awardTeam = async (): Promise<number> => {
+  try {
+    const { useApiFetch } = await import('~/composables/useApiFetch')
+    const resp = await useApiFetch<{ points?: number }>('gamification/award-section/', {
+      method: 'POST',
+      body: { section: 'team' }
+    })
+    await gamificationStore.fetchScores()
+    return resp?.points || 0
+  } catch (e) {
+    console.warn('Failed to award team section', e)
+    return 0
+  }
+}
 
 const editingMember = ref<SupplierTeamMember | null>(null)
 const memberToDelete = ref<SupplierTeamMember | null>(null)
@@ -320,6 +354,16 @@ const saveMember = async () => {
     } else {
       await teamApi.createTeamMember(data)
       snackbarMessage.value = 'عضو تیم با موفقیت اضافه شد'
+    }
+
+    const awarded = await awardTeam()
+    if (awarded > 0) {
+      snackbarMessage.value += ` (+${awarded} امتیاز)`
+      try {
+        await gamificationStore.hydrate()
+      } catch (e) {
+        console.warn('Failed to hydrate gamification after team save', e)
+      }
     }
 
     snackbarColor.value = 'success'

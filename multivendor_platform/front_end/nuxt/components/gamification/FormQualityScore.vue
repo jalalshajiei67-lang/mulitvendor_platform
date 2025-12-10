@@ -14,16 +14,23 @@
           <h3 class="text-h6 font-weight-bold">{{ title }}</h3>
         </div>
         <div class="text-center">
-          <div class="score-circle" :class="colorClass">
-            <span class="text-h4 font-weight-bold">{{ score }}</span>
-            <span class="text-caption">/100</span>
-          </div>
+          <v-progress-circular
+            :model-value="animatedScore"
+            :size="96"
+            :width="8"
+            :color="progressColor"
+            rotate="270"
+            class="mb-1"
+          >
+            <span class="text-h5 font-weight-bold">{{ Math.round(animatedScore) }}</span>
+          </v-progress-circular>
+          <div class="text-caption text-medium-emphasis">از ۱۰۰</div>
           <small class="d-block text-medium-emphasis mt-2 font-weight-medium">{{ mood }}</small>
         </div>
       </div>
 
       <v-progress-linear
-        :model-value="score"
+        :model-value="animatedScore"
         height="12"
         rounded
         :color="progressColor"
@@ -83,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 const props = withDefaults(defineProps<{
   title?: string
   caption?: string
@@ -140,6 +147,28 @@ const tipsIconColor = computed(() => {
   if (props.score >= 40) return 'warning'
   return 'error'
 })
+
+// Animated score value for smooth transitions
+const animatedScore = ref(props.score)
+watch(
+  () => props.score,
+  (newVal, oldVal) => {
+    const start = animatedScore.value
+    const end = newVal
+    const duration = 400
+    const startTime = performance.now()
+
+    const animate = (time: number) => {
+      const progress = Math.min((time - startTime) / duration, 1)
+      animatedScore.value = start + (end - start) * progress
+      if (progress < 1) {
+        requestAnimationFrame(animate)
+      }
+    }
+
+    requestAnimationFrame(animate)
+  }
+)
 
 const t = (key: string) => {
   const dict: Record<string, string> = {

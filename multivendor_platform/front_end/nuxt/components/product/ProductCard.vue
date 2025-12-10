@@ -91,6 +91,42 @@
         {{ product.category_name }}
       </v-chip>
 
+      <div class="d-flex align-center justify-space-between seller-row" v-if="product.vendor_name || vendorBadges.length">
+        <div class="text-body-2 font-weight-bold d-flex align-center gap-2">
+          <v-icon size="18" color="secondary">mdi-storefront</v-icon>
+          <span>{{ product.vendor_name }}</span>
+        </div>
+        <div class="d-flex align-center gap-2">
+          <v-chip
+            v-if="isPremium"
+            size="x-small"
+            color="purple"
+            variant="flat"
+            class="premium-chip"
+            prepend-icon="mdi-crown"
+          >
+            پریمیوم
+          </v-chip>
+          <v-chip
+            v-else-if="vendorTier"
+            size="x-small"
+            :color="tierColor"
+            variant="tonal"
+            class="tier-chip"
+          >
+            {{ tierLabel }}
+          </v-chip>
+          <div class="d-flex align-center gap-2" v-if="vendorBadges.length">
+            <BadgeIcon
+              v-for="badge in vendorBadges"
+              :key="badge.slug"
+              :badge="badge"
+              size="xs"
+            />
+          </div>
+        </div>
+      </div>
+
       <h3 class="text-h6 font-weight-bold mb-2 line-clamp-2">
         {{ product.name }}
       </h3>
@@ -115,6 +151,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import BadgeIcon from '~/components/gamification/BadgeIcon.vue'
 
 const props = defineProps<{
   product: Record<string, any>
@@ -122,6 +159,31 @@ const props = defineProps<{
 
 const productStore = useProductStore()
 const t = productStore.t
+const vendorBadges = computed(() =>
+  Array.isArray(props.product.vendor_badges) ? props.product.vendor_badges : []
+)
+const isPremium = computed(() => Boolean(props.product.vendor_is_premium))
+const vendorTier = computed(() => props.product.vendor_tier || '')
+const tierLabel = computed(() => {
+  const map: Record<string, string> = {
+    diamond: 'الماس',
+    gold: 'طلا',
+    silver: 'نقره',
+    bronze: 'برنز',
+    inactive: 'غیرفعال'
+  }
+  return map[vendorTier.value] || ''
+})
+const tierColor = computed(() => {
+  const map: Record<string, string> = {
+    diamond: 'purple',
+    gold: 'amber',
+    silver: 'grey',
+    bronze: 'brown',
+    inactive: 'error'
+  }
+  return map[vendorTier.value] || 'primary'
+})
 
 // Timeline auto-advance configuration
 const SLIDE_DURATION = 4000 // 4 seconds per image
@@ -370,6 +432,11 @@ const openProduct = () => {
   background-color: rgba(var(--v-theme-on-surface), 0.06);
 }
 
+.premium-chip,
+.tier-chip {
+  font-weight: 700;
+}
+
 .badge {
   position: absolute;
   top: 14px;
@@ -424,6 +491,10 @@ const openProduct = () => {
   -webkit-box-orient: vertical;
   line-clamp: 2;
   overflow: hidden;
+}
+
+.seller-row {
+  margin-bottom: 8px;
 }
 
 /* Timeline Progress Indicator */

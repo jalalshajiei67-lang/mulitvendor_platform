@@ -923,12 +923,13 @@ const loadCurrentSettings = async () => {
   
   loadingSettings.value = true
   try {
-    let vendorProfile = authStore.user?.vendor_profile || authStore.vendorProfile
+    // Use single source of truth from store
+    let vendorProfile = authStore.vendorProfile
 
     if (!vendorProfile?.id) {
       try {
-        const fetchedUser = await authStore.fetchCurrentUser()
-        vendorProfile = fetchedUser?.vendor_profile
+        await authStore.fetchCurrentUser()
+        vendorProfile = authStore.vendorProfile
       } catch (err) {
         console.error('Error fetching user:', err)
       }
@@ -1008,6 +1009,15 @@ const saveSettings = async () => {
     }
 
     await supplierApi.updateSupplierProfile(updateData)
+    const awarded = await awardMiniWebsite()
+    if (awarded > 0) {
+      snackbarMessage.value = `تغییرات ذخیره شد (+${awarded} امتیاز)`
+      try {
+        await gamificationStore.hydrate()
+      } catch (e) {
+        console.warn('Failed to hydrate gamification after mini site update', e)
+      }
+    }
     
     try {
       await authStore.fetchCurrentUser()
@@ -1056,6 +1066,21 @@ const copyPreviewUrl = async () => {
       snackbarColor.value = 'error'
       snackbar.value = true
     }
+  }
+}
+
+const awardMiniWebsite = async (): Promise<number> => {
+  try {
+    const { useApiFetch } = await import('~/composables/useApiFetch')
+    const resp = await useApiFetch<{ points?: number }>('gamification/award-section/', {
+      method: 'POST',
+      body: { section: 'miniWebsite' }
+    })
+    await gamificationStore.fetchScores()
+    return resp?.points || 0
+  } catch (e) {
+    console.warn('Failed to award miniWebsite section', e)
+    return 0
   }
 }
 

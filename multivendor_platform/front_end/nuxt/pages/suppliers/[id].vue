@@ -781,11 +781,12 @@ const fetchSupplier = async () => {
       await authStore.fetchCurrentUser()
     }
 
-    const isOwner =
-      authStore.user?.vendor_profile?.id === parseInt(id as string)
+    // Use single source of truth from store
+    const vendorProfile = authStore.vendorProfile
+    const isOwner = vendorProfile?.id === parseInt(id as string)
 
-    if (isOwner && authStore.user?.vendor_profile) {
-      supplier.value = authStore.user.vendor_profile
+    if (isOwner && vendorProfile) {
+      supplier.value = vendorProfile
 
       await Promise.all([
         fetchProducts(id as string),

@@ -19,20 +19,19 @@
     </v-row>
 
     <!-- Empty State -->
-    <v-card v-else-if="products.length === 0" elevation="1" class="text-center pa-8">
-      <v-icon size="80" color="grey-lighten-1">mdi-package-variant-closed</v-icon>
-      <p class="text-h6 mt-4 mb-2">شما هنوز محصولی اضافه نکرده‌اید</p>
-      <p class="text-body-2 text-grey mb-4">برای شروع، اولین محصول خود را اضافه کنید</p>
-      <v-btn
-        color="primary"
-        size="large"
-        prepend-icon="mdi-plus-circle"
-        @click="$emit('add-product')"
-        data-tour="add-product-btn"
-      >
-        افزودن محصول
-      </v-btn>
-    </v-card>
+    <EmptyState
+      v-else-if="products.length === 0"
+      icon="mdi-package-variant-closed"
+      icon-size="80"
+      icon-color="grey-lighten-1"
+      title="شما هنوز محصولی اضافه نکرده‌اید"
+      description="برای شروع، اولین محصول خود را اضافه کنید"
+      action-label="افزودن محصول"
+      action-icon="mdi-plus-circle"
+      :gamification-context="productGamificationContext"
+      @action="$emit('add-product')"
+      data-tour="add-product-btn"
+    />
 
     <!-- Products Grid -->
     <div v-else>
@@ -206,10 +205,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useProductApi } from '~/composables/useProductApi'
+import { useGamificationStore } from '~/stores/gamification'
+import EmptyState from '~/components/common/EmptyState.vue'
 
 defineEmits(['add-product', 'edit-product'])
 
 const productApi = useProductApi()
+const gamificationStore = useGamificationStore()
 
 const products = ref<any[]>([])
 const loading = ref(false)
@@ -236,6 +238,15 @@ const activeProductsCount = computed(() => {
 
 const inactiveProductsCount = computed(() => {
   return products.value.filter(p => !p.is_active).length
+})
+
+const productGamificationContext = computed(() => {
+  return {
+    message: 'افزودن اولین محصول خود را اضافه کنید تا +20 امتیاز دریافت کنید!',
+    subtitle: 'محصولات با کیفیت بالا امتیاز بیشتری دریافت می‌کنند',
+    color: 'primary',
+    points: 20,
+  }
 })
 
 const loadProducts = async () => {

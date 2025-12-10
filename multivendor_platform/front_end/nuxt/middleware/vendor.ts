@@ -10,8 +10,8 @@ export default defineNuxtRouteMiddleware((to, from) => {
   const userRole = authStore.user?.role
   const isVendor = userRole === 'seller' || userRole === 'both'
   
-  // Or check if user has vendor_profile
-  const hasVendorProfile = authStore.user?.vendor_profile
+  // Check if user has vendor_profile - use single source of truth from store
+  const hasVendorProfile = !!authStore.vendorProfile
   
   if (!isVendor && !hasVendorProfile) {
     // Not a vendor, redirect to home

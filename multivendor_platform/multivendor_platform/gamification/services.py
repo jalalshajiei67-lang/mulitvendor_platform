@@ -3,13 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Q
 from django.utils import timezone
 
 from users.models import VendorProfile
 from products.models import Product
 from orders.models import Order
-from .models import SupplierEngagement, PointsHistory
+from .models import Badge, EarnedBadge, Invitation, PointsHistory, SupplierEngagement
 
 
 @dataclass
@@ -437,6 +437,404 @@ class GamificationService:
         order.response_speed_bucket = bucket
         self.add_points('fast_response', points, metadata={'order_id': order.id, 'bucket': bucket})
         return True
+
+    # ------------------------------------------------------------------
+    # Tier calculation
+    # ------------------------------------------------------------------
+    def calculate_tier(self, points: int | None = None, reputation_score: float | None = None) -> str:
+        """
+        Calculate tier based on total points and reputation score.
+        Diamond and Gold tiers require both points AND reputation thresholds.
+        
+        Args:
+            points: Total points. If None, uses engagement total_points.
+            reputation_score: Reputation score. If None, uses engagement reputation_score.
+        
+        Returns:
+            Tier name: 'diamond', 'gold', 'silver', 'bronze', or 'inactive'
+        """
+        if points is None or reputation_score is None:
+            engagement = self.get_or_create_engagement()
+            if not engagement:
+                return 'inactive'
+            if points is None:
+                points = engagement.total_points
+            if reputation_score is None:
+                reputation_score = engagement.reputation_score
+        
+        # Diamond tier requires: 1000+ points AND 80+ reputation
+        if points >= 1000 and reputation_score >= 80:
+            return 'diamond'
+        # Gold tier requires: 500+ points AND 60+ reputation
+        elif points >= 500 and reputation_score >= 60:
+            return 'gold'
+        # Lower tiers: points-based only
+        elif points >= 200:
+            return 'silver'
+        elif points >= 50:
+            return 'bronze'
+        else:
+            return 'inactive'
+    
+    def get_tier_thresholds(self) -> Dict[str, int]:
+        """
+        Get point thresholds for each tier.
+        
+        Returns:
+            Dictionary mapping tier names to minimum points required
+        """
+        return {
+            'diamond': 1000,
+            'gold': 500,
+            'silver': 200,
+            'bronze': 50,
+            'inactive': 0,
+        }
+    
+    def get_next_tier_info(self, current_tier: str | None = None) -> Dict[str, str | int]:
+        """
+        Get information about the next tier.
+        
+        Args:
+            current_tier: Current tier name. If None, calculates from engagement.
+        
+        Returns:
+            Dictionary with 'name' and 'points_needed' keys
+        """
+        if current_tier is None:
+            current_tier = self.calculate_tier()
+        
+        thresholds = self.get_tier_thresholds()
+        tier_order = ['inactive', 'bronze', 'silver', 'gold', 'diamond']
+        
+        try:
+            current_index = tier_order.index(current_tier)
+            if current_index >= len(tier_order) - 1:
+                # Already at highest tier
+                return {
+                    'name': None,
+                    'points_needed': 0,
+                    'current_tier': current_tier,
+                }
+            
+            next_tier = tier_order[current_index + 1]
+            engagement = self.get_or_create_engagement()
+            current_points = engagement.total_points if engagement else 0
+            next_threshold = thresholds[next_tier]
+            points_needed = max(0, next_threshold - current_points)
+            
+            return {
+                'name': next_tier,
+                'points_needed': points_needed,
+                'current_tier': current_tier,
+                'next_tier_threshold': next_threshold,
+            }
+        except ValueError:
+            # Invalid tier name
+            return {
+                'name': None,
+                'points_needed': 0,
+                'current_tier': current_tier,
+            }
+    
+    def get_tier_color(self, tier: str | None = None) -> str:
+        """
+        Get color code for a tier.
+        
+        Args:
+            tier: Tier name. If None, calculates from engagement.
+        
+        Returns:
+            Color name for Vuetify/CSS
+        """
+        if tier is None:
+            tier = self.calculate_tier()
+        
+        color_map = {
+            'diamond': 'purple',
+            'gold': 'amber',
+            'silver': 'grey',
+            'bronze': 'brown',
+            'inactive': 'red',
+        }
+        return color_map.get(tier, 'grey')
+    
+    def get_tier_display_name(self, tier: str | None = None) -> str:
+        """
+        Get Persian display name for a tier.
+        
+        Args:
+            tier: Tier name. If None, calculates from engagement.
+        
+        Returns:
+            Persian display name
+        """
+        if tier is None:
+            tier = self.calculate_tier()
+        
+        name_map = {
+            'diamond': 'الماس',
+            'gold': 'طلا',
+            'silver': 'نقره',
+            'bronze': 'برنز',
+            'inactive': 'غیرفعال',
+        }
+        return name_map.get(tier, 'نامشخص')
+
+    # ------------------------------------------------------------------
+    # Reputation score calculation
+    # ------------------------------------------------------------------
+    def compute_reputation_score(self) -> float:
+        """
+        Compute reputation score based on endorsements, reviews, and response speed.
+        Formula: (endorsements * 0.4) + (positive_reviews * 0.4) + (response_speed_bonus * 0.2)
+        
+        Returns:
+            Reputation score (0-100)
+        """
+        if not self.vendor_profile:
+            return 0.0
+        
+        engagement = self.get_or_create_engagement()
+        if not engagement:
+            return 0.0
+        
+        # 1. Endorsements component (0-100 scale)
+        # Normalize endorsements: assume 10+ endorsements = 100 points
+        # Scale: endorsements / 10 * 100, capped at 100
+        endorsements_count = engagement.endorsements_received
+        endorsements_score = min(100.0, (endorsements_count / 10.0) * 100.0)
+        
+        # 2. Positive reviews component (0-100 scale)
+        # Count positive reviews (rating >= 4) from both SupplierComment and ProductReview
+        from users.models import SupplierComment, ProductReview
+        
+        # Count supplier comments with rating >= 4
+        supplier_positive_reviews = SupplierComment.objects.filter(
+            supplier=self.vendor_profile,
+            rating__gte=4,
+            is_approved=True,
+            is_flagged=False,
+        ).count()
+        
+        # Count product reviews with rating >= 4 for products by this vendor
+        product_positive_reviews = ProductReview.objects.filter(
+            product__vendor=self.vendor_profile.user,
+            rating__gte=4,
+            is_approved=True,
+            is_flagged=False,
+        ).count()
+        
+        total_positive_reviews = supplier_positive_reviews + product_positive_reviews
+        
+        # Update positive_reviews_count in engagement
+        engagement.positive_reviews_count = total_positive_reviews
+        
+        # Normalize positive reviews: assume 20+ positive reviews = 100 points
+        # Scale: reviews / 20 * 100, capped at 100
+        positive_reviews_score = min(100.0, (total_positive_reviews / 20.0) * 100.0)
+        
+        # 3. Response speed bonus (0-100 scale)
+        # avg_response_minutes: lower is better
+        # Convert to score: if avg_response_minutes <= 60, score = 100
+        # If avg_response_minutes >= 1440 (24 hours), score = 0
+        # Linear interpolation between 60 and 1440 minutes
+        avg_response = engagement.avg_response_minutes
+        if avg_response <= 0:
+            # No response data yet
+            response_speed_bonus = 50.0  # Default middle score
+        elif avg_response <= 60:
+            response_speed_bonus = 100.0  # Excellent (within 1 hour)
+        elif avg_response >= 1440:
+            response_speed_bonus = 0.0  # Poor (24+ hours)
+        else:
+            # Linear interpolation: 60 min = 100, 1440 min = 0
+            # Formula: 100 - ((avg_response - 60) / (1440 - 60)) * 100
+            response_speed_bonus = 100.0 - ((avg_response - 60.0) / (1440.0 - 60.0)) * 100.0
+            response_speed_bonus = max(0.0, min(100.0, response_speed_bonus))
+        
+        # Calculate final reputation score using weighted formula
+        reputation_score = (
+            endorsements_score * 0.4 +
+            positive_reviews_score * 0.4 +
+            response_speed_bonus * 0.2
+        )
+        
+        # Ensure score is between 0 and 100
+        reputation_score = max(0.0, min(100.0, reputation_score))
+        
+        # Save to engagement
+        engagement.reputation_score = reputation_score
+        engagement.save(update_fields=['reputation_score', 'positive_reviews_count', 'updated_at'])
+        # Award any badges that depend on updated reputation metrics
+        self.check_and_award_badges()
+        
+        return reputation_score
+
+    # ------------------------------------------------------------------
+    # Badge helpers
+    # ------------------------------------------------------------------
+    def _get_badge_metrics(self) -> Dict[str, float | int]:
+        """
+        Collect metrics used for badge evaluation.
+        """
+        engagement = self.get_or_create_engagement()
+        if not self.vendor_profile or not engagement:
+            return {}
+
+        invitations_accepted = Invitation.objects.filter(
+            inviter=self.vendor_profile,
+            status='accepted',
+        ).count()
+
+        return {
+            'invitations_accepted': invitations_accepted,
+            'positive_reviews': engagement.positive_reviews_count,
+            'avg_response_minutes': engagement.avg_response_minutes or 0,
+        }
+
+    def evaluate_badge_criteria(self, badge: Badge, metrics: Dict[str, float | int]) -> bool:
+        """
+        Check whether provided metrics satisfy a badge's criteria.
+        Criteria format: {"metric_name": {"min": X, "max": Y}}
+        """
+        criteria = badge.criteria or {}
+        if not criteria:
+            return False
+
+        for metric_name, bounds in criteria.items():
+            current_value = metrics.get(metric_name)
+            if current_value is None:
+                return False
+
+            min_value = bounds.get('min')
+            max_value = bounds.get('max')
+
+            if min_value is not None and current_value < min_value:
+                return False
+            if max_value is not None and current_value > max_value:
+                return False
+
+        return True
+
+    def get_badge_progress(self, badge: Badge) -> Dict[str, float | int]:
+        """
+        Calculate progress toward earning a badge.
+        Returns a dict with current, target, and percentage.
+        """
+        metrics = self._get_badge_metrics()
+        criteria = badge.criteria or {}
+        if not criteria:
+            return {'current': 0, 'target': 0, 'percentage': 0}
+
+        # Use the first criterion as the primary target for progress display
+        metric_name, bounds = next(iter(criteria.items()))
+        current_value = float(metrics.get(metric_name, 0))
+        min_value = bounds.get('min')
+        max_value = bounds.get('max')
+
+        target = 0.0
+        percentage = 0.0
+
+        if min_value is not None:
+            target = float(min_value)
+            percentage = min(100.0, (current_value / target) * 100.0 if target > 0 else 0.0)
+        elif max_value is not None:
+            target = float(max_value)
+            # For max-bound goals, reaching or going below target is 100%
+            if current_value <= target:
+                percentage = 100.0
+            else:
+                percentage = max(0.0, min(100.0, (target / current_value) * 100.0 if current_value > 0 else 0.0))
+
+        return {
+            'current': current_value,
+            'target': target,
+            'percentage': round(percentage, 2),
+        }
+
+    def check_and_award_badges(self) -> List[Badge]:
+        """
+        Evaluate all active badges and award any newly earned ones.
+        Returns a list of badges that were awarded during this call.
+        """
+        if not self.vendor_profile:
+            return []
+
+        engagement = self.get_or_create_engagement()
+        if not engagement:
+            return []
+
+        metrics = self._get_badge_metrics()
+        earned_badges = EarnedBadge.objects.filter(vendor_profile=self.vendor_profile).select_related('badge')
+        earned_slugs = {eb.badge.slug for eb in earned_badges}
+
+        newly_awarded: List[Badge] = []
+        for badge in Badge.objects.filter(is_active=True):
+            if badge.slug in earned_slugs:
+                continue
+
+            if not self.evaluate_badge_criteria(badge, metrics):
+                continue
+
+            EarnedBadge.objects.create(
+                vendor_profile=self.vendor_profile,
+                badge=badge,
+                congratulation_message=f'تبریک! نشان {badge.title} را دریافت کردید.',
+            )
+            self.add_points('badge', 200, metadata={'badge_slug': badge.slug})
+            newly_awarded.append(badge)
+
+        return newly_awarded
+
+
+def flag_review_velocity_if_needed(review_obj, reviewer, vendor_profile) -> bool:
+    """
+    Flag reviews that come from new accounts in a short time window for the same vendor.
+    Returns True when the review was flagged.
+    """
+    from users.models import SupplierComment, ProductReview
+    from django.utils import timezone
+    from datetime import timedelta
+    from gamification.models import ReviewFlagLog
+    from django.contrib.contenttypes.models import ContentType
+
+    now = timezone.now()
+    # Define what counts as a new account and the velocity window
+    new_account_cutoff = now - timedelta(days=7)
+    if not reviewer or reviewer.date_joined < new_account_cutoff:
+        return False
+
+    window_start = now - timedelta(hours=1)
+    if isinstance(review_obj, SupplierComment):
+        qs = SupplierComment.objects.filter(
+            supplier=vendor_profile,
+            created_at__gte=window_start,
+            user__date_joined__gte=new_account_cutoff,
+        )
+    elif isinstance(review_obj, ProductReview):
+        qs = ProductReview.objects.filter(
+            product__vendor=vendor_profile.user,
+            created_at__gte=window_start,
+            buyer__date_joined__gte=new_account_cutoff,
+        )
+    else:
+        return False
+
+    if qs.count() > 5:
+        review_obj.is_flagged = True
+        review_obj.flag_reason = 'review_velocity'
+        review_obj.save(update_fields=['is_flagged', 'flag_reason'])
+
+        ReviewFlagLog.objects.create(
+            vendor_profile=vendor_profile,
+            content_type=ContentType.objects.get_for_model(review_obj),
+            object_id=review_obj.id,
+            reason='review_velocity',
+        )
+        return True
+
+    return False
 
 
 __all__ = ['GamificationService', '_get_vendor_profile']

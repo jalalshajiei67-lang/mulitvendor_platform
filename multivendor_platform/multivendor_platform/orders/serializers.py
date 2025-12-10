@@ -35,7 +35,7 @@ class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     payments = PaymentSerializer(many=True, read_only=True)
     images = OrderImageSerializer(many=True, read_only=True)
-    buyer_username = serializers.CharField(source='buyer.username', read_only=True, allow_null=True)
+    buyer_display_name = serializers.SerializerMethodField()
     product_name = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
     suppliers = serializers.SerializerMethodField()
@@ -43,7 +43,7 @@ class OrderSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Order
-        fields = ['id', 'order_number', 'buyer', 'buyer_username', 'status', 'total_amount', 
+        fields = ['id', 'order_number', 'buyer', 'buyer_display_name', 'status', 'total_amount', 
                   'shipping_address', 'shipping_phone', 'notes', 'is_paid', 'payment_method',
                   'payment_date', 'items', 'payments', 'images', 'created_at', 'updated_at',
                   'is_rfq', 'first_name', 'last_name', 'company_name', 'phone_number', 'email',
@@ -51,6 +51,13 @@ class OrderSerializer(serializers.ModelSerializer):
                   'lead_source_display', 'suppliers', 'first_viewed_at', 'first_responded_at',
                   'response_points_awarded', 'response_speed_bucket']
         read_only_fields = ['order_number', 'buyer', 'created_at', 'updated_at']
+    
+    def get_buyer_display_name(self, obj):
+        """Get buyer display name: first_name last_name"""
+        if not obj.buyer:
+            return None
+        name_parts = [obj.buyer.first_name, obj.buyer.last_name]
+        return ' '.join(filter(None, name_parts)) or obj.buyer.username
     
     def get_suppliers(self, obj):
         """Get supplier IDs and names"""

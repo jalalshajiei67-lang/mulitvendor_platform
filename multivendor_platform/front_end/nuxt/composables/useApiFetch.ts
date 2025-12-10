@@ -104,7 +104,14 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
       // Only redirect for GET requests (page resources like products, blogs, etc.)
       const isGetRequest = !options.method || options.method === 'GET' || options.method === 'get'
       
-      if (isGetRequest && process.client) {
+      // Don't redirect for API endpoints (auth, dashboard, etc.) - let the calling code handle the error
+      const isApiEndpoint = endpointPath.startsWith('auth/') || 
+                           endpointPath.startsWith('api/') ||
+                           endpointPath.includes('/dashboard/') ||
+                           endpointPath.includes('/orders/') ||
+                           endpointPath.includes('/reviews/')
+      
+      if (isGetRequest && process.client && !isApiEndpoint) {
         try {
           const route = useRoute()
           // Check if we're already on the 404 page to avoid redirect loops

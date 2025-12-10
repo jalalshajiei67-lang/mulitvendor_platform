@@ -612,6 +612,8 @@ import { useDepartmentStore } from '~/stores/department'
 import { useCategoryStore } from '~/stores/category'
 import { useSubcategoryStore } from '~/stores/subcategory'
 import { useGamificationStore } from '~/stores/gamification'
+import { useSupplierOnboarding } from '~/composables/useSupplierOnboarding'
+import { useToast } from '~/composables/useToast'
 import FormQualityScore from '~/components/gamification/FormQualityScore.vue'
 
 interface Props {
@@ -630,6 +632,8 @@ const departmentStore = useDepartmentStore()
 const categoryStore = useCategoryStore()
 const subcategoryStore = useSubcategoryStore()
 const gamificationStore = useGamificationStore()
+const { markActionCompleted } = useSupplierOnboarding()
+const { showToast } = useToast()
 
 const formRef = ref<any>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -678,6 +682,53 @@ const originOptions = [
   { label: 'ساخت ایران', value: 'iran' },
   { label: 'وارداتی', value: 'imported' }
 ]
+
+// Onboarding tour action tracking (one-time markers)
+const completedActions = ref<Record<string, boolean>>({})
+const markOnce = (actionId: string) => {
+  if (completedActions.value[actionId]) return
+  markActionCompleted(actionId)
+  completedActions.value[actionId] = true
+}
+
+watch(() => product.value.name, (val) => {
+  if (val && val.trim().length > 0) {
+    markOnce('product-name-input')
+  }
+})
+
+watch(() => product.value.description, (val) => {
+  if (val && val.trim().length > 0) {
+    markOnce('product-description-input')
+  }
+})
+
+watch(() => product.value.price, (val) => {
+  if (val !== null && val !== undefined && val > 0) {
+    markOnce('product-price-input')
+  }
+})
+
+watch(() => product.value.subcategory, (val) => {
+  if (val) {
+    markOnce('product-category-input')
+  }
+})
+
+const awardProductSection = async (): Promise<number> => {
+  try {
+    const { useApiFetch } = await import('~/composables/useApiFetch')
+    const resp = await useApiFetch<{ points?: number }>('gamification/award-section/', {
+      method: 'POST',
+      body: { section: 'product' }
+    })
+    await gamificationStore.fetchScores()
+    return resp?.points || 0
+  } catch (e) {
+    console.warn('Failed to award product section points', e)
+    return 0
+  }
+}
 
 const addFeature = () => {
   if (productFeatures.value.length < 10) {
@@ -1200,6 +1251,15 @@ const saveProductWithRequest = async (categoryRequestId: number) => {
     const response: any = await productApi.createProduct(formData)
     successMessage.value = `محصول "${(response as any)?.name || 'محصول'}" با موفقیت ایجاد شد! درخواست دسته‌بندی "${categoryRequest.value.name}" در حال بررسی است.`
     showSuccessSnackbar.value = true
+    markOnce('product-save-button')
+    const awarded = await awardProductSection()
+    if (awarded > 0) {
+      successMessage.value += ` (+${awarded} امتیاز)`
+      showToast({
+        message: `+${awarded} امتیاز برای تکمیل محصول`,
+        color: 'success'
+      })
+    }
     
     // Reset category request form
     categoryRequest.value.name = ''
@@ -1343,6 +1403,15 @@ const saveProduct = async () => {
     }
 
     showSuccessSnackbar.value = true
+    markOnce('product-save-button')
+    const awarded = await awardProductSection()
+    if (awarded > 0) {
+      successMessage.value += ` (+${awarded} امتیاز)`
+      showToast({
+        message: `+${awarded} امتیاز برای تکمیل محصول`,
+        color: 'success'
+      })
+    }
 
     setTimeout(() => {
       emit('saved', response)

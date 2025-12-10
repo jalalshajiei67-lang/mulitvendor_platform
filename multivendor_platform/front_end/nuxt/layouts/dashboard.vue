@@ -108,9 +108,49 @@
                   size="small"
                   class="text-white"
                 >
-                  <v-avatar size="32">
-                    <v-icon>mdi-account</v-icon>
-                  </v-avatar>
+                  <div class="avatar-with-badge">
+                    <v-avatar size="32" class="user-avatar">
+                      <v-icon>mdi-account</v-icon>
+                    </v-avatar>
+                    <!-- Progress Ring -->
+                    <svg
+                      v-if="isSeller && gamificationStore.userTier"
+                      class="progress-ring"
+                      width="40"
+                      height="40"
+                    >
+                      <circle
+                        cx="20"
+                        cy="20"
+                        r="18"
+                        fill="none"
+                        stroke="rgba(255, 255, 255, 0.3)"
+                        stroke-width="2"
+                      />
+                      <circle
+                        cx="20"
+                        cy="20"
+                        r="18"
+                        fill="none"
+                        :stroke="getTierColor(gamificationStore.userTier)"
+                        stroke-width="2"
+                        :stroke-dasharray="circumference"
+                        :stroke-dashoffset="progressOffset"
+                        stroke-linecap="round"
+                        transform="rotate(-90 20 20)"
+                        class="progress-circle"
+                      />
+                    </svg>
+                    <!-- Tier Badge -->
+                    <v-avatar
+                      v-if="isSeller && gamificationStore.userTier"
+                      :color="getTierColor(gamificationStore.userTier)"
+                      size="16"
+                      class="tier-badge"
+                    >
+                      <v-icon size="10" color="white">{{ getTierIcon(gamificationStore.userTier) }}</v-icon>
+                    </v-avatar>
+                  </div>
                 </v-btn>
               </template>
               <v-list>
@@ -119,6 +159,20 @@
                     {{ authStore.user?.first_name || authStore.user?.username }}
                   </v-list-item-title>
                   <v-list-item-subtitle>{{ authStore.user?.email }}</v-list-item-subtitle>
+                  <template v-if="isSeller && gamificationStore.userTier" v-slot:append>
+                    <v-chip
+                      :color="getTierColor(gamificationStore.userTier)"
+                      size="small"
+                      variant="flat"
+                    >
+                      {{ getTierDisplayName(gamificationStore.userTier) }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+                <v-list-item v-if="isSeller && gamificationStore.userRank" class="px-4 py-2">
+                  <v-list-item-subtitle class="text-caption">
+                    رتبه: {{ gamificationStore.userRank }} | امتیاز: {{ formatNumber(gamificationStore.engagement?.total_points || 0) }}
+                  </v-list-item-subtitle>
                 </v-list-item>
                 <v-divider></v-divider>
                 <v-list-item
@@ -155,11 +209,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
+import { useGamificationStore } from '~/stores/gamification'
 import { storeToRefs } from 'pinia'
 
 const authStore = useAuthStore()
+const gamificationStore = useGamificationStore()
 const { isAuthenticated, isAdmin, isSeller, isBuyer } = storeToRefs(authStore)
 
 const showNotificationsMenu = ref(false)
@@ -261,6 +317,89 @@ onUnmounted(() => {
     clearInterval(notificationInterval)
   }
 })
+
+// Load gamification data for sellers
+onMounted(async () => {
+  if (isSeller.value) {
+    try {
+      await gamificationStore.hydrate()
+    } catch (error) {
+      console.warn('Failed to load gamification data', error)
+    }
+  }
+})
+
+// Tier helper functions
+const getTierColor = (tier: string | null) => {
+  if (!tier) return 'grey'
+  const colorMap: Record<string, string> = {
+    diamond: 'purple',
+    gold: 'amber',
+    silver: 'grey',
+    bronze: 'brown',
+    inactive: 'red',
+  }
+  return colorMap[tier] || 'grey'
+}
+
+const getTierIcon = (tier: string | null) => {
+  if (!tier) return 'mdi-account'
+  const iconMap: Record<string, string> = {
+    diamond: 'mdi-diamond-stone',
+    gold: 'mdi-trophy',
+    silver: 'mdi-medal',
+    bronze: 'mdi-award',
+    inactive: 'mdi-account-off',
+  }
+  return iconMap[tier] || 'mdi-account'
+}
+
+const getTierDisplayName = (tier: string | null) => {
+  if (!tier) return ''
+  const nameMap: Record<string, string> = {
+    diamond: 'الماس',
+    gold: 'طلا',
+    silver: 'نقره',
+    bronze: 'برنز',
+    inactive: 'غیرفعال',
+  }
+  return nameMap[tier] || ''
+}
+
+const formatNumber = (num: number) => {
+  return new Intl.NumberFormat('fa-IR').format(num)
+}
+
+// Progress ring calculations
+const circumference = computed(() => 2 * Math.PI * 18) // radius is 18
+
+const progressPercentage = computed(() => {
+  if (!isSeller.value || !gamificationStore.userTier || !gamificationStore.nextTier) return 0
+  
+  const thresholds: Record<string, number> = {
+    diamond: 1000,
+    gold: 500,
+    silver: 200,
+    bronze: 50,
+    inactive: 0,
+  }
+  
+  const currentTier = gamificationStore.userTier
+  const currentPoints = gamificationStore.engagement?.total_points || 0
+  const currentThreshold = thresholds[currentTier] || 0
+  const nextThreshold = thresholds[gamificationStore.nextTier] || 1000
+  const range = nextThreshold - currentThreshold
+  
+  if (range === 0) return 100
+  
+  const progress = ((currentPoints - currentThreshold) / range) * 100
+  return Math.max(0, Math.min(100, progress))
+})
+
+const progressOffset = computed(() => {
+  const progress = progressPercentage.value
+  return circumference.value - (progress / 100) * circumference.value
+})
 </script>
 
 <style scoped>
@@ -287,6 +426,36 @@ onUnmounted(() => {
 
 .notification-item:hover {
   background-color: rgba(var(--v-theme-on-surface), 0.04);
+}
+
+.avatar-with-badge {
+  position: relative;
+  display: inline-block;
+}
+
+.user-avatar {
+  position: relative;
+  z-index: 2;
+}
+
+.progress-ring {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  z-index: 1;
+}
+
+.progress-circle {
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.tier-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  z-index: 3;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 </style>
 

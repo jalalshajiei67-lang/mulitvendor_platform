@@ -12,23 +12,23 @@
         <span class="text-h6 font-weight-bold">{{ title }}</span>
       </div>
       <v-chip 
-        v-if="badges.length > 0" 
+        v-if="normalizedBadges.length > 0" 
         size="small" 
         color="secondary" 
         variant="flat"
       >
-        {{ badges.length }} نشان
+        {{ normalizedBadges.length }} نشان
       </v-chip>
     </v-card-title>
     <v-card-text class="px-4 pb-4">
-      <div v-if="badges.length === 0" class="text-center py-8">
+      <div v-if="normalizedBadges.length === 0" class="text-center py-8">
         <v-icon size="64" color="grey-lighten-1" class="mb-3">mdi-trophy-outline</v-icon>
         <p class="text-body-2 text-medium-emphasis">هنوز نشانی دریافت نکرده‌اید</p>
         <p class="text-caption text-medium-emphasis mt-1">با تکمیل فرم‌ها و فعالیت بیشتر نشان دریافت کنید</p>
       </div>
       <v-row v-else dense>
         <v-col 
-          v-for="badge in badges" 
+          v-for="badge in normalizedBadges" 
           :key="badge.slug" 
           cols="12" 
           sm="6"
@@ -62,6 +62,35 @@
                 >
                   {{ getTierLabel(badge.tier) }}
                 </v-chip>
+                <v-chip
+                  v-if="badge.is_earned"
+                  size="x-small"
+                  color="success"
+                  variant="flat"
+                  class="text-caption ms-2"
+                >
+                  دریافت شده
+                </v-chip>
+                <div v-if="badge.achieved_at_display" class="text-caption text-medium-emphasis mt-1">
+                  {{ badge.achieved_at_display }}
+                </div>
+                <div v-else-if="showProgress && badge.progress" class="mt-2">
+                  <v-progress-linear
+                    :model-value="badge.progress.percentage"
+                    height="8"
+                    rounded
+                    color="secondary"
+                    class="mb-1"
+                  />
+                  <div class="text-caption text-medium-emphasis d-flex justify-space-between">
+                    <span>پیشرفت</span>
+                    <span>
+                      {{ badge.progress.current ?? 0 }}
+                      /
+                      {{ badge.progress.target ?? 0 }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </v-sheet>
@@ -72,12 +101,42 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Badge } from '~/stores/gamification'
 
-const props = withDefaults(defineProps<{ badges: Badge[]; title?: string }>(), {
-  badges: () => [],
-  title: 'نشان‌های در دسترس'
-})
+type ProgressInfo = { current?: number; target?: number; percentage?: number }
+
+type BadgeInput = Badge & {
+  badge?: Badge
+  achieved_at?: string
+  achieved_at_display?: string
+  congratulation_message?: string
+  progress?: ProgressInfo
+  is_earned?: boolean
+}
+
+const props = withDefaults(
+  defineProps<{ badges: BadgeInput[]; title?: string; showProgress?: boolean }>(),
+  {
+    badges: () => [],
+    title: 'نشان‌های در دسترس',
+    showProgress: true
+  }
+)
+
+const normalizedBadges = computed(() =>
+  props.badges.map((b) => {
+    const base = (b as any).badge || b
+    return {
+      ...base,
+      is_earned: (b as any).is_earned ?? Boolean((b as any).badge),
+      achieved_at: (b as any).achieved_at,
+      achieved_at_display: (b as any).achieved_at_display,
+      congratulation_message: (b as any).congratulation_message,
+      progress: (b as any).progress ?? base.progress
+    }
+  })
+)
 
 const tierClass = (tier: string) => {
   const classes: Record<string, string> = {

@@ -60,36 +60,54 @@ class SellerAdImageSerializer(serializers.ModelSerializer):
 
 class SellerAdSerializer(serializers.ModelSerializer):
     images = SellerAdImageSerializer(many=True, read_only=True)
-    seller_username = serializers.CharField(source='seller.username', read_only=True)
+    seller_display_name = serializers.SerializerMethodField()
     
     class Meta:
         model = SellerAd
-        fields = ['id', 'seller', 'seller_username', 'title', 'description', 'contact_info', 'is_active', 'images', 'created_at', 'updated_at']
+        fields = ['id', 'seller', 'seller_display_name', 'title', 'description', 'contact_info', 'is_active', 'images', 'created_at', 'updated_at']
         read_only_fields = ['seller', 'created_at', 'updated_at']
+    
+    def get_seller_display_name(self, obj):
+        """Get display name: vendor.store_name if seller, otherwise first_name last_name"""
+        if hasattr(obj.seller, 'vendor_profile') and obj.seller.vendor_profile:
+            return obj.seller.vendor_profile.store_name
+        name_parts = [obj.seller.first_name, obj.seller.last_name]
+        return ' '.join(filter(None, name_parts)) or obj.seller.username
 
 class ProductReviewSerializer(serializers.ModelSerializer):
-    buyer_username = serializers.CharField(source='buyer.username', read_only=True)
+    buyer_display_name = serializers.SerializerMethodField()
     product_name = serializers.CharField(source='product.name', read_only=True)
     rating_display = serializers.CharField(source='get_rating_display', read_only=True)
     
     class Meta:
         model = ProductReview
-        fields = ['id', 'product', 'product_name', 'buyer', 'buyer_username', 'order', 'rating', 'rating_display', 
-                  'title', 'comment', 'is_verified_purchase', 'is_approved', 'seller_reply', 'seller_replied_at', 
+        fields = ['id', 'product', 'product_name', 'buyer', 'buyer_display_name', 'order', 'rating', 'rating_display', 
+                  'title', 'comment', 'is_verified_purchase', 'is_approved', 'is_flagged', 'flag_reason',
+                  'seller_reply', 'seller_replied_at', 
                   'created_at', 'updated_at']
-        read_only_fields = ['buyer', 'is_verified_purchase', 'is_approved', 'seller_replied_at', 'created_at', 'updated_at']
+        read_only_fields = ['buyer', 'is_verified_purchase', 'is_approved', 'is_flagged', 'flag_reason', 'seller_replied_at', 'created_at', 'updated_at']
+    
+    def get_buyer_display_name(self, obj):
+        """Get display name: first_name last_name"""
+        name_parts = [obj.buyer.first_name, obj.buyer.last_name]
+        return ' '.join(filter(None, name_parts)) or obj.buyer.username
 
 class SupplierCommentSerializer(serializers.ModelSerializer):
-    user_username = serializers.CharField(source='user.username', read_only=True)
+    user_display_name = serializers.SerializerMethodField()
     supplier_name = serializers.CharField(source='supplier.store_name', read_only=True)
     rating_display = serializers.CharField(source='get_rating_display', read_only=True)
     
     class Meta:
         model = SupplierComment
-        fields = ['id', 'supplier', 'supplier_name', 'user', 'user_username', 'rating', 'rating_display', 
-                  'title', 'comment', 'is_approved', 'supplier_reply', 'supplier_replied_at', 
+        fields = ['id', 'supplier', 'supplier_name', 'user', 'user_display_name', 'rating', 'rating_display', 
+                  'title', 'comment', 'is_approved', 'is_flagged', 'flag_reason', 'supplier_reply', 'supplier_replied_at', 
                   'created_at', 'updated_at']
-        read_only_fields = ['user', 'is_approved', 'supplier_replied_at', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'is_approved', 'is_flagged', 'flag_reason', 'supplier_replied_at', 'created_at', 'updated_at']
+    
+    def get_user_display_name(self, obj):
+        """Get display name: first_name last_name"""
+        name_parts = [obj.user.first_name, obj.user.last_name]
+        return ' '.join(filter(None, name_parts)) or obj.user.username
 
 class UserActivitySerializer(serializers.ModelSerializer):
     user_username = serializers.SerializerMethodField()
@@ -122,6 +140,9 @@ class RegisterSerializer(serializers.Serializer):
     # For sellers (optional during registration)
     store_name = serializers.CharField(max_length=100, required=False, allow_blank=True)
     store_description = serializers.CharField(required=False, allow_blank=True)
+    
+    # Referral code (from ?ref=CODE query parameter)
+    referral_code = serializers.CharField(max_length=50, required=False, allow_blank=True)
     
     def validate_username(self, value):
         # Validate and normalize mobile number format (Iranian format: 09XXXXXXXXX or +98XXXXXXXXXX)
@@ -160,21 +181,21 @@ class RegisterSerializer(serializers.Serializer):
     
     def create(self, validated_data):
         # Extract user data - mobile number is username
-        username = validated_data['username']
+        mobile = validated_data['username']  # username field contains mobile number
         email = validated_data.get('email', '')
         
-        # If no email provided, create a placeholder email using username
+        # If no email provided, create a placeholder email using mobile number
         # Django User model requires email, but we can use a placeholder
         if not email:
-            email = f"{username}@placeholder.local"
+            email = f"{mobile}@placeholder.local"
             # Keep trying until we find a unique email
             counter = 1
             while User.objects.filter(email=email).exists():
-                email = f"{username}{counter}@placeholder.local"
+                email = f"{mobile}{counter}@placeholder.local"
                 counter += 1
         
         user_data = {
-            'username': username,
+            'username': mobile,  # Explicitly set username to mobile number
             'email': email,
             'first_name': validated_data.get('first_name', ''),
             'last_name': validated_data.get('last_name', ''),
@@ -184,38 +205,79 @@ class RegisterSerializer(serializers.Serializer):
         # Create user
         user = User.objects.create_user(**user_data, password=password)
         
-        # Create user profile with phone (mobile number)
-        phone = validated_data.get('phone', '') or username  # Use username as phone if not provided
-        UserProfile.objects.create(
+        # Create user profile - do not populate phone with username
+        # BuyerProfile and VendorProfile will be created automatically by signals
+        phone = validated_data.get('phone', '')  # Only use provided phone, not username
+        user_profile = UserProfile.objects.create(
             user=user,
             role=validated_data['role'],
             phone=phone,
             address=validated_data.get('address', '')
         )
         
-        # Create buyer profile if user is buyer or both
-        if validated_data['role'] in ['buyer', 'both']:
-            BuyerProfile.objects.create(user=user)
-        
-        # Create vendor profile if user is seller or both
+        # If store_name is provided during registration, update vendor profile after signal creates it
+        # Signal runs synchronously, so VendorProfile should exist now
         if validated_data['role'] in ['seller', 'both']:
             store_name = validated_data.get('store_name', '')
-            # If no store_name provided, create a temporary one using username
-            # User can update it later in profile settings
-            if not store_name:
-                # Create unique store name based on username
-                store_name = f"فروشگاه_{username}"
-                # Ensure uniqueness
-                counter = 1
-                while VendorProfile.objects.filter(store_name=store_name).exists():
-                    store_name = f"فروشگاه_{username}_{counter}"
-                    counter += 1
-            
-            VendorProfile.objects.create(
-                user=user,
-                store_name=store_name,
-                description=validated_data.get('store_description', '')
-            )
+            store_description = validated_data.get('store_description', '')
+            if store_name:
+                try:
+                    vendor_profile = VendorProfile.objects.get(user=user)
+                    vendor_profile.store_name = store_name
+                    if store_description:
+                        vendor_profile.description = store_description
+                    vendor_profile.save()
+                except VendorProfile.DoesNotExist:
+                    # If signal hasn't created it yet (shouldn't happen), create it manually
+                    VendorProfile.objects.create(
+                        user=user,
+                        store_name=store_name,
+                        description=store_description
+                    )
+        
+        # Handle referral code (invitation system)
+        referral_code = validated_data.get('referral_code', '').strip()
+        if referral_code:
+            try:
+                from gamification.models import Invitation
+                from gamification.services import GamificationService
+                from django.utils import timezone
+                
+                # Find the invitation
+                invitation = Invitation.objects.filter(
+                    invite_code=referral_code,
+                    status='pending'
+                ).first()
+                
+                if invitation:
+                    # Mark invitation as accepted
+                    invitation.status = 'accepted'
+                    invitation.accepted_at = timezone.now()
+                    
+                    # Link invitee if user is a seller
+                    if validated_data['role'] in ['seller', 'both']:
+                        try:
+                            new_vendor_profile = VendorProfile.objects.get(user=user)
+                            invitation.invitee = new_vendor_profile
+                        except VendorProfile.DoesNotExist:
+                            pass  # VendorProfile will be created by signal
+                    
+                    invitation.save()
+                    
+                    # Award points to inviter (100 points per Phase 5 spec)
+                    inviter_service = GamificationService(invitation.inviter)
+                    inviter_service.add_points('peer_invitation', 100, metadata={
+                        'invitee_username': user.username,
+                        'invitation_id': invitation.id
+                    })
+                    # Check and award relevant badges for the inviter
+                    inviter_service.check_and_award_badges()
+            except Exception as e:
+                # Don't fail registration if invitation processing fails
+                # Just log the error
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to process referral code {referral_code}: {str(e)}")
         
         return user
 

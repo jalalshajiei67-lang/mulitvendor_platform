@@ -79,6 +79,14 @@
               <v-chip color="secondary" variant="tonal" v-if="product.vendor_name">
                 {{ product.vendor_name }}
               </v-chip>
+              <div class="d-flex align-center gap-2" v-if="vendorBadges.length">
+                <BadgeIcon
+                  v-for="badge in vendorBadges"
+                  :key="badge.slug"
+                  :badge="badge"
+                  size="sm"
+                />
+              </div>
             </div>
 
             <div class="price-wrapper mb-6">
@@ -286,6 +294,7 @@
 
 <script setup lang="ts">
 import { generateProductSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
+import BadgeIcon from '~/components/gamification/BadgeIcon.vue'
 
 definePageMeta({
   layout: 'default'
@@ -299,6 +308,10 @@ const { currentProduct } = storeToRefs(productStore)
 const t = productStore.t
 
 const product = computed(() => currentProduct.value)
+const vendorBadges = computed(() => {
+  const badges = product.value?.vendor_badges
+  return Array.isArray(badges) ? badges : []
+})
 
 const showRFQDialog = ref(false)
 const showSuccess = ref(false)

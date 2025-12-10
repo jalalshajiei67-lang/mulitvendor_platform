@@ -13,6 +13,8 @@ from .models import (
     LabelComboSeoPage,
     CategoryRequest,
 )
+from gamification.models import EarnedBadge
+from gamification.services import GamificationService
 from .utils import build_absolute_uri
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -244,7 +246,7 @@ class LabelComboSeoPageSerializer(serializers.ModelSerializer):
 class CategoryRequestSerializer(serializers.ModelSerializer):
     supplier_name = serializers.CharField(source='supplier.name', read_only=True)
     product_name = serializers.CharField(source='product.name', read_only=True)
-    reviewed_by_name = serializers.CharField(source='reviewed_by.username', read_only=True)
+    reviewed_by_name = serializers.SerializerMethodField()
     
     class Meta:
         model = CategoryRequest
@@ -254,6 +256,13 @@ class CategoryRequestSerializer(serializers.ModelSerializer):
             'reviewed_at', 'created_at', 'updated_at'
         ]
         read_only_fields = ['status', 'admin_notes', 'reviewed_by', 'reviewed_at', 'created_at', 'updated_at']
+    
+    def get_reviewed_by_name(self, obj):
+        """Get reviewer display name: first_name last_name"""
+        if not obj.reviewed_by:
+            return None
+        name_parts = [obj.reviewed_by.first_name, obj.reviewed_by.last_name]
+        return ' '.join(filter(None, name_parts)) or obj.reviewed_by.username
     
     def validate_requested_name(self, value):
         """Validate requested category name"""
@@ -320,11 +329,16 @@ class CategoryRequestCreateSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 class ProductSerializer(serializers.ModelSerializer):
-    vendor_name = serializers.CharField(source='vendor.username', read_only=True)
-    subcategory_name = serializers.CharField(source='primary_subcategory.name', read_only=True)
+    vendor_name = serializers.SerializerMethodField()
+    vendor_badges = serializers.SerializerMethodField()
+    vendor_tier = serializers.SerializerMethodField()
+    vendor_reputation_score = serializers.SerializerMethodField()
+    vendor_total_points = serializers.SerializerMethodField()
+    vendor_is_premium = serializers.SerializerMethodField()
+    subcategory_name = serializers.SerializerMethodField()
     subcategory_details = SubcategorySerializer(source='primary_subcategory', read_only=True)
-    category_name = serializers.CharField(source='primary_category.name', read_only=True)
-    category_slug = serializers.CharField(source='primary_category.slug', read_only=True)
+    category_name = serializers.SerializerMethodField()
+    category_slug = serializers.SerializerMethodField()
     category_path = serializers.CharField(source='get_full_category_path', read_only=True)
     breadcrumb_hierarchy = serializers.SerializerMethodField(read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
@@ -344,7 +358,9 @@ class ProductSerializer(serializers.ModelSerializer):
             'image_alt_text', 'og_image', 'og_image_url', 'meta_title', 'meta_description',
             'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
             'labels', 'promotional_labels', 'category_request', 'availability_status', 'condition',
-            'origin', 'lead_time_days', 'features', 'created_at', 'updated_at'
+            'origin', 'lead_time_days', 'features',
+            'vendor_badges', 'vendor_tier', 'vendor_reputation_score', 'vendor_total_points', 'vendor_is_premium',
+            'created_at', 'updated_at'
         ]
         extra_kwargs = {
             'name': {
@@ -394,6 +410,146 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_breadcrumb_hierarchy(self, obj):
         """Return the breadcrumb hierarchy for the product"""
         return obj.get_breadcrumb_hierarchy
+
+    def get_vendor_name(self, obj):
+        """Return supplier name or vendor fallback for safe serialization."""
+        if getattr(obj, 'supplier', None) and obj.supplier.name:
+            return obj.supplier.name
+        full_name = obj.vendor.get_full_name()
+        return full_name or obj.vendor.username
+
+    def get_vendor_badges(self, obj):
+        vendor = getattr(obj, 'vendor', None)
+        if not vendor:
+            return []
+
+        vendor_profile = getattr(vendor, 'vendor_profile', None)
+        if not vendor_profile:
+            return []
+
+        badges = (
+            EarnedBadge.objects.select_related('badge')
+            .filter(vendor_profile=vendor_profile)
+            .order_by('-achieved_at')
+        )
+        return [
+            {
+                'slug': eb.badge.slug,
+                'icon': eb.badge.icon,
+                'title': eb.badge.title,
+                'tier': eb.badge.tier,
+            }
+            for eb in badges
+        ]
+
+    def get_vendor_name(self, obj):
+        """Return supplier name or vendor fallback for safe serialization."""
+        if getattr(obj, 'supplier', None) and obj.supplier.name:
+            return obj.supplier.name
+        full_name = obj.vendor.get_full_name()
+        return full_name or obj.vendor.username
+
+    def get_vendor_badges(self, obj):
+        vendor = getattr(obj, 'vendor', None)
+        if not vendor:
+            return []
+
+        vendor_profile = getattr(vendor, 'vendor_profile', None)
+        if not vendor_profile:
+            return []
+
+        badges = (
+            EarnedBadge.objects.select_related('badge')
+            .filter(vendor_profile=vendor_profile)
+            .order_by('-achieved_at')
+        )
+        return [
+            {
+                'slug': eb.badge.slug,
+                'icon': eb.badge.icon,
+                'title': eb.badge.title,
+                'tier': eb.badge.tier,
+            }
+            for eb in badges
+        ]
+
+    def get_vendor_badges(self, obj):
+        vendor = getattr(obj, 'vendor', None)
+        if not vendor:
+            return []
+
+        vendor_profile = getattr(vendor, 'vendor_profile', None)
+        if not vendor_profile:
+            return []
+
+        badges = (
+            EarnedBadge.objects.select_related('badge')
+            .filter(vendor_profile=vendor_profile)
+            .order_by('-achieved_at')
+        )
+        return [
+            {
+                'slug': eb.badge.slug,
+                'icon': eb.badge.icon,
+                'title': eb.badge.title,
+                'tier': eb.badge.tier,
+            }
+            for eb in badges
+        ]
+
+    def _get_engagement_payload(self, obj):
+        vendor = getattr(obj, 'vendor', None)
+        vendor_profile = getattr(vendor, 'vendor_profile', None)
+        engagement = getattr(vendor_profile, 'engagement', None) if vendor_profile else None
+        return {
+            'points': getattr(obj, 'vendor_total_points', None)
+            if hasattr(obj, 'vendor_total_points')
+            else getattr(engagement, 'total_points', 0),
+            'reputation': getattr(obj, 'vendor_reputation_score', None)
+            if hasattr(obj, 'vendor_reputation_score')
+            else getattr(engagement, 'reputation_score', 0.0),
+            'tier': getattr(obj, 'vendor_tier', None)
+            if hasattr(obj, 'vendor_tier')
+            else None,
+            'is_premium': getattr(obj, 'vendor_is_premium', None)
+            if hasattr(obj, 'vendor_is_premium')
+            else getattr(getattr(vendor, 'profile', None), 'is_verified', False),
+            'vendor_profile': vendor_profile,
+        }
+
+    def get_vendor_tier(self, obj):
+        payload = self._get_engagement_payload(obj)
+        if payload['tier']:
+            return payload['tier']
+        vendor_profile = payload['vendor_profile']
+        if not vendor_profile:
+            return 'inactive'
+        service = GamificationService(vendor_profile)
+        return service.calculate_tier(payload['points'] or 0, payload['reputation'] or 0)
+
+    def get_vendor_reputation_score(self, obj):
+        payload = self._get_engagement_payload(obj)
+        return float(payload['reputation'] or 0.0)
+
+    def get_vendor_total_points(self, obj):
+        payload = self._get_engagement_payload(obj)
+        return int(payload['points'] or 0)
+
+    def get_vendor_is_premium(self, obj):
+        payload = self._get_engagement_payload(obj)
+        return bool(payload['is_premium'])
+
+    def get_subcategory_name(self, obj):
+        subcat = getattr(obj, 'primary_subcategory', None)
+        return subcat.name if subcat else None
+
+    def get_category_name(self, obj):
+        category = getattr(obj, 'primary_category', None)
+        return category.name if category else None
+
+    def get_category_slug(self, obj):
+        category = getattr(obj, 'primary_category', None)
+        return category.slug if category else None
     
     def get_primary_image(self, obj):
         """Return the URL of the primary image"""
@@ -569,7 +725,7 @@ class ProductCommentSerializer(serializers.ModelSerializer):
     """
     Serializer for product comments
     """
-    author_name = serializers.CharField(source='author.username', read_only=True)
+    author_name = serializers.SerializerMethodField()
     author_email = serializers.EmailField(source='author.email', read_only=True)
     replies = serializers.SerializerMethodField()
     
@@ -581,6 +737,11 @@ class ProductCommentSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['author', 'created_at', 'updated_at']
+    
+    def get_author_name(self, obj):
+        """Get author display name: first_name last_name"""
+        name_parts = [obj.author.first_name, obj.author.last_name]
+        return ' '.join(filter(None, name_parts)) or obj.author.username
     
     def get_replies(self, obj):
         """Get nested replies for this comment"""
@@ -610,7 +771,12 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     """
     Detailed serializer for individual products including comments
     """
-    vendor_name = serializers.CharField(source='vendor.username', read_only=True)
+    vendor_name = serializers.SerializerMethodField()
+    vendor_badges = serializers.SerializerMethodField()
+    vendor_tier = serializers.SerializerMethodField()
+    vendor_reputation_score = serializers.SerializerMethodField()
+    vendor_total_points = serializers.SerializerMethodField()
+    vendor_is_premium = serializers.SerializerMethodField()
     subcategory_name = serializers.CharField(source='primary_subcategory.name', read_only=True)
     subcategory_details = SubcategorySerializer(source='primary_subcategory', read_only=True)
     category_name = serializers.CharField(source='primary_category.name', read_only=True)
@@ -637,7 +803,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
             'comments', 'comment_count', 'average_rating',
             'labels', 'promotional_labels', 'availability_status', 'condition',
-            'origin', 'lead_time_days', 'features',
+            'origin', 'lead_time_days', 'features', 'vendor_badges',
+            'vendor_tier', 'vendor_reputation_score', 'vendor_total_points', 'vendor_is_premium',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['vendor', 'created_at', 'updated_at']
@@ -646,6 +813,79 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         """Return the breadcrumb hierarchy for the product"""
         return obj.get_breadcrumb_hierarchy
     
+    def get_vendor_name(self, obj):
+        """Return supplier name or vendor fallback for safe serialization."""
+        if getattr(obj, 'supplier', None) and obj.supplier.name:
+            return obj.supplier.name
+        full_name = obj.vendor.get_full_name()
+        return full_name or obj.vendor.username
+
+    def get_vendor_badges(self, obj):
+        vendor = getattr(obj, 'vendor', None)
+        if not vendor:
+            return []
+
+        vendor_profile = getattr(vendor, 'vendor_profile', None)
+        if not vendor_profile:
+            return []
+
+        badges = (
+            EarnedBadge.objects.select_related('badge')
+            .filter(vendor_profile=vendor_profile)
+            .order_by('-achieved_at')
+        )
+        return [
+            {
+                'slug': eb.badge.slug,
+                'icon': eb.badge.icon,
+                'title': eb.badge.title,
+                'tier': eb.badge.tier,
+            }
+            for eb in badges
+        ]
+
+    def _get_engagement_payload(self, obj):
+        vendor = getattr(obj, 'vendor', None)
+        vendor_profile = getattr(vendor, 'vendor_profile', None)
+        engagement = getattr(vendor_profile, 'engagement', None) if vendor_profile else None
+        return {
+            'points': getattr(obj, 'vendor_total_points', None)
+            if hasattr(obj, 'vendor_total_points')
+            else getattr(engagement, 'total_points', 0),
+            'reputation': getattr(obj, 'vendor_reputation_score', None)
+            if hasattr(obj, 'vendor_reputation_score')
+            else getattr(engagement, 'reputation_score', 0.0),
+            'tier': getattr(obj, 'vendor_tier', None)
+            if hasattr(obj, 'vendor_tier')
+            else None,
+            'is_premium': getattr(obj, 'vendor_is_premium', None)
+            if hasattr(obj, 'vendor_is_premium')
+            else getattr(getattr(vendor, 'profile', None), 'is_verified', False),
+            'vendor_profile': vendor_profile,
+        }
+
+    def get_vendor_tier(self, obj):
+        payload = self._get_engagement_payload(obj)
+        if payload['tier']:
+            return payload['tier']
+        vendor_profile = payload['vendor_profile']
+        if not vendor_profile:
+            return 'inactive'
+        service = GamificationService(vendor_profile)
+        return service.calculate_tier(payload['points'] or 0, payload['reputation'] or 0)
+
+    def get_vendor_reputation_score(self, obj):
+        payload = self._get_engagement_payload(obj)
+        return float(payload['reputation'] or 0.0)
+
+    def get_vendor_total_points(self, obj):
+        payload = self._get_engagement_payload(obj)
+        return int(payload['points'] or 0)
+
+    def get_vendor_is_premium(self, obj):
+        payload = self._get_engagement_payload(obj)
+        return bool(payload['is_premium'])
+
     def get_primary_image(self, obj):
         """Return the URL of the primary image"""
         primary_img = obj.primary_image

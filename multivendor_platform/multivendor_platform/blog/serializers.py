@@ -88,7 +88,7 @@ class BlogCommentSerializer(serializers.ModelSerializer):
     """
     Serializer for blog comments
     """
-    author_name = serializers.CharField(source='author.username', read_only=True)
+    author_name = serializers.SerializerMethodField()
     author_email = serializers.EmailField(source='author.email', read_only=True)
     replies = serializers.SerializerMethodField()
     
@@ -101,6 +101,11 @@ class BlogCommentSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['author', 'created_at', 'updated_at']
     
+    def get_author_name(self, obj):
+        """Get author display name: first_name last_name"""
+        name_parts = [obj.author.first_name, obj.author.last_name]
+        return ' '.join(filter(None, name_parts)) or obj.author.username
+    
     def get_replies(self, obj):
         """Get nested replies for this comment"""
         replies = obj.replies.filter(is_approved=True).order_by('created_at')
@@ -110,7 +115,7 @@ class BlogPostListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for blog post listings
     """
-    author_name = serializers.CharField(source='author.username', read_only=True)
+    author_name = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_color = serializers.CharField(source='category.color', read_only=True)
     comment_count = serializers.SerializerMethodField()
@@ -125,6 +130,11 @@ class BlogPostListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['slug', 'view_count', 'created_at', 'updated_at', 'published_at']
     
+    def get_author_name(self, obj):
+        """Get author display name: first_name last_name"""
+        name_parts = [obj.author.first_name, obj.author.last_name]
+        return ' '.join(filter(None, name_parts)) or obj.author.username
+    
     def get_comment_count(self, obj):
         """Get count of approved comments"""
         return obj.comments.filter(is_approved=True).count()
@@ -133,7 +143,7 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
     """
     Detailed serializer for individual blog posts
     """
-    author_name = serializers.CharField(source='author.username', read_only=True)
+    author_name = serializers.SerializerMethodField()
     author_email = serializers.EmailField(source='author.email', read_only=True)
     category = BlogCategorySerializer(read_only=True)
     category_id = serializers.IntegerField(write_only=True)
@@ -159,6 +169,11 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['slug', 'view_count', 'created_at', 'updated_at', 'published_at']
 
+    def get_author_name(self, obj):
+        """Get author display name: first_name last_name"""
+        name_parts = [obj.author.first_name, obj.author.last_name]
+        return ' '.join(filter(None, name_parts)) or obj.author.username
+    
     def get_comment_count(self, obj):
         """Get count of approved comments"""
         return obj.comments.filter(is_approved=True).count()

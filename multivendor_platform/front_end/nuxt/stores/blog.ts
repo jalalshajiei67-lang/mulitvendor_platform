@@ -1,3 +1,6 @@
+import { defineStore, acceptHMRUpdate } from 'pinia'
+import { ref, reactive, computed } from 'vue'
+
 type BlogPost = Record<string, any>
 type BlogCategory = Record<string, any>
 type BlogComment = Record<string, any>

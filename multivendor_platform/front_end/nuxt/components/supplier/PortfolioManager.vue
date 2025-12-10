@@ -105,18 +105,18 @@
         </v-row>
 
         <!-- Empty State -->
-        <v-row v-else justify="center" class="my-8">
-          <v-col cols="12" class="text-center">
-            <v-icon size="80" color="grey-lighten-2">mdi-folder-open</v-icon>
-            <h3 class="text-h6 mt-3">هنوز نمونه کاری اضافه نشده</h3>
-            <p class="text-body-2 text-medium-emphasis mb-4">
-              نمونه کارها و پروژه‌های موفق خود را به نمایش بگذارید
-            </p>
-            <v-btn color="primary" prepend-icon="mdi-plus" @click="openForm()">
-              افزودن اولین نمونه کار
-            </v-btn>
-          </v-col>
-        </v-row>
+        <EmptyState
+          v-else
+          icon="mdi-folder-open"
+          icon-size="80"
+          icon-color="grey-lighten-2"
+          title="هنوز نمونه کاری اضافه نشده"
+          description="نمونه کارها و پروژه‌های موفق خود را به نمایش بگذارید"
+          action-label="افزودن اولین نمونه کار"
+          action-icon="mdi-plus"
+          :gamification-context="portfolioGamificationContext"
+          @action="openForm()"
+        />
       </v-card-text>
     </v-card>
 
@@ -347,8 +347,11 @@ import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useSupplierPortfolioApi, type SupplierPortfolioItem } from '~/composables/useSupplierPortfolioApi'
 import { formatImageUrl } from '~/utils/imageUtils'
 import PersianDatePicker from '~/components/common/PersianDatePicker.vue'
+import EmptyState from '~/components/common/EmptyState.vue'
+import { useGamificationStore } from '~/stores/gamification'
 
 const portfolioApi = useSupplierPortfolioApi()
+const gamificationStore = useGamificationStore()
 
 // Helper function to get image URL (handles both string and File types)
 const getImageUrl = (image: string | File | undefined): string | null => {
@@ -374,6 +377,37 @@ const deleting = ref(false)
 const snackbar = ref(false)
 const snackbarMessage = ref('')
 const snackbarColor = ref('success')
+
+const portfolioGamificationContext = computed(() => {
+  const currentCount = items.value.length
+  const needed = 3
+  const remaining = Math.max(0, needed - currentCount)
+  
+  if (remaining > 0) {
+    return {
+      message: `${remaining} نمونه کار دیگر اضافه کنید تا سطح نقره را باز کنید!`,
+      subtitle: 'حداقل 3 نمونه کار برای تکمیل این بخش نیاز است',
+      color: 'primary',
+      points: 50,
+    }
+  }
+  return undefined
+})
+
+const awardPortfolio = async (): Promise<number> => {
+  try {
+    const { useApiFetch } = await import('~/composables/useApiFetch')
+    const resp = await useApiFetch<{ points?: number }>('gamification/award-section/', {
+      method: 'POST',
+      body: { section: 'portfolio' }
+    })
+    await gamificationStore.fetchScores()
+    return resp?.points || 0
+  } catch (e) {
+    console.warn('Failed to award portfolio section', e)
+    return 0
+  }
+}
 
 const editingItem = ref<SupplierPortfolioItem | null>(null)
 const itemToDelete = ref<SupplierPortfolioItem | null>(null)
@@ -591,6 +625,16 @@ const saveItem = async () => {
     } else {
       await portfolioApi.createPortfolioItem(data)
       snackbarMessage.value = 'نمونه کار با موفقیت اضافه شد'
+    }
+
+    const awarded = await awardPortfolio()
+    if (awarded > 0) {
+      snackbarMessage.value += ` (+${awarded} امتیاز)`
+      try {
+        await gamificationStore.hydrate()
+      } catch (e) {
+        console.warn('Failed to hydrate gamification after portfolio save', e)
+      }
     }
 
     snackbarColor.value = 'success'

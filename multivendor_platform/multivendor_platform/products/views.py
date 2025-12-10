@@ -5,6 +5,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import CreateView, ListView, TemplateView
 from django.urls import reverse_lazy
 from django.db import models
+from django.db.models import Case, When, Value, IntegerField, FloatField, BooleanField, F
+from django.db.models.functions import Coalesce
 from django.conf import settings
 from django.utils import timezone
 
@@ -110,7 +112,63 @@ class ProductViewSet(viewsets.ModelViewSet):
         Optionally restricts the returned products to a given category or subcategory,
         by filtering against query parameters in the URL.
         """
-        queryset = Product.objects.all().order_by('-created_at')
+        queryset = (
+            Product.objects.all()
+            .select_related('vendor__profile', 'vendor__vendor_profile__engagement', 'primary_category')
+            .annotate(
+                vendor_total_points=Coalesce(
+                    F('vendor__vendor_profile__engagement__total_points'),
+                    Value(0),
+                ),
+                vendor_reputation_score=Coalesce(
+                    F('vendor__vendor_profile__engagement__reputation_score'),
+                    Value(0.0),
+                    output_field=FloatField(),
+                ),
+                vendor_is_premium=Coalesce(
+                    F('vendor__profile__is_verified'),
+                    Value(False),
+                    output_field=BooleanField(),
+                ),
+            )
+        )
+
+        # Annotate tier values for ordering/display (mirrors GamificationService.calculate_tier)
+        queryset = queryset.annotate(
+            vendor_tier=Case(
+                When(
+                    models.Q(vendor_total_points__gte=1000) & models.Q(vendor_reputation_score__gte=80),
+                    then=Value('diamond'),
+                ),
+                When(
+                    models.Q(vendor_total_points__gte=500) & models.Q(vendor_reputation_score__gte=60),
+                    then=Value('gold'),
+                ),
+                When(models.Q(vendor_total_points__gte=200), then=Value('silver')),
+                When(models.Q(vendor_total_points__gte=50), then=Value('bronze')),
+                default=Value('inactive'),
+                output_field=models.CharField(),
+            ),
+            tier_rank=Case(
+                When(
+                    models.Q(vendor_total_points__gte=1000) & models.Q(vendor_reputation_score__gte=80),
+                    then=Value(0),
+                ),
+                When(
+                    models.Q(vendor_total_points__gte=500) & models.Q(vendor_reputation_score__gte=60),
+                    then=Value(1),
+                ),
+                When(models.Q(vendor_total_points__gte=200), then=Value(2)),
+                When(models.Q(vendor_total_points__gte=50), then=Value(3)),
+                default=Value(4),
+                output_field=IntegerField(),
+            ),
+            premium_order=Case(
+                When(vendor_is_premium=True, then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField(),
+            ),
+        )
         
         # Filter by category
         category_id = self.request.query_params.get('category', None)
@@ -129,7 +187,16 @@ class ProductViewSet(viewsets.ModelViewSet):
             slugs = [slug.strip() for slug in label_slugs.split(',') if slug.strip()]
             for slug in slugs:
                 queryset = queryset.filter(labels__slug=slug)
-        
+
+        # Default ordering: premium first, then tier, then reputation/points, then recency
+        queryset = queryset.order_by(
+            'premium_order',
+            'tier_rank',
+            '-vendor_reputation_score',
+            '-vendor_total_points',
+            '-created_at',
+        )
+
         return queryset.distinct()  # Use distinct to avoid duplicates from M2M
     
     def get_serializer_class(self):
@@ -615,7 +682,65 @@ def global_search(request):
     products = Product.objects.filter(
         models.Q(name__icontains=query) | models.Q(description__icontains=query),
         is_active=True
-    ).select_related('subcategory', 'vendor')[:limit]
+    ).select_related('subcategory', 'vendor__profile', 'vendor__vendor_profile__engagement')
+
+    # Annotate gamification fields for ranking
+    products = products.annotate(
+        vendor_total_points=Coalesce(
+            F('vendor__vendor_profile__engagement__total_points'),
+            Value(0),
+        ),
+        vendor_reputation_score=Coalesce(
+            F('vendor__vendor_profile__engagement__reputation_score'),
+            Value(0.0),
+            output_field=FloatField(),
+        ),
+        vendor_is_premium=Coalesce(
+            F('vendor__profile__is_verified'),
+            Value(False),
+            output_field=BooleanField(),
+        ),
+    ).annotate(
+        vendor_tier=Case(
+            When(
+                models.Q(vendor_total_points__gte=1000) & models.Q(vendor_reputation_score__gte=80),
+                then=Value('diamond'),
+            ),
+            When(
+                models.Q(vendor_total_points__gte=500) & models.Q(vendor_reputation_score__gte=60),
+                then=Value('gold'),
+            ),
+            When(models.Q(vendor_total_points__gte=200), then=Value('silver')),
+            When(models.Q(vendor_total_points__gte=50), then=Value('bronze')),
+            default=Value('inactive'),
+            output_field=models.CharField(),
+        ),
+        tier_rank=Case(
+            When(
+                models.Q(vendor_total_points__gte=1000) & models.Q(vendor_reputation_score__gte=80),
+                then=Value(0),
+            ),
+            When(
+                models.Q(vendor_total_points__gte=500) & models.Q(vendor_reputation_score__gte=60),
+                then=Value(1),
+            ),
+            When(models.Q(vendor_total_points__gte=200), then=Value(2)),
+            When(models.Q(vendor_total_points__gte=50), then=Value(3)),
+            default=Value(4),
+            output_field=IntegerField(),
+        ),
+        premium_order=Case(
+            When(vendor_is_premium=True, then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField(),
+        ),
+    ).order_by(
+        'premium_order',
+        'tier_rank',
+        '-vendor_reputation_score',
+        '-vendor_total_points',
+        '-created_at',
+    )[:limit]
     
     # Search blog posts (only published ones)
     blogs = BlogPost.objects.filter(

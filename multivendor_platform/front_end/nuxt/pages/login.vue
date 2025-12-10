@@ -31,8 +31,8 @@
             <v-form v-if="loginMethod === 'password'" ref="formRef" v-model="isValid" @submit.prevent="submit">
               <v-text-field
                 v-model="username"
-                label="نام کاربری"
-                prepend-inner-icon="mdi-account"
+                label="شماره موبایل"
+                prepend-inner-icon="mdi-phone"
                 variant="outlined"
                 rounded="lg"
                 :rules="usernameRules"
@@ -282,18 +282,18 @@ const submit = async () => {
       password: password.value
     })
 
-    const redirect = (route.query.redirect as string) || '/'
+    const redirect = (route.query.redirect as string) || null
     if (response?.user?.is_staff || response?.user?.is_superuser) {
       return router.push('/admin/dashboard')
     }
     if (response?.user?.role === 'seller' || response?.user?.role === 'both') {
-      return router.push('/seller/dashboard')
+      return router.push(redirect || '/seller/dashboard')
     }
     if (response?.user?.role === 'buyer') {
-      return router.push(redirect)
+      return router.push(redirect || '/')
     }
 
-    router.push(redirect)
+    router.push(redirect || '/')
   } catch (err: any) {
     console.error('Login failed', err)
     // Error is already handled by the auth store
@@ -323,17 +323,17 @@ const requestOtp = async () => {
 
 const handleOtpVerified = async (data: any) => {
   if (data.token && data.user) {
-    const redirect = (route.query.redirect as string) || '/'
+    const redirect = (route.query.redirect as string) || null
     if (data.user.is_staff || data.user.is_superuser) {
       return router.push('/admin/dashboard')
     }
     if (data.user.role === 'seller' || data.user.role === 'both') {
-      return router.push('/seller/dashboard')
+      return router.push(redirect || '/seller/dashboard')
     }
     if (data.user.role === 'buyer') {
-      return router.push(redirect)
+      return router.push(redirect || '/')
     }
-    router.push(redirect)
+    router.push(redirect || '/')
   }
 }
 

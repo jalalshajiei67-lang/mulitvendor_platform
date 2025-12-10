@@ -5,7 +5,54 @@ from django.conf import settings
 
 
 class Command(BaseCommand):
-    help = 'Fix all database sequences when they get out of sync (PostgreSQL only)'
+    help = 'Fix Django system table sequences when they get out of sync (PostgreSQL only)'
+
+    def fix_sequence(self, cursor, table_name, sequence_name):
+        """Fix a single sequence for a given table"""
+        try:
+            # Get the current max ID
+            cursor.execute(f"SELECT MAX(id) FROM {table_name};")
+            max_id = cursor.fetchone()[0]
+            
+            if max_id is None:
+                self.stdout.write(
+                    self.style.WARNING(f'  ⚠️  No records found in {table_name}, skipping...')
+                )
+                return False
+
+            # Get the current sequence value
+            cursor.execute(f"SELECT last_value FROM {sequence_name};")
+            current_seq = cursor.fetchone()[0]
+
+            if current_seq <= max_id:
+                # Reset the sequence to max_id + 1
+                new_seq_value = max_id + 1
+                cursor.execute(
+                    f"SELECT setval('{sequence_name}', {new_seq_value}, false);"
+                )
+                
+                # Verify the fix
+                cursor.execute(f"SELECT last_value FROM {sequence_name};")
+                new_seq = cursor.fetchone()[0]
+                
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'  ✓ {table_name}: reset from {current_seq} to {new_seq}'
+                    )
+                )
+                return True
+            else:
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'  ✓ {table_name}: sequence is correct (current: {current_seq}, max_id: {max_id})'
+                    )
+                )
+                return False
+        except Exception as e:
+            self.stdout.write(
+                self.style.ERROR(f'  ✗ {table_name}: Error - {e}')
+            )
+            return False
 
     def handle(self, *args, **options):
         # Check if we're using PostgreSQL
@@ -20,83 +67,34 @@ class Command(BaseCommand):
             )
             return
 
-        self.stdout.write('Checking all database sequences...')
-        
+        self.stdout.write(self.style.SUCCESS('Checking and fixing Django system table sequences...'))
+        self.stdout.write('')
+
         with connection.cursor() as cursor:
-            # Get all sequences and their associated tables
-            # This query works with PostgreSQL 9.1+ (more compatible than pg_sequences)
-            cursor.execute("""
-                SELECT 
-                    t.oid::regclass::text as table_name,
-                    a.attname as column_name,
-                    pg_get_serial_sequence(t.oid::regclass::text, a.attname) as sequence_name
-                FROM pg_class t
-                JOIN pg_attribute a ON a.attrelid = t.oid
-                JOIN pg_namespace n ON n.oid = t.relnamespace
-                WHERE n.nspname = 'public'
-                AND a.attnum > 0
-                AND NOT a.attisdropped
-                AND a.attname = 'id'
-                AND pg_get_serial_sequence(t.oid::regclass::text, a.attname) IS NOT NULL
-                ORDER BY t.relname;
-            """)
+            fixed_any = False
             
-            sequences = cursor.fetchall()
-            fixed_count = 0
+            # Fix django_migrations sequence
+            self.stdout.write('1. Checking django_migrations...')
+            if self.fix_sequence(cursor, 'django_migrations', 'django_migrations_id_seq'):
+                fixed_any = True
             
-            for table_name, column_name, sequence_name in sequences:
-                try:
-                    # Get max ID from the table
-                    cursor.execute(f'SELECT MAX("{column_name}") FROM {table_name};')
-                    max_id_result = cursor.fetchone()
-                    max_id = max_id_result[0] if max_id_result else None
-                    
-                    if max_id is None:
-                        # Table is empty, set sequence to 1
-                        cursor.execute(f"SELECT setval('{sequence_name}', 1, false);")
-                        self.stdout.write(
-                            self.style.SUCCESS(f'  ✓ Reset {sequence_name} to 1 (empty table)')
-                        )
-                        fixed_count += 1
-                        continue
-                    
-                    # Get current sequence value
-                    cursor.execute(f"SELECT last_value, is_called FROM {sequence_name};")
-                    seq_result = cursor.fetchone()
-                    current_seq = seq_result[0] if seq_result else 0
-                    is_called = seq_result[1] if seq_result else False
-                    
-                    # Calculate what the next value would be
-                    if is_called:
-                        next_seq = current_seq + 1
-                    else:
-                        next_seq = current_seq
-                    
-                    if next_seq <= max_id:
-                        new_seq_value = max_id + 1
-                        cursor.execute(f"SELECT setval('{sequence_name}', {new_seq_value}, false);")
-                        self.stdout.write(
-                            self.style.SUCCESS(
-                                f'  ✓ Fixed {sequence_name}: {next_seq} → {new_seq_value} '
-                                f'(max_id: {max_id})'
-                            )
-                        )
-                        fixed_count += 1
-                except Exception as e:
-                    # Some tables might have issues, skip silently
-                    self.stdout.write(
-                        self.style.WARNING(f'  ⚠️  Skipped {sequence_name}: {e}')
-                    )
+            # Fix django_content_type sequence
+            self.stdout.write('2. Checking django_content_type...')
+            if self.fix_sequence(cursor, 'django_content_type', 'django_content_type_id_seq'):
+                fixed_any = True
             
-            if fixed_count == 0:
+            self.stdout.write('')
+            
+            if fixed_any:
                 self.stdout.write(
-                    self.style.SUCCESS('✓ All sequences are correct. No action needed.')
+                    self.style.SUCCESS(
+                        '✓ Sequences fixed! You can now run migrations again: python manage.py migrate'
+                    )
                 )
             else:
                 self.stdout.write(
-                    self.style.SUCCESS(f'✓ Fixed {fixed_count} sequence(s)')
-                )
-                self.stdout.write(
-                    self.style.SUCCESS('You can now run migrations again: python manage.py migrate')
+                    self.style.SUCCESS(
+                        '✓ All sequences are correct. No action needed.'
+                    )
                 )
 

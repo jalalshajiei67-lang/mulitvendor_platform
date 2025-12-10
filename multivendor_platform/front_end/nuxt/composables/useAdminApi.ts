@@ -73,6 +73,22 @@ export const useAdminApi = () => {
       })
     },
 
+    // Gamification anti-abuse
+    async getGamificationFlags() {
+      return useApiFetch<{
+        flagged_supplier_comments: any[]
+        flagged_product_reviews: any[]
+        invitation_blocks: any[]
+      }>('gamification/admin/flags/')
+    },
+
+    async clearGamificationFlag(data: { object_type: string; id: number }) {
+      return useApiFetch('gamification/admin/flags/clear/', {
+        method: 'POST',
+        body: data
+      })
+    },
+
     // RFQs
     async getRFQs(params: Record<string, any> = {}) {
       return useApiFetch<any[]>('orders/admin/rfq/', {

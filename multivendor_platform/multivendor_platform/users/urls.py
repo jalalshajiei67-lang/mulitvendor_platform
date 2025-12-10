@@ -52,7 +52,7 @@ urlpatterns = [
     path('buyer/orders/', buyer_orders_view, name='buyer-orders'),
     path('buyer/reviews/', buyer_reviews_view, name='buyer-reviews'),
     
-    # Seller Dashboard
+    # Seller Dashboard (must be before router.urls to avoid conflicts)
     path('seller/dashboard/', seller_dashboard_view, name='seller-dashboard'),
     path('seller/orders/', seller_orders_view, name='seller-orders'),
     path('seller/reviews/', seller_reviews_view, name='seller-reviews'),

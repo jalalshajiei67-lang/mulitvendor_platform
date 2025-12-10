@@ -50,6 +50,27 @@
             </v-card>
           </v-col>
         </v-row>
+
+        <v-row class="mb-4">
+          <v-col cols="12" md="6">
+            <v-card elevation="0" variant="outlined" class="pa-4">
+              <v-card-title class="d-flex align-center justify-space-between">
+                <span>پرچم‌های ضد سوءاستفاده</span>
+                <v-chip color="error" size="small" v-if="flagsBadgeCount > 0">
+                  {{ flagsBadgeCount }}
+                </v-chip>
+              </v-card-title>
+              <v-card-text class="text-body-2">
+                بررسی سریع دعوت‌های مسدود شده و بازبینی‌های پرچم‌دار.
+                <div class="mt-4 d-flex gap-3">
+                  <v-btn color="primary" prepend-icon="mdi-shield-alert" @click="handleNavigate('flags')">
+                    مشاهده پرچم‌ها
+                  </v-btn>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
       </div>
 
       <!-- Users Management View -->
@@ -286,6 +307,93 @@
             </v-data-table>
           </v-card-text>
         </v-card>
+      </div>
+
+      <!-- Flags View -->
+      <div v-if="activeView === 'flags'" class="flags-view">
+        <v-row>
+          <v-col cols="12" md="6">
+            <v-card elevation="0" variant="outlined">
+              <v-card-title class="pa-4 d-flex justify-space-between align-center">
+                <span>بازبینی‌های پرچم‌دار</span>
+                <v-chip color="error" size="small" v-if="flaggedProductReviews.length">
+                  {{ flaggedProductReviews.length }}
+                </v-chip>
+              </v-card-title>
+              <v-divider></v-divider>
+              <v-card-text>
+                <v-data-table
+                  :headers="flagReviewHeaders"
+                  :items="flaggedProductReviews"
+                  :loading="loadingFlags"
+                  item-value="id"
+                  class="mb-4"
+                >
+                  <template #item.actions="{ item }">
+                    <v-btn size="small" variant="text" color="success" @click="clearFlag('product_review', item.id)">
+                      تایید و پاک‌کردن پرچم
+                    </v-btn>
+                  </template>
+                </v-data-table>
+              </v-card-text>
+            </v-card>
+          </v-col>
+
+          <v-col cols="12" md="6">
+            <v-card elevation="0" variant="outlined">
+              <v-card-title class="pa-4 d-flex justify-space-between align-center">
+                <span>نظرات فروشنده پرچم‌دار</span>
+                <v-chip color="error" size="small" v-if="flaggedSupplierComments.length">
+                  {{ flaggedSupplierComments.length }}
+                </v-chip>
+              </v-card-title>
+              <v-divider></v-divider>
+              <v-card-text>
+                <v-data-table
+                  :headers="flagSupplierHeaders"
+                  :items="flaggedSupplierComments"
+                  :loading="loadingFlags"
+                  item-value="id"
+                  class="mb-4"
+                >
+                  <template #item.actions="{ item }">
+                    <v-btn size="small" variant="text" color="success" @click="clearFlag('supplier_comment', item.id)">
+                      تایید و پاک‌کردن پرچم
+                    </v-btn>
+                  </template>
+                </v-data-table>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <v-row>
+          <v-col cols="12">
+            <v-card elevation="0" variant="outlined">
+              <v-card-title class="pa-4 d-flex justify-space-between align-center">
+                <span>دعوت‌های مسدود شده</span>
+                <v-chip color="warning" size="small" v-if="invitationBlocks.length">
+                  {{ invitationBlocks.length }}
+                </v-chip>
+              </v-card-title>
+              <v-divider></v-divider>
+              <v-card-text>
+                <v-data-table
+                  :headers="inviteBlockHeaders"
+                  :items="invitationBlocks"
+                  :loading="loadingFlags"
+                  item-value="id"
+                >
+                  <template #item.actions="{ item }">
+                    <v-btn size="small" variant="text" color="primary" @click="clearFlag('invitation_block', item.id)">
+                      رسیدگی شد
+                    </v-btn>
+                  </template>
+                </v-data-table>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
       </div>
 
       <!-- Blog Management View -->
@@ -946,8 +1054,15 @@ const activities = ref<any[]>([])
 const blogPosts = ref<any[]>([])
 const rfqs = ref<any[]>([])
 const products = ref<any[]>([])
+const flaggedSupplierComments = ref<any[]>([])
+const flaggedProductReviews = ref<any[]>([])
+const invitationBlocks = ref<any[]>([])
+const flagsBadgeCount = computed(() =>
+  flaggedSupplierComments.value.length + flaggedProductReviews.value.length + invitationBlocks.value.length
+)
 
 const loading = ref(false)
+const loadingFlags = ref(false)
 const loadingUsers = ref(false)
 const loadingActivities = ref(false)
 const loadingBlog = ref(false)
@@ -1049,6 +1164,32 @@ const productHeaders = [
   { title: 'عملیات', key: 'actions', sortable: false }
 ]
 
+const flagReviewHeaders = [
+  { title: 'محصول', key: 'product' },
+  { title: 'فروشنده', key: 'vendor_name' },
+  { title: 'امتیاز', key: 'rating' },
+  { title: 'متن', key: 'comment' },
+  { title: 'دلیل', key: 'flag_reason' },
+  { title: 'عملیات', key: 'actions', sortable: false }
+]
+
+const flagSupplierHeaders = [
+  { title: 'فروشنده', key: 'vendor_name' },
+  { title: 'کاربر', key: 'reviewer' },
+  { title: 'امتیاز', key: 'rating' },
+  { title: 'متن', key: 'comment' },
+  { title: 'دلیل', key: 'flag_reason' },
+  { title: 'عملیات', key: 'actions', sortable: false }
+]
+
+const inviteBlockHeaders = [
+  { title: 'فروشنده', key: 'vendor_name' },
+  { title: 'ایمیل', key: 'invitee_email' },
+  { title: 'تلفن', key: 'invitee_phone' },
+  { title: 'دلیل', key: 'reason' },
+  { title: 'عملیات', key: 'actions', sortable: false }
+]
+
 const loadDashboardData = async () => {
   loading.value = true
   try {
@@ -1082,6 +1223,30 @@ const loadActivities = async () => {
     console.error('Failed to load activities:', error)
   } finally {
     loadingActivities.value = false
+  }
+}
+
+const loadFlags = async () => {
+  loadingFlags.value = true
+  try {
+    const data = await adminApi.getGamificationFlags()
+    flaggedSupplierComments.value = data.flagged_supplier_comments || []
+    flaggedProductReviews.value = data.flagged_product_reviews || []
+    invitationBlocks.value = data.invitation_blocks || []
+  } catch (error) {
+    console.error('Failed to load flags:', error)
+  } finally {
+    loadingFlags.value = false
+  }
+}
+
+const clearFlag = async (objectType: string, id: number) => {
+  try {
+    await adminApi.clearGamificationFlag({ object_type: objectType, id })
+    await loadFlags()
+    await loadDashboardData()
+  } catch (error) {
+    console.error('Failed to clear flag:', error)
   }
 }
 
@@ -1314,6 +1479,8 @@ watch(activeView, (newView) => {
   } else if (newView === 'products') {
     loadFilterData()
     loadProducts()
+  } else if (newView === 'flags') {
+    loadFlags()
   }
 })
 
@@ -1513,6 +1680,19 @@ watch(showCreateLeadDialog, (isOpen) => {
 onMounted(() => {
   if (activeView.value === 'dashboard') {
     loadDashboardData()
+  } else if (activeView.value === 'users') {
+    loadUsers()
+  } else if (activeView.value === 'activities') {
+    loadActivities()
+  } else if (activeView.value === 'blog') {
+    loadBlogPosts()
+  } else if (activeView.value === 'rfqs') {
+    loadRFQs()
+  } else if (activeView.value === 'products') {
+    loadFilterData()
+    loadProducts()
+  } else if (activeView.value === 'flags') {
+    loadFlags()
   }
 })
 </script>
