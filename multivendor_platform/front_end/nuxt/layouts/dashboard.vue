@@ -30,6 +30,17 @@
 
         <!-- Right Side Actions -->
         <div class="d-flex align-center gap-2">
+          <v-btn
+            v-if="isSeller"
+            color="amber"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-crown"
+            class="text-white"
+            to="/seller/pricing"
+          >
+            پلن‌ها
+          </v-btn>
           <template v-if="isAuthenticated">
             <!-- Notification Bell (Buyer Only) -->
             <template v-if="isBuyer">
