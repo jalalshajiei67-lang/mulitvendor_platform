@@ -270,8 +270,6 @@ class RegisterSerializer(serializers.Serializer):
                         'invitee_username': user.username,
                         'invitation_id': invitation.id
                     })
-                    # Check and award relevant badges for the inviter
-                    inviter_service.check_and_award_badges()
             except Exception as e:
                 # Don't fail registration if invitation processing fails
                 # Just log the error

@@ -131,6 +131,15 @@ class CategoryRequest(models.Model):
         return f"{self.requested_name} - {self.get_status_display()} ({self.supplier.name})"
 
 class Product(models.Model):
+    APPROVAL_STATUS_PENDING = 'pending'
+    APPROVAL_STATUS_APPROVED = 'approved'
+    APPROVAL_STATUS_REJECTED = 'rejected'
+    APPROVAL_STATUS_CHOICES = [
+        (APPROVAL_STATUS_PENDING, 'در انتظار تایید'),
+        (APPROVAL_STATUS_APPROVED, 'تایید شده'),
+        (APPROVAL_STATUS_REJECTED, 'رد شده'),
+    ]
+    
     vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='products')  # Keep for backward compatibility
     supplier = models.ForeignKey('users.Supplier', on_delete=models.SET_NULL, null=True, blank=True, related_name='products', help_text="Company/Supplier")
     subcategories = models.ManyToManyField(Subcategory, related_name='products', blank=True)  # Changed from ForeignKey
@@ -148,6 +157,21 @@ class Product(models.Model):
     canonical_url = models.URLField(max_length=500, blank=True, null=True, help_text="Canonical URL for SEO")
     schema_markup = models.TextField(blank=True, null=True, help_text="JSON-LD Schema markup for rich snippets")
     is_active = models.BooleanField(default=True)
+    approval_status = models.CharField(
+        max_length=20,
+        choices=APPROVAL_STATUS_CHOICES,
+        default=APPROVAL_STATUS_PENDING,
+        help_text="وضعیت تایید ادمین برای انتشار محصول"
+    )
+    is_marketplace_hidden = models.BooleanField(
+        default=False,
+        help_text="اگر فعال باشد، محصول از مارکت‌پلیس اصلی مخفی می‌شود و فقط در مینی‌وبسایت و داشبورد فروشنده دیده می‌شود."
+    )
+    marketplace_hide_reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="یادداشت دوستانه ادمین برای توضیح دلیل عدم نمایش (مثلا وجود واترمارک یا اطلاعات فروشنده)."
+    )
     
     # Product availability and status fields
     AVAILABILITY_CHOICES = [
@@ -204,19 +228,24 @@ class Product(models.Model):
         if not self.slug:
             self.slug = slugify(self.name)
         
-        # Products with pending category requests are visible to supplier but not active
-        # Products without category and without pending request are inactive
-        if not self.primary_category:
-            # Check if there's a pending category request
-            if hasattr(self, 'category_request') and self.category_request and self.category_request.status == 'pending':
-                # Product is visible to supplier but not active in public listings
-                self.is_active = False
-            elif not hasattr(self, 'category_request') or not self.category_request:
-                # No category and no request - inactive
-                self.is_active = False
+        # Enforce admin approval before activation
+        if self.approval_status != self.APPROVAL_STATUS_APPROVED:
+            # Draft/Pending/Rejected products stay inactive
+            self.is_active = False
         else:
-            # Has proper category, can be active
-            self.is_active = True
+            # Products with pending category requests are visible to supplier but not active
+            # Products without category and without pending request are inactive
+            if not self.primary_category:
+                # Check if there's a pending category request
+                if hasattr(self, 'category_request') and self.category_request and self.category_request.status == 'pending':
+                    # Product is visible to supplier but not active in public listings
+                    self.is_active = False
+                elif not hasattr(self, 'category_request') or not self.category_request:
+                    # No category and no request - inactive
+                    self.is_active = False
+            else:
+                # Has proper category, can be active
+                self.is_active = True
         
         super().save(*args, **kwargs)
     
@@ -774,7 +803,7 @@ class LabelComboSeoPage(models.Model):
             return Product.objects.none()
         
         # Get products that have ALL the labels
-        products = Product.objects.filter(is_active=True)
+        products = Product.objects.filter(is_active=True, is_marketplace_hidden=False)
         for label_id in label_ids:
             products = products.filter(labels__id=label_id)
         

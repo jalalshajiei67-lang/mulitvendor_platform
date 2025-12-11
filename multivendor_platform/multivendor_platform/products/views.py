@@ -94,7 +94,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
-    filterset_fields = ['vendor', 'is_active', 'primary_category']
+    filterset_fields = ['vendor', 'is_active', 'primary_category', 'approval_status', 'is_marketplace_hidden']
     ordering_fields = ['created_at', 'price', 'name']
     
     def get_permissions(self):
@@ -132,6 +132,17 @@ class ProductViewSet(viewsets.ModelViewSet):
                 ),
             )
         )
+
+        user = self.request.user
+        if not getattr(user, 'is_staff', False):
+            visibility_filter = models.Q(
+                approval_status=Product.APPROVAL_STATUS_APPROVED,
+                is_active=True,
+                is_marketplace_hidden=False,
+            )
+            if getattr(user, 'is_authenticated', False):
+                visibility_filter = visibility_filter | models.Q(vendor=user)
+            queryset = queryset.filter(visibility_filter)
 
         # Annotate tier values for ordering/display (mirrors GamificationService.calculate_tier)
         queryset = queryset.annotate(
@@ -372,10 +383,13 @@ class ProductViewSet(viewsets.ModelViewSet):
         product.primary_category = fallback_category
         
         requested_is_active = self.request.data.get('is_active')
-        if requested_is_active is not None:
+        if requested_is_active is not None and getattr(self.request.user, 'is_staff', False):
             product.is_active = str(requested_is_active).lower() in ['true', '1', 'yes', 'on']
-        elif not product.is_active:
-            # Reactivate by default when we can determine a primary category
+        elif (
+            product.approval_status == Product.APPROVAL_STATUS_APPROVED
+            and not product.is_active
+        ):
+            # Reactivate by default when we can determine a primary category and product is approved
             product.is_active = True
         
         product.save(update_fields=['primary_category', 'is_active'])

@@ -225,6 +225,85 @@
                   </v-col>
                 </v-row>
 
+                <!-- Customer Pool Preview -->
+                <v-row class="mb-6">
+                  <v-col cols="12">
+                    <v-card elevation="2" rounded="xl" class="pa-4">
+                      <div class="d-flex align-center justify-space-between mb-4">
+                        <div>
+                          <div class="text-h6 font-weight-bold">استخر مشتریان (۳ سرنخ اخیر)</div>
+                          <div class="text-body-2 text-medium-emphasis">
+                            جدیدترین سرنخ‌های رایگان برای شما
+                          </div>
+                        </div>
+                        <v-btn
+                          variant="text"
+                          color="primary"
+                          prepend-icon="mdi-arrow-left"
+                          @click="tab = 'customerPool'"
+                        >
+                          مشاهده همه
+                        </v-btn>
+                      </div>
+
+                      <v-progress-linear
+                        v-if="loadingCustomerPool"
+                        indeterminate
+                        color="primary"
+                        class="mb-4"
+                      ></v-progress-linear>
+
+                      <v-alert
+                        v-else-if="!loadingCustomerPool && customerPoolPreview.length === 0"
+                        type="info"
+                        variant="tonal"
+                        class="mb-0"
+                      >
+                        هنوز سرنخی در دسترس نیست.
+                      </v-alert>
+
+                      <v-row v-else class="gy-4">
+                        <v-col
+                          v-for="lead in customerPoolPreview"
+                          :key="lead.id"
+                          cols="12"
+                          md="4"
+                        >
+                          <v-card rounded="xl" elevation="1" class="pa-4 h-100 d-flex flex-column gap-3">
+                            <div class="d-flex align-center justify-space-between">
+                              <div class="d-flex align-center gap-3">
+                                <v-avatar color="primary" variant="tonal" size="44">
+                                  <v-icon>mdi-account-heart</v-icon>
+                                </v-avatar>
+                                <div>
+                                  <div class="text-body-1 font-weight-bold">
+                                    {{ getLeadName(lead) }}
+                                  </div>
+                                  <div class="text-caption text-medium-emphasis">
+                                    {{ lead.company_name || 'مشتری' }}
+                                  </div>
+                                </div>
+                              </div>
+                              <v-chip
+                                :color="lead.is_free ? 'success' : 'primary'"
+                                size="small"
+                                variant="flat"
+                                class="ml-2"
+                              >
+                                {{ getLeadCategoryLabel(lead) }}
+                              </v-chip>
+                            </div>
+
+                            <div class="text-body-2 text-high-emphasis">
+                              {{ lead.unique_needs || 'نیاز مشتری ثبت نشده است.' }}
+                            </div>
+                          </v-card>
+                        </v-col>
+                      </v-row>
+                    </v-card>
+                  </v-col>
+                </v-row>
+
                 <!-- Gamification Status Section -->
                 <v-row class="mb-6">
                   <v-col cols="12" md="6">
@@ -431,6 +510,218 @@
               </div>
             </v-window-item>
 
+
+            <!-- Customer Pool Tab -->
+            <v-window-item value="customerPool">
+              <div class="py-2">
+                <v-row class="mb-4">
+                  <v-col cols="12">
+                    <v-card elevation="2" rounded="xl" class="pa-4">
+                      <div class="d-flex align-center justify-space-between mb-4">
+                        <div>
+                          <div class="text-h6 font-weight-bold">استخر مشتریان</div>
+                          <div class="text-body-2 text-medium-emphasis">
+                            سرنخ‌های رایگان و مرتبط برای محصولات شما
+                          </div>
+                        </div>
+                        <v-btn
+                          variant="text"
+                          color="primary"
+                          prepend-icon="mdi-refresh"
+                          @click="loadCustomerPool"
+                          :loading="loadingCustomerPool"
+                        >
+                          به‌روزرسانی
+                        </v-btn>
+                      </div>
+
+                      <v-progress-linear
+                        v-if="loadingCustomerPool"
+                        indeterminate
+                        color="primary"
+                        class="mb-4"
+                      ></v-progress-linear>
+
+                      <v-alert
+                        v-else-if="!loadingCustomerPool && customerPool.length === 0"
+                        type="info"
+                        variant="tonal"
+                        class="mb-0"
+                      >
+                        هنوز سرنخی در دسترس نیست. با افزودن محصولات فعال، سرنخ‌های مرتبط دریافت می‌کنید.
+                      </v-alert>
+
+                      <v-row v-else class="gy-4">
+                        <v-col
+                          v-for="lead in customerPool"
+                          :key="lead.id"
+                          cols="12"
+                          md="6"
+                          lg="4"
+                        >
+                          <v-card rounded="xl" elevation="1" class="pa-4 h-100 d-flex flex-column gap-3">
+                            <div class="d-flex align-center justify-space-between">
+                              <div class="d-flex align-center gap-3">
+                                <v-avatar color="primary" variant="tonal" size="44">
+                                  <v-icon>mdi-account-heart</v-icon>
+                                </v-avatar>
+                                <div>
+                                  <div class="text-body-1 font-weight-bold">
+                                    {{ getLeadName(lead) }}
+                                  </div>
+                                  <div class="text-caption text-medium-emphasis">
+                                    {{ lead.company_name || 'مشتری' }}
+                                  </div>
+                                </div>
+                              </div>
+                              <v-chip
+                                :color="lead.is_free ? 'success' : 'primary'"
+                                size="small"
+                                variant="flat"
+                                class="ml-2"
+                              >
+                                {{ getLeadCategoryLabel(lead) }}
+                              </v-chip>
+                            </div>
+
+                            <div class="text-body-2 text-high-emphasis">
+                              {{ lead.unique_needs || 'نیاز مشتری ثبت نشده است.' }}
+                            </div>
+
+                            <div v-if="lead.images && lead.images.length" class="d-flex align-center gap-2">
+                              <v-avatar
+                                v-for="image in lead.images.slice(0, 4)"
+                                :key="image.id"
+                                size="64"
+                                rounded="lg"
+                                variant="tonal"
+                              >
+                                <v-img :src="image.image_url" cover></v-img>
+                              </v-avatar>
+                              <v-chip
+                                v-if="lead.images.length > 4"
+                                size="small"
+                                variant="tonal"
+                              >
+                                +{{ lead.images.length - 4 }}
+                              </v-chip>
+                            </div>
+
+                            <v-sheet color="surface-variant" class="pa-3 rounded-lg">
+                              <div class="text-caption text-medium-emphasis mb-1">شماره تماس</div>
+                              <div class="text-body-1 font-weight-bold">
+                                {{ lead.contact_revealed ? lead.phone_number : (lead.phone_number || 'برای نمایش، دکمه زیر را بزنید') }}
+                              </div>
+                            </v-sheet>
+
+                            <v-btn
+                              color="primary"
+                              variant="flat"
+                              block
+                              :loading="revealingContact[lead.id]"
+                              :disabled="lead.contact_revealed"
+                              @click="revealLeadContact(lead.id)"
+                            >
+                              {{ lead.contact_revealed ? 'اطلاعات نمایش داده شد' : 'مشاهده اطلاعات تماس' }}
+                            </v-btn>
+                          </v-card>
+                        </v-col>
+                      </v-row>
+                    </v-card>
+                  </v-col>
+                </v-row>
+
+                <v-row>
+                  <v-col cols="12">
+                    <v-card elevation="2" rounded="xl" class="pa-4">
+                      <div class="d-flex align-center justify-space-between mb-4">
+                        <div>
+                          <div class="text-h6 font-weight-bold">مشتریان من</div>
+                          <div class="text-body-2 text-medium-emphasis">
+                            سرنخ‌هایی که اطلاعات تماسشان را مشاهده کرده‌اید
+                          </div>
+                        </div>
+                        <v-btn
+                          variant="text"
+                          color="primary"
+                          prepend-icon="mdi-refresh"
+                          @click="loadMyCustomerPool"
+                          :loading="loadingMyCustomer"
+                        >
+                          به‌روزرسانی
+                        </v-btn>
+                      </div>
+
+                      <v-progress-linear
+                        v-if="loadingMyCustomer"
+                        indeterminate
+                        color="primary"
+                        class="mb-4"
+                      ></v-progress-linear>
+
+                      <v-alert
+                        v-else-if="!loadingMyCustomer && myCustomerPool.length === 0"
+                        type="info"
+                        variant="tonal"
+                        class="mb-0"
+                      >
+                        هنوز مشتری‌ای اضافه نشده است. با مشاهده اطلاعات تماس، اینجا نمایش داده می‌شود.
+                      </v-alert>
+
+                      <v-row v-else class="gy-4">
+                        <v-col
+                          v-for="lead in myCustomerPool"
+                          :key="lead.id"
+                          cols="12"
+                          md="6"
+                          lg="4"
+                        >
+                          <v-card rounded="xl" elevation="1" class="pa-4 h-100 d-flex flex-column gap-3">
+                            <div class="d-flex align-center justify-space-between">
+                              <div class="d-flex align-center gap-3">
+                                <v-avatar color="success" variant="tonal" size="44">
+                                  <v-icon>mdi-account-check</v-icon>
+                                </v-avatar>
+                                <div>
+                                  <div class="text-body-1 font-weight-bold">
+                                    {{ getLeadName(lead) }}
+                                  </div>
+                                  <div class="text-caption text-medium-emphasis">
+                                    {{ lead.company_name || 'مشتری' }}
+                                  </div>
+                                </div>
+                              </div>
+                              <v-chip
+                                :color="lead.is_free ? 'success' : 'primary'"
+                                size="small"
+                                variant="flat"
+                                class="ml-2"
+                              >
+                                {{ getLeadCategoryLabel(lead) }}
+                              </v-chip>
+                            </div>
+
+                            <div class="text-body-2 text-high-emphasis">
+                              {{ lead.unique_needs || 'نیاز مشتری ثبت نشده است.' }}
+                            </div>
+
+                            <v-sheet color="surface-variant" class="pa-3 rounded-lg">
+                              <div class="text-caption text-medium-emphasis mb-1">نام و شماره تماس</div>
+                              <div class="text-body-1 font-weight-bold">
+                                {{ getLeadName(lead) }}
+                              </div>
+                              <div class="text-body-1 font-weight-bold text-primary">
+                                {{ lead.phone_number || '-' }}
+                              </div>
+                            </v-sheet>
+                          </v-card>
+                        </v-col>
+                      </v-row>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </div>
+            </v-window-item>
 
             <!-- Orders Tab -->
             <v-window-item value="orders">
@@ -854,13 +1145,12 @@
 </template>
 
 <script setup lang="ts">
-// Script remains exactly the same as provided, logic is preserved.
-// Only template visual classes were updated.
 import { ref, computed, onMounted, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '~/stores/auth'
 import { useSellerApi } from '~/composables/useSellerApi'
 import type { SellerOrder, SellerReview } from '~/composables/useSellerApi'
+import { useRfqApi } from '~/composables/useRfqApi'
 import MiniWebsiteSettings from '~/components/supplier/MiniWebsiteSettings.vue'
 import PortfolioManager from '~/components/supplier/PortfolioManager.vue'
 import TeamManager from '~/components/supplier/TeamManager.vue'
@@ -881,6 +1171,20 @@ import OnboardingTour from '~/components/supplier/OnboardingTour.vue'
 import { useGamificationStore } from '~/stores/gamification'
 import { useSupplierOnboarding } from '~/composables/useSupplierOnboarding'
 
+interface CustomerLead {
+  id: number
+  is_free: boolean
+  category_name?: string | null
+  product_name?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  company_name?: string | null
+  phone_number?: string | null
+  unique_needs?: string | null
+  images?: Array<{ id: number; image_url?: string }>
+  contact_revealed?: boolean
+}
+
 definePageMeta({
   middleware: 'authenticated',
   layout: 'dashboard'
@@ -888,6 +1192,7 @@ definePageMeta({
 
 const authStore = useAuthStore()
 const sellerApi = useSellerApi()
+const rfqApi = useRfqApi()
 const gamificationStore = useGamificationStore()
 const onboarding = useSupplierOnboarding()
 const route = useRoute()
@@ -898,6 +1203,7 @@ const lowScoreLoading = computed(() => gamificationStore.loading)
 // Define Menu Structure
 const menuItems = [
   { value: 'home', label: 'صفحه اصلی', icon: 'mdi-home-outline', tour: 'welcome' },
+  { value: 'customerPool', label: 'استخر مشتریان', icon: 'mdi-account-group', tour: '' },
   { value: 'miniwebsite', label: 'فروشگاه من', icon: 'mdi-web', tour: 'products-tab' },
   { value: 'chats', label: 'گفتگوها', icon: 'mdi-chat-processing-outline', tour: '' },
   { value: 'orders', label: 'سفارشات', icon: 'mdi-shopping-outline', tour: '' },
@@ -1038,6 +1344,32 @@ const formatDate = (dateString: string) => {
   }).format(date)
 }
 
+const getLeadName = (lead: CustomerLead) => {
+  const name = `${lead.first_name || ''} ${lead.last_name || ''}`.trim()
+  return name || lead.company_name || 'مشتری'
+}
+
+const getLeadCategoryLabel = (lead: CustomerLead) => {
+  if (lead.is_free) return 'رایگان'
+  return lead.category_name || 'مرتبط با محصولات شما'
+}
+
+const normalizeLead = (lead: any): CustomerLead => ({
+  id: lead.id,
+  is_free: !!lead.is_free,
+  category_name: lead.category_name || null,
+  product_name: lead.product_name || null,
+  first_name: lead.first_name || null,
+  last_name: lead.last_name || null,
+  company_name: lead.company_name || null,
+  phone_number: lead.phone_number || null,
+  unique_needs: lead.unique_needs || null,
+  images: Array.isArray(lead.images) ? lead.images : [],
+  contact_revealed: false
+})
+
+const customerPoolPreview = computed(() => customerPool.value.slice(0, 3))
+
 const openProductForm = () => {
   showProductForm.value = true
   editingProduct.value = null
@@ -1156,6 +1488,11 @@ const profileScore = ref(0)
 const profileMetrics = ref([])
 const profileTips = ref([])
 const profileData = ref({ first_name: '', last_name: '', email: '', phone: '' })
+const customerPool = ref<CustomerLead[]>([])
+const myCustomerPool = ref<CustomerLead[]>([])
+const loadingMyCustomer = ref(false)
+const loadingCustomerPool = ref(false)
+const revealingContact = ref<Record<number, boolean>>({})
 const loading = ref(false)
 const loadingOrders = ref(false)
 const loadingReviews = ref(false)
@@ -1232,6 +1569,58 @@ const loadReviews = async () => {
     showSnackbar('خطا در بارگذاری نظرات', 'error')
   } finally {
     loadingReviews.value = false
+  }
+}
+
+const loadCustomerPool = async () => {
+  loadingCustomerPool.value = true
+  try {
+    const data = await rfqApi.getVendorPool()
+    customerPool.value = (Array.isArray(data) ? data : []).map(normalizeLead)
+  } catch (error: any) {
+    console.error('Failed to load customer pool:', error)
+    showSnackbar('خطا در بارگذاری سرنخ‌های رایگان', 'error')
+  } finally {
+    loadingCustomerPool.value = false
+  }
+}
+
+const loadMyCustomerPool = async () => {
+  loadingMyCustomer.value = true
+  try {
+    const data = await rfqApi.getVendorMy()
+    myCustomerPool.value = (Array.isArray(data) ? data : []).map((lead) => ({
+      ...normalizeLead(lead),
+      contact_revealed: true
+    }))
+  } catch (error: any) {
+    console.error('Failed to load my customers:', error)
+    showSnackbar('خطا در بارگذاری مشتریان من', 'error')
+  } finally {
+    loadingMyCustomer.value = false
+  }
+}
+
+const revealLeadContact = async (leadId: number) => {
+  revealingContact.value[leadId] = true
+  try {
+    const data = await rfqApi.revealRFQContact(leadId)
+    const idx = customerPool.value.findIndex((lead) => lead.id === leadId)
+    if (idx !== -1) {
+      const revealed = {
+        ...customerPool.value[idx],
+        ...normalizeLead(data),
+        contact_revealed: true
+      }
+      customerPool.value.splice(idx, 1)
+      myCustomerPool.value.unshift(revealed)
+    }
+    showSnackbar('اطلاعات تماس نمایش داده شد', 'success')
+  } catch (error: any) {
+    console.error('Failed to reveal contact:', error)
+    showSnackbar(error?.message || 'دسترسی به این سرنخ ممکن نیست', 'error')
+  } finally {
+    revealingContact.value[leadId] = false
   }
 }
 
@@ -1322,6 +1711,8 @@ watch(tab, async (newTab) => {
     await loadOrders()
   } else if (newTab === 'reviews' && reviews.value.length === 0 && !loadingReviews.value) {
     await loadReviews()
+  } else if (newTab === 'customerPool' && myCustomerPool.value.length === 0 && !loadingMyCustomer.value) {
+    await loadMyCustomerPool()
   } else if (newTab === 'chats' && chatRooms.value.length === 0 && !loadingChats.value) {
     await loadChatRooms()
   }
@@ -1338,7 +1729,8 @@ onMounted(async () => {
   // Load initial data
   await Promise.all([
     loadDashboardData(),
-    loadProfileData()
+    loadProfileData(),
+    loadCustomerPool()
   ])
   
   // Calculate profile score after loading profile data

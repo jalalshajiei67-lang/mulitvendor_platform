@@ -26,7 +26,7 @@ for product in products:
     print("-" * 80)
 
 # Check how many are active
-active_count = Product.objects.filter(is_active=True).count()
+active_count = Product.objects.filter(is_active=True, is_marketplace_hidden=False).count()
 inactive_count = Product.objects.filter(is_active=False).count()
 
 print(f"\n{'='*80}")

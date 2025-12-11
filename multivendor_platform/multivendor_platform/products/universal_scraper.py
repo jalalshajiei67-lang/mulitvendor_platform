@@ -1789,6 +1789,7 @@ def create_product_from_scraped_data(scraped_data, vendor, supplier=None):
             price=scraped_data['price'],
             stock=0,
             is_active=False,
+            approval_status=Product.APPROVAL_STATUS_PENDING,
         )
         
         # Use atomic transaction to prevent race conditions

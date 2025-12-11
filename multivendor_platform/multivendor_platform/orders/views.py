@@ -3,7 +3,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django.db.models import Q
-from .models import Order, OrderItem, OrderImage
+from django.utils import timezone
+from .models import Order, OrderItem, OrderImage, OrderVendorView
 from .serializers import OrderSerializer, CreateRFQSerializer, AdminCreateRFQSerializer
 from products.models import Product, Category
 from gamification.services import GamificationService
@@ -123,16 +124,25 @@ def vendor_rfq_list_view(request):
     Also includes RFQs where the vendor's suppliers are selected
     """
     # Get products owned by this vendor
-    vendor_products = Product.objects.filter(vendor=request.user)
+    vendor_products = Product.objects.filter(vendor=request.user, is_active=True)
+    vendor_category_ids = vendor_products.values_list('primary_category_id', flat=True)
     
     # Get suppliers managed by this vendor
     vendor_suppliers = Supplier.objects.filter(vendor=request.user, is_active=True)
     
-    # Get RFQs for these products OR where suppliers are selected
-    rfqs = Order.objects.filter(
-        is_rfq=True
-    ).filter(
-        Q(items__product__in=vendor_products) | Q(suppliers__in=vendor_suppliers)
+    # Get RFQs for:
+    # - free leads (is_free=True)
+    # - product owned by vendor
+    # - category matches vendor products
+    # - explicitly assigned suppliers
+    # Exclude RFQs already revealed by this vendor
+    viewed_ids = OrderVendorView.objects.filter(vendor=request.user).values_list('order_id', flat=True)
+
+    rfqs = Order.objects.filter(is_rfq=True).exclude(id__in=viewed_ids).filter(
+        Q(is_free=True)
+        | Q(items__product__in=vendor_products)
+        | (Q(items__product__isnull=True) & Q(category_id__in=vendor_category_ids))
+        | Q(suppliers__in=vendor_suppliers)
     ).select_related('buyer', 'category').prefetch_related('items__product', 'images', 'suppliers').distinct()
     
     # Filter by status if provided
@@ -140,7 +150,48 @@ def vendor_rfq_list_view(request):
     if status_filter:
         rfqs = rfqs.filter(status=status_filter)
     
-    serializer = OrderSerializer(rfqs, many=True, context={'request': request})
+    serializer = OrderSerializer(
+        rfqs,
+        many=True,
+        context={
+            'request': request,
+            'show_full_contact': False,
+            'contact_revealed': False,
+            'viewed_order_ids': set(viewed_ids)
+        }
+    )
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def vendor_rfq_my_list_view(request):
+    """
+    Get RFQs that the vendor has already revealed (My Customers)
+    """
+    viewed_ids = OrderVendorView.objects.filter(vendor=request.user).values_list('order_id', flat=True)
+
+    vendor_products = Product.objects.filter(vendor=request.user, is_active=True)
+    vendor_category_ids = vendor_products.values_list('primary_category_id', flat=True)
+    vendor_suppliers = Supplier.objects.filter(vendor=request.user, is_active=True)
+
+    rfqs = Order.objects.filter(is_rfq=True, id__in=viewed_ids).filter(
+        Q(is_free=True)
+        | Q(items__product__in=vendor_products)
+        | (Q(items__product__isnull=True) & Q(category_id__in=vendor_category_ids))
+        | Q(suppliers__in=vendor_suppliers)
+    ).select_related('buyer', 'category').prefetch_related('items__product', 'images', 'suppliers').distinct()
+
+    serializer = OrderSerializer(
+        rfqs,
+        many=True,
+        context={
+            'request': request,
+            'show_full_contact': True,
+            'contact_revealed': True,
+            'viewed_order_ids': set(viewed_ids)
+        }
+    )
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
@@ -194,18 +245,24 @@ def admin_create_rfq_view(request):
             validated_data = serializer.validated_data.copy()
             category_id = validated_data.pop('category_id')
             product_id = validated_data.pop('product_id', None)
+            is_free = validated_data.pop('is_free', False)
             
             # Get category
-            category = Category.objects.get(id=category_id)
+            category = None
+            if category_id:
+                category = Category.objects.get(id=category_id)
+            elif not is_free:
+                return Response({'error': 'Category is required for non-free leads'}, status=status.HTTP_400_BAD_REQUEST)
             
             # Get product if provided
             product = None
             if product_id:
                 product = Product.objects.get(id=product_id)
+                is_free = False  # product-specific leads are not free
             
             # Auto-match suppliers if not provided
             matched_suppliers = []
-            if not supplier_ids:
+            if not supplier_ids and not is_free:
                 # Find suppliers that have products in this category
                 if product:
                     # If product is provided, get supplier from product
@@ -227,6 +284,7 @@ def admin_create_rfq_view(request):
             order = Order.objects.create(
                 buyer=None,  # Manual leads don't have a buyer user
                 is_rfq=True,
+                is_free=is_free,
                 status='pending',
                 category=category,
                 first_name=validated_data['first_name'],
@@ -295,6 +353,50 @@ def admin_update_rfq_status_view(request, rfq_id):
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Order.DoesNotExist:
         return Response({'error': 'RFQ not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def vendor_rfq_reveal_view(request, rfq_id):
+    """
+    Reveal full contact info for an RFQ if the vendor is eligible to view it.
+    Eligibility:
+      - Free lead (is_free=True)
+      - Vendor owns the product linked to the RFQ
+      - Vendor has a product in the RFQ category
+      - Vendor is explicitly selected as supplier
+    """
+    rfq = Order.objects.filter(is_rfq=True, id=rfq_id).select_related('buyer', 'category').prefetch_related('items__product', 'images', 'suppliers').first()
+    if not rfq:
+        return Response({'detail': 'RFQ not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    vendor_products = Product.objects.filter(vendor=request.user, is_active=True)
+    vendor_category_ids = set(vendor_products.values_list('primary_category_id', flat=True))
+    vendor_suppliers = Supplier.objects.filter(vendor=request.user, is_active=True)
+
+    owns_product = rfq.items.filter(product__vendor=request.user).exists()
+    has_product = rfq.items.filter(product__isnull=False).exists()
+    matches_category = not has_product and rfq.category_id in vendor_category_ids if rfq.category_id else False
+    is_selected_supplier = rfq.suppliers.filter(id__in=vendor_suppliers).exists()
+
+    if not (rfq.is_free or owns_product or matches_category or is_selected_supplier):
+        return Response({'detail': 'You are not allowed to view this lead'}, status=status.HTTP_403_FORBIDDEN)
+
+    if not rfq.first_viewed_at:
+        rfq.first_viewed_at = timezone.now()
+        rfq.save(update_fields=['first_viewed_at'])
+
+    OrderVendorView.objects.get_or_create(order=rfq, vendor=request.user)
+
+    serializer = OrderSerializer(
+        rfq,
+        context={
+            'request': request,
+            'show_full_contact': True,
+            'contact_revealed': True
+        }
+    )
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])

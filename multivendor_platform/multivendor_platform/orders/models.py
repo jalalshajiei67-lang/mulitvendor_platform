@@ -32,6 +32,7 @@ class Order(models.Model):
     
     # RFQ (Request for Quotation) fields
     is_rfq = models.BooleanField(default=False, help_text="True if this is a Request for Quotation")
+    is_free = models.BooleanField(default=False, help_text="True if this RFQ/lead is free and visible to all sellers")
     first_name = models.CharField(max_length=100, blank=True, null=True, help_text="Buyer first name (for RFQ)")
     last_name = models.CharField(max_length=100, blank=True, null=True, help_text="Buyer last name (for RFQ)")
     company_name = models.CharField(max_length=200, blank=True, null=True, help_text="Company name (for RFQ)")
@@ -112,3 +113,19 @@ class OrderImage(models.Model):
     
     def __str__(self):
         return f"Image for Order {self.order.order_number}"
+
+
+class OrderVendorView(models.Model):
+    """Tracks which vendor has revealed/seen an RFQ lead."""
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='vendor_views')
+    vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='viewed_rfqs')
+    revealed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('order', 'vendor')
+        indexes = [
+            models.Index(fields=['vendor', 'order']),
+        ]
+
+    def __str__(self):
+        return f"{self.vendor} viewed {self.order}"

@@ -454,6 +454,7 @@ def create_products(vendors, suppliers, subcategories, count_per_vendor=20):
                     meta_description=fake.text(max_nb_chars=160),
                     is_active=True,
                     primary_category=primary_category,
+                    approval_status=Product.APPROVAL_STATUS_APPROVED,
                 )
                 product.subcategories.add(subcategory)
                 products.append(product)

@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.db.models import Q, Count, Sum
@@ -903,11 +903,12 @@ def admin_dashboard_view(request):
         try:
             from products.models import Product
             total_products = Product.objects.count()
-            active_products = Product.objects.filter(is_active=True).count()
-            pending_products = Product.objects.filter(is_active=False).count()
+            active_products = Product.objects.filter(is_active=True, is_marketplace_hidden=False).count()
+            pending_products = Product.objects.filter(is_active=False, is_marketplace_hidden=False).count()
+            hidden_products = Product.objects.filter(is_marketplace_hidden=True).count()
         except Exception as e:
             logger.warning(f"Error counting products: {str(e)}")
-            total_products = active_products = pending_products = 0
+            total_products = active_products = pending_products = hidden_products = 0
         
         # Get order statistics with error handling
         try:
@@ -946,7 +947,8 @@ def admin_dashboard_view(request):
             'products': {
                 'total': total_products,
                 'active': active_products,
-                'pending': pending_products
+                'pending': pending_products,
+                'hidden': hidden_products
             },
             'orders': {
                 'total': total_orders,
@@ -1205,6 +1207,35 @@ def admin_product_detail_view(request, product_id):
         return Response(serializer.data)
     except Product.DoesNotExist:
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_product_hide_view(request, product_id):
+    """Hide/unhide a product from the marketplace while keeping it visible for the seller"""
+    from products.models import Product
+    from products.serializers import ProductSerializer
+    
+    product = get_object_or_404(Product, id=product_id)
+    
+    hide_raw = request.data.get('hide', True)
+    hide_flag = str(hide_raw).lower() not in ['false', '0', 'no', 'off']
+    reason = (request.data.get('reason') or '').strip()
+    
+    if hide_flag and not reason:
+        reason = 'تصویر یا محتوای محصول شامل واترمارک یا اطلاعات فروشنده است. لطفاً نسخه تمیز و بدون برند را بارگذاری کنید.'
+    if reason:
+        reason = reason[:500]
+    
+    product.is_marketplace_hidden = hide_flag
+    product.marketplace_hide_reason = reason if hide_flag else ''
+    product.save()
+    
+    action_desc = 'Admin hid product from marketplace' if hide_flag else 'Admin restored product to marketplace'
+    log_activity(request.user, 'hide_product', f'{action_desc}: {product.name}', request, product)
+    
+    serializer = ProductSerializer(product, context={'request': request})
+    return Response(serializer.data)
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])

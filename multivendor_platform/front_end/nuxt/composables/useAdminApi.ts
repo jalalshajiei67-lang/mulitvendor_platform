@@ -4,7 +4,7 @@ export const useAdminApi = () => {
     async getDashboard() {
       return useApiFetch<{
         users: { total: number; buyers: number; sellers: number }
-        products: { total: number; active: number }
+        products: { total: number; active: number; hidden?: number }
         orders: { total: number; pending: number }
         rfqs: { total: number; pending: number }
       }>('auth/admin/dashboard/')
@@ -47,6 +47,13 @@ export const useAdminApi = () => {
 
     async getAdminProductDetail(id: number) {
       return useApiFetch<any>(`auth/admin/products/${id}/`)
+    },
+
+    async hideProduct(id: number, data: { hide?: boolean; reason?: string } = {}) {
+      return useApiFetch(`auth/admin/products/${id}/hide/`, {
+        method: 'POST',
+        body: data
+      })
     },
 
     async updateProductStatus(id: number, isActive: boolean) {

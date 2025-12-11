@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, exceptions
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 import secrets
 import logging
@@ -318,6 +318,11 @@ class AwardAllSectionsView(APIView):
 class GenerateInviteCodeView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def permission_denied(self, request, message=None, code=None):
+        if not request.user or not request.user.is_authenticated:
+            raise exceptions.NotAuthenticated()
+        return super().permission_denied(request, message=message, code=code)
+
     def post(self, request):
         """
         Generate a unique invite code for the current user.
@@ -329,7 +334,7 @@ class GenerateInviteCodeView(APIView):
 
         invitee_email = request.data.get('invitee_email', None)
         invitee_phone = request.data.get('invitee_phone', None)
-        daily_limit = 5
+        daily_limit = getattr(settings, 'GAMIFICATION_INVITE_DAILY_LIMIT', 10)
         now = timezone.now()
         window_start = now - timedelta(days=1)
         recent_invites_qs = Invitation.objects.filter(
@@ -347,7 +352,7 @@ class GenerateInviteCodeView(APIView):
             )
             return Response(
                 {
-                    'detail': 'حداکثر ۵ دعوت در روز مجاز است. لطفاً فردا دوباره تلاش کنید.',
+                    'detail': f'حداکثر {daily_limit} دعوت در روز مجاز است. لطفاً فردا دوباره تلاش کنید.',
                     'remaining_invites': 0,
                     'limit': daily_limit,
                 },
@@ -443,6 +448,11 @@ class GenerateInviteCodeView(APIView):
 
 class InvitationStatusView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def permission_denied(self, request, message=None, code=None):
+        if not request.user or not request.user.is_authenticated:
+            raise exceptions.NotAuthenticated()
+        return super().permission_denied(request, message=message, code=code)
 
     def get(self, request):
         """

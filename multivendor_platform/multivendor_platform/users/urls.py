@@ -8,7 +8,7 @@ from .views import (
     admin_dashboard_view, admin_users_view, admin_block_user_view, 
     admin_verify_user_view, admin_change_password_view, admin_activities_view,
     admin_update_order_status_view,
-    admin_products_view, admin_product_detail_view, admin_product_bulk_action_view,
+    admin_products_view, admin_product_detail_view, admin_product_hide_view, admin_product_bulk_action_view,
     admin_delete_product_view,
     admin_departments_view, admin_department_detail_view, admin_create_department_view,
     admin_update_department_view, admin_delete_department_view,
@@ -69,6 +69,7 @@ urlpatterns = [
     # Admin Product Management
     path('admin/products/', admin_products_view, name='admin-products'),
     path('admin/products/<int:product_id>/', admin_product_detail_view, name='admin-product-detail'),
+    path('admin/products/<int:product_id>/hide/', admin_product_hide_view, name='admin-product-hide'),
     path('admin/products/bulk-action/', admin_product_bulk_action_view, name='admin-product-bulk-action'),
     path('admin/products/<int:product_id>/delete/', admin_delete_product_view, name='admin-delete-product'),
     

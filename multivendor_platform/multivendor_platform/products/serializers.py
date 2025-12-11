@@ -356,7 +356,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'primary_category', 'category_name', 'category_slug',
             'name', 'slug', 'description', 'price', 'stock', 'image', 'images', 'primary_image',
             'image_alt_text', 'og_image', 'og_image_url', 'meta_title', 'meta_description',
-            'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
+            'canonical_url', 'schema_markup', 'is_active', 'approval_status', 'is_marketplace_hidden', 'marketplace_hide_reason', 'category_path', 'breadcrumb_hierarchy',
             'labels', 'promotional_labels', 'category_request', 'availability_status', 'condition',
             'origin', 'lead_time_days', 'features',
             'vendor_badges', 'vendor_tier', 'vendor_reputation_score', 'vendor_total_points', 'vendor_is_premium',
@@ -596,18 +596,54 @@ class ProductSerializer(serializers.ModelSerializer):
         
         # Set the vendor to the current authenticated user, unless it's an admin specifying a different vendor
         request = self.context.get('request')
-        if request and request.user.is_staff and 'vendor' in validated_data and validated_data['vendor']:
+        is_staff = bool(request and request.user and request.user.is_staff)
+
+        # Prevent sellers from forcing activation/approval values
+        validated_data.pop('is_active', None)
+        if not is_staff:
+            validated_data.pop('approval_status', None)
+            validated_data['approval_status'] = Product.APPROVAL_STATUS_PENDING
+            validated_data.pop('is_marketplace_hidden', None)
+            validated_data.pop('marketplace_hide_reason', None)
+        else:
+            validated_data.setdefault('approval_status', Product.APPROVAL_STATUS_APPROVED)
+
+        if request and request.user and request.user.is_staff and 'vendor' in validated_data and validated_data['vendor']:
             # Admin can specify a specific vendor
             pass
         else:
             # Set vendor to current user (for both regular users and admins who didn't specify vendor)
-            validated_data['vendor'] = request.user
+            if request:
+                validated_data['vendor'] = request.user
+
+        # New products start inactive until approved
+        validated_data['is_active'] = validated_data.get('approval_status') == Product.APPROVAL_STATUS_APPROVED
         return super().create(validated_data)
     
     def update(self, instance, validated_data):
         # Remove subcategories from validated_data - it will be handled in the view
         validated_data.pop('subcategories', None)
+        request = self.context.get('request')
+        is_staff = bool(request and request.user and request.user.is_staff)
+        if not is_staff:
+            validated_data.pop('is_active', None)
+            validated_data.pop('approval_status', None)
+            validated_data.pop('is_marketplace_hidden', None)
+            validated_data.pop('marketplace_hide_reason', None)
         return super().update(instance, validated_data)
+    
+    def to_representation(self, instance):
+        """
+        Only show دلیل عدم نمایش to ادمین یا مالک محصول.
+        """
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None) if request else None
+        is_owner = bool(user and user.is_authenticated and getattr(instance, 'vendor_id', None) == user.id)
+        is_staff = bool(user and getattr(user, 'is_staff', False))
+        if not (is_owner or is_staff):
+            data.pop('marketplace_hide_reason', None)
+        return data
     
     def validate(self, data):
         # Check if images are being uploaded via FormData
@@ -800,7 +836,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'primary_category', 'category_name', 'category_slug',
             'name', 'slug', 'description', 'price', 'stock', 'image', 'images', 'primary_image',
             'image_alt_text', 'og_image', 'og_image_url', 'meta_title', 'meta_description',
-            'canonical_url', 'schema_markup', 'is_active', 'category_path', 'breadcrumb_hierarchy',
+            'canonical_url', 'schema_markup', 'is_active', 'approval_status', 'is_marketplace_hidden', 'marketplace_hide_reason', 'category_path', 'breadcrumb_hierarchy',
             'comments', 'comment_count', 'average_rating',
             'labels', 'promotional_labels', 'availability_status', 'condition',
             'origin', 'lead_time_days', 'features', 'vendor_badges',
@@ -909,6 +945,19 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     def get_promotional_labels(self, obj):
         return LabelMinimalSerializer(obj.get_promotional_labels(), many=True, context=self.context).data
+    
+    def to_representation(self, instance):
+        """
+        Hide دلیل عدم نمایش از کاربران عمومی؛ فقط ادمین یا فروشنده می‌بینند.
+        """
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None) if request else None
+        is_owner = bool(user and user.is_authenticated and getattr(instance, 'vendor_id', None) == user.id)
+        is_staff = bool(user and getattr(user, 'is_staff', False))
+        if not (is_owner or is_staff):
+            data.pop('marketplace_hide_reason', None)
+        return data
     
     def get_comment_count(self, obj):
         """Get count of approved comments"""

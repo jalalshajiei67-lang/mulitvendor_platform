@@ -529,7 +529,7 @@ class LabelManagementAdmin(admin.ModelAdmin):
             # Get product count (products that have ALL labels in combo)
             label_ids = list(combo.labels.values_list('id', flat=True))
             if label_ids:
-                products = Product.objects.filter(is_active=True)
+                products = Product.objects.filter(is_active=True, is_marketplace_hidden=False)
                 for label_id in label_ids:
                     products = products.filter(labels__id=label_id)
                 product_count = products.distinct().count()

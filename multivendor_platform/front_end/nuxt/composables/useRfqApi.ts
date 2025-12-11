@@ -3,6 +3,7 @@ import { useApiFetch } from './useApiFetch'
 export interface RFQData {
   product_id: number
   category_id?: number
+  is_free?: boolean
   first_name: string
   last_name: string
   company_name: string
@@ -19,8 +20,23 @@ export const useRfqApi = () => {
     })
   }
 
+  const getVendorPool = async (): Promise<any> =>
+    await useApiFetch('orders/vendor/rfq/', { method: 'GET' })
+
+  const getVendorMy = async (): Promise<any> =>
+    await useApiFetch('orders/vendor/rfq/my/', { method: 'GET' })
+
+  const revealRFQContact = async (rfqId: number): Promise<any> => {
+    return await useApiFetch(`orders/vendor/rfq/${rfqId}/reveal/`, {
+      method: 'POST'
+    })
+  }
+
   return {
-    createRFQ
+    createRFQ,
+    getVendorPool,
+    getVendorMy,
+    revealRFQContact
   }
 }
 

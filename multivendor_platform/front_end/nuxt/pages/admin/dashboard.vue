@@ -131,6 +131,16 @@
           
           <!-- Filters -->
           <v-card-text>
+            <v-alert
+              type="info"
+              variant="tonal"
+              color="primary"
+              class="mb-4"
+              border="start"
+              elevation="0"
+            >
+              اگر روی تصویر یا توضیحات محصول واترمارک یا نام فروشنده می‌بینید، با دکمه «عدم نمایش» محصول را از مارکت‌پلیس مخفی کنید و پیام دوستانه‌ای برای فروشنده بفرستید تا محتوا را تمیز کند.
+            </v-alert>
             <v-row class="mb-4">
               <v-col cols="12" md="4">
                 <v-text-field
@@ -241,6 +251,23 @@
                   {{ item.is_active ? 'فعال' : 'غیرفعال' }}
                 </v-chip>
               </template>
+              <template v-slot:item.is_marketplace_hidden="{ item }">
+                <v-chip
+                  v-if="item.is_marketplace_hidden"
+                  size="small"
+                  color="warning"
+                  variant="tonal"
+                  prepend-icon="mdi-eye-off"
+                >
+                  مخفی شده
+                  <v-tooltip activator="parent" location="top">
+                    {{ item.marketplace_hide_reason || 'به دلیل واترمارک یا محتوای برنددار مخفی شده است.' }}
+                  </v-tooltip>
+                </v-chip>
+                <v-chip v-else size="small" color="success" variant="tonal" prepend-icon="mdi-shield-check">
+                  تمیز
+                </v-chip>
+              </template>
               <template v-slot:item.created_at="{ item }">
                 {{ formatDate(item.created_at) }}
               </template>
@@ -270,6 +297,20 @@
                   <v-icon :color="item.is_active ? 'warning' : 'success'">
                     {{ item.is_active ? 'mdi-eye-off' : 'mdi-eye' }}
                   </v-icon>
+                </v-btn>
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  :color="item.is_marketplace_hidden ? 'success' : 'warning'"
+                  @click="openHideDialog(item)"
+                >
+                  <v-icon>
+                    {{ item.is_marketplace_hidden ? 'mdi-eye-check-outline' : 'mdi-eye-off-outline' }}
+                  </v-icon>
+                  <v-tooltip activator="parent" location="top">
+                    {{ item.is_marketplace_hidden ? 'بازگردانی به مارکت‌پلیس' : 'عدم نمایش در مارکت‌پلیس' }}
+                  </v-tooltip>
                 </v-btn>
                 <v-btn
                   icon
@@ -767,6 +808,25 @@
                         </v-chip>
                       </v-list-item-subtitle>
                     </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>نمایش در مارکت‌پلیس</v-list-item-title>
+                      <v-list-item-subtitle>
+                        <v-chip
+                          size="small"
+                          :color="selectedProduct.is_marketplace_hidden ? 'warning' : 'success'"
+                          variant="tonal"
+                          prepend-icon="mdi-shield-check-outline"
+                        >
+                          {{ selectedProduct.is_marketplace_hidden ? 'مخفی شده (فقط مینی‌وبسایت/داشبورد)' : 'نمایش داده می‌شود' }}
+                        </v-chip>
+                      </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item v-if="selectedProduct.marketplace_hide_reason">
+                      <v-list-item-title>یادداشت به فروشنده</v-list-item-title>
+                      <v-list-item-subtitle class="text-body-2">
+                        {{ selectedProduct.marketplace_hide_reason }}
+                      </v-list-item-subtitle>
+                    </v-list-item>
                     <v-list-item v-if="selectedProduct.category_path">
                       <v-list-item-title>دسته‌بندی</v-list-item-title>
                       <v-list-item-subtitle>{{ selectedProduct.category_path }}</v-list-item-subtitle>
@@ -807,6 +867,60 @@
               @click="showProductDetailDialog = false"
             >
               ویرایش محصول
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Hide Product Dialog -->
+      <v-dialog v-model="showHideDialog" max-width="520">
+        <v-card>
+          <v-card-title class="d-flex align-center justify-space-between">
+            <div class="d-flex align-center gap-2">
+              <v-icon color="warning">mdi-eye-off-outline</v-icon>
+              <span class="text-subtitle-1">
+                {{ productToHide?.is_marketplace_hidden ? 'بازگردانی نمایش محصول' : 'عدم نمایش در مارکت‌پلیس' }}
+              </span>
+            </div>
+            <v-btn icon="mdi-close" variant="text" @click="closeHideDialog"></v-btn>
+          </v-card-title>
+          <v-divider></v-divider>
+          <v-card-text>
+            <p class="text-body-2 text-medium-emphasis mb-3">
+              محصول «{{ productToHide?.name || '...' }}»
+              {{ productToHide?.is_marketplace_hidden ? 'به‌زودی دوباره در مارکت‌پلیس نمایش داده می‌شود.' : 'از مارکت‌پلیس مخفی می‌شود اما در مینی‌وبسایت و داشبورد فروشنده قابل مشاهده می‌ماند.' }}
+            </p>
+            <v-alert
+              type="info"
+              variant="tonal"
+              color="primary"
+              class="mb-4"
+              border="start"
+              elevation="0"
+            >
+              یک یادداشت دوستانه برای فروشنده بگذارید تا تصویر و توضیحات را بدون واترمارک یا اطلاعات برند اصلاح کند.
+            </v-alert>
+            <v-textarea
+              v-model="hideReason"
+              label="پیام به فروشنده"
+              rows="3"
+              auto-grow
+              variant="outlined"
+              color="primary"
+              :disabled="productToHide?.is_marketplace_hidden && !hideReason"
+            ></v-textarea>
+          </v-card-text>
+          <v-card-actions class="pa-4">
+            <v-spacer></v-spacer>
+            <v-btn variant="text" @click="closeHideDialog">
+              انصراف
+            </v-btn>
+            <v-btn
+              :color="productToHide?.is_marketplace_hidden ? 'success' : 'warning'"
+              :loading="hidingProduct"
+              @click="confirmHideProduct"
+            >
+              {{ productToHide?.is_marketplace_hidden ? 'بازگردانی به مارکت‌پلیس' : 'عدم نمایش و ارسال پیام' }}
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -1074,6 +1188,12 @@ const loadingRFQDetail = ref(false)
 const showProductDetailDialog = ref(false)
 const selectedProduct = ref<any>(null)
 const loadingProductDetail = ref(false)
+const showHideDialog = ref(false)
+const productToHide = ref<any>(null)
+const hidingProduct = ref(false)
+const defaultHideMessage =
+  'این محصول شامل واترمارک یا اطلاعات فروشنده است. لطفاً نسخه تمیز و بدون برند را بارگذاری کنید تا دوباره در مارکت‌پلیس نمایش داده شود.'
+const hideReason = ref(defaultHideMessage)
 
 // Product filters
 const productFilters = ref({
@@ -1160,6 +1280,7 @@ const productHeaders = [
   { title: 'قیمت', key: 'price' },
   { title: 'موجودی', key: 'stock' },
   { title: 'وضعیت', key: 'is_active' },
+  { title: 'پاکیزگی محتوا', key: 'is_marketplace_hidden' },
   { title: 'تاریخ ایجاد', key: 'created_at' },
   { title: 'عملیات', key: 'actions', sortable: false }
 ]
@@ -1266,7 +1387,8 @@ const loadRFQs = async () => {
   loadingRFQs.value = true
   try {
     const data = await adminApi.getRFQs()
-    rfqs.value = Array.isArray(data) ? data : data.results || []
+    const normalized = Array.isArray(data) ? data : (data as any)?.results || []
+    rfqs.value = normalized
     console.log('Loaded RFQs:', rfqs.value)
   } catch (error) {
     console.error('Failed to load RFQs:', error)
@@ -1357,6 +1479,42 @@ const viewProductDetail = async (product: any) => {
   } finally {
     loadingProductDetail.value = false
     showProductDetailDialog.value = true
+  }
+}
+
+const openHideDialog = (product: any) => {
+  productToHide.value = product
+  hideReason.value = product.marketplace_hide_reason || defaultHideMessage
+  showHideDialog.value = true
+}
+
+const closeHideDialog = () => {
+  showHideDialog.value = false
+  productToHide.value = null
+  hideReason.value = defaultHideMessage
+}
+
+const confirmHideProduct = async () => {
+  if (!productToHide.value) return
+  hidingProduct.value = true
+  try {
+    const hideFlag = !productToHide.value.is_marketplace_hidden
+    const reasonToSend = hideFlag ? hideReason.value : ''
+    await adminApi.hideProduct(productToHide.value.id, {
+      hide: hideFlag,
+      reason: reasonToSend
+    })
+    await loadProducts()
+    if (selectedProduct.value && selectedProduct.value.id === productToHide.value.id) {
+      selectedProduct.value.is_marketplace_hidden = hideFlag
+      selectedProduct.value.marketplace_hide_reason = reasonToSend
+    }
+    closeHideDialog()
+  } catch (error) {
+    console.error('Failed to update marketplace visibility:', error)
+    alert('خطا در تغییر وضعیت نمایش محصول')
+  } finally {
+    hidingProduct.value = false
   }
 }
 
