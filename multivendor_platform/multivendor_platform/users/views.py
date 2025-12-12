@@ -11,7 +11,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from .models import (
     UserProfile, VendorProfile, SellerAd, SellerAdImage, SupplierComment, UserActivity,
-    SupplierPortfolioItem, SupplierTeamMember, SupplierContactMessage
+    SupplierPortfolioItem, SupplierTeamMember, SupplierContactMessage, VendorSubscription,
+    PricingTier
 )
 from .serializers import (
     UserSerializer, UserProfileSerializer, VendorProfileSerializer, 
@@ -830,6 +831,485 @@ def seller_reviews_view(request):
     serializer = ProductCommentSerializer(reviews, many=True)
     return Response(serializer.data)
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def vendor_subscription_view(request):
+    """Expose current vendor subscription/tier and daily unlock quota state."""
+    subscription = VendorSubscription.for_user(request.user)
+    can_unlock, next_unlock_at = subscription.can_unlock_customer()
+
+    remaining_unlocks = 1 if (subscription.tier.daily_customer_unlock_limit and can_unlock) else 0
+    if subscription.tier.daily_customer_unlock_limit == 0:
+        remaining_unlocks = None  # Unlimited
+
+    return Response(
+        {
+            'tier_slug': subscription.tier.slug,
+            'tier_name': subscription.tier.name,
+            'pricing_type': subscription.tier.pricing_type,
+            'is_commission_based': subscription.tier.is_commission_based,
+            'daily_customer_unlock_limit': subscription.tier.daily_customer_unlock_limit,
+            'lead_exclusivity': subscription.tier.lead_exclusivity,
+            'allow_marketplace_visibility': subscription.tier.allow_marketplace_visibility,
+            'is_active': subscription.is_active,
+            'can_unlock_now': can_unlock,
+            'remaining_unlocks': remaining_unlocks,
+            'next_unlock_at': next_unlock_at,
+            'last_customer_unlock_at': subscription.last_customer_unlock_at,
+            'total_customer_unlocks': subscription.total_customer_unlocks,
+            # Commission info
+            'commission_rate_low': subscription.tier.commission_rate_low,
+            'commission_rate_high': subscription.tier.commission_rate_high,
+            'commission_threshold': subscription.tier.commission_threshold,
+            'total_commission_charged': subscription.total_commission_charged,
+            'total_sales_volume': subscription.total_sales_volume,
+        }
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pricing_tiers_list(request):
+    """List all available pricing tiers."""
+    tiers = PricingTier.objects.all()
+    data = []
+    for tier in tiers:
+        data.append({
+            'slug': tier.slug,
+            'name': tier.name,
+            'pricing_type': tier.pricing_type,
+            'is_commission_based': tier.is_commission_based,
+            'commission_rate_low': tier.commission_rate_low,
+            'commission_rate_high': tier.commission_rate_high,
+            'commission_threshold': tier.commission_threshold,
+            'monthly_price': tier.monthly_price,
+            'daily_customer_unlock_limit': tier.daily_customer_unlock_limit,
+            'allow_marketplace_visibility': tier.allow_marketplace_visibility,
+            'lead_exclusivity': tier.lead_exclusivity,
+        })
+    return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def activate_commission_plan(request):
+    """
+    Activate commission-based plan for vendor.
+    Requires: complete profile data, gold tier achievement, terms acceptance
+    """
+    try:
+        subscription = VendorSubscription.for_user(request.user)
+        
+        # Check if plan is already activated and ready
+        if subscription.is_commission_plan_ready():
+            return Response(
+                {
+                    'error': 'Commission plan already activated',
+                    'message': 'پلن کمیسیونی شما قبلاً فعال شده است',
+                    'subscription': {
+                        'tier_slug': subscription.tier.slug,
+                        'tier_name': subscription.tier.name,
+                        'admin_approved': subscription.admin_approved,
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if already on commission tier but not fully activated
+        if subscription.tier.is_commission_based and subscription.terms_accepted:
+            return Response(
+                {
+                    'error': 'Activation already in progress',
+                    'message': 'درخواست فعال‌سازی شما در حال بررسی است. لطفاً قرارداد و ضمانت‌نامه را آپلود کنید.',
+                    'subscription': {
+                        'tier_slug': subscription.tier.slug,
+                        'contract_signed': subscription.contract_signed,
+                        'bank_guarantee_submitted': subscription.bank_guarantee_submitted,
+                        'admin_approved': subscription.admin_approved,
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if can activate
+        can_activate, missing = subscription.can_activate_commission_plan()
+        if not can_activate:
+            # Generate appropriate error message
+            if 'gold_tier' in missing:
+                try:
+                    from gamification.services import GamificationService
+                    service = GamificationService.for_user(request.user)
+                    current_tier = service.calculate_tier()
+                    engagement = service.get_or_create_engagement()
+                    
+                    tier_names = {
+                        'inactive': 'غیرفعال',
+                        'bronze': 'برنزی',
+                        'silver': 'نقره‌ای',
+                        'gold': 'طلایی',
+                        'diamond': 'الماس'
+                    }
+                    
+                    current_tier_name = tier_names.get(current_tier, current_tier)
+                    points = engagement.total_points if engagement else 0
+                    reputation = engagement.reputation_score if engagement else 0
+                    
+                    message = f'برای فعال‌سازی پلن کمیسیونی، باید نشان طلایی (Gold) را دریافت کنید. وضعیت فعلی شما: {current_tier_name} (امتیاز: {points}, اعتبار: {reputation:.1f})'
+                except Exception as e:
+                    message = 'برای فعال‌سازی پلن کمیسیونی، باید نشان طلایی (Gold) را دریافت کنید.'
+            else:
+                message = 'لطفاً اطلاعات پروفایل خود را تکمیل کنید'
+            
+            return Response(
+                {
+                    'error': 'Cannot activate commission plan',
+                    'missing_requirements': missing,
+                    'message': message
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check terms acceptance
+        terms_accepted = request.data.get('terms_accepted', False)
+        if not terms_accepted:
+            return Response(
+                {
+                    'error': 'Terms and conditions must be accepted',
+                    'message': 'لطفاً شرایط و ضوابط را بپذیرید'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get commission tier
+        try:
+            commission_tier = PricingTier.get_commission_tier()
+            if not commission_tier:
+                return Response(
+                    {
+                        'error': 'Commission tier not found',
+                        'message': 'پلن کمیسیونی در سیستم یافت نشد. لطفاً با پشتیبانی تماس بگیرید.'
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Failed to get commission tier',
+                    'message': 'خطا در دریافت اطلاعات پلن. لطفاً دوباره تلاش کنید.'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        # Update subscription
+        from django.utils import timezone
+        try:
+            subscription.tier = commission_tier
+            subscription.terms_accepted = True
+            subscription.terms_accepted_at = timezone.now()
+            subscription.save()
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Database error',
+                    'message': 'خطا در ذخیره اطلاعات. لطفاً دوباره تلاش کنید.'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        return Response({
+            'success': True,
+            'message': 'درخواست فعال‌سازی پلن کمیسیونی ثبت شد. لطفاً قرارداد و ضمانت‌نامه بانکی را آپلود کنید.',
+            'subscription': {
+                'tier_slug': subscription.tier.slug,
+                'tier_name': subscription.tier.name,
+                'contract_signed': subscription.contract_signed,
+                'bank_guarantee_submitted': subscription.bank_guarantee_submitted,
+                'admin_approved': subscription.admin_approved,
+            }
+        })
+    
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error activating commission plan for user {request.user.id}: {str(e)}", exc_info=True)
+        
+        return Response(
+            {
+                'error': 'Internal server error',
+                'message': 'خطای غیرمنتظره رخ داد. لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.'
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_commission_contract(request):
+    """Upload signed contract document for commission plan."""
+    try:
+        subscription = VendorSubscription.for_user(request.user)
+        
+        if not subscription.tier.is_commission_based:
+            return Response(
+                {
+                    'error': 'Not commission plan',
+                    'message': 'فقط برای پلن کمیسیونی قابل استفاده است'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        contract_file = request.FILES.get('contract_document')
+        if not contract_file:
+            return Response(
+                {
+                    'error': 'No file provided',
+                    'message': 'فایل قرارداد ارسال نشده است'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate file size (max 10MB)
+        max_size = 10 * 1024 * 1024  # 10MB
+        if contract_file.size > max_size:
+            return Response(
+                {
+                    'error': 'File too large',
+                    'message': f'حجم فایل باید کمتر از ۱۰ مگابایت باشد. حجم فایل شما: {contract_file.size / (1024*1024):.2f} مگابایت'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate file type
+        allowed_extensions = ['.pdf', '.jpg', '.jpeg', '.png']
+        file_name = contract_file.name.lower()
+        if not any(file_name.endswith(ext) for ext in allowed_extensions):
+            return Response(
+                {
+                    'error': 'Invalid file type',
+                    'message': 'فرمت فایل مجاز نیست. فرمت‌های مجاز: PDF, JPG, PNG'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        from django.utils import timezone
+        try:
+            subscription.contract_document = contract_file
+            subscription.contract_signed = True
+            subscription.contract_signed_at = timezone.now()
+            subscription.save()
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Database error',
+                    'message': 'خطا در ذخیره فایل. لطفاً دوباره تلاش کنید.'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        return Response({
+            'success': True,
+            'message': 'قرارداد با موفقیت آپلود شد',
+            'contract_signed': True,
+            'contract_signed_at': subscription.contract_signed_at
+        })
+    
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error uploading contract for user {request.user.id}: {str(e)}", exc_info=True)
+        
+        return Response(
+            {
+                'error': 'Internal server error',
+                'message': 'خطای غیرمنتظره در آپلود فایل رخ داد. لطفاً دوباره تلاش کنید.'
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_bank_guarantee(request):
+    """Upload bank guarantee document for commission plan."""
+    try:
+        subscription = VendorSubscription.for_user(request.user)
+        
+        if not subscription.tier.is_commission_based:
+            return Response(
+                {
+                    'error': 'Not commission plan',
+                    'message': 'فقط برای پلن کمیسیونی قابل استفاده است'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        guarantee_file = request.FILES.get('bank_guarantee_document')
+        guarantee_amount = request.data.get('bank_guarantee_amount')
+        guarantee_expiry = request.data.get('bank_guarantee_expiry')
+        
+        if not guarantee_file:
+            return Response(
+                {
+                    'error': 'No file provided',
+                    'message': 'فایل ضمانت‌نامه ارسال نشده است'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate file size (max 10MB)
+        max_size = 10 * 1024 * 1024  # 10MB
+        if guarantee_file.size > max_size:
+            return Response(
+                {
+                    'error': 'File too large',
+                    'message': f'حجم فایل باید کمتر از ۱۰ مگابایت باشد. حجم فایل شما: {guarantee_file.size / (1024*1024):.2f} مگابایت'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate file type
+        allowed_extensions = ['.pdf', '.jpg', '.jpeg', '.png']
+        file_name = guarantee_file.name.lower()
+        if not any(file_name.endswith(ext) for ext in allowed_extensions):
+            return Response(
+                {
+                    'error': 'Invalid file type',
+                    'message': 'فرمت فایل مجاز نیست. فرمت‌های مجاز: PDF, JPG, PNG'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate guarantee amount
+        if guarantee_amount:
+            try:
+                amount = float(guarantee_amount)
+                if amount <= 0:
+                    return Response(
+                        {
+                            'error': 'Invalid amount',
+                            'message': 'مبلغ ضمانت‌نامه باید بیشتر از صفر باشد'
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except (ValueError, TypeError):
+                return Response(
+                    {
+                        'error': 'Invalid amount format',
+                        'message': 'مبلغ ضمانت‌نامه نامعتبر است'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Validate expiry date
+        if guarantee_expiry:
+            from datetime import datetime, date
+            try:
+                expiry_date = datetime.strptime(guarantee_expiry, '%Y-%m-%d').date()
+                if expiry_date < date.today():
+                    return Response(
+                        {
+                            'error': 'Expired guarantee',
+                            'message': 'تاریخ انقضای ضمانت‌نامه نمی‌تواند در گذشته باشد'
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except ValueError:
+                return Response(
+                    {
+                        'error': 'Invalid date format',
+                        'message': 'فرمت تاریخ انقضا نامعتبر است'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        try:
+            subscription.bank_guarantee_document = guarantee_file
+            subscription.bank_guarantee_submitted = True
+            
+            if guarantee_amount:
+                subscription.bank_guarantee_amount = guarantee_amount
+            if guarantee_expiry:
+                from datetime import datetime
+                expiry_date = datetime.strptime(guarantee_expiry, '%Y-%m-%d').date()
+                subscription.bank_guarantee_expiry = expiry_date
+            
+            subscription.save()
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Database error',
+                    'message': 'خطا در ذخیره اطلاعات. لطفاً دوباره تلاش کنید.'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        return Response({
+            'success': True,
+            'message': 'ضمانت‌نامه بانکی با موفقیت آپلود شد',
+            'bank_guarantee_submitted': True,
+            'bank_guarantee_amount': subscription.bank_guarantee_amount,
+            'bank_guarantee_expiry': subscription.bank_guarantee_expiry
+        })
+    
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error uploading bank guarantee for user {request.user.id}: {str(e)}", exc_info=True)
+        
+        return Response(
+            {
+                'error': 'Internal server error',
+                'message': 'خطای غیرمنتظره در آپلود فایل رخ داد. لطفاً دوباره تلاش کنید.'
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def commission_plan_status(request):
+    """Get commission plan activation status."""
+    subscription = VendorSubscription.for_user(request.user)
+    
+    can_activate, missing = subscription.can_activate_commission_plan()
+    is_ready = subscription.is_commission_plan_ready()
+    
+    # Get gamification tier information
+    from gamification.services import GamificationService
+    service = GamificationService.for_user(request.user)
+    current_tier = service.calculate_tier()
+    engagement = service.get_or_create_engagement()
+    
+    tier_info = {
+        'current_tier': current_tier,
+        'current_points': engagement.total_points if engagement else 0,
+        'current_reputation': engagement.reputation_score if engagement else 0,
+        'has_gold_tier': current_tier in ['gold', 'diamond'],
+    }
+    
+    return Response({
+        'tier_slug': subscription.tier.slug,
+        'tier_name': subscription.tier.name,
+        'is_commission_based': subscription.tier.is_commission_based,
+        'can_activate': can_activate,
+        'missing_requirements': missing,
+        'is_ready': is_ready,
+        'gamification_tier': tier_info,
+        'contract_signed': subscription.contract_signed,
+        'contract_signed_at': subscription.contract_signed_at,
+        'bank_guarantee_submitted': subscription.bank_guarantee_submitted,
+        'bank_guarantee_amount': subscription.bank_guarantee_amount,
+        'bank_guarantee_expiry': subscription.bank_guarantee_expiry,
+        'terms_accepted': subscription.terms_accepted,
+        'terms_accepted_at': subscription.terms_accepted_at,
+        'admin_approved': subscription.admin_approved,
+        'admin_approved_at': subscription.admin_approved_at,
+        'rejection_reason': subscription.rejection_reason,
+        'total_commission_charged': subscription.total_commission_charged,
+        'total_sales_volume': subscription.total_sales_volume,
+    })
+
 # Seller Ads ViewSet
 class SellerAdViewSet(viewsets.ModelViewSet):
     serializer_class = SellerAdSerializer
@@ -1140,7 +1620,13 @@ def admin_update_order_status_view(request, order_id):
         if new_status not in dict(Order.STATUS_CHOICES):
             return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
         
+        old_status = order.status
         order.status = new_status
+        
+        # Calculate commission when order is delivered
+        if new_status == 'delivered' and old_status != 'delivered':
+            order.apply_commission()
+        
         order.save()
         
         # Log activity
@@ -1895,3 +2381,139 @@ def admin_blog_categories_view(request):
     
     serializer = BlogCategorySerializer(categories, many=True, context={'request': request})
     return Response(serializer.data)
+
+
+# Admin Commission Plan Management
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_commission_requests_view(request):
+    """Get all commission plan activation requests for admin review."""
+    subscriptions = VendorSubscription.objects.filter(
+        tier__is_commission_based=True
+    ).select_related('user', 'user__profile', 'user__vendor_profile', 'tier')
+    
+    # Filter by status
+    status_filter = request.query_params.get('status')
+    if status_filter == 'pending':
+        subscriptions = subscriptions.filter(
+            contract_signed=True,
+            bank_guarantee_submitted=True,
+            admin_approved=False
+        )
+    elif status_filter == 'approved':
+        subscriptions = subscriptions.filter(admin_approved=True)
+    elif status_filter == 'incomplete':
+        subscriptions = subscriptions.filter(
+            Q(contract_signed=False) | Q(bank_guarantee_submitted=False)
+        )
+    
+    data = []
+    for sub in subscriptions:
+        data.append({
+            'id': sub.id,
+            'user_id': sub.user.id,
+            'username': sub.user.username,
+            'store_name': sub.user.vendor_profile.store_name if hasattr(sub.user, 'vendor_profile') else '',
+            'tier_name': sub.tier.name,
+            'contract_signed': sub.contract_signed,
+            'contract_signed_at': sub.contract_signed_at,
+            'contract_document': sub.contract_document.url if sub.contract_document else None,
+            'bank_guarantee_submitted': sub.bank_guarantee_submitted,
+            'bank_guarantee_document': sub.bank_guarantee_document.url if sub.bank_guarantee_document else None,
+            'bank_guarantee_amount': sub.bank_guarantee_amount,
+            'bank_guarantee_expiry': sub.bank_guarantee_expiry,
+            'terms_accepted': sub.terms_accepted,
+            'terms_accepted_at': sub.terms_accepted_at,
+            'admin_approved': sub.admin_approved,
+            'admin_approved_at': sub.admin_approved_at,
+            'rejection_reason': sub.rejection_reason,
+            'total_commission_charged': sub.total_commission_charged,
+            'total_sales_volume': sub.total_sales_volume,
+            'started_at': sub.started_at,
+        })
+    
+    return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_approve_commission_plan(request, subscription_id):
+    """Approve a vendor's commission plan activation request."""
+    try:
+        subscription = VendorSubscription.objects.get(id=subscription_id)
+        
+        if not subscription.tier.is_commission_based:
+            return Response(
+                {'error': 'این اشتراک کمیسیونی نیست'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not subscription.contract_signed or not subscription.bank_guarantee_submitted:
+            return Response(
+                {'error': 'قرارداد یا ضمانت‌نامه بانکی ارسال نشده است'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        from django.utils import timezone
+        subscription.admin_approved = True
+        subscription.admin_approved_at = timezone.now()
+        subscription.admin_approved_by = request.user
+        subscription.rejection_reason = None
+        subscription.save()
+        
+        log_activity(
+            request.user,
+            'other',
+            f'Admin approved commission plan for {subscription.user.username}',
+            request,
+            subscription
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'پلن کمیسیونی با موفقیت تایید شد'
+        })
+    
+    except VendorSubscription.DoesNotExist:
+        return Response(
+            {'error': 'اشتراک یافت نشد'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_reject_commission_plan(request, subscription_id):
+    """Reject a vendor's commission plan activation request."""
+    try:
+        subscription = VendorSubscription.objects.get(id=subscription_id)
+        
+        rejection_reason = request.data.get('rejection_reason')
+        if not rejection_reason:
+            return Response(
+                {'error': 'دلیل رد درخواست الزامی است'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        subscription.admin_approved = False
+        subscription.rejection_reason = rejection_reason
+        subscription.save()
+        
+        log_activity(
+            request.user,
+            'other',
+            f'Admin rejected commission plan for {subscription.user.username}',
+            request,
+            subscription
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'درخواست رد شد'
+        })
+    
+    except VendorSubscription.DoesNotExist:
+        return Response(
+            {'error': 'اشتراک یافت نشد'},
+            status=status.HTTP_404_NOT_FOUND
+        )

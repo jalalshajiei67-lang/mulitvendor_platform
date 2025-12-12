@@ -75,6 +75,9 @@ class PointsHistory(models.Model):
         ('mini_site', 'Mini Website Update'),
         ('fast_response', 'Fast Order Response'),
         ('tutorial', 'Watched Tutorial'),
+        ('insight_share', 'Insight Share'),
+        ('insight_comment', 'Insight Comment'),
+        ('insight_like', 'Insight Liked'),
         ('badge', 'Badge Earned'),
         ('section_completion', 'Section Completion'),
         ('peer_invitation', 'Peer Invitation'),
@@ -239,3 +242,53 @@ class Endorsement(models.Model):
 
     def __str__(self):
         return f"{self.endorser.username} endorsed {self.endorsed.store_name}"
+
+
+class SellerInsight(models.Model):
+    vendor_profile = models.ForeignKey(
+        VendorProfile,
+        on_delete=models.CASCADE,
+        related_name='insights'
+    )
+    title = models.CharField(max_length=150)
+    content = models.TextField()
+    likes = models.ManyToManyField(User, related_name='liked_insights', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.vendor_profile.store_name}: {self.title[:30]}"
+
+    @property
+    def likes_count(self):
+        return self.likes.count()
+
+
+class SellerInsightComment(models.Model):
+    insight = models.ForeignKey(
+        SellerInsight,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    vendor_profile = models.ForeignKey(
+        VendorProfile,
+        on_delete=models.CASCADE,
+        related_name='insight_comments'
+    )
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['insight', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"Comment by {self.vendor_profile.store_name} on {self.insight_id}"

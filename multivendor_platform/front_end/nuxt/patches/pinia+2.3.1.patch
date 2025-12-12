@@ -1,0 +1,32 @@
+diff --git a/node_modules/pinia/dist/pinia.mjs b/node_modules/pinia/dist/pinia.mjs
+index 0092356..1ab2330 100644
+--- a/node_modules/pinia/dist/pinia.mjs
++++ b/node_modules/pinia/dist/pinia.mjs
+@@ -1209,7 +1209,10 @@ function skipHydrate(obj) {
+  * @returns true if `obj` should be hydrated
+  */
+ function shouldHydrate(obj) {
+-    return !isPlainObject(obj) || !obj.hasOwnProperty(skipHydrateSymbol);
++    if (!isPlainObject(obj)) {
++        return true;
++    }
++    return !Object.prototype.hasOwnProperty.call(obj, skipHydrateSymbol);
+ }
+ const { assign } = Object;
+ function isComputed(o) {
+diff --git a/node_modules/pinia/dist/pinia.prod.cjs b/node_modules/pinia/dist/pinia.prod.cjs
+index 959c661..e96f135 100644
+--- a/node_modules/pinia/dist/pinia.prod.cjs
++++ b/node_modules/pinia/dist/pinia.prod.cjs
+@@ -228,7 +228,10 @@ function skipHydrate(obj) {
+  * @returns true if `obj` should be hydrated
+  */
+ function shouldHydrate(obj) {
+-    return !isPlainObject(obj) || !obj.hasOwnProperty(skipHydrateSymbol);
++    if (!isPlainObject(obj)) {
++        return true;
++    }
++    return !Object.prototype.hasOwnProperty.call(obj, skipHydrateSymbol);
+ }
+ const { assign } = Object;
+ function isComputed(o) {

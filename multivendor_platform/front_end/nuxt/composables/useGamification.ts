@@ -1,3 +1,19 @@
+export interface SellerInsight {
+  id: number
+  title: string
+  content: string
+  author_name?: string
+  created_at?: string
+  likes_count?: number
+  liked_by_me?: boolean
+  comments_count?: number
+}
+
+export interface SellerInsightPayload {
+  title: string
+  content: string
+}
+
 export const useGamificationApi = () => {
   return {
     fetchScores() {
@@ -91,6 +107,38 @@ export const useGamificationApi = () => {
         reason?: 'not_vendor' | 'not_invited' | 'already_endorsed'
         inviter_name?: string
       }>('gamification/can-endorse/', { method: 'GET' })
+    },
+    fetchSellerInsights(params: Record<string, any> = {}) {
+      return useApiFetch<{ results?: SellerInsight[] }>('gamification/insights/', {
+        method: 'GET',
+        params
+      })
+    },
+    createSellerInsight(payload: SellerInsightPayload) {
+      return useApiFetch<SellerInsight>('gamification/insights/', {
+        method: 'POST',
+        body: payload
+      })
+    },
+    likeSellerInsight(id: number) {
+      return useApiFetch<{ liked: boolean; likes_count: number }>(`gamification/insights/${id}/like/`, {
+        method: 'POST'
+      })
+    },
+    fetchSellerInsightComments(insightId: number, params: Record<string, any> = {}) {
+      return useApiFetch<{ results?: Array<{ id: number; content: string; author_name?: string; created_at?: string }> }>(
+        `gamification/insights/${insightId}/comments/`,
+        { method: 'GET', params }
+      )
+    },
+    createSellerInsightComment(insightId: number, content: string) {
+      return useApiFetch<{ id: number; content: string; author_name?: string; created_at?: string }>(
+        `gamification/insights/${insightId}/comments/`,
+        {
+          method: 'POST',
+          body: { content }
+        }
+      )
     },
     getBadgeProgress(badges: any[], slug: string) {
       const targetBadge = badges.find((badge: any) => {

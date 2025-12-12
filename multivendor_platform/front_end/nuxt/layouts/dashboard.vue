@@ -39,7 +39,7 @@
             class="text-white"
             to="/seller/pricing"
           >
-            پلن‌ها
+            {{ planButtonLabel }}
           </v-btn>
           <template v-if="isAuthenticated">
             <!-- Notification Bell (Buyer Only) -->
@@ -212,6 +212,160 @@
       </v-container>
     </v-app-bar>
 
+    <!-- Main Navigation Bar (Seller Only) -->
+    <v-app-bar
+      v-if="isSeller"
+      density="compact"
+      color="primary"
+      elevation="1"
+      class="dashboard-navbar"
+    >
+      <v-container fluid class="px-4">
+        <div class="d-flex align-center justify-start">
+          <!-- Desktop Navigation -->
+          <div class="d-none d-md-flex align-center gap-1">
+            <v-btn
+              to="/seller/dashboard?tab=home"
+              variant="text"
+              size="small"
+              class="text-white nav-btn"
+              prepend-icon="mdi-home-outline"
+            >
+              داشبورد
+            </v-btn>
+            <v-btn
+              to="/seller/dashboard?tab=miniwebsite"
+              variant="text"
+              size="small"
+              class="text-white nav-btn"
+              prepend-icon="mdi-web"
+            >
+              فروشگاه من
+            </v-btn>
+            <v-btn
+              to="/seller/dashboard?tab=customerPool"
+              variant="text"
+              size="small"
+              class="text-white nav-btn"
+              prepend-icon="mdi-account-group"
+            >
+              استخر مشتریان
+            </v-btn>
+            <v-btn
+              to="/seller/dashboard?tab=orders"
+              variant="text"
+              size="small"
+              class="text-white nav-btn"
+              prepend-icon="mdi-shopping-outline"
+            >
+              سفارشات
+            </v-btn>
+            <v-btn
+              to="/seller/dashboard?tab=reviews"
+              variant="text"
+              size="small"
+              class="text-white nav-btn"
+              prepend-icon="mdi-star-outline"
+            >
+              نظرات
+            </v-btn>
+            <v-btn
+              to="/seller/dashboard?tab=chats"
+              variant="text"
+              size="small"
+              class="text-white nav-btn"
+              prepend-icon="mdi-chat-processing-outline"
+            >
+              گفتگوها
+            </v-btn>
+            <v-btn
+              to="/seller/dashboard?tab=insights"
+              variant="text"
+              size="small"
+              class="text-white nav-btn"
+              prepend-icon="mdi-lightbulb-on-outline"
+            >
+              اشتراک تجربه
+            </v-btn>
+            <v-btn
+              to="/seller/dashboard?tab=invite"
+              variant="text"
+              size="small"
+              class="text-white nav-btn"
+              prepend-icon="mdi-share-variant"
+            >
+              دعوت و امتیاز
+            </v-btn>
+          </div>
+
+          <!-- Mobile Navigation (Dropdown) -->
+          <v-menu class="d-md-none" location="bottom start">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                v-bind="props"
+                variant="text"
+                size="small"
+                class="text-white"
+                prepend-icon="mdi-menu"
+              >
+                منو
+              </v-btn>
+            </template>
+            <v-list>
+              <v-list-item
+                to="/seller/dashboard?tab=home"
+                prepend-icon="mdi-home-outline"
+              >
+                <v-list-item-title>داشبورد</v-list-item-title>
+              </v-list-item>
+              <v-list-item
+                to="/seller/dashboard?tab=miniwebsite"
+                prepend-icon="mdi-web"
+              >
+                <v-list-item-title>فروشگاه من</v-list-item-title>
+              </v-list-item>
+              <v-list-item
+                to="/seller/dashboard?tab=customerPool"
+                prepend-icon="mdi-account-group"
+              >
+                <v-list-item-title>استخر مشتریان</v-list-item-title>
+              </v-list-item>
+              <v-list-item
+                to="/seller/dashboard?tab=orders"
+                prepend-icon="mdi-shopping-outline"
+              >
+                <v-list-item-title>سفارشات</v-list-item-title>
+              </v-list-item>
+              <v-list-item
+                to="/seller/dashboard?tab=reviews"
+                prepend-icon="mdi-star-outline"
+              >
+                <v-list-item-title>نظرات</v-list-item-title>
+              </v-list-item>
+              <v-list-item
+                to="/seller/dashboard?tab=chats"
+                prepend-icon="mdi-chat-processing-outline"
+              >
+                <v-list-item-title>گفتگوها</v-list-item-title>
+              </v-list-item>
+              <v-list-item
+                to="/seller/dashboard?tab=insights"
+                prepend-icon="mdi-lightbulb-on-outline"
+              >
+                <v-list-item-title>اشتراک تجربه</v-list-item-title>
+              </v-list-item>
+              <v-list-item
+                to="/seller/dashboard?tab=invite"
+                prepend-icon="mdi-share-variant"
+              >
+                <v-list-item-title>دعوت و امتیاز</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </div>
+      </v-container>
+    </v-app-bar>
+
     <!-- Main Content -->
     <v-main class="dashboard-main">
       <slot />
@@ -242,6 +396,12 @@ const dashboardLink = computed(() => {
   if (isAdmin.value) return '/admin/dashboard'
   if (isSeller.value) return '/seller/dashboard'
   return '/buyer/dashboard'
+})
+
+const planButtonLabel = computed(() => {
+  if (!isSeller.value) return 'پلن‌ها'
+  // TODO: Implement premium status check when subscription feature is ready
+  return 'مشاهده پلن‌ها'
 })
 
 // Notification logic for buyers
@@ -385,7 +545,7 @@ const formatNumber = (num: number) => {
 const circumference = computed(() => 2 * Math.PI * 18) // radius is 18
 
 const progressPercentage = computed(() => {
-  if (!isSeller.value || !gamificationStore.userTier || !gamificationStore.nextTier) return 0
+  if (!isSeller.value || !gamificationStore.userTier) return 0
   
   const thresholds: Record<string, number> = {
     diamond: 1000,
@@ -395,10 +555,18 @@ const progressPercentage = computed(() => {
     inactive: 0,
   }
   
+  const tierOrder = ['inactive', 'bronze', 'silver', 'gold', 'diamond']
   const currentTier = gamificationStore.userTier
   const currentPoints = gamificationStore.engagement?.total_points || 0
   const currentThreshold = thresholds[currentTier] || 0
-  const nextThreshold = thresholds[gamificationStore.nextTier] || 1000
+  
+  // Get next tier
+  const currentIndex = tierOrder.indexOf(currentTier)
+  const nextTier = currentIndex >= 0 && currentIndex < tierOrder.length - 1 
+    ? tierOrder[currentIndex + 1] 
+    : currentTier
+  
+  const nextThreshold = thresholds[nextTier] || 1000
   const range = nextThreshold - currentThreshold
   
   if (range === 0) return 100
@@ -425,9 +593,44 @@ const progressOffset = computed(() => {
   z-index: 100;
 }
 
+.dashboard-navbar {
+  position: sticky;
+  top: 64px;
+  z-index: 99;
+}
+
 .dashboard-main {
   padding: 0;
   background-color: #f5f5f5;
+  /* Add top padding to prevent header overlap */
+  padding-top: 0px;
+}
+
+.nav-btn {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.gap-1 {
+  gap: 4px;
+}
+
+/* Responsive navbar positioning */
+@media (max-width: 960px) {
+  .dashboard-navbar {
+    top: 56px;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-navbar {
+    top: 56px;
+  }
 }
 
 .notification-item {

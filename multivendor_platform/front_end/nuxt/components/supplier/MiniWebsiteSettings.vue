@@ -38,7 +38,6 @@
                 <v-text-field
                   v-model="formData.store_name"
                   label="نام فروشگاه یا شرکت"
-                  prepend-icon="mdi-label"
                   variant="outlined"
                   density="comfortable"
                   size="large"
@@ -61,12 +60,10 @@
                 </div>
                 <v-textarea
                   v-model="formData.description"
-                  placeholder="مثال: ما برای بیش از ۲۰ سال تولید ماشین‌آلات صنعتی می‌کنیم..."
-                  prepend-icon="mdi-text"
                   rows="5"
                   variant="outlined"
                   density="comfortable"
-                  hint="حداقل ۲۰۰ حرف بنویسید"
+                  hint="مثال: ما برای بیش از ۲۰ سال تولید ماشین‌آلات صنعتی می‌کنیم... (حداقل ۲۰۰ حرف)"
                   counter="500"
                   :rules="descriptionRules"
                   data-tour="store-description-input"
@@ -82,11 +79,9 @@
                 <v-text-field
                   v-model="formData.slogan"
                   label="شعار یا جمله‌ی معرفی شرکت"
-                  prepend-icon="mdi-star"
                   variant="outlined"
                   density="comfortable"
-                  placeholder="مثال: بهترین کیفیت، بهترین قیمت"
-                  hint="یک جمله کوتاه که بشرکت را خلاصه کند"
+                  hint="مثال: بهترین کیفیت، بهترین قیمت"
                   counter="100"
                   :rules="[v => !v || v.length <= 100 || 'حداکثر 100 حرف']"
                 >
@@ -142,7 +137,6 @@
                 <v-file-input
                   v-model="bannerFile"
                   label="انتخاب تصویر از کامپیوتر"
-                  prepend-icon="mdi-image"
                   accept="image/*"
                   @change="onBannerChange"
                   variant="outlined"
@@ -223,11 +217,9 @@
                   <v-text-field
                     v-model="formData.contact_phone"
                     label="شماره تلفن"
-                    prepend-icon="mdi-phone"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="09123456789"
-                    hint="شماره موبایل یا ثابت"
+                    hint="مثال: 09123456789"
                     :rules="phoneRules"
                   >
                     <template #prepend>
@@ -240,11 +232,10 @@
                   <v-text-field
                     v-model="formData.contact_email"
                     label="ایمیل تماس"
-                    prepend-icon="mdi-email"
                     type="email"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="info@example.com"
+                    hint="مثال: info@example.com"
                     :rules="emailRules"
                   >
                     <template #prepend>
@@ -273,7 +264,6 @@
                     v-model="formData.year_established"
                     :items="persianYears"
                     label="سال تاسیس"
-                    prepend-icon="mdi-calendar"
                     variant="outlined"
                     density="comfortable"
                     hint="سال شروع کسب‌وکار"
@@ -291,11 +281,10 @@
                   <v-text-field
                     v-model.number="formData.employee_count"
                     label="تعداد کارمندان"
-                    prepend-icon="mdi-account-group"
                     type="number"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="مثال: 50"
+                    hint="مثال: 50"
                     :min="1"
                     :rules="employeeCountRules"
                   >
@@ -309,10 +298,9 @@
                   <v-text-field
                     v-model="formData.website"
                     label="آدرس وب‌سایت (اختیاری)"
-                    prepend-icon="mdi-web"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="example.com"
+                    hint="مثال: example.com"
                     :rules="urlRules"
                   >
                     <template #prepend>
@@ -364,8 +352,8 @@
                           label="عنوان گواهینامه"
                           density="compact"
                           variant="outlined"
-                          placeholder="مثال: ISO 9001"
-                          hide-details
+                          hint="مثال: ISO 9001"
+                          persistent-hint
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="4">
@@ -374,8 +362,8 @@
                           label="سازمان صادرکننده"
                           density="compact"
                           variant="outlined"
-                          placeholder="مثال: سازمان استاندارد"
-                          hide-details
+                          hint="مثال: سازمان استاندارد"
+                          persistent-hint
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="2">
@@ -384,8 +372,8 @@
                           label="سال"
                           density="compact"
                           variant="outlined"
-                          placeholder="1400"
-                          hide-details
+                          hint="مثال: 1400"
+                          persistent-hint
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="1" class="d-flex align-center justify-center">
@@ -431,8 +419,8 @@
                           label="عنوان جایزه"
                           density="compact"
                           variant="outlined"
-                          placeholder="مثال: برترین تولیدکننده"
-                          hide-details
+                          hint="مثال: برترین تولیدکننده"
+                          persistent-hint
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="3">
@@ -441,8 +429,8 @@
                           label="اهدا کننده"
                           density="compact"
                           variant="outlined"
-                          placeholder="مثال: اتاق بازرگانی"
-                          hide-details
+                          hint="مثال: اتاق بازرگانی"
+                          persistent-hint
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="2">
@@ -451,8 +439,8 @@
                           label="سال"
                           density="compact"
                           variant="outlined"
-                          placeholder="1400"
-                          hide-details
+                          hint="مثال: 1400"
+                          persistent-hint
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="2">
@@ -496,10 +484,9 @@
                   <v-text-field
                     v-model="socialMedia.instagram"
                     label="اینستاگرام"
-                    prepend-icon="mdi-instagram"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="https://instagram.com/..."
+                    hint="مثال: https://instagram.com/store"
                   >
                     <template #prepend>
                       <v-icon color="primary" size="24">mdi-instagram</v-icon>
@@ -510,10 +497,9 @@
                   <v-text-field
                     v-model="socialMedia.telegram"
                     label="تلگرام"
-                    prepend-icon="mdi-telegram"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="https://t.me/..."
+                    hint="مثال: https://t.me/store"
                   >
                     <template #prepend>
                       <v-icon color="primary" size="24">mdi-telegram</v-icon>
@@ -524,10 +510,9 @@
                   <v-text-field
                     v-model="socialMedia.whatsapp"
                     label="واتساپ"
-                    prepend-icon="mdi-whatsapp"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="https://wa.me/..."
+                    hint="مثال: https://wa.me/989123456789"
                   >
                     <template #prepend>
                       <v-icon color="primary" size="24">mdi-whatsapp</v-icon>
@@ -538,10 +523,9 @@
                   <v-text-field
                     v-model="socialMedia.linkedin"
                     label="لینکدین"
-                    prepend-icon="mdi-linkedin"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="https://linkedin.com/..."
+                    hint="مثال: https://linkedin.com/company/store"
                   >
                     <template #prepend>
                       <v-icon color="primary" size="24">mdi-linkedin</v-icon>
@@ -573,8 +557,7 @@
                       variant="outlined"
                       density="comfortable"
                       counter="60"
-                      hint="عنوانی کوتاه برای جستجو"
-                      placeholder="فروشگاه آنلاین ماشین‌آلات"
+                      hint="مثال: فروشگاه آنلاین ماشین‌آلات"
                       :rules="[v => !v || v.length <= 60 || 'حداکثر 60 حرف']"
                     ></v-text-field>
                   </v-col>
@@ -585,8 +568,7 @@
                       variant="outlined"
                       rows="3"
                       counter="160"
-                      hint="توضیح کوتاه برای نتایج جستجو"
-                      placeholder="فروشگاه آنلاین انواع ماشین‌آلات..."
+                      hint="مثال: فروشگاه آنلاین انواع ماشین‌آلات با بهترین کیفیت و قیمت"
                       :rules="[v => !v || v.length <= 160 || 'حداکثر 160 حرف']"
                     ></v-textarea>
                   </v-col>

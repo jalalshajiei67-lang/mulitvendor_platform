@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     login_view, logout_view, register_view, current_user_view, update_profile_view,
     buyer_dashboard_view, buyer_orders_view, buyer_reviews_view,
-    seller_dashboard_view, seller_orders_view, seller_reviews_view,
+    seller_dashboard_view, seller_orders_view, seller_reviews_view, vendor_subscription_view,
     SellerAdViewSet,
     admin_dashboard_view, admin_users_view, admin_block_user_view, 
     admin_verify_user_view, admin_change_password_view, admin_activities_view,
@@ -20,7 +20,10 @@ from .views import (
     SupplierViewSet, SupplierCommentViewSet,
     SupplierPortfolioItemViewSet, SupplierTeamMemberViewSet, SupplierContactMessageViewSet,
     otp_request_view, otp_verify_view, password_reset_view,
-    unblock_all_users_view
+    unblock_all_users_view,
+    pricing_tiers_list, activate_commission_plan, upload_commission_contract,
+    upload_bank_guarantee, commission_plan_status,
+    admin_commission_requests_view, admin_approve_commission_plan, admin_reject_commission_plan
 )
 
 router = DefaultRouter()
@@ -56,6 +59,14 @@ urlpatterns = [
     path('seller/dashboard/', seller_dashboard_view, name='seller-dashboard'),
     path('seller/orders/', seller_orders_view, name='seller-orders'),
     path('seller/reviews/', seller_reviews_view, name='seller-reviews'),
+    path('seller/subscription/', vendor_subscription_view, name='vendor-subscription'),
+    
+    # Pricing and Commission Plan
+    path('pricing-tiers/', pricing_tiers_list, name='pricing-tiers'),
+    path('seller/commission/activate/', activate_commission_plan, name='activate-commission-plan'),
+    path('seller/commission/upload-contract/', upload_commission_contract, name='upload-commission-contract'),
+    path('seller/commission/upload-guarantee/', upload_bank_guarantee, name='upload-bank-guarantee'),
+    path('seller/commission/status/', commission_plan_status, name='commission-plan-status'),
     
     # Admin Dashboard
     path('admin/dashboard/', admin_dashboard_view, name='admin-dashboard'),
@@ -97,6 +108,11 @@ urlpatterns = [
     # Admin Blog Management
     path('admin/blog/posts/', admin_blog_posts_view, name='admin-blog-posts'),
     path('admin/blog/categories/', admin_blog_categories_view, name='admin-blog-categories'),
+    
+    # Admin Commission Plan Management
+    path('admin/commission-requests/', admin_commission_requests_view, name='admin-commission-requests'),
+    path('admin/commission-requests/<int:subscription_id>/approve/', admin_approve_commission_plan, name='admin-approve-commission'),
+    path('admin/commission-requests/<int:subscription_id>/reject/', admin_reject_commission_plan, name='admin-reject-commission'),
     
     # Seller Ads (ViewSet routes)
     path('', include(router.urls)),

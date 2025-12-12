@@ -2,7 +2,7 @@
 import uuid
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import UserProfile, BuyerProfile, VendorProfile
+from .models import UserProfile, BuyerProfile, VendorProfile, VendorSubscription
 
 
 @receiver(post_save, sender=UserProfile)
@@ -31,6 +31,9 @@ def create_or_update_role_profiles(sender, instance, created, **kwargs):
             if vendor_profile.store_name == f"فروشگاه_{instance.user.username}":
                 vendor_profile.store_name = _generate_unique_store_name(instance.user.username)
                 vendor_profile.save(update_fields=['store_name'])
+
+        # Ensure the vendor has a subscription (defaults to free)
+        VendorSubscription.for_user(instance.user)
 
 
 def _generate_unique_store_name(username):

@@ -277,25 +277,32 @@ const submit = async () => {
   clearError()
 
   try {
+    console.log('[LOGIN] Starting login...')
     const response = await authStore.login({
       username: username.value.trim(),
       password: password.value
     })
+    
+    console.log('[LOGIN] Login response:', response)
 
     const redirect = (route.query.redirect as string) || null
     if (response?.user?.is_staff || response?.user?.is_superuser) {
+      console.log('[LOGIN] Admin user, redirecting to admin dashboard')
       return router.push('/admin/dashboard')
     }
     if (response?.user?.role === 'seller' || response?.user?.role === 'both') {
+      console.log('[LOGIN] Seller user, redirecting to seller dashboard')
       return router.push(redirect || '/seller/dashboard')
     }
     if (response?.user?.role === 'buyer') {
+      console.log('[LOGIN] Buyer user, redirecting to home')
       return router.push(redirect || '/')
     }
 
+    console.log('[LOGIN] No role match, redirecting to home')
     router.push(redirect || '/')
   } catch (err: any) {
-    console.error('Login failed', err)
+    console.error('[LOGIN] Login failed with error:', err)
     // Error is already handled by the auth store
   }
 }

@@ -1,125 +1,42 @@
 <template>
   <v-container fluid dir="rtl" class="seller-dashboard">
-    <!-- Main Content Tabs -->
+    <!-- Main Content -->
     <v-row>
       <v-col cols="12">
         <v-card elevation="0" class="bg-transparent">
-          <!-- Responsive Navigation Tabs -->
-          <v-card elevation="2" rounded="xl" class="mb-6 overflow-visible">
-            <v-tabs
-              v-model="tab"
-              bg-color="surface"
-              color="primary"
-              align-tabs="start"
-              class="border-b"
-              height="64"
-              show-arrows
-            >
-              <!-- Visible Tabs (Dynamic based on screen size) -->
-              <v-tab
-                v-for="item in visibleTabs"
-                :key="item.value"
-                :value="item.value"
-                :data-tour="item.tour"
-                class="text-body-1 font-weight-medium"
-              >
-                <!-- Badge handling for 'chats' -->
-                <template v-if="item.value === 'chats'">
-                  <v-badge
-                    v-if="unreadChatsCount > 0"
-                    :content="unreadChatsCount"
-                    color="error"
-                    offset-x="-5"
-                    offset-y="5"
-                  >
-                    <v-icon start>mdi-chat-processing-outline</v-icon>
-                  </v-badge>
-                  <v-icon v-else start>mdi-chat-outline</v-icon>
-                </template>
-                
-                <!-- Standard Icon -->
-                <v-icon v-else start>{{ item.icon }}</v-icon>
-                {{ item.label }}
-              </v-tab>
-
-              <!-- 3-Dot Overflow Menu (Visible only on Mobile) -->
-              <v-menu v-if="overflowTabs.length > 0">
-                <template v-slot:activator="{ props }">
-                  <v-btn
-                    variant="text"
-                    class="align-self-center ms-2"
-                    icon="mdi-dots-vertical"
-                    v-bind="props"
-                    color="medium-emphasis"
-                  ></v-btn>
-                </template>
-                <v-list elevation="3" rounded="lg" density="comfortable">
-                  <v-list-item
-                    v-for="item in overflowTabs"
-                    :key="item.value"
-                    :value="item.value"
-                    @click="tab = item.value"
-                    :active="tab === item.value"
-                    color="primary"
-                  >
-                    <template v-slot:prepend>
-                      <!-- Badge handling inside menu -->
-                      <v-badge
-                        v-if="item.value === 'chats' && unreadChatsCount > 0"
-                        dot
-                        color="error"
-                        location="bottom start"
-                        offset-x="2"
-                        offset-y="2"
-                      >
-                        <v-icon>{{ item.icon }}</v-icon>
-                      </v-badge>
-                      <v-icon v-else>{{ item.icon }}</v-icon>
-                    </template>
-                    <v-list-item-title>{{ item.label }}</v-list-item-title>
-                  </v-list-item>
-                </v-list>
-              </v-menu>
-            </v-tabs>
-          </v-card>
-
           <v-window v-model="tab">
             <!-- Home Tab -->
             <v-window-item value="home">
               <div class="py-2">
-                <!-- Low score banner -->
-                <LowScoreBanner
-                  :status="lowScoreStatus"
-                  :loading="lowScoreLoading"
-                  @improve-profile="navigateTo('/seller/profile')"
-                  @upgrade-premium="navigateTo('/pricing')"
-                />
-
-                <!-- Endorsement CTA -->
-                <EndorsementCTA />
-                
-                <!-- Hero Section: Benefits & Rank or Setup Progress -->
-                <v-row class="mb-4">
+                <!-- NEW: Simplified Gamification Section -->
+                <v-row class="mb-6">
                   <v-col cols="12">
-                    <BenefitsRankWidget v-if="!showSetupWidget" :loading="gamificationStore.loading" />
-                    <SetupProgressWidget
-                      v-else
-                      :progress-percent="Math.min(100, Math.round((tourProgress / tourTotalSteps) * 100))"
-                      :steps-completed="tourProgress"
-                      :total-steps="tourTotalSteps"
-                      @resume="resumeTour"
+                    <StatusCard
+                      v-if="dashboardGamification"
+                      :tier="dashboardGamification.status.tier"
+                      :tier-display="dashboardGamification.status.tier_display"
+                      :tier-color="dashboardGamification.status.tier_color"
+                      :rank="dashboardGamification.status.rank"
+                      :total-points="dashboardGamification.status.total_points"
+                      :reputation-score="dashboardGamification.status.reputation_score"
+                      :streak-days="dashboardGamification.status.current_streak_days"
+                      :avg-response-minutes="dashboardGamification.status.avg_response_minutes"
+                      :overall-percentage="dashboardGamification.progress.overall_percentage"
+                      :milestones="dashboardGamification.progress.milestones"
+                      :required-steps-completed="dashboardGamification.progress.required_steps_completed"
+                      :total-required-steps="dashboardGamification.progress.total_required_steps"
                     />
                   </v-col>
                 </v-row>
 
-                <TierNudge
-                  :tier="gamificationStore.userTier"
-                  :engagement="gamificationStore.engagement"
-                  :is-premium="lowScoreStatus.is_premium"
-                  class="mb-4"
-                  @cta-primary="navigateTo('/seller/profile')"
-                  @cta-secondary="navigateTo('/seller/profile')"
-                />
+                <v-row class="mb-6">
+                  <v-col cols="12">
+                    <CurrentTaskCard
+                      :task="dashboardGamification?.current_task || null"
+                      @action="handleTaskAction"
+                    />
+                  </v-col>
+                </v-row>
 
                 <!-- Quick Stats Row (Smaller, Secondary) -->
                 <v-row class="mb-6">
@@ -304,152 +221,13 @@
                   </v-col>
                 </v-row>
 
-                <!-- Gamification Status Section -->
+                <!-- Leaderboard Section -->
                 <v-row class="mb-6">
-                  <v-col cols="12" md="6">
-                    <v-card elevation="2" rounded="xl" class="pa-4">
-                      <v-card-title class="text-h6 font-weight-bold mb-4">
-                        <v-icon start color="primary">mdi-chart-line</v-icon>
-                        امتیاز بخش‌ها
-                      </v-card-title>
-                      <v-card-text>
-                        <div v-if="gamificationStore.scores.product" class="mb-4">
-                          <div class="d-flex justify-space-between align-center mb-2">
-                            <span class="text-body-1 font-weight-medium">محصول</span>
-                            <v-chip
-                              :color="getScoreColor(gamificationStore.scores.product.score)"
-                              size="small"
-                              variant="flat"
-                            >
-                              {{ gamificationStore.scores.product.score }}%
-                            </v-chip>
-                          </div>
-                          <v-progress-linear
-                            :model-value="gamificationStore.scores.product.score"
-                            :color="getScoreColor(gamificationStore.scores.product.score)"
-                            height="8"
-                            rounded
-                          ></v-progress-linear>
-                        </div>
-                        <div v-if="gamificationStore.scores.profile" class="mb-4">
-                          <div class="d-flex justify-space-between align-center mb-2">
-                            <span class="text-body-1 font-weight-medium">پروفایل</span>
-                            <v-chip
-                              :color="getScoreColor(gamificationStore.scores.profile.score)"
-                              size="small"
-                              variant="flat"
-                            >
-                              {{ gamificationStore.scores.profile.score }}%
-                            </v-chip>
-                          </div>
-                          <v-progress-linear
-                            :model-value="gamificationStore.scores.profile.score"
-                            :color="getScoreColor(gamificationStore.scores.profile.score)"
-                            height="8"
-                            rounded
-                          ></v-progress-linear>
-                        </div>
-                        <div v-if="gamificationStore.scores.miniWebsite" class="mb-4">
-                          <div class="d-flex justify-space-between align-center mb-2">
-                            <span class="text-body-1 font-weight-medium">فروشگاه</span>
-                            <v-chip
-                              :color="getScoreColor(gamificationStore.scores.miniWebsite.score)"
-                              size="small"
-                              variant="flat"
-                            >
-                              {{ gamificationStore.scores.miniWebsite.score }}%
-                            </v-chip>
-                          </div>
-                          <v-progress-linear
-                            :model-value="gamificationStore.scores.miniWebsite.score"
-                            :color="getScoreColor(gamificationStore.scores.miniWebsite.score)"
-                            height="8"
-                            rounded
-                          ></v-progress-linear>
-                        </div>
-                        <v-btn
-                          block
-                          color="primary"
-                          variant="tonal"
-                          @click="tab = 'miniwebsite'"
-                          class="mt-2"
-                        >
-                          بهبود امتیازها
-                          <v-icon end>mdi-arrow-left</v-icon>
-                        </v-btn>
-                      </v-card-text>
-                    </v-card>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <v-card elevation="2" rounded="xl" class="pa-4">
-                      <v-card-title class="text-h6 font-weight-bold mb-4">
-                        <v-icon start color="primary">mdi-lightning-bolt</v-icon>
-                        اقدامات سریع
-                      </v-card-title>
-                      <v-card-text>
-                        <v-list density="comfortable">
-                          <v-list-item
-                            @click="tab = 'miniwebsite'; miniWebsiteTab = 'products'; openProductForm()"
-                            class="mb-2 rounded-lg"
-                            data-tour="add-product-btn"
-                          >
-                            <template v-slot:prepend>
-                              <v-avatar color="primary" variant="tonal" size="40">
-                                <v-icon>mdi-plus</v-icon>
-                              </v-avatar>
-                            </template>
-                            <v-list-item-title class="font-weight-medium">افزودن محصول جدید</v-list-item-title>
-                            <v-list-item-subtitle>امتیاز +20</v-list-item-subtitle>
-                          </v-list-item>
-                          <v-list-item
-                            @click="tab = 'miniwebsite'; miniWebsiteTab = 'profile'"
-                            class="mb-2 rounded-lg"
-                          >
-                            <template v-slot:prepend>
-                              <v-avatar color="secondary" variant="tonal" size="40">
-                                <v-icon>mdi-account-edit</v-icon>
-                              </v-avatar>
-                            </template>
-                            <v-list-item-title class="font-weight-medium">تکمیل پروفایل</v-list-item-title>
-                            <v-list-item-subtitle>افزایش امتیاز پروفایل</v-list-item-subtitle>
-                          </v-list-item>
-                          <v-list-item
-                            @click="tab = 'miniwebsite'; miniWebsiteTab = 'settings'"
-                            class="mb-2 rounded-lg"
-                          >
-                            <template v-slot:prepend>
-                              <v-avatar color="success" variant="tonal" size="40">
-                                <v-icon>mdi-web</v-icon>
-                              </v-avatar>
-                            </template>
-                            <v-list-item-title class="font-weight-medium">بهبود فروشگاه</v-list-item-title>
-                            <v-list-item-subtitle>افزایش امتیاز فروشگاه</v-list-item-subtitle>
-                          </v-list-item>
-                        </v-list>
-                      </v-card-text>
-                    </v-card>
-                  </v-col>
-                </v-row>
-
-                <!-- Additional Gamification Widgets -->
-                <v-row class="mb-6">
-                  <v-col cols="12" md="4">
-                    <EngagementWidget
-                      :engagement="gamificationStore.engagement"
-                      :loading="gamificationStore.loading"
-                      @cta="openProductForm"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <BadgeDisplay
-                      :badges="gamificationStore.badges.slice(0, 4)"
-                      title="نشان‌های پیش رو"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <LeaderboardWidget 
-                      :entries="gamificationStore.leaderboard" 
-                      title="برترین‌های این هفته"
+                  <v-col cols="12">
+                    <LeaderboardSection
+                      v-if="leaderboardData"
+                      :leaderboard="leaderboardData"
+                      :user-rank="dashboardGamification?.leaderboard_position || null"
                     />
                   </v-col>
                 </v-row>
@@ -842,6 +620,26 @@
               </v-card>
             </v-window-item>
 
+            <!-- Insights Tab -->
+            <v-window-item value="insights">
+              <div class="py-2">
+                <InsightsFeed
+                  :insights="insights"
+                  :loading="insightsLoading"
+                  :creating="creatingInsight"
+                  :error="insightsError"
+                  :comments="insightComments"
+                  :comments-loading="insightCommentsLoading"
+                  :comments-error="insightCommentsError"
+                  @refresh="loadInsights"
+                  @submit="handleCreateInsight"
+                  @like="handleLikeInsight"
+                  @load-comments="loadInsightComments"
+                  @submit-comment="handleCreateInsightComment"
+                />
+              </div>
+            </v-window-item>
+
             <!-- Invite & Earn Tab -->
             <v-window-item value="invite">
               <v-card elevation="2" rounded="xl" class="pa-6 mt-4 text-center">
@@ -984,13 +782,13 @@
                   </v-window-item>
                   
                   <v-window-item value="settings">
-                    <MiniWebsiteSettings />
+                    <MiniWebsiteSettings @saved="onMiniWebsiteSaved" />
                   </v-window-item>
                   <v-window-item value="portfolio">
-                    <PortfolioManager />
+                    <PortfolioManager @item-added="onPortfolioItemAdded" />
                   </v-window-item>
                   <v-window-item value="team">
-                    <TeamManager />
+                    <TeamManager @member-added="onTeamMemberAdded" />
                   </v-window-item>
                   <v-window-item value="messages">
                     <ContactMessagesInbox />
@@ -1135,18 +933,18 @@
       {{ snackbarMessage }}
     </v-snackbar>
 
-    <OnboardingTour
-      :force-show="forceTour"
-      @tour-started="handleTourStarted"
-      @tour-completed="handleTourCompleted"
-      @tour-dismissed="handleTourDismissed"
+    <!-- Celebration Overlay -->
+    <CelebrationOverlay
+      :show="showCelebration"
+      :points="celebrationPoints"
+      :message="celebrationMessage"
+      @close="showCelebration = false"
     />
   </v-container>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useDisplay } from 'vuetify'
 import { useAuthStore } from '~/stores/auth'
 import { useSellerApi } from '~/composables/useSellerApi'
 import type { SellerOrder, SellerReview } from '~/composables/useSellerApi'
@@ -1159,17 +957,15 @@ import SupplierProductForm from '~/components/supplier/ProductForm.vue'
 import SupplierProductList from '~/components/supplier/ProductList.vue'
 import ChatRoom from '~/components/chat/ChatRoom.vue'
 import FormQualityScore from '~/components/gamification/FormQualityScore.vue'
-import EngagementWidget from '~/components/gamification/EngagementWidget.vue'
-import BadgeDisplay from '~/components/gamification/BadgeDisplay.vue'
-import LeaderboardWidget from '~/components/gamification/LeaderboardWidget.vue'
-import BenefitsRankWidget from '~/components/gamification/BenefitsRankWidget.vue'
-import EndorsementCTA from '~/components/gamification/EndorsementCTA.vue'
-import SetupProgressWidget from '~/components/gamification/SetupProgressWidget.vue'
-import LowScoreBanner from '~/components/gamification/LowScoreBanner.vue'
-import TierNudge from '~/components/gamification/TierNudge.vue'
-import OnboardingTour from '~/components/supplier/OnboardingTour.vue'
+// NEW: Simplified Gamification Components
+import StatusCard from '~/components/gamification/StatusCard.vue'
+import CurrentTaskCard from '~/components/gamification/CurrentTaskCard.vue'
+import CelebrationOverlay from '~/components/gamification/CelebrationOverlay.vue'
+import LeaderboardSection from '~/components/gamification/LeaderboardSection.vue'
+import InsightsFeed from '~/components/gamification/InsightsFeed.vue'
 import { useGamificationStore } from '~/stores/gamification'
-import { useSupplierOnboarding } from '~/composables/useSupplierOnboarding'
+import { useGamificationApi, type SellerInsight } from '~/composables/useGamification'
+import { useGamificationDashboard, type DashboardData, type CurrentTask } from '~/composables/useGamificationDashboard'
 
 interface CustomerLead {
   id: number
@@ -1194,44 +990,20 @@ const authStore = useAuthStore()
 const sellerApi = useSellerApi()
 const rfqApi = useRfqApi()
 const gamificationStore = useGamificationStore()
-const onboarding = useSupplierOnboarding()
+const gamificationApi = useGamificationApi()
+const dashboardApi = useGamificationDashboard()
 const route = useRoute()
-const { mdAndUp } = useDisplay()
-const lowScoreStatus = computed(() => gamificationStore.lowScoreStatus)
-const lowScoreLoading = computed(() => gamificationStore.loading)
 
-// Define Menu Structure
-const menuItems = [
-  { value: 'home', label: 'صفحه اصلی', icon: 'mdi-home-outline', tour: 'welcome' },
-  { value: 'customerPool', label: 'استخر مشتریان', icon: 'mdi-account-group', tour: '' },
-  { value: 'miniwebsite', label: 'فروشگاه من', icon: 'mdi-web', tour: 'products-tab' },
-  { value: 'chats', label: 'گفتگوها', icon: 'mdi-chat-processing-outline', tour: '' },
-  { value: 'orders', label: 'سفارشات', icon: 'mdi-shopping-outline', tour: '' },
-  { value: 'reviews', label: 'نظرات', icon: 'mdi-star-outline', tour: '' },
-  { value: 'invite', label: 'دعوت و امتیاز', icon: 'mdi-share-variant', tour: '' },
-]
-
-// Computed Logic for "3-Dot" Breakpoint
-const visibleTabs = computed(() => {
-  // On Desktop (mdAndUp): Show all tabs
-  if (mdAndUp.value) return menuItems
-  
-  // On Mobile/Tablet: Show only first 3, put rest in menu
-  return menuItems.slice(0, 3)
-})
-
-const overflowTabs = computed(() => {
-  if (mdAndUp.value) return []
-  return menuItems.slice(3)
-})
+// NEW: Simplified Gamification State
+const dashboardGamification = ref<DashboardData | null>(null)
+const leaderboardData = ref<any[]>([])
+const showCelebration = ref(false)
+const celebrationPoints = ref(0)
+const celebrationMessage = ref('')
 
 const tabQuery = computed(() => route.query.tab as string || 'home')
 const tab = ref(tabQuery.value)
 const miniWebsiteTab = ref('profile')
-const showSetupWidget = ref(false)
-const tourProgress = ref(0)
-const tourTotalSteps = ref(onboarding.getInteractiveTourSteps().length || 1)
-const forceTour = ref(false)
 
 watch(() => route.query.tab, (newTab) => {
   if (newTab && typeof newTab === 'string') {
@@ -1380,15 +1152,46 @@ const closeProductForm = () => {
   editingProduct.value = null
 }
 
-const onProductSaved = () => {
+const onProductSaved = async () => {
   closeProductForm()
   if (productListRef.value && typeof productListRef.value.loadProducts === 'function') {
     productListRef.value.loadProducts()
   }
   loadDashboardData()
-  // Refresh gamification state after product save
-  gamificationStore.hydrate().catch(() => {})
+  // NEW: Complete task and celebrate
+  try {
+    await completeTaskAndCelebrate('products')
+  } catch (e) {
+    console.warn('Failed to complete products task', e)
+  }
   showSnackbar('محصول با موفقیت ذخیره شد', 'success')
+}
+
+const onMiniWebsiteSaved = async () => {
+  // Mini website settings saved
+  try {
+    await completeTaskAndCelebrate('mini_website')
+  } catch (e) {
+    console.warn('Failed to complete mini_website task', e)
+  }
+}
+
+const onPortfolioItemAdded = async () => {
+  // Portfolio item added
+  try {
+    await completeTaskAndCelebrate('portfolio')
+  } catch (e) {
+    console.warn('Failed to complete portfolio task', e)
+  }
+}
+
+const onTeamMemberAdded = async () => {
+  // Team member added
+  try {
+    await completeTaskAndCelebrate('team')
+  } catch (e) {
+    console.warn('Failed to complete team task', e)
+  }
 }
 
 const openEditProductForm = (product: any) => {
@@ -1400,46 +1203,136 @@ const selectChatRoom = (room: any) => {
   selectedChatRoom.value = room
 }
 
-const handleTourStarted = () => {
-  refreshTourState()
-}
-
-const handleTourCompleted = () => {
-  refreshTourState()
-}
-
-const handleTourDismissed = () => {
-  refreshTourState()
-}
-
-const TOUR_COMPLETED_KEY = 'supplier_tour_completed'
-const TOUR_DISMISSED_KEY = 'supplier_tour_dismissed'
-
-const tourCompleted = () => {
-  if (typeof window === 'undefined') return false
-  return localStorage.getItem(TOUR_COMPLETED_KEY) === 'true'
-}
-
-const tourDismissed = () => {
-  if (typeof window === 'undefined') return false
-  return localStorage.getItem(TOUR_DISMISSED_KEY) === 'true'
-}
-
-const refreshTourState = () => {
-  if (typeof window === 'undefined') return
-  tourProgress.value = onboarding.getTourProgress()
-  showSetupWidget.value = !tourCompleted() && (tourProgress.value > 0 || tourDismissed() || onboarding.shouldShowTour())
-}
-
-const resumeTour = () => {
-  onboarding.startTour(
-    () => {
-      refreshTourState()
-    },
-    () => {
-      refreshTourState()
+// NEW: Dashboard Gamification Data Loading
+const loadDashboardGamification = async () => {
+  try {
+    console.log('[Dashboard] Loading gamification data...')
+    const result = await dashboardApi.fetchDashboardData()
+    if (result.error.value) {
+      console.error('[Dashboard] Failed to load dashboard gamification:', result.error.value)
+      // Set empty data to prevent null access errors
+      dashboardGamification.value = {
+        status: {
+          tier: 'inactive',
+          tier_display: 'غیرفعال',
+          tier_color: 'grey',
+          rank: null,
+          total_points: 0,
+          reputation_score: 0,
+          current_streak_days: 0,
+          avg_response_minutes: 0
+        },
+        progress: {
+          overall_percentage: 0,
+          milestones: [],
+          required_steps_completed: 0,
+          total_required_steps: 5
+        },
+        current_task: null,
+        leaderboard_position: null
+      }
+      return
     }
-  )
+    if (result.data.value) {
+      console.log('[Dashboard] Gamification data loaded:', result.data.value)
+      dashboardGamification.value = result.data.value
+      // Also load leaderboard for the section
+      await loadLeaderboard()
+    }
+  } catch (error) {
+    console.error('[Dashboard] Error loading dashboard gamification:', error)
+    // Set empty data to prevent null access errors
+    dashboardGamification.value = {
+      status: {
+        tier: 'inactive',
+        tier_display: 'غیرفعال',
+        tier_color: 'grey',
+        rank: null,
+        total_points: 0,
+        reputation_score: 0,
+        current_streak_days: 0,
+        avg_response_minutes: 0
+      },
+      progress: {
+        overall_percentage: 0,
+        milestones: [],
+        required_steps_completed: 0,
+        total_required_steps: 5
+      },
+      current_task: null,
+      leaderboard_position: null
+    }
+  }
+}
+
+const loadLeaderboard = async () => {
+  try {
+    const data = await gamificationApi.fetchLeaderboard({ limit: 10 })
+    leaderboardData.value = data.overall || []
+  } catch (error) {
+    console.error('Error loading leaderboard:', error)
+  }
+}
+
+const handleTaskAction = async (task: CurrentTask | null) => {
+  // Guard against null task
+  if (!task) {
+    console.warn('[Dashboard] handleTaskAction called with null task')
+    return
+  }
+
+  // Navigate to the appropriate tab based on task actionUrl
+  const tabMap: Record<string, string> = {
+    'profile': 'miniwebsite',
+    'mini_website': 'miniwebsite',
+    'products': 'miniwebsite',
+    'team': 'miniwebsite',
+    'portfolio': 'miniwebsite',
+    'insights': 'insights',
+    'invite': 'invite'
+  }
+
+  const targetTab = tabMap[task.type] || task.action_url
+
+  // Set the appropriate sub-tab for miniwebsite
+  if (task.type === 'profile') {
+    miniWebsiteTab.value = 'profile'
+  } else if (task.type === 'mini_website') {
+    miniWebsiteTab.value = 'settings'
+  } else if (task.type === 'products') {
+    miniWebsiteTab.value = 'products'
+  } else if (task.type === 'team') {
+    miniWebsiteTab.value = 'team'
+  } else if (task.type === 'portfolio') {
+    miniWebsiteTab.value = 'portfolio'
+  }
+
+  // Navigate to tab
+  tab.value = targetTab
+}
+
+const completeTaskAndCelebrate = async (taskType: string, metadata: Record<string, any> = {}) => {
+  try {
+    const result = await dashboardApi.completeTask(taskType, metadata)
+    if (result.error.value) {
+      console.error('Failed to complete task:', result.error.value)
+      return
+    }
+    
+    if (result.data.value && result.data.value.celebration) {
+      // Show celebration
+      celebrationPoints.value = result.data.value.points_awarded || 0
+      celebrationMessage.value = result.data.value.message || 'عالی! وظیفه تکمیل شد.'
+      showCelebration.value = true
+      
+      // Refresh dashboard data after celebration
+      setTimeout(() => {
+        loadDashboardGamification()
+      }, 500)
+    }
+  } catch (error) {
+    console.error('Error completing task:', error)
+  }
 }
 
 const updateProfile = async () => {
@@ -1453,15 +1346,11 @@ const updateProfile = async () => {
     loadProfileData()
     // Calculate profile score
     calculateProfileScore()
-    // Award profile section and refresh gamification
+    // NEW: Complete task and celebrate
     try {
-      await useApiFetch('gamification/award-section/', {
-        method: 'POST',
-        body: { section: 'profile' }
-      })
-      await gamificationStore.hydrate()
+      await completeTaskAndCelebrate('profile')
     } catch (e) {
-      console.warn('Failed to award profile section', e)
+      console.warn('Failed to complete profile task', e)
     }
   } catch (error: any) {
     console.error('Failed to update profile:', error)
@@ -1479,6 +1368,14 @@ const showSnackbar = (message: string, color = 'success') => {
 
 const orders = ref<SellerOrder[]>([])
 const reviews = ref<SellerReview[]>([])
+const insights = ref<SellerInsight[]>([])
+const insightsLoading = ref(false)
+const insightsLoaded = ref(false)
+const creatingInsight = ref(false)
+const insightsError = ref<string | null>(null)
+const insightComments = ref<Record<number, any[]>>({})
+const insightCommentsLoading = ref<Record<number, boolean>>({})
+const insightCommentsError = ref<Record<number, string | null>>({})
 const recentOrders = ref<any[]>([]) 
 const chatRooms = ref<any[]>([])
 const selectedChatRoom = ref<any>(null)
@@ -1541,8 +1438,6 @@ const loadDashboardData = async () => {
     showSnackbar('خطا در بارگذاری اطلاعات داشبورد', 'error')
   } finally {
     loading.value = false
-    forceTour.value = (dashboardData.value.total_products || 0) === 0 && !tourCompleted()
-    refreshTourState()
   }
 }
 
@@ -1569,6 +1464,122 @@ const loadReviews = async () => {
     showSnackbar('خطا در بارگذاری نظرات', 'error')
   } finally {
     loadingReviews.value = false
+  }
+}
+
+const loadInsights = async () => {
+  insightsLoading.value = true
+  insightsError.value = null
+  try {
+    const data = await gamificationApi.fetchSellerInsights()
+    const results = (data as any)?.results || []
+    insights.value = Array.isArray(results) ? results : []
+    insightsLoaded.value = true
+  } catch (error: any) {
+    console.error('Failed to load insights:', error)
+    insightsError.value = error?.message || 'خطا در بارگذاری بینش‌ها'
+    showSnackbar('خطا در بارگذاری بینش‌ها', 'error')
+  } finally {
+    insightsLoading.value = false
+  }
+}
+
+const handleCreateInsight = async (payload: { title: string; content: string }) => {
+  creatingInsight.value = true
+  try {
+    const created = await gamificationApi.createSellerInsight(payload)
+    const newInsight: SellerInsight = {
+      id: (created as any)?.id || Date.now(),
+      title: (created as any)?.title || payload.title,
+      content: (created as any)?.content || payload.content,
+      author_name: (created as any)?.author_name || getUserFullName(),
+      created_at: (created as any)?.created_at || new Date().toISOString(),
+      likes_count: (created as any)?.likes_count || 0,
+      liked_by_me: false,
+      comments_count: (created as any)?.comments_count || 0
+    }
+    insights.value = [newInsight, ...insights.value]
+    showSnackbar('بینش شما به صورت عمومی منتشر شد و برای خریداران قابل مشاهده است', 'success')
+    
+    // NEW: Complete task and celebrate
+    try {
+      await completeTaskAndCelebrate('insights', { insight_id: newInsight.id })
+    } catch (e) {
+      console.warn('Failed to complete insights task', e)
+    }
+  } catch (error: any) {
+    console.error('Failed to create insight:', error)
+    showSnackbar(error?.message || 'ثبت بینش ناموفق بود', 'error')
+  } finally {
+    creatingInsight.value = false
+  }
+}
+
+const updateInsightState = (insightId: number, patch: Partial<SellerInsight>) => {
+  const idx = insights.value.findIndex((item) => item.id === insightId)
+  if (idx !== -1) {
+    insights.value.splice(idx, 1, { ...insights.value[idx], ...patch })
+  }
+}
+
+const handleLikeInsight = async (insightId: number) => {
+  try {
+    const res = await gamificationApi.likeSellerInsight(insightId)
+    updateInsightState(insightId, {
+      liked_by_me: (res as any)?.liked,
+      likes_count: (res as any)?.likes_count ?? 0
+    })
+  } catch (error: any) {
+    console.error('Failed to like insight:', error)
+    showSnackbar(error?.message || 'خطا در ثبت لایک', 'error')
+  }
+}
+
+const loadInsightComments = async (insightId: number) => {
+  if (insightCommentsLoading.value[insightId]) return
+  insightCommentsLoading.value = { ...insightCommentsLoading.value, [insightId]: true }
+  insightCommentsError.value = { ...insightCommentsError.value, [insightId]: null }
+  try {
+    const data = await gamificationApi.fetchSellerInsightComments(insightId)
+    const results = (data as any)?.results || []
+    insightComments.value = { ...insightComments.value, [insightId]: Array.isArray(results) ? results : [] }
+  } catch (error: any) {
+    console.error('Failed to load insight comments:', error)
+    insightCommentsError.value = {
+      ...insightCommentsError.value,
+      [insightId]: error?.message || 'خطا در بارگذاری دیدگاه‌ها'
+    }
+  } finally {
+    insightCommentsLoading.value = { ...insightCommentsLoading.value, [insightId]: false }
+  }
+}
+
+const handleCreateInsightComment = async (payload: { id: number; content: string }) => {
+  const { id, content } = payload
+  insightCommentsLoading.value = { ...insightCommentsLoading.value, [id]: true }
+  insightCommentsError.value = { ...insightCommentsError.value, [id]: null }
+  try {
+    const created = await gamificationApi.createSellerInsightComment(id, content)
+    const newComment = {
+      id: (created as any)?.id || Date.now(),
+      content: (created as any)?.content || content,
+      author_name: (created as any)?.author_name || getUserFullName(),
+      created_at: (created as any)?.created_at || new Date().toISOString()
+    }
+    const existing = insightComments.value[id] || []
+    insightComments.value = { ...insightComments.value, [id]: [...existing, newComment] }
+    updateInsightState(id, {
+      comments_count: (existing.length + 1)
+    })
+    showSnackbar('دیدگاه شما به صورت عمومی ثبت شد', 'success')
+  } catch (error: any) {
+    console.error('Failed to add comment:', error)
+    insightCommentsError.value = {
+      ...insightCommentsError.value,
+      [id]: error?.message || 'ثبت دیدگاه ناموفق بود'
+    }
+  } finally {
+    insightCommentsLoading.value = { ...insightCommentsLoading.value, [id]: false }
   }
 }
 
@@ -1711,6 +1722,8 @@ watch(tab, async (newTab) => {
     await loadOrders()
   } else if (newTab === 'reviews' && reviews.value.length === 0 && !loadingReviews.value) {
     await loadReviews()
+  } else if (newTab === 'insights' && !insightsLoaded.value && !insightsLoading.value) {
+    await loadInsights()
   } else if (newTab === 'customerPool' && myCustomerPool.value.length === 0 && !loadingMyCustomer.value) {
     await loadMyCustomerPool()
   } else if (newTab === 'chats' && chatRooms.value.length === 0 && !loadingChats.value) {
@@ -1721,7 +1734,7 @@ watch(tab, async (newTab) => {
 // Gamification: Hydrate store on mount
 onMounted(async () => {
   try {
-    await gamificationStore.hydrate()
+    await loadDashboardGamification()
   } catch (error) {
     console.warn('Failed to load gamification data', error)
   }
@@ -1740,6 +1753,9 @@ onMounted(async () => {
   if (tab.value === 'chats') {
     await loadChatRooms()
   }
+  if (tab.value === 'insights') {
+    await loadInsights()
+  }
 })
 
 // Gamification: Sync profile score with store
@@ -1757,7 +1773,7 @@ watch(profileScore, (score) => {
 
 <style scoped>
 .seller-dashboard {
-  padding-top: 96px !important;
+  padding-top: 140px !important;
   padding-bottom: 32px;
 }
 
@@ -1769,13 +1785,13 @@ watch(profileScore, (score) => {
 /* Responsive spacing adjustments */
 @media (max-width: 960px) {
   .seller-dashboard {
-    padding-top: 88px !important;
+    padding-top: 120px !important;
   }
 }
 
 @media (max-width: 600px) {
   .seller-dashboard {
-    padding-top: 80px !important;
+    padding-top: 112px !important;
     padding-bottom: 24px;
   }
 }

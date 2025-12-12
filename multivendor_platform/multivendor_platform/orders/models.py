@@ -50,6 +50,15 @@ class Order(models.Model):
     response_points_awarded = models.BooleanField(default=False)
     response_speed_bucket = models.CharField(max_length=20, blank=True, null=True, help_text="Speed category (sub_1h, sub_4h, sub_24h)")
     
+    # Commission tracking
+    commission_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0, help_text="Commission amount for this order")
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Commission rate applied (%)")
+    commission_paid = models.BooleanField(default=False, help_text="Whether commission has been deducted")
+    commission_paid_at = models.DateTimeField(blank=True, null=True, help_text="When commission was paid/deducted")
+    vendor_payout_amount = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, help_text="Amount to be paid to vendor after commission")
+    vendor_paid = models.BooleanField(default=False, help_text="Whether vendor has been paid")
+    vendor_paid_at = models.DateTimeField(blank=True, null=True, help_text="When vendor was paid")
+    
     class Meta:
         ordering = ['-created_at']
     
@@ -67,6 +76,81 @@ class Order(models.Model):
             prefix = "RFQ" if self.is_rfq else "ORD"
             self.order_number = f"{prefix}-{uuid.uuid4().hex[:10].upper()}"
         super().save(*args, **kwargs)
+    
+    def calculate_commission(self):
+        """
+        Calculate commission for this order based on vendor's pricing tier.
+        Returns (commission_amount, commission_rate, vendor_payout_amount)
+        """
+        if not self.total_amount or self.total_amount <= 0:
+            return 0, 0, 0
+        
+        # Get the vendor from order items (assumes single vendor per order)
+        first_item = self.items.first()
+        if not first_item or not first_item.seller:
+            return 0, 0, 0
+        
+        vendor = first_item.seller
+        
+        try:
+            from users.models import VendorSubscription
+            subscription = VendorSubscription.objects.get(user=vendor)
+            
+            if not subscription.tier.is_commission_based:
+                return 0, 0, self.total_amount
+            
+            # Calculate commission based on order amount
+            commission_amount = subscription.tier.calculate_commission(self.total_amount)
+            commission_rate = (
+                subscription.tier.commission_rate_high 
+                if self.total_amount >= (subscription.tier.commission_threshold or 0) 
+                else subscription.tier.commission_rate_low
+            )
+            vendor_payout = self.total_amount - commission_amount
+            
+            return commission_amount, commission_rate, vendor_payout
+        except:
+            return 0, 0, self.total_amount
+    
+    def apply_commission(self):
+        """Apply commission calculation to order fields."""
+        commission_amount, commission_rate, vendor_payout = self.calculate_commission()
+        self.commission_amount = commission_amount
+        self.commission_rate = commission_rate
+        self.vendor_payout_amount = vendor_payout
+        self.save(update_fields=['commission_amount', 'commission_rate', 'vendor_payout_amount'])
+    
+    def mark_vendor_paid(self):
+        """Mark vendor as paid and record commission."""
+        from django.utils import timezone
+        from users.models import VendorSubscription
+        
+        if self.vendor_paid:
+            return  # Already paid
+        
+        # Get vendor
+        first_item = self.items.first()
+        if not first_item or not first_item.seller:
+            return
+        
+        vendor = first_item.seller
+        
+        try:
+            subscription = VendorSubscription.objects.get(user=vendor)
+            if subscription.tier.is_commission_based and self.commission_amount > 0:
+                # Record commission in subscription
+                subscription.record_commission_sale(
+                    self.total_amount,
+                    self.commission_amount
+                )
+                self.commission_paid = True
+                self.commission_paid_at = timezone.now()
+        except:
+            pass
+        
+        self.vendor_paid = True
+        self.vendor_paid_at = timezone.now()
+        self.save(update_fields=['vendor_paid', 'vendor_paid_at', 'commission_paid', 'commission_paid_at'])
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')

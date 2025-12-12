@@ -787,6 +787,246 @@ class GamificationService:
 
         return newly_awarded
 
+    # ------------------------------------------------------------------
+    # Task sequencing and progress tracking
+    # ------------------------------------------------------------------
+    def get_overall_progress(self) -> Dict[str, any]:
+        """
+        Calculate overall completion percentage and milestone progress.
+        Returns progress data for the LinkedIn-style progress bar.
+        """
+        if not self.vendor_profile:
+            return {
+                'overall_percentage': 0,
+                'milestones': [],
+                'required_steps_completed': 0,
+                'total_required_steps': 5
+            }
+        
+        # Calculate scores for each section
+        profile_score_data = self.compute_profile_score()
+        mini_website_score_data = self.compute_mini_site_score()
+        portfolio_score_data = self.compute_portfolio_score()
+        team_score_data = self.compute_team_score()
+        
+        # Count products
+        product_count = Product.objects.filter(vendor=self.vendor_profile.user).count()
+        products_completed = product_count >= 3
+        products_score = min(100, int((product_count / 3) * 100))
+        
+        # Define milestones with completion criteria
+        milestones = [
+            {
+                'name': 'profile',
+                'title': 'تکمیل پروفایل',
+                'completed': profile_score_data.get('score', 0) >= 70,
+                'score': profile_score_data.get('score', 0),
+                'order': 1
+            },
+            {
+                'name': 'miniWebsite',
+                'title': 'تنظیمات فروشگاه',
+                'completed': mini_website_score_data.get('score', 0) >= 70,
+                'score': mini_website_score_data.get('score', 0),
+                'order': 2
+            },
+            {
+                'name': 'products',
+                'title': 'افزودن محصولات',
+                'completed': products_completed,
+                'score': products_score,
+                'order': 3,
+                'current': product_count,
+                'target': 3
+            },
+            {
+                'name': 'team',
+                'title': 'معرفی تیم',
+                'completed': self.vendor_profile.team_members.count() >= 1,
+                'score': 100 if self.vendor_profile.team_members.count() >= 1 else 0,
+                'order': 4,
+                'current': self.vendor_profile.team_members.count(),
+                'target': 1
+            },
+            {
+                'name': 'portfolio',
+                'title': 'نمونه کارها',
+                'completed': self.vendor_profile.portfolio_items.count() >= 1,
+                'score': 100 if self.vendor_profile.portfolio_items.count() >= 1 else 0,
+                'order': 5,
+                'current': self.vendor_profile.portfolio_items.count(),
+                'target': 1
+            }
+        ]
+        
+        # Count completed required steps
+        required_steps_completed = sum(1 for m in milestones if m['completed'])
+        
+        # Calculate overall percentage (average of all milestone scores)
+        total_score = sum(m['score'] for m in milestones)
+        overall_percentage = int(total_score / len(milestones)) if milestones else 0
+        
+        return {
+            'overall_percentage': overall_percentage,
+            'milestones': milestones,
+            'required_steps_completed': required_steps_completed,
+            'total_required_steps': 5
+        }
+    
+    def get_current_task(self) -> Dict[str, any]:
+        """
+        Determine the next task user should complete.
+        Uses smart prioritization: sequential for required steps, then rotation for engagement.
+        """
+        if not self.vendor_profile:
+            return None
+        
+        # Get progress data
+        progress = self.get_overall_progress()
+        milestones = progress['milestones']
+        
+        # Check required steps in sequence
+        for milestone in sorted(milestones, key=lambda x: x['order']):
+            if not milestone['completed']:
+                return self._create_task_for_milestone(milestone)
+        
+        # All required steps completed - show engagement actions
+        return self._get_engagement_task()
+    
+    def _create_task_for_milestone(self, milestone: Dict) -> Dict[str, any]:
+        """Create a task object for a given milestone."""
+        task_configs = {
+            'profile': {
+                'type': 'profile',
+                'title': 'تکمیل پروفایل شما',
+                'description': 'پروفایل کامل، اعتماد بیشتر مشتریان. نام، ایمیل و شماره تماس خود را وارد کنید.',
+                'action_url': 'profile',
+                'points': 50,
+                'icon': 'mdi-account-circle'
+            },
+            'miniWebsite': {
+                'type': 'mini_website',
+                'title': 'تنظیمات فروشگاه آنلاین',
+                'description': 'فروشگاه حرفه‌ای، جذب مشتری بیشتر. نام فروشگاه، توضیحات و تصویر بنر اضافه کنید.',
+                'action_url': 'miniwebsite',
+                'points': 75,
+                'icon': 'mdi-store'
+            },
+            'products': {
+                'type': 'products',
+                'title': 'افزودن محصولات',
+                'description': 'محصولات با توضیحات دقیق، فروش بیشتر. حداقل ۳ محصول با تصویر و قیمت اضافه کنید.',
+                'action_url': 'products',
+                'points': 100,
+                'icon': 'mdi-package-variant',
+                'current_progress': milestone.get('current', 0),
+                'target_progress': milestone.get('target', 3)
+            },
+            'team': {
+                'type': 'team',
+                'title': 'معرفی تیم شما',
+                'description': 'نمایش تیم، حرفه‌ای‌تر به نظر می‌رسید. حداقل یک نفر از اعضای تیم را معرفی کنید.',
+                'action_url': 'team',
+                'points': 50,
+                'icon': 'mdi-account-group'
+            },
+            'portfolio': {
+                'type': 'portfolio',
+                'title': 'نمونه کارهای شما',
+                'description': 'نمونه کارها، اعتبار شما را نشان می‌دهد. حداقل یک پروژه موفق خود را به نمایش بگذارید.',
+                'action_url': 'portfolio',
+                'points': 50,
+                'icon': 'mdi-briefcase'
+            }
+        }
+        
+        config = task_configs.get(milestone['name'], {})
+        return {
+            **config,
+            'is_required': True,
+            'milestone_name': milestone['name']
+        }
+    
+    def _get_engagement_task(self) -> Dict[str, any]:
+        """
+        Get an engagement task after all required steps are completed.
+        Rotates between: invite peers, share insights, improve products/website.
+        """
+        from .models import SellerInsight
+        
+        # Count current engagements
+        invitations_count = Invitation.objects.filter(
+            inviter=self.vendor_profile,
+            status='accepted'
+        ).count()
+        
+        insights_count = SellerInsight.objects.filter(
+            vendor_profile=self.vendor_profile
+        ).count()
+        
+        product_score = self.compute_product_score().get('score', 0)
+        mini_website_score = self.compute_mini_site_score().get('score', 0)
+        
+        # Priority: insights < invites < product improvement < website improvement
+        if insights_count < 3:
+            return {
+                'type': 'insights',
+                'title': 'اشتراک تجربه با دیگران',
+                'description': 'تجربیات خود را با سایر فروشندگان به اشتراک بگذارید و ۱۵ امتیاز دریافت کنید.',
+                'action_url': 'insights',
+                'points': 15,
+                'is_required': False,
+                'icon': 'mdi-lightbulb-on',
+                'current_progress': insights_count,
+                'target_progress': 3
+            }
+        
+        if invitations_count < 5:
+            return {
+                'type': 'invite',
+                'title': 'دعوت همکاران',
+                'description': 'همکاران خود را به پلتفرم دعوت کنید و برای هر دعوت موفق ۱۰۰ امتیاز دریافت کنید.',
+                'action_url': 'invite',
+                'points': 100,
+                'is_required': False,
+                'icon': 'mdi-account-multiple-plus',
+                'current_progress': invitations_count,
+                'target_progress': 5
+            }
+        
+        if product_score < 80:
+            return {
+                'type': 'products',
+                'title': 'بهبود محصولات',
+                'description': 'محصولات خود را با توضیحات بهتر، تصاویر بیشتر و اطلاعات کامل‌تر بهبود دهید.',
+                'action_url': 'products',
+                'points': 20,
+                'is_required': False,
+                'icon': 'mdi-package-variant-closed'
+            }
+        
+        if mini_website_score < 80:
+            return {
+                'type': 'mini_website',
+                'title': 'بهبود فروشگاه',
+                'description': 'فروشگاه خود را با افزودن گواهینامه‌ها، جوایز و شبکه‌های اجتماعی کامل‌تر کنید.',
+                'action_url': 'miniwebsite',
+                'points': 15,
+                'is_required': False,
+                'icon': 'mdi-store-edit'
+            }
+        
+        # Default: Add more products
+        return {
+            'type': 'products',
+            'title': 'افزودن محصول جدید',
+            'description': 'محصولات بیشتر، فرصت فروش بیشتر. یک محصول جدید اضافه کنید.',
+            'action_url': 'products',
+            'points': 20,
+            'is_required': False,
+            'icon': 'mdi-plus-circle'
+        }
+
 
 def flag_review_velocity_if_needed(review_obj, reviewer, vendor_profile) -> bool:
     """

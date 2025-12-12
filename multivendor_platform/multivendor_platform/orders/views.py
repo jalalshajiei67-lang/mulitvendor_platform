@@ -8,7 +8,7 @@ from .models import Order, OrderItem, OrderImage, OrderVendorView
 from .serializers import OrderSerializer, CreateRFQSerializer, AdminCreateRFQSerializer
 from products.models import Product, Category
 from gamification.services import GamificationService
-from users.models import Supplier
+from users.models import Supplier, VendorSubscription
 
 @api_view(['POST'])
 @permission_classes([AllowAny])  # Allow anonymous submissions
@@ -382,11 +382,30 @@ def vendor_rfq_reveal_view(request, rfq_id):
     if not (rfq.is_free or owns_product or matches_category or is_selected_supplier):
         return Response({'detail': 'You are not allowed to view this lead'}, status=status.HTTP_403_FORBIDDEN)
 
+    subscription = VendorSubscription.for_user(request.user)
+    existing_view = OrderVendorView.objects.filter(order=rfq, vendor=request.user).first()
+    can_unlock, next_unlock_at = subscription.can_unlock_customer()
+
+    # Enforce daily unlock limit only for new reveals
+    if not existing_view and not can_unlock:
+        return Response(
+            {
+                'detail': 'حداکثر یک مشتری جدید در هر ۲۴ ساعت برای پلن رایگان مجاز است.',
+                'next_unlock_at': next_unlock_at,
+                'tier': subscription.tier.slug,
+            },
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
     if not rfq.first_viewed_at:
         rfq.first_viewed_at = timezone.now()
         rfq.save(update_fields=['first_viewed_at'])
 
-    OrderVendorView.objects.get_or_create(order=rfq, vendor=request.user)
+    if not existing_view:
+        OrderVendorView.objects.create(order=rfq, vendor=request.user)
+        subscription.register_customer_unlock()
+        # After registering, compute the next window for client display
+        can_unlock, next_unlock_at = subscription.can_unlock_customer()
 
     serializer = OrderSerializer(
         rfq,
@@ -396,7 +415,17 @@ def vendor_rfq_reveal_view(request, rfq_id):
             'contact_revealed': True
         }
     )
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    data = serializer.data
+    data['subscription'] = {
+        'tier_slug': subscription.tier.slug,
+        'tier_name': subscription.tier.name,
+        'daily_customer_unlock_limit': subscription.tier.daily_customer_unlock_limit,
+        'can_unlock_now': can_unlock,
+        'next_unlock_at': next_unlock_at,
+        'last_customer_unlock_at': subscription.last_customer_unlock_at,
+    }
+    data['lead_shared'] = subscription.tier.lead_exclusivity == 'shared'
+    return Response(data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])

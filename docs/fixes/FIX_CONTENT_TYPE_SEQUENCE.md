@@ -52,3 +52,5 @@ docker exec multivendor_backend_staging python manage.py migrate
 
 The updated `fix_migration_sequence` command will automatically fix both sequences. After deploying the new code, it will handle this automatically.
 
+
+

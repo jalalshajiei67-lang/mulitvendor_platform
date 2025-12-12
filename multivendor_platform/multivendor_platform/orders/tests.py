@@ -1,7 +1,9 @@
 from django.test import TestCase, Client
+from django.urls import reverse
 from django.contrib.auth import get_user_model
 from .models import Order, OrderItem, Payment
 from products.models import Product, Category
+from users.models import VendorSubscription
 from decimal import Decimal
 
 User = get_user_model()
@@ -225,3 +227,94 @@ class OrderAPITest(TestCase):
         from orders.models import Order
         orders = Order.objects.all()
         self.assertEqual(orders.count(), 0)  # No orders initially
+
+
+class VendorRFQRevealQuotaTests(TestCase):
+    """Ensure free-tier vendors are limited to one new customer reveal per 24h."""
+
+    def setUp(self):
+        self.client = Client()
+        self.vendor = User.objects.create_user(
+            username='vendor',
+            email='vendor@example.com',
+            password='pass123'
+        )
+        self.category = Category.objects.create(name='Industrial')
+        self.product = Product.objects.create(
+            name='Bolt',
+            description='Test bolt',
+            price=Decimal('10.00'),
+            vendor=self.vendor,
+            primary_category=self.category,
+            stock=5,
+            approval_status=Product.APPROVAL_STATUS_APPROVED,
+        )
+
+        # RFQ 1
+        self.rfq1 = Order.objects.create(
+            is_rfq=True,
+            status='pending',
+            category=self.category,
+            first_name='Ali',
+            last_name='Test',
+            company_name='Company One',
+            phone_number='09120000000',
+        )
+        OrderItem.objects.create(
+            order=self.rfq1,
+            product=self.product,
+            quantity=1,
+            price=Decimal('10.00'),
+        )
+
+        # RFQ 2 (second lead)
+        self.rfq2 = Order.objects.create(
+            is_rfq=True,
+            status='pending',
+            category=self.category,
+            first_name='Reza',
+            last_name='Sample',
+            company_name='Company Two',
+            phone_number='09123333333',
+        )
+        OrderItem.objects.create(
+            order=self.rfq2,
+            product=self.product,
+            quantity=1,
+            price=Decimal('10.00'),
+        )
+
+    def test_first_reveal_allowed_and_shared_flag_returned(self):
+        self.client.login(username='vendor', password='pass123')
+        url = reverse('vendor-rfq-reveal', args=[self.rfq1.id])
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        self.assertTrue(data.get('lead_shared'))
+        subscription = data.get('subscription', {})
+        self.assertEqual(subscription.get('tier_slug'), 'free')
+        self.assertIsNotNone(subscription.get('last_customer_unlock_at'))
+
+        # Re-revealing the same RFQ should remain allowed and not consume a new quota
+        response_repeat = self.client.post(url)
+        self.assertEqual(response_repeat.status_code, 200)
+
+    def test_second_new_reveal_blocked_within_24_hours(self):
+        self.client.login(username='vendor', password='pass123')
+        first_url = reverse('vendor-rfq-reveal', args=[self.rfq1.id])
+        second_url = reverse('vendor-rfq-reveal', args=[self.rfq2.id])
+
+        first_response = self.client.post(first_url)
+        self.assertEqual(first_response.status_code, 200)
+
+        second_response = self.client.post(second_url)
+        self.assertEqual(second_response.status_code, 429)
+
+        # Next unlock time hint should be present for UX
+        payload = second_response.json()
+        self.assertIn('next_unlock_at', payload)
+
+        # Subscription record should be stored and marked with a last unlock timestamp
+        subscription = VendorSubscription.for_user(self.vendor)
+        self.assertIsNotNone(subscription.last_customer_unlock_at)

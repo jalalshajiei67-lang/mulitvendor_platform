@@ -18,6 +18,8 @@ from .models import (
     Endorsement,
     InvitationBlockLog,
     ReviewFlagLog,
+    SellerInsight,
+    SellerInsightComment,
 )
 from .serializers import (
     ScoreSerializer,
@@ -27,6 +29,8 @@ from .serializers import (
     PointsHistorySerializer,
     InvitationSerializer,
     EndorsementSerializer,
+    SellerInsightSerializer,
+    SellerInsightCommentSerializer,
 )
 from .services import GamificationService, _get_vendor_profile
 from users.models import SupplierComment, ProductReview
@@ -607,6 +611,108 @@ class EndorseInviterView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class SellerInsightListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        limit = int(request.query_params.get('limit', 20))
+        offset = int(request.query_params.get('offset', 0))
+        qs = (
+            SellerInsight.objects.select_related('vendor_profile__user')
+            .prefetch_related('likes', 'comments')
+            .order_by('-created_at')
+        )
+        total = qs.count()
+        insights = qs[offset: offset + limit]
+        serializer = SellerInsightSerializer(insights, many=True, context={'request': request})
+        return Response({
+            'count': total,
+            'results': serializer.data,
+            'limit': limit,
+            'offset': offset,
+        })
+
+    def post(self, request):
+        service = GamificationService.for_user(request.user)
+        if not service.vendor_profile:
+            return Response({'detail': 'فروشنده یافت نشد'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = SellerInsightSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        insight = serializer.save(vendor_profile=service.vendor_profile)
+        # Award points for sharing insight
+        service.add_points('insight_share', 15, metadata={'insight_id': insight.id})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class SellerInsightLikeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk: int):
+        try:
+            insight = SellerInsight.objects.select_related('vendor_profile').get(pk=pk)
+        except SellerInsight.DoesNotExist:
+            return Response({'detail': 'بینش یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+
+        liked = insight.likes.filter(pk=request.user.pk).exists()
+        if liked:
+            insight.likes.remove(request.user)
+            liked = False
+        else:
+            insight.likes.add(request.user)
+            liked = True
+            # Award points to author when someone else likes their insight
+            if insight.vendor_profile and insight.vendor_profile.user != request.user:
+                GamificationService(insight.vendor_profile).add_points(
+                    'insight_like',
+                    5,
+                    metadata={'insight_id': insight.id, 'liked_by': request.user.id}
+                )
+
+        return Response({'liked': liked, 'likes_count': insight.likes.count()})
+
+
+class SellerInsightCommentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk: int):
+        limit = int(request.query_params.get('limit', 20))
+        offset = int(request.query_params.get('offset', 0))
+        try:
+            insight = SellerInsight.objects.get(pk=pk)
+        except SellerInsight.DoesNotExist:
+            return Response({'detail': 'بینش یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+
+        comments_qs = insight.comments.select_related('vendor_profile__user').order_by('created_at')
+        total = comments_qs.count()
+        comments = comments_qs[offset: offset + limit]
+        serializer = SellerInsightCommentSerializer(comments, many=True, context={'request': request})
+        return Response({
+            'count': total,
+            'results': serializer.data,
+            'limit': limit,
+            'offset': offset,
+        })
+
+    def post(self, request, pk: int):
+        service = GamificationService.for_user(request.user)
+        if not service.vendor_profile:
+            return Response({'detail': 'فروشنده یافت نشد'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            insight = SellerInsight.objects.get(pk=pk)
+        except SellerInsight.DoesNotExist:
+            return Response({'detail': 'بینش یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = SellerInsightCommentSerializer(
+            data={**request.data, 'insight': insight.id},
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        comment = serializer.save(vendor_profile=service.vendor_profile)
+        # Award points to commenter
+        service.add_points('insight_comment', 5, metadata={'insight_id': insight.id, 'comment_id': comment.id})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
 class AdminGamificationFlagsView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -742,3 +848,117 @@ class AdminGamificationFlagActionView(APIView):
         block.resolved_by = admin_user
         block.save(update_fields=['resolved', 'resolved_at', 'resolved_by'])
         return Response({'detail': 'رکورد رسیدگی شد', 'id': block.id})
+
+
+class GamificationDashboardView(APIView):
+    """
+    Single endpoint returning all dashboard data for the simplified gamification dashboard.
+    Returns status, progress, current task, and leaderboard position.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        service = GamificationService.for_user(request.user)
+        if not service.vendor_profile:
+            return Response({'detail': 'فروشنده یافت نشد'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        engagement = service.get_or_create_engagement()
+        
+        # Calculate tier and rank
+        tier = service.calculate_tier()
+        
+        # Get all engagements for ranking
+        all_engagements = list(
+            SupplierEngagement.objects.select_related('vendor_profile')
+            .order_by('-total_points', 'id')
+        )
+        
+        user_rank = None
+        for idx, eng in enumerate(all_engagements, start=1):
+            if eng.id == engagement.id:
+                user_rank = idx
+                break
+        
+        # Get progress and current task
+        progress = service.get_overall_progress()
+        current_task = service.get_current_task()
+        
+        return Response({
+            'status': {
+                'tier': tier,
+                'tier_display': service.get_tier_display_name(tier),
+                'tier_color': service.get_tier_color(tier),
+                'rank': user_rank,
+                'total_points': engagement.total_points if engagement else 0,
+                'reputation_score': engagement.reputation_score if engagement else 0,
+                'current_streak_days': engagement.current_streak_days if engagement else 0,
+                'avg_response_minutes': engagement.avg_response_minutes if engagement else 0,
+            },
+            'progress': progress,
+            'current_task': current_task,
+            'leaderboard_position': user_rank
+        })
+
+
+class CompleteTaskView(APIView):
+    """
+    Mark task as completed, award points, return celebration data and next task.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        task_type = request.data.get('task_type')
+        metadata = request.data.get('metadata', {})
+        
+        if not task_type:
+            return Response({'detail': 'نوع وظیفه الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        service = GamificationService.for_user(request.user)
+        if not service.vendor_profile:
+            return Response({'detail': 'فروشنده یافت نشد'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Map task types to point values and reasons
+        task_points = {
+            'profile': 50,
+            'mini_website': 75,
+            'products': 20,  # Per product or improvement
+            'team': 50,
+            'portfolio': 50,
+            'invite': 100,
+            'insights': 15
+        }
+        
+        points_awarded = task_points.get(task_type, 0)
+        
+        # Award points if not already awarded for this specific action
+        if points_awarded > 0:
+            # Check if this is a unique action (e.g., adding a new product vs improving existing)
+            should_award = True
+            
+            if task_type in ['profile', 'mini_website']:
+                # For profile and mini_website, check if section score improved
+                section_name = 'profile' if task_type == 'profile' else 'miniWebsite'
+                awarded_points = service.award_section_completion_points(section_name)
+                points_awarded = awarded_points
+                should_award = awarded_points > 0
+            
+            if should_award and task_type not in ['profile', 'mini_website']:
+                service.add_points(
+                    reason='section_completion' if task_type in ['team', 'portfolio'] else task_type,
+                    points=points_awarded,
+                    metadata={**metadata, 'task_type': task_type}
+                )
+        
+        # Get next task after completion
+        next_task = service.get_current_task()
+        
+        # Get updated progress
+        progress = service.get_overall_progress()
+        
+        return Response({
+            'points_awarded': points_awarded,
+            'celebration': points_awarded > 0,
+            'next_task': next_task,
+            'progress': progress,
+            'message': f'عالی! {points_awarded} امتیاز دریافت کردید.' if points_awarded > 0 else 'وظیفه ثبت شد.'
+        })

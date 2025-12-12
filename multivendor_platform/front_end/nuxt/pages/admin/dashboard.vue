@@ -1858,6 +1858,19 @@ onMounted(() => {
 <style scoped>
 .admin-dashboard-wrapper {
   min-height: 100vh;
+  padding-top: 80px;
+}
+
+@media (max-width: 960px) {
+  .admin-dashboard-wrapper {
+    padding-top: 72px;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-dashboard-wrapper {
+    padding-top: 72px;
+  }
 }
 
 .stat-card {

@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid>
+  <v-container fluid class="admin-chats-page">
     <v-row>
       <v-col cols="12">
         <h1 class="text-h4 mb-4">مدیریت گفتگوها</h1>
@@ -205,6 +205,22 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.admin-chats-page {
+  padding-top: 80px;
+}
+
+@media (max-width: 960px) {
+  .admin-chats-page {
+    padding-top: 72px;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-chats-page {
+    padding-top: 72px;
+  }
+}
+
 .v-list-item {
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
   cursor: pointer;

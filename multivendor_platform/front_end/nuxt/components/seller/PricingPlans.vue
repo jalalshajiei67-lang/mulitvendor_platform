@@ -1,5 +1,10 @@
 <template>
   <v-container class="pricing-plans" fluid dir="rtl">
+    <!-- Commission Plan Activation Dialog -->
+    <CommissionPlanActivation
+      v-model="showCommissionDialog"
+      @success="handleCommissionSuccess"
+    />
     <!-- Hero block for dashboard context -->
     <v-card class="hero-card rounded-2xl mb-6" elevation="0">
       <v-card-text class="py-6 px-4 px-md-8 d-flex flex-column flex-md-row align-center justify-space-between gap-4">
@@ -58,7 +63,7 @@
     </v-card>
 
     <v-row class="mb-4" dense>
-      <v-col cols="12" md="6">
+      <v-col cols="12" md="4">
         <v-card
           :elevation="selectedPlan === 'free' ? 8 : 2"
           class="rounded-2xl h-100"
@@ -147,7 +152,7 @@
         </v-card>
       </v-col>
 
-      <v-col cols="12" md="6">
+      <v-col cols="12" md="4">
         <v-card
           :elevation="selectedPlan === 'premium' ? 10 : 4"
           class="rounded-2xl overflow-hidden premium-card h-100"
@@ -260,6 +265,166 @@
           </v-card-text>
         </v-card>
       </v-col>
+
+      <v-col cols="12" md="4">
+        <v-card
+          :elevation="selectedPlan === 'commission' ? 10 : 4"
+          class="rounded-2xl overflow-hidden commission-card h-100"
+          :class="[
+            selectedPlan === 'commission' ? 'border-success' : 'border-success-light',
+            !commissionPlanStatus?.is_ready && 'commission-inactive'
+          ]"
+          :style="!commissionPlanStatus?.is_ready ? { opacity: 0.7 } : {}"
+        >
+          <!-- Inactive Badge -->
+          <div v-if="!commissionPlanStatus?.is_ready" class="inactive-badge">
+            <v-chip
+              color="warning"
+              text-color="white"
+              variant="flat"
+              prepend-icon="mdi-alert-circle"
+              size="small"
+            >
+              غیرفعال
+            </v-chip>
+          </div>
+          
+          <div class="commission-ribbon">
+            <div class="d-flex align-center gap-2">
+              <v-icon size="16" class="ml-1">mdi-percent</v-icon>
+              <span>بدون هزینه ماهانه</span>
+            </div>
+            <v-chip
+              color="white"
+              text-color="green-darken-3"
+              variant="flat"
+              prepend-icon="mdi-handshake"
+              size="x-small"
+              class="mt-2"
+            >
+              قراردادی
+            </v-chip>
+          </div>
+          <v-card-text 
+            class="pa-6 commission-hero"
+            :class="{ 'commission-hero-inactive': !commissionPlanStatus?.is_ready }"
+          >
+            <div class="d-flex align-center gap-3">
+              <v-avatar size="48" color="white" variant="tonal">
+                <v-icon color="white">mdi-handshake-outline</v-icon>
+              </v-avatar>
+              <div>
+                <div class="text-h6 font-weight-bold text-white">پلن کمیسیونی</div>
+                <div class="text-caption text-white">فقط کمیسیون از فروش</div>
+              </div>
+            </div>
+            <div class="d-flex flex-column gap-2 mt-4">
+              <div class="text-white">
+                <span class="text-h5 font-weight-bold">٪۵</span>
+                <span class="text-caption mr-1">زیر ۱ میلیارد</span>
+              </div>
+              <div class="text-white">
+                <span class="text-h5 font-weight-bold">٪۳</span>
+                <span class="text-caption mr-1">بالای ۱ میلیارد</span>
+              </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap mt-3">
+              <v-chip size="small" color="white" text-color="green-darken-4" variant="flat">بدون هزینه ثابت</v-chip>
+              <v-chip size="small" color="white" text-color="green-darken-4" variant="flat">مشتری نامحدود</v-chip>
+              <v-chip size="small" color="white" text-color="green-darken-4" variant="flat">قراردادی</v-chip>
+            </div>
+          </v-card-text>
+
+          <v-divider></v-divider>
+
+          <v-card-text class="pa-6">
+            <v-list density="comfortable" lines="two" class="feature-list">
+              <v-list-item
+                v-for="(feature, idx) in commissionPlanFeatures"
+                :key="`commission-${idx}`"
+                class="rounded-lg mb-2"
+              >
+                <template #prepend>
+                  <v-avatar
+                    size="32"
+                    :color="feature.included ? 'green-lighten-4' : 'red-lighten-4'"
+                  >
+                    <v-icon :color="feature.included ? 'green-darken-2' : 'red-darken-2'">
+                      {{ feature.included ? 'mdi-check' : 'mdi-close' }}
+                    </v-icon>
+                  </v-avatar>
+                </template>
+                <v-list-item-title :class="!feature.included ? 'text-disabled text-decoration-line-through' : ''">
+                  {{ feature.text }}
+                </v-list-item-title>
+                <v-list-item-subtitle class="d-flex align-center gap-2">
+                  <span class="text-caption text-medium-emphasis">{{ feature.description }}</span>
+                  <v-chip
+                    v-if="feature.badge"
+                    size="x-small"
+                    color="success"
+                    variant="tonal"
+                  >
+                    {{ feature.badge }}
+                  </v-chip>
+                </v-list-item-subtitle>
+                <template #append>
+                  <v-icon :color="feature.included ? 'success' : 'grey'">
+                    {{ feature.icon }}
+                  </v-icon>
+                </template>
+              </v-list-item>
+            </v-list>
+
+            <v-btn
+              block
+              rounded="lg"
+              height="48"
+              class="plan-action-btn"
+              :color="selectedPlan === 'commission' ? 'green-darken-2' : 'success'"
+              :variant="selectedPlan === 'commission' ? 'flat' : 'elevated'"
+              :prepend-icon="commissionPlanStatus?.is_ready ? 'mdi-check-circle' : 'mdi-file-sign'"
+              :disabled="loadingCommissionStatus"
+              @click="handleCommissionClick"
+            >
+              <span v-if="commissionPlanStatus?.is_ready">
+                ✓ فعال شده
+              </span>
+              <span v-else-if="commissionPlanStatus?.is_commission_based && !commissionPlanStatus?.is_ready">
+                در حال بررسی
+              </span>
+              <span v-else>
+                درخواست فعال‌سازی
+              </span>
+            </v-btn>
+            
+            <v-alert
+              v-if="!commissionPlanStatus?.is_ready"
+              type="warning"
+              variant="tonal"
+              density="compact"
+              class="mt-3 text-caption"
+            >
+              <div v-if="commissionPlanStatus?.is_commission_based">
+                درخواست شما در حال بررسی است. پس از تأیید ادمین، پلن فعال خواهد شد.
+              </div>
+              <div v-else>
+                برای فعال‌سازی این پلن، ابتدا باید نشان طلایی (Gold) را دریافت کنید.
+              </div>
+            </v-alert>
+            
+            <v-alert
+              v-else
+              type="success"
+              variant="tonal"
+              density="compact"
+              class="mt-3 text-caption"
+            >
+              پلن کمیسیونی شما فعال است
+            </v-alert>
+          </v-card-text>
+        </v-card>
+      </v-col>
     </v-row>
 
     <!-- Comparison section for dashboard -->
@@ -280,8 +445,9 @@
 
         <div class="comparison-grid">
           <div class="comparison-header">امکانات کلیدی</div>
-          <div class="comparison-header text-center">پلن رایگان</div>
-          <div class="comparison-header text-center">پلن پریمیوم</div>
+          <div class="comparison-header text-center">رایگان</div>
+          <div class="comparison-header text-center">پریمیوم</div>
+          <div class="comparison-header text-center">کمیسیونی</div>
 
           <template v-for="(row, idx) in comparisonRows" :key="`cmp-${idx}`">
             <div class="comparison-label">
@@ -298,6 +464,12 @@
               <v-icon color="amber-darken-2">mdi-check</v-icon>
               <div class="text-caption text-medium-emphasis mt-1">{{ row.premiumText }}</div>
             </div>
+            <div class="comparison-cell text-center">
+              <v-icon :color="row.commission ? 'success' : 'disabled'">
+                {{ row.commission ? 'mdi-check' : 'mdi-close' }}
+              </v-icon>
+              <div class="text-caption text-medium-emphasis mt-1">{{ row.commissionText }}</div>
+            </div>
           </template>
         </div>
       </v-card-text>
@@ -306,9 +478,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useToast } from '~/composables/useToast'
 
-type PlanType = 'free' | 'premium' | null
+type PlanType = 'free' | 'premium' | 'commission' | null
 type BillingPeriod = 'monthly' | 'quarterly' | 'semiannual' | 'yearly'
 
 interface Feature {
@@ -325,10 +498,58 @@ interface ComparisonRow {
   free: boolean
   freeText: string
   premiumText: string
+  commission: boolean
+  commissionText: string
 }
 
 const selectedPlan = ref<PlanType>('free')
 const billingPeriod = ref<BillingPeriod>('monthly')
+const showCommissionDialog = ref(false)
+const commissionPlanStatus = ref<any>(null)
+const loadingCommissionStatus = ref(false)
+
+const { showToast } = useToast()
+
+function handleCommissionClick() {
+  if (selectedPlan.value === 'commission') {
+    selectedPlan.value = null
+  } else {
+    showCommissionDialog.value = true
+  }
+}
+
+function handleCommissionSuccess() {
+  selectedPlan.value = 'commission'
+  showToast({
+    message: 'درخواست فعال‌سازی پلن کمیسیونی با موفقیت ثبت شد',
+    color: 'success'
+  })
+  loadCommissionStatus()
+}
+
+async function loadCommissionStatus() {
+  loadingCommissionStatus.value = true
+  try {
+    const { $api } = useNuxtApp() as any
+    const response = await $api('/api/users/seller/commission/status/')
+    commissionPlanStatus.value = response
+    
+    // Auto-select commission plan if it's active
+    if (response.is_ready) {
+      selectedPlan.value = 'commission'
+    }
+  } catch (error: any) {
+    console.error('Error loading commission status:', error)
+    commissionPlanStatus.value = null
+  } finally {
+    loadingCommissionStatus.value = false
+  }
+}
+
+// Load commission status on mount
+onMounted(() => {
+  loadCommissionStatus()
+})
 
 const freePlanFeatures: Feature[] = [
   {
@@ -398,6 +619,66 @@ const freePlanFeatures: Feature[] = [
   }
 ]
 
+const commissionPlanFeatures: Feature[] = [
+  {
+    text: 'بدون هزینه ثابت ماهانه',
+    icon: 'mdi-cash-remove',
+    included: true,
+    description: 'فقط از فروش کمیسیون',
+    badge: 'صرفه‌جویی'
+  },
+  {
+    text: 'مشتریان نامحدود',
+    icon: 'mdi-account-multiple',
+    included: true,
+    description: 'دریافت پیام نامحدود'
+  },
+  {
+    text: 'محصولات نامحدود',
+    icon: 'mdi-package-variant',
+    included: true,
+    description: 'بدون محدودیت تعداد'
+  },
+  {
+    text: 'نمایش در مارکت‌پلیس',
+    icon: 'mdi-storefront',
+    included: true,
+    description: 'دسترسی کامل به بازار'
+  },
+  {
+    text: 'کمیسیون پلکانی',
+    icon: 'mdi-chart-line',
+    included: true,
+    description: '٪۵ زیر ۱ میلیارد، ٪۳ بالای آن',
+    badge: 'منصفانه'
+  },
+  {
+    text: 'قرارداد رسمی',
+    icon: 'mdi-file-sign',
+    included: true,
+    description: 'امضای قرارداد و ضمانت‌نامه',
+    badge: 'ضروری'
+  },
+  {
+    text: 'پشتیبانی عادی',
+    icon: 'mdi-headset',
+    included: true,
+    description: 'پشتیبانی استاندارد'
+  },
+  {
+    text: 'تسویه قراردادی',
+    icon: 'mdi-calendar-clock',
+    included: true,
+    description: 'پرداخت بعد از کسر کمیسیون'
+  },
+  {
+    text: 'دستیار شخصی اختصاصی',
+    icon: 'mdi-account-cog',
+    included: false,
+    description: 'فقط پلن پریمیوم'
+  }
+]
+
 const premiumPlanFeatures: Feature[] = [
   {
     text: 'تمام امکانات پلن رایگان',
@@ -458,39 +739,76 @@ const premiumPlanFeatures: Feature[] = [
 
 const comparisonRows: ComparisonRow[] = [
   {
+    label: 'هزینه ماهانه',
+    hint: 'هزینه ثابت برای استفاده',
+    free: true,
+    freeText: 'رایگان',
+    premiumText: '۱٫۵ میلیون تومان',
+    commission: true,
+    commissionText: 'رایگان (فقط کمیسیون)'
+  },
+  {
+    label: 'کمیسیون فروش',
+    hint: 'درصد کسری از فروش',
+    free: true,
+    freeText: 'ندارد',
+    premiumText: 'ندارد',
+    commission: true,
+    commissionText: '٪۳-۵ از فروش'
+  },
+  {
     label: 'پیام خریداران',
     hint: 'تعداد پیام‌هایی که دریافت می‌کنید',
     free: true,
     freeText: '۱ پیام عمومی در روز',
-    premiumText: 'نامحدود با فیلتر دقیق'
+    premiumText: 'نامحدود با فیلتر دقیق',
+    commission: true,
+    commissionText: 'نامحدود'
   },
   {
     label: 'نمایش در نتایج',
     hint: 'جایگاه شما در لیست و جست‌وجو',
     free: false,
     freeText: 'نمایش عادی',
-    premiumText: 'نمایش بالاتر با نشان پریمیوم'
+    premiumText: 'نمایش بالاتر با نشان پریمیوم',
+    commission: true,
+    commissionText: 'نمایش عادی'
   },
   {
     label: 'گزارش‌ها',
     hint: 'گزارش ساده از بازدید و پیام‌ها',
     free: false,
     freeText: 'نمای کلی ساده',
-    premiumText: 'گزارش کامل و خوانا'
+    premiumText: 'گزارش کامل و خوانا',
+    commission: false,
+    commissionText: 'نمای کلی ساده'
   },
   {
     label: 'تعداد محصولات',
     hint: 'حداکثر محصولات فعال',
     free: true,
     freeText: 'محدود',
-    premiumText: 'نامحدود'
+    premiumText: 'نامحدود',
+    commission: true,
+    commissionText: 'نامحدود'
   },
   {
     label: 'پشتیبانی',
     hint: 'زمان پاسخ و کانال ارتباط',
     free: true,
     freeText: 'پشتیبانی عادی',
-    premiumText: 'اولویت‌دار + دستیار اختصاصی'
+    premiumText: 'اولویت‌دار + دستیار اختصاصی',
+    commission: true,
+    commissionText: 'پشتیبانی عادی'
+  },
+  {
+    label: 'نیازمندی‌ها',
+    hint: 'شرایط لازم برای فعال‌سازی',
+    free: true,
+    freeText: 'بدون شرط',
+    premiumText: 'پرداخت ماهانه',
+    commission: true,
+    commissionText: 'قرارداد + ضمانت‌نامه'
   }
 ]
 
@@ -590,7 +908,7 @@ const billingCaption = computed(() => {
 
 .comparison-grid {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr 0.8fr;
+  grid-template-columns: 1.2fr 0.6fr 0.6fr 0.6fr;
   gap: 12px;
   align-items: stretch;
 }
@@ -625,6 +943,67 @@ const billingCaption = computed(() => {
 
 .border-amber-light {
   border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.commission-card {
+  position: relative;
+}
+
+.commission-hero {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.commission-ribbon {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: linear-gradient(90deg, #10b981, #059669);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  z-index: 1;
+}
+
+.border-success {
+  border: 2px solid rgba(16, 185, 129, 0.45);
+}
+
+.border-success-light {
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.commission-inactive {
+  position: relative;
+}
+
+.commission-inactive::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 16px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.commission-hero-inactive {
+  background: linear-gradient(135deg, #6b7280, #4b5563) !important;
+}
+
+.inactive-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
 }
 
 .max-w-600 {

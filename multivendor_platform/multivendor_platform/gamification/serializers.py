@@ -1,6 +1,15 @@
 from rest_framework import serializers
 
-from .models import Badge, EarnedBadge, SupplierEngagement, PointsHistory, Invitation, Endorsement
+from .models import (
+    Badge,
+    EarnedBadge,
+    SupplierEngagement,
+    PointsHistory,
+    Invitation,
+    Endorsement,
+    SellerInsight,
+    SellerInsightComment,
+)
 
 
 class MetricSerializer(serializers.Serializer):
@@ -112,3 +121,72 @@ class EndorsementSerializer(serializers.ModelSerializer):
         model = Endorsement
         fields = ['id', 'endorser', 'endorsed', 'endorser_username', 'endorsed_store_name', 'created_at']
         read_only_fields = ['created_at']
+
+
+class SellerInsightSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+    likes_count = serializers.IntegerField(read_only=True)
+    liked_by_me = serializers.SerializerMethodField()
+    comments_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SellerInsight
+        fields = [
+            'id',
+            'title',
+            'content',
+            'author_name',
+            'created_at',
+            'likes_count',
+            'liked_by_me',
+            'comments_count',
+        ]
+        read_only_fields = ['id', 'author_name', 'created_at', 'likes_count', 'liked_by_me', 'comments_count']
+
+    def get_author_name(self, obj: SellerInsight):
+        return getattr(obj.vendor_profile, 'store_name', '') or getattr(getattr(obj.vendor_profile, 'user', None), 'username', 'فروشنده')
+
+    def get_liked_by_me(self, obj: SellerInsight):
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+        return obj.likes.filter(pk=request.user.pk).exists()
+
+    def get_comments_count(self, obj: SellerInsight):
+        return obj.comments.count()
+
+    def validate_title(self, value: str):
+        value = (value or '').strip()
+        if not value:
+            raise serializers.ValidationError('عنوان الزامی است.')
+        if len(value) > 150:
+            raise serializers.ValidationError('عنوان نباید بیشتر از ۱۵۰ کاراکتر باشد.')
+        return value
+
+    def validate_content(self, value: str):
+        value = (value or '').strip()
+        if not value:
+            raise serializers.ValidationError('متن بینش الزامی است.')
+        if len(value) > 2000:
+            raise serializers.ValidationError('متن نباید بیشتر از ۲۰۰۰ کاراکتر باشد.')
+        return value
+
+
+class SellerInsightCommentSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SellerInsightComment
+        fields = ['id', 'insight', 'content', 'author_name', 'created_at']
+        read_only_fields = ['id', 'author_name', 'created_at']
+
+    def get_author_name(self, obj: SellerInsightComment):
+        return getattr(obj.vendor_profile, 'store_name', '') or getattr(getattr(obj.vendor_profile, 'user', None), 'username', 'فروشنده')
+
+    def validate_content(self, value: str):
+        value = (value or '').strip()
+        if not value:
+            raise serializers.ValidationError('متن نظر الزامی است.')
+        if len(value) > 1000:
+            raise serializers.ValidationError('متن نباید بیشتر از ۱۰۰۰ کاراکتر باشد.')
+        return value

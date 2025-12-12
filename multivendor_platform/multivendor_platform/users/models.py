@@ -1,7 +1,9 @@
+from datetime import timedelta
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+from django.utils import timezone
 
 class UserProfile(models.Model):
     """Extended user profile with roles"""
@@ -101,6 +103,273 @@ class VendorProfile(models.Model):
         from django.db.models import Avg
         avg = self.comments.filter(is_approved=True).aggregate(Avg('rating'))['rating__avg']
         return round(avg, 1) if avg else 0
+
+
+class PricingTier(models.Model):
+    """Subscription tier definition for suppliers"""
+    PRICING_TYPE_CHOICES = (
+        ('subscription', 'Subscription-based'),
+        ('commission', 'Commission-based'),
+    )
+    
+    slug = models.SlugField(max_length=50, unique=True, help_text="Unique machine-readable identifier")
+    name = models.CharField(max_length=100, help_text="Display name for the tier")
+    pricing_type = models.CharField(
+        max_length=20,
+        choices=PRICING_TYPE_CHOICES,
+        default='subscription',
+        help_text="Type of pricing model"
+    )
+    
+    # Commission-based fields
+    is_commission_based = models.BooleanField(
+        default=False,
+        help_text="True if this tier uses commission-based pricing"
+    )
+    commission_rate_low = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Commission rate (%) for orders under threshold (e.g., 5.00 for 5%)"
+    )
+    commission_rate_high = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Commission rate (%) for orders above threshold (e.g., 3.00 for 3%)"
+    )
+    commission_threshold = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Threshold amount for commission rate change (e.g., 1000000000 for 1 billion Toman)"
+    )
+    
+    # Subscription-based fields
+    monthly_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Monthly subscription price (if applicable)"
+    )
+    
+    daily_customer_unlock_limit = models.PositiveIntegerField(
+        default=1,
+        help_text="How many new customers can be unlocked in a rolling 24h window (0 for unlimited)."
+    )
+    allow_marketplace_visibility = models.BooleanField(
+        default=True,
+        help_text="If false, products stay hidden from marketplace regardless of other flags."
+    )
+    lead_exclusivity = models.CharField(
+        max_length=20,
+        default='shared',
+        choices=(
+            ('shared', 'Shared lead (non-exclusive)'),
+            ('exclusive', 'Exclusive after claim'),
+        ),
+        help_text="Defines whether leads become exclusive when revealed at this tier."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['slug']
+        verbose_name = "Pricing Tier"
+        verbose_name_plural = "Pricing Tiers"
+
+    def __str__(self):
+        return self.name
+
+    def calculate_commission(self, order_amount):
+        """Calculate commission amount for a given order amount."""
+        if not self.is_commission_based:
+            return 0
+        
+        if order_amount >= (self.commission_threshold or 0):
+            rate = self.commission_rate_high or 0
+        else:
+            rate = self.commission_rate_low or 0
+        
+        return (order_amount * rate) / 100
+    
+    @classmethod
+    def get_default_free(cls):
+        """Return the default free tier, creating it if missing."""
+        tier, _ = cls.objects.get_or_create(
+            slug='free',
+            defaults={
+                'name': 'Free',
+                'pricing_type': 'subscription',
+                'is_commission_based': False,
+                'daily_customer_unlock_limit': 1,
+                'lead_exclusivity': 'shared',
+                'allow_marketplace_visibility': True,
+            },
+        )
+        return tier
+    
+    @classmethod
+    def get_commission_tier(cls):
+        """Return the commission-based tier, creating it if missing."""
+        tier, _ = cls.objects.get_or_create(
+            slug='commission',
+            defaults={
+                'name': 'Commission',
+                'pricing_type': 'commission',
+                'is_commission_based': True,
+                'commission_rate_low': 5.00,  # 5% for under 1 billion
+                'commission_rate_high': 3.00,  # 3% for over 1 billion
+                'commission_threshold': 1000000000,  # 1 billion Toman
+                'daily_customer_unlock_limit': 0,  # Unlimited
+                'lead_exclusivity': 'shared',
+                'allow_marketplace_visibility': True,
+            },
+        )
+        return tier
+
+
+class VendorSubscription(models.Model):
+    """Active subscription for a vendor/user"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='vendor_subscription')
+    tier = models.ForeignKey(PricingTier, on_delete=models.PROTECT, related_name='subscriptions')
+    started_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(blank=True, null=True, help_text="Optional expiration for paid plans")
+    last_customer_unlock_at = models.DateTimeField(blank=True, null=True, help_text="Last time a new customer was unlocked")
+    total_customer_unlocks = models.PositiveIntegerField(default=0, help_text="Total unlocks ever made by this vendor")
+    is_active = models.BooleanField(default=True)
+    
+    # Commission-based plan fields
+    contract_signed = models.BooleanField(default=False, help_text="Whether vendor has signed the commission contract")
+    contract_signed_at = models.DateTimeField(blank=True, null=True, help_text="When contract was signed")
+    contract_document = models.FileField(upload_to='vendor_contracts/', blank=True, null=True, help_text="Signed contract document")
+    bank_guarantee_submitted = models.BooleanField(default=False, help_text="Whether bank guarantee has been submitted")
+    bank_guarantee_document = models.FileField(upload_to='bank_guarantees/', blank=True, null=True, help_text="Bank guarantee document")
+    bank_guarantee_amount = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, help_text="Amount of bank guarantee")
+    bank_guarantee_expiry = models.DateField(blank=True, null=True, help_text="Bank guarantee expiry date")
+    terms_accepted = models.BooleanField(default=False, help_text="Whether vendor accepted terms and conditions")
+    terms_accepted_at = models.DateTimeField(blank=True, null=True, help_text="When terms were accepted")
+    admin_approved = models.BooleanField(default=False, help_text="Whether admin has approved commission plan activation")
+    admin_approved_at = models.DateTimeField(blank=True, null=True, help_text="When admin approved")
+    admin_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_subscriptions', help_text="Admin who approved")
+    rejection_reason = models.TextField(blank=True, null=True, help_text="Reason for rejection if not approved")
+    
+    # Commission tracking
+    total_commission_charged = models.DecimalField(max_digits=20, decimal_places=2, default=0, help_text="Total commission charged to vendor")
+    total_sales_volume = models.DecimalField(max_digits=20, decimal_places=2, default=0, help_text="Total sales volume for commission calculation")
+
+    class Meta:
+        verbose_name = "Vendor Subscription"
+        verbose_name_plural = "Vendor Subscriptions"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.tier.slug}"
+
+    @classmethod
+    def for_user(cls, user: User) -> "VendorSubscription":
+        """
+        Return the subscription for the given user, creating a free subscription
+        if none exists.
+        """
+        tier = PricingTier.get_default_free()
+        subscription, _ = cls.objects.get_or_create(
+            user=user,
+            defaults={'tier': tier, 'is_active': True},
+        )
+        return subscription
+
+    def can_unlock_customer(self):
+        """
+        Check whether vendor can unlock a new customer in the current rolling 24h window.
+        Returns (can_unlock: bool, next_time: datetime|None).
+        """
+        limit = self.tier.daily_customer_unlock_limit or 0
+        if limit == 0:
+            return True, None
+
+        if not self.last_customer_unlock_at:
+            return True, None
+
+        next_time = self.last_customer_unlock_at + timedelta(hours=24)
+        return timezone.now() >= next_time, next_time
+
+    def register_customer_unlock(self):
+        """Record a successful customer unlock."""
+        self.last_customer_unlock_at = timezone.now()
+        self.total_customer_unlocks += 1
+        self.save(update_fields=['last_customer_unlock_at', 'total_customer_unlocks'])
+    
+    def can_activate_commission_plan(self):
+        """
+        Check if vendor can activate commission-based plan.
+        Requires: complete profile data AND gold tier (or higher) achievement.
+        Returns (can_activate: bool, missing_requirements: list)
+        """
+        missing = []
+        
+        # Check if vendor profile is complete
+        try:
+            vendor_profile = self.user.vendor_profile
+            if not vendor_profile.store_name:
+                missing.append('store_name')
+            if not vendor_profile.contact_email:
+                missing.append('contact_email')
+            if not vendor_profile.contact_phone:
+                missing.append('contact_phone')
+            if not vendor_profile.address:
+                missing.append('address')
+        except:
+            missing.append('vendor_profile')
+        
+        # Check if user profile exists
+        try:
+            user_profile = self.user.profile
+            if not user_profile.phone:
+                missing.append('phone')
+        except:
+            missing.append('user_profile')
+        
+        # Check if seller has achieved gold tier (or higher)
+        try:
+            from gamification.services import GamificationService
+            service = GamificationService.for_user(self.user)
+            current_tier = service.calculate_tier()
+            
+            # Gold tier requires: 500+ points AND 60+ reputation
+            # Diamond tier is also acceptable (higher than gold)
+            tier_order = ['inactive', 'bronze', 'silver', 'gold', 'diamond']
+            current_tier_index = tier_order.index(current_tier) if current_tier in tier_order else 0
+            gold_tier_index = tier_order.index('gold')
+            
+            if current_tier_index < gold_tier_index:
+                missing.append('gold_tier')
+        except Exception as e:
+            # If gamification service fails, treat as missing gold tier
+            missing.append('gold_tier')
+        
+        return len(missing) == 0, missing
+    
+    def is_commission_plan_ready(self):
+        """Check if commission plan is fully activated and ready to use."""
+        if not self.tier.is_commission_based:
+            return False
+        return (
+            self.contract_signed and 
+            self.bank_guarantee_submitted and 
+            self.terms_accepted and 
+            self.admin_approved and 
+            self.is_active
+        )
+    
+    def record_commission_sale(self, sale_amount, commission_amount):
+        """Record a sale and commission charge."""
+        self.total_sales_volume += sale_amount
+        self.total_commission_charged += commission_amount
+        self.save(update_fields=['total_sales_volume', 'total_commission_charged'])
 
 class Supplier(models.Model):
     """Company/Supplier model - scraped or manually created"""
