@@ -16,6 +16,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from rest_framework import serializers
+from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 
 # Local imports
@@ -86,12 +87,21 @@ class ProductCreateView(LoginRequiredMixin, TemplateView):
 
 # --- DRF API VIEWSETS ---
 
+class ProductPagination(PageNumberPagination):
+    """
+    Custom pagination class for products that allows client to specify page size
+    """
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 class ProductViewSet(viewsets.ModelViewSet):
     """
     A simple ViewSet for viewing and editing products.
     """
     queryset = Product.objects.all().order_by('-created_at')
     serializer_class = ProductSerializer
+    pagination_class = ProductPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
     filterset_fields = ['vendor', 'is_active', 'primary_category', 'approval_status', 'is_marketplace_hidden']

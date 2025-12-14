@@ -707,15 +707,32 @@ const fetchCategories = async () => {
 }
 
 const fetchPage = async () => {
-  await productStore.fetchProducts({
-    page: page.value,
-    page_size: pageSize,
-    search: search.value || undefined,
-    category: selectedCategory.value || undefined,
-    subcategory: selectedSubcategory.value || undefined,
-    ordering: ordering.value || undefined,
-    labels: selectedLabels.value.length ? selectedLabels.value.join(',') : undefined
-  })
+  try {
+    await productStore.fetchProducts({
+      page: page.value,
+      page_size: pageSize,
+      search: search.value || undefined,
+      category: selectedCategory.value || undefined,
+      subcategory: selectedSubcategory.value || undefined,
+      ordering: ordering.value || undefined,
+      labels: selectedLabels.value.length ? selectedLabels.value.join(',') : undefined
+    })
+  } catch (err: any) {
+    // If we get a 404 error (invalid page), reset to page 1
+    if (err?.statusCode === 404 || err?.status === 404) {
+      console.warn('Page not found, resetting to page 1')
+      page.value = 1
+      await productStore.fetchProducts({
+        page: 1,
+        page_size: pageSize,
+        search: search.value || undefined,
+        category: selectedCategory.value || undefined,
+        subcategory: selectedSubcategory.value || undefined,
+        ordering: ordering.value || undefined,
+        labels: selectedLabels.value.length ? selectedLabels.value.join(',') : undefined
+      })
+    }
+  }
 }
 
 // Initialize from route query params
@@ -767,8 +784,15 @@ await useAsyncData('homepage-products', async () => {
 })
 
 const onPageChange = async (value: number) => {
+  // Validate page number before fetching
+  if (value < 1 || value > pageCount.value) {
+    console.warn(`Invalid page number: ${value}. Valid range: 1-${pageCount.value}`)
+    return
+  }
   page.value = value
   await fetchPage()
+  // Scroll to top on page change
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 const applyFilters = async () => {
