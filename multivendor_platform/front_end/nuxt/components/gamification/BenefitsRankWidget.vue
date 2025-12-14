@@ -65,7 +65,7 @@
           class="mb-2"
         ></v-progress-linear>
         <p class="text-caption text-medium-emphasis">
-          بر اساس تأییدات همکاران، نظرات مثبت و سرعت پاسخگویی
+          بر اساس تأیید همکاران، نظرات مثبت مشتریان و سرعت پاسخگویی
         </p>
       </v-card>
 

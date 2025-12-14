@@ -216,10 +216,25 @@
                 <v-col cols="12" md="6">
                   <v-text-field
                     v-model="formData.contact_phone"
-                    label="شماره تلفن"
+                    label="موبایل"
                     variant="outlined"
                     density="comfortable"
                     hint="مثال: 09123456789"
+                    :rules="phoneRules"
+                  >
+                    <template #prepend>
+                      <v-icon color="primary" size="24">mdi-cellphone</v-icon>
+                    </template>
+                  </v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="formData.contact_phone_landline"
+                    label="شماره تلفن"
+                    variant="outlined"
+                    density="comfortable"
+                    hint="مثال: 02112345678"
                     :rules="phoneRules"
                   >
                     <template #prepend>
@@ -228,7 +243,8 @@
                   </v-text-field>
                 </v-col>
 
-                <v-col cols="12" md="6">
+                <!-- Email field hidden from dashboard but kept in backend -->
+                <!-- <v-col cols="12" md="6">
                   <v-text-field
                     v-model="formData.contact_email"
                     label="ایمیل تماس"
@@ -242,7 +258,7 @@
                       <v-icon color="primary" size="24">mdi-email</v-icon>
                     </template>
                   </v-text-field>
-                </v-col>
+                </v-col> -->
               </v-row>
             </v-card-text>
           </v-card>
@@ -320,7 +336,7 @@
             </v-card-title>
             <v-card-text class="pa-6">
               <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
-                گواهینامه‌ها و جوایز خود را معرفی کنید تا مشتریان اعتماد بیشتری پیدا کنند
+                داشتن هر مدرکی که نشان دهنده تائید یا قدردانی از شما توسط دیگران است را در این بخش قرار دهید.
               </div>
 
               <!-- Certifications -->
@@ -519,7 +535,8 @@
                     </template>
                   </v-text-field>
                 </v-col>
-                <v-col cols="12" md="6">
+                <!-- LinkedIn field hidden from dashboard but kept in backend -->
+                <!-- <v-col cols="12" md="6">
                   <v-text-field
                     v-model="socialMedia.linkedin"
                     label="لینکدین"
@@ -531,13 +548,13 @@
                       <v-icon color="primary" size="24">mdi-linkedin</v-icon>
                     </template>
                   </v-text-field>
-                </v-col>
+                </v-col> -->
               </v-row>
             </v-card-text>
           </v-card>
 
-          <!-- SECTION 7: SEO (Optional - Collapsed) -->
-          <v-expansion-panels>
+          <!-- SECTION 7: SEO (Optional - Collapsed) - Hidden from dashboard but kept in backend -->
+          <!-- <v-expansion-panels>
             <v-expansion-panel rounded="lg" elevation="1">
               <template #title>
                 <v-icon size="24" class="me-3" color="primary">mdi-search-web</v-icon>
@@ -575,7 +592,7 @@
                 </v-row>
               </v-card-text>
             </v-expansion-panel>
-          </v-expansion-panels>
+          </v-expansion-panels> -->
         </v-form>
       </v-card-text>
 
@@ -683,6 +700,7 @@ const formData = ref({
   description: '',
   contact_email: '',
   contact_phone: '',
+  contact_phone_landline: '',
   website: '',
   brand_color_primary: '#4CAF50',
   brand_color_secondary: '#388E3C',
@@ -704,9 +722,15 @@ const socialMedia = ref({
 })
 
 // Computed properties
-const socialLinksCount = computed(() => 
-  Object.values(socialMedia.value).filter(Boolean).length
-)
+// Count only visible social media (exclude LinkedIn which is hidden)
+const socialLinksCount = computed(() => {
+  const visibleSocialMedia = {
+    instagram: socialMedia.value.instagram,
+    telegram: socialMedia.value.telegram,
+    whatsapp: socialMedia.value.whatsapp
+  }
+  return Object.values(visibleSocialMedia).filter(Boolean).length
+})
 
 const persianYears = computed(() => {
   const years: Array<{ label: string; value: number }> = []
@@ -800,9 +824,9 @@ const miniSiteMetrics = computed(() => [
   {
     key: 'contact',
     label: 'راه‌های تماس',
-    tip: 'تلفن یا ایمیل بگذارید',
+    tip: 'شماره موبایل یا تلفن را وارد کنید',
     weight: 0.15,
-    passed: Boolean(formData.value.contact_phone || formData.value.contact_email)
+    passed: Boolean(formData.value.contact_phone || formData.value.contact_phone_landline)
   },
   {
     key: 'company',
@@ -926,6 +950,7 @@ const loadCurrentSettings = async () => {
         description: vendorProfile.description || '',
         contact_email: vendorProfile.contact_email || '',
         contact_phone: vendorProfile.contact_phone || '',
+        contact_phone_landline: vendorProfile.contact_phone_landline || '',
         website: vendorProfile.website || '',
         brand_color_primary: vendorProfile.brand_color_primary || '#4CAF50',
         brand_color_secondary: vendorProfile.brand_color_secondary || '#388E3C',

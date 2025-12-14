@@ -25,7 +25,7 @@
       <div v-if="entries.length === 0" class="text-center py-8 px-4">
         <v-icon size="64" color="grey-lighten-1" class="mb-3">mdi-podium-outline</v-icon>
         <p class="text-body-2 text-medium-emphasis">هنوز داده‌ای وجود ندارد</p>
-        <p class="text-caption text-medium-emphasis mt-1">با فعالیت بیشتر در جدول برترین‌ها قرار بگیرید</p>
+        <p class="text-caption text-medium-emphasis mt-1">با فعالیت بیشتر در جدول برترین‌ها قرار بگیرید و از مزایای آن بهره ببرید</p>
       </div>
       <v-list v-else density="comfortable" class="bg-transparent">
         <v-list-item

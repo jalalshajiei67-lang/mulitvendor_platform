@@ -38,7 +38,7 @@
           prepend-icon="mdi-crown"
           @click="$emit('upgrade-premium')"
         >
-          ارتقای پریمیوم
+          ارتقا به پریمیوم
         </v-btn>
       </div>
     </div>

@@ -36,7 +36,7 @@ class VendorProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = VendorProfile
         fields = [
-            'id', 'user', 'store_name', 'logo', 'description', 'contact_email', 'contact_phone', 
+            'id', 'user', 'store_name', 'logo', 'description', 'contact_email', 'contact_phone', 'contact_phone_landline',
             'website', 'address', 'work_resume', 'successful_projects', 'history', 'about',
             # Mini website branding fields
             'banner_image', 'brand_color_primary', 'brand_color_secondary', 'slogan',

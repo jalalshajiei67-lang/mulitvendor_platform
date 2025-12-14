@@ -8,9 +8,9 @@
             <v-icon size="32" color="white">mdi-lightbulb-on</v-icon>
           </v-avatar>
           <div>
-            <div class="text-h5 font-weight-bold mb-1">بینش‌های عمومی فروشندگان</div>
+            <div class="text-h5 font-weight-bold mb-1">نکات تخصصی تولید کنندگان</div>
             <div class="text-body-2 text-medium-emphasis">
-              تجربه‌ها و نکات خود را به صورت عمومی با خریداران به اشتراک بگذارید
+              تجربه‌ها و نکات خود را به اشتراک گذارید، این بخش توسط مشتریان بالقوه شما مشاهده می شود.
             </div>
           </div>
         </div>
@@ -78,7 +78,7 @@
             <div class="d-flex flex-column gap-2">
               <div class="d-flex align-center justify-space-between">
                 <label class="text-caption text-medium-emphasis">
-                  محتوای بینش (قابل مشاهده برای خریداران)
+                  محتوای نکته تخصصی (قابل مشاهده برای مشتریان)
                 </label>
                 <v-chip size="x-small" color="info" variant="tonal" class="ms-2">
                   <v-icon start size="12">mdi-eye</v-icon>
@@ -92,7 +92,7 @@
                 min-height="150px"
               />
               <div v-if="!contentIsValid" class="text-caption text-error">
-                محتوای بینش الزامی است
+                محتوای نکته تخصصی الزامی است
               </div>
             </div>
           </v-col>
@@ -101,11 +101,11 @@
               <div class="d-flex flex-column gap-1">
                 <div class="d-flex align-center gap-2 text-caption text-medium-emphasis">
                   <v-icon size="16" color="info">mdi-information-outline</v-icon>
-                  <span>محتوای کاربردی و مشخص بنویسید تا برای خریداران مفید باشد</span>
+                  <span>محتوای کاربردی و مشخص بنویسید تا برای مشتریان مفید باشد</span>
                 </div>
                 <div class="d-flex align-center gap-2 text-caption text-warning">
                   <v-icon size="14" color="warning">mdi-alert-circle-outline</v-icon>
-                  <span>این محتوا به صورت عمومی منتشر می‌شود و برای همه خریداران قابل مشاهده است</span>
+                  <span>این محتوا به صورت عمومی منتشر می‌شود و برای همه مشتریان قابل مشاهده است</span>
                 </div>
               </div>
               <v-btn
@@ -119,7 +119,7 @@
                 rounded="lg"
                 class="submit-btn"
               >
-                انتشار بینش عمومی
+                انتشار نکته تخصصی
               </v-btn>
             </div>
           </v-col>
@@ -151,13 +151,13 @@
       color="surface-variant"
     >
       <v-icon size="80" color="grey-lighten-1" class="mb-4">mdi-lightbulb-outline</v-icon>
-      <div class="text-h6 font-weight-bold mb-2">هنوز بینشی ثبت نشده است</div>
+      <div class="text-h6 font-weight-bold mb-2">هنوز نکته تخصصی ثبت نشده است</div>
       <div class="text-body-2 text-medium-emphasis mb-3">
         اولین نفر باشید که تجربه و نکات خود را با خریداران به اشتراک می‌گذارد!
       </div>
       <v-chip size="small" color="info" variant="tonal">
         <v-icon start size="14">mdi-eye</v-icon>
-        بینش‌های شما به صورت عمومی برای خریداران نمایش داده می‌شود
+        نکات تخصصی شما به صورت عمومی برای مشتریان نمایش داده می‌شود
       </v-chip>
     </v-card>
 
@@ -295,7 +295,7 @@
                           هنوز دیدگاهی ثبت نشده است. اولین دیدگاه را شما بنویسید!
                         </div>
                         <div class="text-caption text-medium-emphasis">
-                          دیدگاه‌ها به صورت عمومی برای خریداران نمایش داده می‌شود
+                          دیدگاه‌ها به صورت عمومی برای همه نمایش داده می‌شود
                         </div>
                       </div>
                       <div v-else class="comments-list mb-4">
@@ -361,7 +361,7 @@
                           @click="handleSubmitComment(item.id)"
                           rounded="lg"
                         >
-                          ارسال دیدگاه عمومی
+                          ارسال دیدگاه 
                         </v-btn>
                       </div>
                     </v-card-text>

@@ -59,7 +59,8 @@ class VendorProfile(models.Model):
     logo = models.ImageField(upload_to='vendor_logos/', blank=True, null=True)
     description = models.TextField(blank=True)
     contact_email = models.EmailField(blank=True, null=True)
-    contact_phone = models.CharField(max_length=20, blank=True, null=True)
+    contact_phone = models.CharField(max_length=20, blank=True, null=True, help_text="Mobile phone number")
+    contact_phone_landline = models.CharField(max_length=20, blank=True, null=True, help_text="Landline/office phone number")
     website = models.URLField(blank=True, null=True)
     address = models.TextField(blank=True, null=True, help_text="Physical address of the supplier")
     

@@ -134,9 +134,9 @@
                   </transition>
                 </div>
 
-                <!-- Filters Row - Category and Sorting -->
-                <v-row class="mb-4" align="center">
-                  <v-col cols="12" md="6">
+                <!-- Filters Row - Category Only -->
+                <v-row class="mb-4 filters-row" align="center">
+                  <v-col cols="12">
                     <v-select
                       v-model="selectedCategory"
                       :items="categoryOptions"
@@ -145,34 +145,25 @@
                       variant="outlined"
                       density="comfortable"
                       :label="t('selectCategory')"
-                      prepend-inner-icon="mdi-shape"
                       clearable
+                      class="filter-select"
                       @update:model-value="applyFilters"
                     >
+                      <template #prepend-inner>
+                        <v-icon color="primary" size="20">mdi-shape</v-icon>
+                      </template>
                       <template #selection="{ item }">
                         <div class="d-flex align-center">
-                          <v-icon size="16" class="ml-2">mdi-check-circle</v-icon>
-                          <span>{{ item.title }}</span>
+                          <v-icon size="16" color="success" class="ml-2">mdi-check-circle</v-icon>
+                          <span class="font-weight-medium">{{ item.title }}</span>
                         </div>
                       </template>
-                    </v-select>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <v-select
-                      v-model="ordering"
-                      :items="orderingOptions"
-                      variant="outlined"
-                      density="comfortable"
-                      :label="t('sortBy')"
-                      prepend-inner-icon="mdi-sort"
-                      clearable
-                      @update:model-value="applyFilters"
-                    >
-                      <template #selection="{ item }">
-                        <div class="d-flex align-center">
-                          <v-icon size="16" class="ml-2">mdi-check-circle</v-icon>
-                          <span>{{ item.title }}</span>
-                        </div>
+                      <template #item="{ props, item }">
+                        <v-list-item v-bind="props" class="filter-menu-item">
+                          <template #prepend>
+                            <v-icon color="primary" size="18">mdi-shape</v-icon>
+                          </template>
+                        </v-list-item>
                       </template>
                     </v-select>
                   </v-col>
@@ -269,6 +260,7 @@
                         
                         <LabelFilters
                           v-model="selectedLabels"
+                          v-model:ordering="ordering"
                           :subcategory-id="selectedSubcategory"
                           @labels-loaded="onLabelsLoaded"
                         />
@@ -357,6 +349,7 @@
                             </div>
                             <LabelFilters
                               v-model="selectedLabels"
+                              v-model:ordering="ordering"
                               :subcategory-id="selectedSubcategory"
                               @labels-loaded="onLabelsLoaded"
                             />
@@ -1328,60 +1321,100 @@ const handleSellerCTA = () => {
 
 /* Filters Card Styling */
 .filters-card {
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
   background: linear-gradient(to bottom, rgba(var(--v-theme-surface), 1), rgba(var(--v-theme-surface), 0.98));
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(var(--v-theme-on-surface), 0.04);
 }
 
 .filters-card:hover {
-  box-shadow: 0 8px 24px rgba(var(--v-theme-on-surface), 0.08);
+  box-shadow: 0 8px 24px rgba(var(--v-theme-on-surface), 0.1);
+  border-color: rgba(var(--v-theme-primary), 0.2);
 }
 
 .filters-card__inner {
-  padding: 20px 16px;
+  padding: 24px 20px;
 }
 
 @media (min-width: 960px) {
   .filters-card__inner {
-    padding: 28px 32px;
+    padding: 32px 36px;
   }
 }
 
 /* Filters Header */
 .filters-header {
   position: relative;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid rgba(var(--v-theme-on-surface), 0.06);
 }
 
 .filters-header::after {
   content: '';
   position: absolute;
-  bottom: -12px;
+  bottom: -2px;
   right: 0;
-  width: 60px;
-  height: 3px;
+  width: 80px;
+  height: 2px;
   background: linear-gradient(to left, rgb(var(--v-theme-primary)), transparent);
   border-radius: 2px;
+  animation: slideRight 0.5s ease-out;
+}
+
+@keyframes slideRight {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 80px;
+    opacity: 1;
+  }
 }
 
 /* Label Section Headers */
 .label-section-header,
 .label-section-mobile {
-  padding: 8px 0;
+  padding: 12px 0 8px;
+  background: rgba(var(--v-theme-primary), 0.02);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+
+.label-section-header .v-icon,
+.label-section-mobile .v-icon {
+  transition: transform 0.3s ease;
+}
+
+.label-section-header:hover .v-icon,
+.label-section-mobile:hover .v-icon {
+  transform: rotate(10deg) scale(1.1);
 }
 
 /* Active Labels Summary */
 .active-labels-summary,
 .active-labels-mobile {
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .active-label-chip {
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
 
 .active-label-chip:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(var(--v-theme-on-surface), 0.12);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 6px 12px rgba(var(--v-theme-on-surface), 0.15);
+}
+
+.active-label-chip :deep(.v-chip__close) {
+  transition: all 0.2s ease;
+}
+
+.active-label-chip:hover :deep(.v-chip__close) {
+  transform: rotate(90deg);
 }
 
 /* Slide Fade Transition */
@@ -1416,6 +1449,39 @@ const handleSellerCTA = () => {
 }
 
 /* Field Styling */
+.filters-row {
+  gap: 16px;
+}
+
+.filter-select {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-select :deep(.v-field) {
+  box-shadow: 0 2px 8px rgba(var(--v-theme-on-surface), 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-select :deep(.v-field:hover) {
+  box-shadow: 0 4px 12px rgba(var(--v-theme-on-surface), 0.08);
+  border-color: rgba(var(--v-theme-primary), 0.3);
+}
+
+.filter-select :deep(.v-field--focused) {
+  box-shadow: 0 4px 16px rgba(var(--v-theme-primary), 0.12);
+}
+
+.filter-menu-item {
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  margin: 4px 8px;
+}
+
+.filter-menu-item:hover {
+  background: rgba(var(--v-theme-primary), 0.08) !important;
+  transform: translateX(-4px);
+}
+
 :deep(.v-field__input) {
   color: rgba(var(--v-theme-on-surface), 0.92);
   font-size: 0.95rem;
@@ -1423,6 +1489,7 @@ const handleSellerCTA = () => {
 
 :deep(.v-field__label) {
   color: rgba(var(--v-theme-on-surface), 0.72);
+  font-weight: 500;
 }
 
 :deep(.v-field__input::placeholder) {
@@ -1430,35 +1497,83 @@ const handleSellerCTA = () => {
 }
 
 :deep(.v-field--variant-outlined) {
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:deep(.v-field--variant-outlined .v-field__outline) {
+  border-radius: 12px;
 }
 
 :deep(.v-field--variant-outlined:hover .v-field__outline) {
-  --v-field-border-opacity: 0.4;
+  --v-field-border-opacity: 0.5;
+  color: rgb(var(--v-theme-primary));
 }
 
 :deep(.v-field--focused .v-field__outline) {
   --v-field-border-width: 2px;
+  color: rgb(var(--v-theme-primary)) !important;
+}
+
+:deep(.v-field--focused) {
+  box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.08);
+}
+
+:deep(.v-select .v-field__prepend-inner) {
+  margin-inline-end: 8px;
+}
+
+:deep(.v-select .v-field__prepend-inner .v-icon) {
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+:deep(.v-select:hover .v-field__prepend-inner .v-icon) {
+  opacity: 1;
+  color: rgb(var(--v-theme-primary));
 }
 
 /* Mobile Expansion Panel Styling */
 .filters-card__drawer-title {
-  background: rgba(var(--v-theme-primary), 0.04);
-  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.06), rgba(var(--v-theme-primary), 0.02));
+  border-radius: 12px;
   font-weight: 500;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(var(--v-theme-primary), 0.12);
+}
+
+.filters-card__drawer-title:hover {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08), rgba(var(--v-theme-primary), 0.04));
+  border-color: rgba(var(--v-theme-primary), 0.2);
 }
 
 :deep(.v-expansion-panel) {
-  border-radius: 12px !important;
+  border-radius: 16px !important;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(var(--v-theme-on-surface), 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:deep(.v-expansion-panel--active) {
+  box-shadow: 0 4px 16px rgba(var(--v-theme-on-surface), 0.1);
 }
 
 :deep(.v-expansion-panel-title) {
-  padding: 16px;
+  padding: 18px 20px;
+  font-weight: 500;
+}
+
+:deep(.v-expansion-panel-title__icon) {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:deep(.v-expansion-panel--active .v-expansion-panel-title__icon) {
+  transform: rotate(180deg);
+  color: rgb(var(--v-theme-primary));
 }
 
 :deep(.v-expansion-panel-text__wrapper) {
-  padding: 16px;
+  padding: 20px;
+  background: rgba(var(--v-theme-surface), 0.98);
 }
 
 /* Grid spacing adjustments for desktop to fit 3 rows comfortably */

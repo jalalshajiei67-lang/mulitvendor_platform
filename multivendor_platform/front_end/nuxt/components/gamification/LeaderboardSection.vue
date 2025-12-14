@@ -3,7 +3,7 @@
     <v-card-title class="pa-6 d-flex align-center justify-space-between">
       <div class="d-flex align-center gap-2">
         <v-icon size="28" color="primary">mdi-trophy</v-icon>
-        <span class="text-h6 font-weight-bold">برترین فروشندگان</span>
+        <span class="text-h6 font-weight-bold">برترین شرکت ها</span>
       </div>
       <v-chip
         v-if="userRank"

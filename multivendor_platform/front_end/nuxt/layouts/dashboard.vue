@@ -205,7 +205,7 @@
               class="text-white nav-btn"
               prepend-icon="mdi-web"
             >
-              فروشگاه من
+              شرکت من
             </v-btn>
             <v-btn
               to="/seller/dashboard?tab=customerPool"
@@ -281,7 +281,7 @@
                 <v-list-item-title>داشبورد</v-list-item-title>
               </v-list-item>
               <v-list-item to="/seller/dashboard?tab=miniwebsite" prepend-icon="mdi-web">
-                <v-list-item-title>فروشگاه من</v-list-item-title>
+                <v-list-item-title>شرکت من</v-list-item-title>
               </v-list-item>
               <v-list-item to="/seller/dashboard?tab=customerPool" prepend-icon="mdi-account-group">
                 <v-list-item-title>استخر مشتریان</v-list-item-title>
