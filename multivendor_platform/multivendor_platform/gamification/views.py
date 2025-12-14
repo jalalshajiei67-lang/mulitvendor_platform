@@ -859,8 +859,51 @@ class GamificationDashboardView(APIView):
 
     def get(self, request):
         service = GamificationService.for_user(request.user)
+        
+        # If user doesn't have vendor_profile, try to create it if user is a seller
         if not service.vendor_profile:
-            return Response({'detail': 'فروشنده یافت نشد'}, status=status.HTTP_400_BAD_REQUEST)
+            # Check if user is a seller and try to create vendor profile
+            try:
+                from users.models import UserProfile, VendorProfile
+                profile = request.user.profile
+                if profile.is_seller():
+                    # Try to create vendor profile (signal should have done this, but ensure it exists)
+                    import uuid
+                    vendor_profile, created = VendorProfile.objects.get_or_create(
+                        user=request.user,
+                        defaults={
+                            'store_name': f"فروشگاه_{request.user.username}_{uuid.uuid4().hex[:6]}",
+                            'description': ''
+                        }
+                    )
+                    # Re-initialize service with the new vendor profile
+                    service = GamificationService.for_user(request.user)
+            except (UserProfile.DoesNotExist, AttributeError, Exception):
+                # User is not a seller or profile doesn't exist, return empty data
+                pass
+        
+        # If still no vendor_profile, return empty/default data
+        if not service.vendor_profile:
+            return Response({
+                'status': {
+                    'tier': 'inactive',
+                    'tier_display': 'غیرفعال',
+                    'tier_color': 'grey',
+                    'rank': None,
+                    'total_points': 0,
+                    'reputation_score': 0,
+                    'current_streak_days': 0,
+                    'avg_response_minutes': 0,
+                },
+                'progress': {
+                    'overall_percentage': 0,
+                    'milestones': [],
+                    'required_steps_completed': 0,
+                    'total_required_steps': 5
+                },
+                'current_task': None,
+                'leaderboard_position': None
+            })
         
         engagement = service.get_or_create_engagement()
         
@@ -874,10 +917,11 @@ class GamificationDashboardView(APIView):
         )
         
         user_rank = None
-        for idx, eng in enumerate(all_engagements, start=1):
-            if eng.id == engagement.id:
-                user_rank = idx
-                break
+        if engagement:
+            for idx, eng in enumerate(all_engagements, start=1):
+                if eng.id == engagement.id:
+                    user_rank = idx
+                    break
         
         # Get progress and current task
         progress = service.get_overall_progress()
@@ -925,7 +969,8 @@ class CompleteTaskView(APIView):
             'team': 50,
             'portfolio': 50,
             'invite': 100,
-            'insights': 15
+            'insights': 15,
+            'onboarding_quest': 25  # Welcome tour completion
         }
         
         points_awarded = task_points.get(task_type, 0)

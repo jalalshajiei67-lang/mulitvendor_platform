@@ -79,3 +79,5 @@ python -m py_compile multivendor_platform/settings.py
 
 If no errors, the fix is correct!
 
+
+

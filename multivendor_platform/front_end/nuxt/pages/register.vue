@@ -10,7 +10,38 @@
           </v-card-text>
 
           <!-- Role Selection Cards -->
-          <v-card-text class="pa-6 pt-2">
+          <v-card-text class="pa-6 pt-2 role-selection-section">
+            <div class="mb-4">
+              <div class="d-flex align-center mb-2">
+                <span class="text-h6 font-weight-bold">انتخاب نقش *</span>
+                <v-chip
+                  v-if="!form.role && roleError"
+                  color="error"
+                  size="small"
+                  variant="flat"
+                  class="mr-2"
+                >
+                  الزامی
+                </v-chip>
+              </div>
+              <p class="text-body-2 text-medium-emphasis mb-0">
+                لطفاً یکی از گزینه‌های زیر را انتخاب کنید
+              </p>
+            </div>
+            <v-alert
+              v-if="roleError"
+              type="error"
+              variant="tonal"
+              rounded="lg"
+              class="mb-4"
+              closable
+              @click:close="roleError = false"
+            >
+              <div class="d-flex align-center">
+                <v-icon icon="mdi-alert-circle" class="ml-2" />
+                <span>لطفاً نقش خود را انتخاب کنید</span>
+              </div>
+            </v-alert>
             <v-row class="ma-0">
               <v-col
                 v-for="role in roleOptions"
@@ -23,7 +54,7 @@
                   :class="[
                     'role-card',
                     { 'role-card-selected': form.role === role.value },
-                    { 'role-card-flash': !form.role }
+                    { 'role-card-error': roleError && !form.role }
                   ]"
                   :color="form.role === role.value ? 'primary' : 'surface-variant'"
                   :variant="form.role === role.value ? 'flat' : 'outlined'"
@@ -234,7 +265,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, nextTick } from 'vue'
 import { getErrorIcon, getErrorColor } from '~/utils/authErrors'
 
 definePageMeta({
@@ -265,6 +296,7 @@ const formRef = ref()
 const isValid = ref(false)
 const showPassword = ref(false)
 const confirmPassword = ref('')
+const roleError = ref(false)
 const loading = computed(() => authStore.loading)
 const authError = computed(() => authStore.authError)
 
@@ -318,6 +350,7 @@ const roleOptions = [
 
 const selectRole = (role: string) => {
   form.role = role
+  roleError.value = false
   // Clear any previous errors
   clearError()
 }
@@ -384,12 +417,23 @@ const confirmPasswordRules = [
 const submit = async () => {
   if (!formRef.value) return
 
-  const result = await formRef.value.validate()
-  if (!result.valid) return
-
+  // Check role first before validating form
   if (!form.role) {
+    roleError.value = true
+    // Scroll to role selection section
+    nextTick(() => {
+      const roleSection = document.querySelector('.role-selection-section')
+      if (roleSection) {
+        roleSection.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    })
     return
   }
+
+  roleError.value = false
+
+  const result = await formRef.value.validate()
+  if (!result.valid) return
 
   clearError()
 
@@ -468,20 +512,20 @@ const submit = async () => {
   animation: none !important;
 }
 
-.role-card-flash {
-  animation: flash-pulse 2s ease-in-out infinite;
+.role-card-error {
+  border-color: rgb(var(--v-theme-error)) !important;
+  animation: error-pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 4px 16px rgba(var(--v-theme-error), 0.3) !important;
 }
 
-@keyframes flash-pulse {
+@keyframes error-pulse {
   0%, 100% {
-    border-color: transparent;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transform: scale(1);
+    border-color: rgb(var(--v-theme-error));
+    box-shadow: 0 4px 16px rgba(var(--v-theme-error), 0.3);
   }
   50% {
-    border-color: rgb(var(--v-theme-primary));
-    box-shadow: 0 4px 16px rgba(var(--v-theme-primary), 0.4);
-    transform: scale(1.02);
+    border-color: rgb(var(--v-theme-error));
+    box-shadow: 0 6px 20px rgba(var(--v-theme-error), 0.5);
   }
 }
 

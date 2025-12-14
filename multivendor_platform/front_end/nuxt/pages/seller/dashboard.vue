@@ -10,7 +10,7 @@
               <div class="py-2">
                 <!-- NEW: Simplified Gamification Section -->
                 <v-row class="mb-6">
-                  <v-col cols="12">
+                  <v-col cols="12" data-tour="stat-section">
                     <StatusCard
                       v-if="dashboardGamification"
                       :tier="dashboardGamification.status.tier"
@@ -30,7 +30,7 @@
                 </v-row>
 
                 <v-row class="mb-6">
-                  <v-col cols="12">
+                  <v-col cols="12" data-tour="quest-box">
                     <CurrentTaskCard
                       :task="dashboardGamification?.current_task || null"
                       @action="handleTaskAction"
@@ -940,6 +940,9 @@
       :message="celebrationMessage"
       @close="showCelebration = false"
     />
+
+    <!-- Welcome Onboarding Tour -->
+    <WelcomeOnboardingTour @tour-completed="handleTourCompleted" />
   </v-container>
 </template>
 
@@ -963,6 +966,7 @@ import CurrentTaskCard from '~/components/gamification/CurrentTaskCard.vue'
 import CelebrationOverlay from '~/components/gamification/CelebrationOverlay.vue'
 import LeaderboardSection from '~/components/gamification/LeaderboardSection.vue'
 import InsightsFeed from '~/components/gamification/InsightsFeed.vue'
+import WelcomeOnboardingTour from '~/components/gamification/WelcomeOnboardingTour.vue'
 import { useGamificationStore } from '~/stores/gamification'
 import { useGamificationApi, type SellerInsight } from '~/composables/useGamification'
 import { useGamificationDashboard, type DashboardData, type CurrentTask } from '~/composables/useGamificationDashboard'
@@ -1333,6 +1337,11 @@ const completeTaskAndCelebrate = async (taskType: string, metadata: Record<strin
   } catch (error) {
     console.error('Error completing task:', error)
   }
+}
+
+const handleTourCompleted = () => {
+  // Tour completed - refresh dashboard to show updated quest status
+  loadDashboardGamification()
 }
 
 const updateProfile = async () => {

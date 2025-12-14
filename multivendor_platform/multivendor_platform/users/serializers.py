@@ -215,25 +215,33 @@ class RegisterSerializer(serializers.Serializer):
             address=validated_data.get('address', '')
         )
         
-        # If store_name is provided during registration, update vendor profile after signal creates it
+        # Ensure VendorProfile is created for sellers (signal should handle this, but ensure it exists)
         # Signal runs synchronously, so VendorProfile should exist now
         if validated_data['role'] in ['seller', 'both']:
-            store_name = validated_data.get('store_name', '')
-            store_description = validated_data.get('store_description', '')
+            from users.models import VendorProfile
+            import uuid
+            
+            # Get or create vendor profile (signal should have created it, but ensure it exists)
+            vendor_profile, created = VendorProfile.objects.get_or_create(
+                user=user,
+                defaults={
+                    'store_name': f"فروشگاه_{user.username}_{uuid.uuid4().hex[:6]}",
+                    'description': ''
+                }
+            )
+            
+            # Update store_name and description if provided during registration
+            store_name = validated_data.get('store_name', '').strip()
+            store_description = validated_data.get('store_description', '').strip()
+            
             if store_name:
-                try:
-                    vendor_profile = VendorProfile.objects.get(user=user)
-                    vendor_profile.store_name = store_name
-                    if store_description:
-                        vendor_profile.description = store_description
-                    vendor_profile.save()
-                except VendorProfile.DoesNotExist:
-                    # If signal hasn't created it yet (shouldn't happen), create it manually
-                    VendorProfile.objects.create(
-                        user=user,
-                        store_name=store_name,
-                        description=store_description
-                    )
+                vendor_profile.store_name = store_name
+            if store_description:
+                vendor_profile.description = store_description
+            
+            # Save if we updated anything or if it was just created
+            if store_name or store_description or created:
+                vendor_profile.save()
         
         # Handle referral code (invitation system)
         referral_code = validated_data.get('referral_code', '').strip()

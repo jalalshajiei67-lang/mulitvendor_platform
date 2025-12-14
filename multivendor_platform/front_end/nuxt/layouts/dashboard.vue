@@ -1,12 +1,7 @@
 <template>
   <v-layout class="dashboard-layout d-flex flex-column" dir="rtl">
     <!-- Dashboard Header -->
-    <v-app-bar
-      density="comfortable"
-      color="primary"
-      elevation="2"
-      class="dashboard-header"
-    >
+    <v-app-bar density="comfortable" color="primary" elevation="2" class="dashboard-header">
       <v-container class="d-flex align-center justify-space-between py-2" fluid>
         <!-- Logo and Dashboard Title -->
         <div class="d-flex align-center gap-4">
@@ -19,10 +14,7 @@
             <div class="text-subtitle-1 font-weight-bold text-white">
               {{ dashboardTitle }}
             </div>
-            <NuxtLink
-              to="/"
-              class="text-caption text-white text-decoration-none"
-            >
+            <NuxtLink to="/" class="text-caption text-white text-decoration-none">
               بازگشت به سایت اصلی
             </NuxtLink>
           </div>
@@ -32,31 +24,23 @@
         <div class="d-flex align-center gap-2">
           <v-btn
             v-if="isSeller"
-            color="amber"
-            variant="tonal"
+            :color="currentPlanColor"
+            :variant="isFreePlan ? 'tonal' : 'flat'"
             size="small"
-            prepend-icon="mdi-crown"
+            :prepend-icon="currentPlanIcon"
             class="text-white"
             to="/seller/pricing"
+            :class="{ 'pulse-glow': isFreePlan }"
+            data-tour="pricing-button"
           >
             {{ planButtonLabel }}
           </v-btn>
           <template v-if="isAuthenticated">
             <!-- Notification Bell (Buyer Only) -->
             <template v-if="isBuyer">
-              <v-menu
-                v-model="showNotificationsMenu"
-                location="bottom end"
-                offset="10"
-              >
+              <v-menu v-model="showNotificationsMenu" location="bottom end" offset="10">
                 <template v-slot:activator="{ props }">
-                  <v-btn
-                    icon
-                    v-bind="props"
-                    variant="text"
-                    size="small"
-                    class="text-white"
-                  >
+                  <v-btn icon v-bind="props" variant="text" size="small" class="text-white">
                     <v-badge
                       :content="notificationCount"
                       :model-value="notificationCount > 0"
@@ -71,21 +55,13 @@
                 <v-card min-width="300" max-width="400">
                   <v-card-title class="d-flex align-center justify-space-between">
                     <span>اعلان‌ها</span>
-                    <v-btn
-                      icon
-                      size="small"
-                      variant="text"
-                      @click="showNotificationsMenu = false"
-                    >
+                    <v-btn icon size="small" variant="text" @click="showNotificationsMenu = false">
                       <v-icon>mdi-close</v-icon>
                     </v-btn>
                   </v-card-title>
                   <v-divider></v-divider>
                   <v-list>
-                    <v-list-item
-                      v-if="notifications.length === 0"
-                      class="text-center py-4"
-                    >
+                    <v-list-item v-if="notifications.length === 0" class="text-center py-4">
                       <v-list-item-title class="text-grey">
                         هیچ اعلانی وجود ندارد
                       </v-list-item-title>
@@ -112,13 +88,7 @@
             <!-- User Menu -->
             <v-menu location="bottom end">
               <template v-slot:activator="{ props }">
-                <v-btn
-                  icon
-                  v-bind="props"
-                  variant="text"
-                  size="small"
-                  class="text-white"
-                >
+                <v-btn icon v-bind="props" variant="text" size="small" class="text-white">
                   <div class="avatar-with-badge">
                     <v-avatar size="32" class="user-avatar">
                       <v-icon>mdi-account</v-icon>
@@ -159,7 +129,9 @@
                       size="16"
                       class="tier-badge"
                     >
-                      <v-icon size="10" color="white">{{ getTierIcon(gamificationStore.userTier) }}</v-icon>
+                      <v-icon size="10" color="white">{{
+                        getTierIcon(gamificationStore.userTier)
+                      }}</v-icon>
                     </v-avatar>
                   </div>
                 </v-btn>
@@ -182,27 +154,19 @@
                 </v-list-item>
                 <v-list-item v-if="isSeller && gamificationStore.userRank" class="px-4 py-2">
                   <v-list-item-subtitle class="text-caption">
-                    رتبه: {{ gamificationStore.userRank }} | امتیاز: {{ formatNumber(gamificationStore.engagement?.total_points || 0) }}
+                    رتبه: {{ gamificationStore.userRank }} | امتیاز:
+                    {{ formatNumber(gamificationStore.engagement?.total_points || 0) }}
                   </v-list-item-subtitle>
                 </v-list-item>
                 <v-divider></v-divider>
-                <v-list-item
-                  :to="dashboardLink"
-                  prepend-icon="mdi-view-dashboard"
-                >
+                <v-list-item :to="dashboardLink" prepend-icon="mdi-view-dashboard">
                   <v-list-item-title>داشبورد</v-list-item-title>
                 </v-list-item>
-                <v-list-item
-                  :to="`${dashboardLink}?tab=profile`"
-                  prepend-icon="mdi-account"
-                >
+                <v-list-item :to="`${dashboardLink}?tab=profile`" prepend-icon="mdi-account">
                   <v-list-item-title>پروفایل</v-list-item-title>
                 </v-list-item>
                 <v-divider></v-divider>
-                <v-list-item
-                  to="/logout"
-                  prepend-icon="mdi-logout"
-                >
+                <v-list-item to="/logout" prepend-icon="mdi-logout">
                   <v-list-item-title>خروج</v-list-item-title>
                 </v-list-item>
               </v-list>
@@ -219,6 +183,7 @@
       color="primary"
       elevation="1"
       class="dashboard-navbar"
+      data-tour="navbar-section"
     >
       <v-container fluid class="px-4">
         <div class="d-flex align-center justify-start">
@@ -299,47 +264,32 @@
           </div>
 
           <!-- Mobile Navigation (Dropdown) -->
-          <v-menu class="d-md-none" location="bottom start">
+          <v-menu class="d-lg-none" location="bottom start">
             <template v-slot:activator="{ props }">
               <v-btn
                 v-bind="props"
                 variant="text"
                 size="small"
-                class="text-white"
+                class="text-white d-lg-none"
                 prepend-icon="mdi-menu"
               >
                 منو
               </v-btn>
             </template>
             <v-list>
-              <v-list-item
-                to="/seller/dashboard?tab=home"
-                prepend-icon="mdi-home-outline"
-              >
+              <v-list-item to="/seller/dashboard?tab=home" prepend-icon="mdi-home-outline">
                 <v-list-item-title>داشبورد</v-list-item-title>
               </v-list-item>
-              <v-list-item
-                to="/seller/dashboard?tab=miniwebsite"
-                prepend-icon="mdi-web"
-              >
+              <v-list-item to="/seller/dashboard?tab=miniwebsite" prepend-icon="mdi-web">
                 <v-list-item-title>فروشگاه من</v-list-item-title>
               </v-list-item>
-              <v-list-item
-                to="/seller/dashboard?tab=customerPool"
-                prepend-icon="mdi-account-group"
-              >
+              <v-list-item to="/seller/dashboard?tab=customerPool" prepend-icon="mdi-account-group">
                 <v-list-item-title>استخر مشتریان</v-list-item-title>
               </v-list-item>
-              <v-list-item
-                to="/seller/dashboard?tab=orders"
-                prepend-icon="mdi-shopping-outline"
-              >
+              <v-list-item to="/seller/dashboard?tab=orders" prepend-icon="mdi-shopping-outline">
                 <v-list-item-title>سفارشات</v-list-item-title>
               </v-list-item>
-              <v-list-item
-                to="/seller/dashboard?tab=reviews"
-                prepend-icon="mdi-star-outline"
-              >
+              <v-list-item to="/seller/dashboard?tab=reviews" prepend-icon="mdi-star-outline">
                 <v-list-item-title>نظرات</v-list-item-title>
               </v-list-item>
               <v-list-item
@@ -354,10 +304,7 @@
               >
                 <v-list-item-title>اشتراک تجربه</v-list-item-title>
               </v-list-item>
-              <v-list-item
-                to="/seller/dashboard?tab=invite"
-                prepend-icon="mdi-share-variant"
-              >
+              <v-list-item to="/seller/dashboard?tab=invite" prepend-icon="mdi-share-variant">
                 <v-list-item-title>دعوت و امتیاز</v-list-item-title>
               </v-list-item>
             </v-list>
@@ -398,10 +345,33 @@ const dashboardLink = computed(() => {
   return '/buyer/dashboard'
 })
 
+// Plan/Subscription Status
+const currentPlanName = ref<string>('فریمیوم')
+const isFreePlan = computed(() => {
+  const tier = gamificationStore.userTier
+  return !tier || tier === 'inactive' || tier === 'free'
+})
+
+const currentPlanIcon = computed(() => {
+  return isFreePlan.value ? 'mdi-lightning-bolt' : 'mdi-crown'
+})
+
+const currentPlanColor = computed(() => {
+  if (isFreePlan.value) return 'warning'
+  if (gamificationStore.userTier === 'gold') return 'warning'
+  if (gamificationStore.userTier === 'silver') return 'info'
+  return 'amber'
+})
+
 const planButtonLabel = computed(() => {
   if (!isSeller.value) return 'پلن‌ها'
-  // TODO: Implement premium status check when subscription feature is ready
-  return 'مشاهده پلن‌ها'
+
+  if (isFreePlan.value) {
+    return 'ارتقاء به پریمیوم'
+  }
+
+  const tier = gamificationStore.userTier || 'نامشخص'
+  return `پلن: ${tier}`
 })
 
 // Notification logic for buyers
@@ -409,18 +379,16 @@ let notificationInterval: ReturnType<typeof setInterval> | null = null
 
 const loadNotifications = async () => {
   if (!isBuyer.value) return
-  
+
   try {
     const { useBuyerApi } = await import('~/composables/useBuyerApi')
     const buyerApi = useBuyerApi()
     const orders = await buyerApi.getBuyerOrders()
-    
+
     const newNotifications: any[] = []
-    
+
     // Add pending orders notifications
-    const pendingOrders = orders.filter((order: any) => 
-      !order.is_rfq && order.status === 'pending'
-    )
+    const pendingOrders = orders.filter((order: any) => !order.is_rfq && order.status === 'pending')
     if (pendingOrders.length > 0) {
       newNotifications.push({
         id: 'pending_orders',
@@ -429,14 +397,12 @@ const loadNotifications = async () => {
         subtitle: 'سفارشات شما در حال بررسی است',
         icon: 'mdi-package-variant',
         color: 'warning',
-        link: '/buyer/dashboard?tab=orders'
+        link: '/buyer/dashboard?tab=orders',
       })
     }
-    
+
     // Add pending RFQs notifications
-    const pendingRFQs = orders.filter((order: any) => 
-      order.is_rfq && order.status === 'pending'
-    )
+    const pendingRFQs = orders.filter((order: any) => order.is_rfq && order.status === 'pending')
     if (pendingRFQs.length > 0) {
       newNotifications.push({
         id: 'pending_rfqs',
@@ -445,10 +411,10 @@ const loadNotifications = async () => {
         subtitle: 'درخواست‌های قیمت شما در حال بررسی است',
         icon: 'mdi-file-document-edit',
         color: 'info',
-        link: '/buyer/dashboard?tab=rfqs'
+        link: '/buyer/dashboard?tab=rfqs',
       })
     }
-    
+
     notifications.value = newNotifications
   } catch (error) {
     console.error('Failed to load notifications:', error)
@@ -465,22 +431,26 @@ const handleNotificationClick = (notification: any) => {
 }
 
 // Load notifications when authenticated buyer
-watch([isAuthenticated, isBuyer], ([auth, buyer]) => {
-  if (notificationInterval) {
-    clearInterval(notificationInterval)
-    notificationInterval = null
-  }
-  
-  if (auth && buyer) {
-    loadNotifications()
-    // Refresh notifications every 30 seconds
-    notificationInterval = setInterval(() => {
-      if (isAuthenticated.value && isBuyer.value) {
-        loadNotifications()
-      }
-    }, 30000)
-  }
-}, { immediate: true })
+watch(
+  [isAuthenticated, isBuyer],
+  ([auth, buyer]) => {
+    if (notificationInterval) {
+      clearInterval(notificationInterval)
+      notificationInterval = null
+    }
+
+    if (auth && buyer) {
+      loadNotifications()
+      // Refresh notifications every 30 seconds
+      notificationInterval = setInterval(() => {
+        if (isAuthenticated.value && isBuyer.value) {
+          loadNotifications()
+        }
+      }, 30000)
+    }
+  },
+  { immediate: true },
+)
 
 // Cleanup on unmount
 onUnmounted(() => {
@@ -546,7 +516,7 @@ const circumference = computed(() => 2 * Math.PI * 18) // radius is 18
 
 const progressPercentage = computed(() => {
   if (!isSeller.value || !gamificationStore.userTier) return 0
-  
+
   const thresholds: Record<string, number> = {
     diamond: 1000,
     gold: 500,
@@ -554,23 +524,24 @@ const progressPercentage = computed(() => {
     bronze: 50,
     inactive: 0,
   }
-  
+
   const tierOrder = ['inactive', 'bronze', 'silver', 'gold', 'diamond']
   const currentTier = gamificationStore.userTier
   const currentPoints = gamificationStore.engagement?.total_points || 0
   const currentThreshold = thresholds[currentTier] || 0
-  
+
   // Get next tier
   const currentIndex = tierOrder.indexOf(currentTier)
-  const nextTier = currentIndex >= 0 && currentIndex < tierOrder.length - 1 
-    ? tierOrder[currentIndex + 1] 
-    : currentTier
-  
+  const nextTier =
+    currentIndex >= 0 && currentIndex < tierOrder.length - 1
+      ? tierOrder[currentIndex + 1]
+      : currentTier
+
   const nextThreshold = thresholds[nextTier] || 1000
   const range = nextThreshold - currentThreshold
-  
+
   if (range === 0) return 100
-  
+
   const progress = ((currentPoints - currentThreshold) / range) * 100
   return Math.max(0, Math.min(100, progress))
 })
@@ -671,5 +642,21 @@ const progressOffset = computed(() => {
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
-</style>
 
+/* Pulse glow animation for free plan button */
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 175, 0, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(244, 175, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 175, 0, 0);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+</style>
