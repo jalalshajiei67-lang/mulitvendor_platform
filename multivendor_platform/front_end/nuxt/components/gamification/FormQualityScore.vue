@@ -99,8 +99,8 @@ const props = withDefaults(defineProps<{
   tips?: string[]
   loading?: boolean
 }>(), {
-  title: 'امتیاز کیفیت فرم',
-  caption: 'راهنمای قدم‌به‌قدم',
+  title: 'میزان حرفه‌ای بودن پروفایل',
+  caption: 'تاثیر مستقیم بر فروش',
   tips: () => [],
   loading: false
 })
@@ -118,10 +118,10 @@ const progressColor = computed(() => {
 })
 
 const mood = computed(() => {
-  if (props.score >= 90) return 'عالی'
-  if (props.score >= 70) return 'خوب'
-  if (props.score >= 40) return 'در حال پیشرفت'
-  return 'نیازمند توجه'
+  if (props.score >= 90) return 'بسیار قابل اعتماد'
+  if (props.score >= 70) return 'قابل اعتماد'
+  if (props.score >= 40) return 'در مسیر رشد'
+  return 'نیازمند تکمیل اطلاعات'
 })
 
 const scoreColorVariant = computed(() => {
@@ -172,7 +172,7 @@ watch(
 
 const t = (key: string) => {
   const dict: Record<string, string> = {
-    suggestions: 'پیشنهادهای فوری'
+    suggestions: 'چگونه فروش خود را افزایش دهید؟'
   }
   return dict[key] ?? key
 }

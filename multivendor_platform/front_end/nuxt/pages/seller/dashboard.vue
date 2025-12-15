@@ -52,12 +52,12 @@
                       <v-card-text class="pa-4">
                         <div class="d-flex align-center justify-space-between">
                           <div>
-                            <div class="text-caption mb-1">محصولات</div>
+                            <div class="text-caption mb-1">محصولات شما</div>
                             <div class="text-h5 font-weight-bold">
                               {{ dashboardData.total_products || 0 }}
                             </div>
                             <div class="text-caption opacity-70">
-                              {{ dashboardData.active_products || 0 }} فعال
+                              {{ dashboardData.active_products || 0 }} فعال در سایت
                             </div>
                           </div>
                           <v-icon size="32" color="primary">mdi-package-variant</v-icon>
@@ -102,12 +102,12 @@
                       <v-card-text class="pa-4">
                         <div class="d-flex align-center justify-space-between">
                           <div>
-                            <div class="text-caption mb-1">بازدیدها</div>
+                            <div class="text-caption mb-1">بازدید مشتریان</div>
                             <div class="text-h5 font-weight-bold">
                               {{ dashboardData.product_views || 0 }}
                             </div>
                             <div class="text-caption opacity-70">
-                              بازدید محصولات
+                              تعداد بازدید از محصولات
                             </div>
                           </div>
                           <v-icon size="32" color="success">mdi-eye-outline</v-icon>
@@ -127,12 +127,12 @@
                       <v-card-text class="pa-4">
                         <div class="d-flex align-center justify-space-between">
                           <div>
-                            <div class="text-caption mb-1">نظرات</div>
+                            <div class="text-caption mb-1">نظرات خریداران</div>
                             <div class="text-h5 font-weight-bold">
                               {{ dashboardData.total_reviews || 0 }}
                             </div>
                             <div class="text-caption opacity-70">
-                              کل نظرات
+                              مجموع نظرات ثبت شده
                             </div>
                           </div>
                           <v-icon size="32" color="warning">mdi-star-outline</v-icon>
@@ -148,9 +148,9 @@
                     <v-card elevation="2" rounded="xl" class="pa-4">
                       <div class="d-flex align-center justify-space-between mb-4">
                         <div>
-                          <div class="text-h6 font-weight-bold">استخر مشتریان (۳ سرنخ اخیر)</div>
+                          <div class="text-h6 font-weight-bold">مشتریان منتظر شما (۳ فرصت اخیر)</div>
                           <div class="text-body-2 text-medium-emphasis">
-                            جدیدترین سرنخ‌های رایگان برای شما
+                            این افراد به دنبال محصولاتی هستند که شما می‌فروشید. با آنها تماس بگیرید.
                           </div>
                         </div>
                         <v-btn
@@ -176,7 +176,7 @@
                         variant="tonal"
                         class="mb-0"
                       >
-                        هنوز سرنخی در دسترس نیست.
+                        هنوز درخواستی ثبت نشده است. با تکمیل محصولات، شانس دیده شدن خود را افزایش دهید.
                       </v-alert>
 
                       <v-row v-else class="gy-4">
@@ -212,7 +212,7 @@
                             </div>
 
                             <div class="text-body-2 text-high-emphasis">
-                              {{ lead.unique_needs || 'نیاز مشتری ثبت نشده است.' }}
+                              {{ lead.unique_needs || 'جزئیات نیاز مشتری ثبت نشده است.' }}
                             </div>
                           </v-card>
                         </v-col>
@@ -297,9 +297,9 @@
                     <v-card elevation="2" rounded="xl" class="pa-4">
                       <div class="d-flex align-center justify-space-between mb-4">
                         <div>
-                          <div class="text-h6 font-weight-bold">استخر مشتریان</div>
+                          <div class="text-h6 font-weight-bold">مشتریان بالقوه</div>
                           <div class="text-body-2 text-medium-emphasis">
-                            سرنخ‌های رایگان و مرتبط برای محصولات شما
+                            لیست خریدارانی که به دنبال محصولات شما هستند. پاسخگویی سریع = اعتماد بیشتر.
                           </div>
                         </div>
                         <v-btn
@@ -326,7 +326,7 @@
                         variant="tonal"
                         class="mb-0"
                       >
-                        هنوز سرنخی در دسترس نیست. با افزودن محصولات فعال، سرنخ‌های مرتبط دریافت می‌کنید.
+                        هنوز درخواستی موجود نیست. با تکمیل محصولات خود، به مشتریان کمک کنید شما را پیدا کنند.
                       </v-alert>
 
                       <v-row v-else class="gy-4">
@@ -363,7 +363,7 @@
                             </div>
 
                             <div class="text-body-2 text-high-emphasis">
-                              {{ lead.unique_needs || 'نیاز مشتری ثبت نشده است.' }}
+                              {{ lead.unique_needs || 'جزئیات نیاز مشتری ثبت نشده است.' }}
                             </div>
 
                             <div v-if="lead.images && lead.images.length" class="d-flex align-center gap-2">
@@ -400,7 +400,7 @@
                               :disabled="lead.contact_revealed"
                               @click="revealLeadContact(lead.id)"
                             >
-                              {{ lead.contact_revealed ? 'اطلاعات نمایش داده شد' : 'مشاهده اطلاعات تماس' }}
+                              {{ lead.contact_revealed ? 'اطلاعات نمایش داده شد' : 'دریافت شماره تماس خریدار' }}
                             </v-btn>
                           </v-card>
                         </v-col>
@@ -463,8 +463,8 @@
                 
                 <v-card v-else-if="!loadingOrders && orders.length === 0" elevation="1" class="text-center pa-8">
                   <v-icon size="80" color="grey-lighten-1">mdi-shopping-outline</v-icon>
-                  <p class="text-h6 mt-4 mb-2">هنوز سفارشی دریافت نکرده‌اید</p>
-                  <p class="text-body-2 text-grey">سفارشات شما در اینجا نمایش داده می‌شوند</p>
+                  <p class="text-h6 mt-4 mb-2">هنوز سفارشی ثبت نشده است</p>
+                  <p class="text-body-2 text-grey">با تکمیل پروفایل و محصولات، اعتماد خریداران را جلب کنید تا اولین سفارش ثبت شود.</p>
                 </v-card>
               </v-card>
             </v-window-item>
@@ -524,8 +524,8 @@
                 
                 <v-card v-else-if="!loadingReviews && reviews.length === 0" elevation="1" class="text-center pa-8">
                   <v-icon size="80" color="grey-lighten-1">mdi-star-outline</v-icon>
-                  <p class="text-h6 mt-4 mb-2">هنوز نظری دریافت نکرده‌اید</p>
-                  <p class="text-body-2 text-grey">نظرات مشتریان در اینجا نمایش داده می‌شوند</p>
+                  <p class="text-h6 mt-4 mb-2">هنوز نظری ثبت نشده است</p>
+                  <p class="text-body-2 text-grey">نظرات مثبت مشتریان، بزرگترین سرمایه شما برای فروش‌های بعدی است.</p>
                 </v-card>
               </v-card>
             </v-window-item>
@@ -554,9 +554,9 @@
             <v-window-item value="invite">
               <v-card elevation="2" rounded="xl" class="pa-6 mt-4 text-center">
                 <v-icon size="56" color="primary" class="mb-4">mdi-share-variant</v-icon>
-                <h3 class="text-h6 font-weight-bold mb-2">دعوت و امتیاز</h3>
+                <h3 class="text-h6 font-weight-bold mb-2">همکاران خود را دعوت کنید</h3>
                 <p class="text-body-2 text-medium-emphasis mb-6">
-                  دوستان خود را دعوت کنید و برای هر ثبت‌نام موفق ۱۰۰ امتیاز دریافت کنید.
+                  از همکاران معتبر خود دعوت کنید تا شما را تائید نمایند، با اینکار به آنها هدیه می دهید و باعث افزایش اعتبار شرکت خود می شوید.
                 </p>
                 <v-btn
                   color="primary"
@@ -595,8 +595,8 @@
                       <v-row>
                         <v-col cols="12" lg="4">
                           <FormQualityScore
-                            title="امتیاز پروفایل"
-                            caption="تکمیل پروفایل = اعتماد بیشتر خریدار"
+                            title="میزان اعتماد پروفایل"
+                            caption="پروفایل کامل = فروش راحت‌تر"
                             :score="profileScore"
                             :metrics="profileMetrics"
                             :tips="profileTips"
@@ -902,6 +902,14 @@ interface CustomerLead {
   unique_needs?: string | null
   images?: Array<{ id: number; image_url?: string }>
   contact_revealed?: boolean
+}
+
+interface ProfileMetric {
+  key: string
+  label: string
+  tip: string
+  weight: number
+  passed: boolean
 }
 
 definePageMeta({
@@ -1246,7 +1254,7 @@ const completeTaskAndCelebrate = async (taskType: string, metadata: Record<strin
     if (result.data.value && result.data.value.celebration) {
       // Show celebration
       celebrationPoints.value = result.data.value.points_awarded || 0
-      celebrationMessage.value = result.data.value.message || 'عالی! وظیفه تکمیل شد.'
+      celebrationMessage.value = result.data.value.message || 'عالی! یک قدم به موفقیت نزدیک‌تر شدید.'
       showCelebration.value = true
       
       // Refresh dashboard data after celebration
@@ -1313,9 +1321,14 @@ const selectedChatRoom = ref<any>(null)
 const unreadChatsCount = ref(0)
 const activeTodayCount = ref(0)
 const profileScore = ref(0)
-const profileMetrics = ref([])
-const profileTips = ref([])
-const profileData = ref({ first_name: '', last_name: '', email: '', phone: '' })
+const profileMetrics = ref<ProfileMetric[]>([])
+const profileTips = ref<string[]>([])
+const profileData = ref({
+  first_name: '',
+  last_name: '',
+  email: '',
+  phone: ''
+})
 const customerPool = ref<CustomerLead[]>([])
 const loadingCustomerPool = ref(false)
 const revealingContact = ref<Record<number, boolean>>({})
@@ -1428,7 +1441,7 @@ const handleCreateInsight = async (payload: { title: string; content: string }) 
       comments_count: (created as any)?.comments_count || 0
     }
     insights.value = [newInsight, ...insights.value]
-    showSnackbar('بینش شما به صورت عمومی منتشر شد و برای خریداران قابل مشاهده است', 'success')
+    showSnackbar('نکته شما به صورت عمومی منتشر شد و برای خریداران قابل مشاهده است', 'success')
     
     // NEW: Complete task and celebrate
     try {
@@ -1438,7 +1451,7 @@ const handleCreateInsight = async (payload: { title: string; content: string }) 
     }
   } catch (error: any) {
     console.error('Failed to create insight:', error)
-    showSnackbar(error?.message || 'ثبت بینش ناموفق بود', 'error')
+    showSnackbar(error?.message || 'ثبت نکته تخصصی ناموفق بود', 'error')
   } finally {
     creatingInsight.value = false
   }
@@ -1500,12 +1513,12 @@ const handleCreateInsightComment = async (payload: { id: number; content: string
     updateInsightState(id, {
       comments_count: (existing.length + 1)
     })
-    showSnackbar('دیدگاه شما به صورت عمومی ثبت شد', 'success')
+    showSnackbar('نظر شما به صورت عمومی ثبت شد', 'success')
   } catch (error: any) {
     console.error('Failed to add comment:', error)
     insightCommentsError.value = {
       ...insightCommentsError.value,
-      [id]: error?.message || 'ثبت دیدگاه ناموفق بود'
+      [id]: error?.message || 'ثبت نظر ناموفق بود'
     }
   } finally {
     insightCommentsLoading.value = { ...insightCommentsLoading.value, [id]: false }
@@ -1519,7 +1532,7 @@ const loadCustomerPool = async () => {
     customerPool.value = (Array.isArray(data) ? data : []).map(normalizeLead)
   } catch (error: any) {
     console.error('Failed to load customer pool:', error)
-    showSnackbar('خطا در بارگذاری سرنخ‌های رایگان', 'error')
+    showSnackbar('خطا در بارگذاری درخواست های خرید رایگان', 'error')
   } finally {
     loadingCustomerPool.value = false
   }
@@ -1545,7 +1558,7 @@ const revealLeadContact = async (leadId: number) => {
         if (idx !== -1) {
           customerPool.value.splice(idx, 1)
         }
-        showSnackbar('این مخاطب قبلاً در CRM شما ثبت شده است', 'info')
+        showSnackbar('این مخاطب قبلاً در CRM شما ثبت شده است، برای مشاهده به CRM مراجعه کنید.', 'هشدار')
         return
       }
     }
@@ -1578,11 +1591,11 @@ const revealLeadContact = async (leadId: number) => {
     
     // Extract error message from response
     const statusCode = error?.statusCode || error?.status || error?.response?.status
-    let errorMessage = 'دسترسی به این سرنخ ممکن نیست'
+    let errorMessage = 'دسترسی به این مشتری ممکن نیست'
     
     // Handle 429 rate limit error specifically
     if (statusCode === 429) {
-      errorMessage = error?.data?.detail || 'شما به حد مجاز روزانه برای مشاهده سرنخ‌های جدید رسیده‌اید. لطفاً بعداً تلاش کنید.'
+      errorMessage = error?.data?.detail || 'شما به حد مجاز روزانه برای مشاهده مشتریهای جدید رسیده‌اید. لطفاً بعداً تلاش کنید.'
     } else if (error?.data?.detail) {
       errorMessage = error.data.detail
     } else if (error?.message) {
@@ -1623,35 +1636,77 @@ const loadProfileData = () => {
   }
 }
 
+const buildProfileGamificationMetrics = (): ProfileMetric[] => {
+  const emailValue = (profileData.value.email || '').trim()
+  const phoneDigits = (profileData.value.phone || '').replace(/\D/g, '')
+  const hasFirstName = !!profileData.value.first_name?.trim()
+  const hasLastName = !!profileData.value.last_name?.trim()
+  const hasValidEmail = emailValue.includes('@') && emailValue.split('@')[1]?.includes('.')
+  const hasReachablePhone = phoneDigits.length >= 10
+
+  return [
+    {
+      key: 'first_name',
+      label: 'نام',
+      tip: 'نامتان را وارد کنید؛ خریداران دوست دارند بدانند طرف معامله‌شان چه کسی است.',
+      weight: 0.25,
+      passed: hasFirstName
+    },
+    {
+      key: 'last_name',
+      label: 'نام خانوادگی',
+      tip: 'نام خانوادگی نشان‌دهنده هویت واقعی شماست و باعث اطمینان خریدار می‌شود.',
+      weight: 0.25,
+      passed: hasLastName
+    },
+    {
+      key: 'email',
+      label: 'ایمیل',
+      tip: 'ثبت ایمیل در آینده به تسهیل ارتباط شما با مشتریان خارجی کمک می کند.',
+      weight: 0.25,
+      passed: hasValidEmail
+    },
+    {
+      key: 'phone',
+      label: 'شماره تماس',
+      tip: 'شماره تماس صحیح، راه ارتباطی مشتریان با شماست. در دسترس بودن = فروش بیشتر.',
+      weight: 0.25,
+      passed: hasReachablePhone
+    }
+  ]
+}
+
+const applyLocalProfileGamification = () => {
+  const metrics = buildProfileGamificationMetrics()
+  const score = metrics.reduce((total, metric) => {
+    return total + (metric.passed ? metric.weight * 100 : 0)
+  }, 0)
+
+  profileMetrics.value = metrics
+  profileScore.value = Math.round(score)
+  profileTips.value = metrics.filter((metric) => !metric.passed).map((metric) => metric.tip)
+}
+
 const loadProfileScore = async () => {
   try {
     const scores = await gamificationApi.fetchScores()
-    if (scores && scores.profile) {
-      const profileData = scores.profile
-      profileScore.value = profileData.score || 0
-      // Convert backend metrics format to frontend format
-      // Backend returns: { key, label, tip, weight, passed }
-      // FormQualityScore expects: { key, label, tip, weight, passed }
-      profileMetrics.value = (profileData.metrics || []).map((m: any) => ({
-        key: m.key || '',
-        label: m.label || '',
-        tip: m.tip || '',
-        weight: typeof m.weight === 'number' ? m.weight : 0,
-        passed: m.passed === true
-      }))
-      profileTips.value = profileData.tips || []
-    } else {
-      // Fallback to empty state
-      profileScore.value = 0
-      profileMetrics.value = []
-      profileTips.value = []
+    // Always compute local metrics based on the four profile fields
+    applyLocalProfileGamification()
+
+    // If backend provides extra tips, merge them without losing local ones
+    if (scores?.profile?.tips?.length) {
+      const mergedTips = [...profileTips.value]
+      scores.profile.tips.forEach((tip: string) => {
+        if (!mergedTips.includes(tip)) {
+          mergedTips.push(tip)
+        }
+      })
+      profileTips.value = mergedTips
     }
   } catch (error) {
     console.error('Failed to load profile score:', error)
-    // Fallback to empty state on error
-    profileScore.value = 0
-    profileMetrics.value = []
-    profileTips.value = []
+    // Fall back to local evaluation when backend is unavailable
+    applyLocalProfileGamification()
   }
 }
 

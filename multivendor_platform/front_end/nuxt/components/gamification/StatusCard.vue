@@ -17,7 +17,7 @@
                 <div class="text-h4 font-weight-bold text-white">
                   {{ Math.round(overallPercentage) }}%
                 </div>
-                <div class="text-caption text-white">تکمیل</div>
+                <div class="text-caption text-white">تکمیل پروفایل</div>
               </div>
             </v-progress-circular>
             
@@ -69,7 +69,7 @@
       <div class="milestone-container">
         <div class="d-flex justify-space-between align-center mb-2">
           <span class="text-body-2 font-weight-medium">
-            پیشرفت راه‌اندازی
+            پیشرفت مسیر جلب اعتماد
           </span>
           <span class="text-body-2 text-medium-emphasis">
             {{ requiredStepsCompleted }} از {{ totalRequiredSteps }} مرحله
@@ -135,7 +135,7 @@
             <div class="metric-item">
               <div class="d-flex align-center gap-2 mb-2">
                 <v-icon size="24" :color="tierColor">mdi-shield-star</v-icon>
-                <span class="text-body-2 text-medium-emphasis">اعتبار</span>
+                <span class="text-body-2 text-medium-emphasis">اعتبار شما</span>
               </div>
               <div class="text-h6 font-weight-bold">
                 {{ Math.round(reputationScore) }}<span class="text-body-2">/100</span>
@@ -261,10 +261,10 @@ const currentMilestoneIndex = computed(() => {
 const nextTierInfo = computed(() => {
   const incompleteMilestones = props.milestones.filter(m => !m.completed)
   if (incompleteMilestones.length === 0) {
-    return 'تبریک! همه مراحل راه‌اندازی را تکمیل کرده‌اید!'
+    return 'عالی! پروفایل شما کاملاً حرفه‌ای و قابل اعتماد است.'
   }
   const nextMilestone = incompleteMilestones[0]
-  return `مرحله بعدی: ${nextMilestone.title}`
+  return `قدم بعدی برای موفقیت: ${nextMilestone.title}`
 })
 
 const formatResponseTime = (minutes: number): string => {

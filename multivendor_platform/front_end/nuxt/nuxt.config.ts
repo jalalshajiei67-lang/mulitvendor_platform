@@ -199,9 +199,14 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     workbox: {
+      cacheId: 'mv-platform-v1',
+      cleanupOutdatedCaches: true,
+      clientsClaim: true,
+      skipWaiting: true,
       navigateFallback: '/offline',
       navigateFallbackDenylist: [/^\/api/, /^\/admin/, /^\/_nuxt/],
-      globPatterns: ['**/*.{js,css,html,png,svg,ico,jpg,jpeg,woff,woff2}'],
+      // Exclude HTML from cache to always fetch fresh shell
+      globPatterns: ['**/*.{js,css,png,svg,ico,jpg,jpeg,woff,woff2}'],
       runtimeCaching: [
         {
           urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,

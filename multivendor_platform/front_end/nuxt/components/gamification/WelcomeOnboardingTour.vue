@@ -17,7 +17,7 @@
 
         <v-card-text class="pa-8 text-center">
           <p class="text-h6 mb-6 line-height-relaxed">
-            چند دقیقه با ما همراه باشید تا مسیر جذب مشتریان بیشتر و جلب اعتماد از طریق ایندکسو را یاد بگیرید و تکمیل کنید.
+            ایندکسو ابزاری است که به شما برای فروش بیشتر کمک می‌کند، تمام مراحل و اقداماتی که انجام می‌دهید، برای ایجاد اعتماد و معرفی حرفه‌ای شما به مشتریان طراحی شده است.
           </p>
 
           <div class="illustration-icons mb-6">
@@ -161,8 +161,8 @@ const startTour = () => {
       steps.push({
         element: '[data-tour="stat-section"]',
         popover: {
-          title: 'بخش وضعیت',
-          description: 'در این بخش می‌توانید وضعیت فعلی خود شامل امتیاز، رتبه، اعتبار و پیشرفت کلی را مشاهده کنید.',
+          title: 'وضعیت حرفه‌ای شما',
+          description: 'اینجا نشان می‌دهد چقدر در جلب اعتماد مشتریان موفق بوده‌اید. هرچه اطلاعات کامل‌تر باشد، رتبه و فروش شما بالاتر می‌رود.',
           side: 'bottom',
           align: 'start',
           showButtons: ['next'],
@@ -175,8 +175,8 @@ const startTour = () => {
       steps.push({
         element: '[data-tour="quest-box"]',
         popover: {
-          title: 'جعبه وظایف',
-          description: 'در این بخش می‌توانید وظیفه بعدی خود را مشاهده کنید و با دنبال کردن مراحل، اطلاعات خود را کامل کنید.',
+          title: 'مسیر موفقیت',
+          description: 'ما قدم به قدم به شما می‌گوییم چه کارهایی انجام دهید تا مشتریان بیشتری به شما اعتماد کنند. این مراحل را دنبال کنید.',
           side: 'bottom',
           align: 'start',
           showButtons: ['next'],
@@ -189,8 +189,8 @@ const startTour = () => {
       steps.push({
         element: '[data-tour="pricing-button"]',
         popover: {
-          title: 'برنامه‌های قیمت‌گذاری',
-          description: 'برای مشاهده و انتخاب برنامه‌های قیمت‌گذاری مختلف از این دکمه استفاده کنید.',
+          title: 'برنامه‌های فروش',
+          description: 'بسته‌های مختلف برای دیده‌شدن بیشتر محصولات شما.',
           side: 'bottom',
           align: 'start',
           showButtons: ['next'],
@@ -203,8 +203,8 @@ const startTour = () => {
       steps.push({
         element: '[data-tour="navbar-section"]',
         popover: {
-          title: 'نوار ناوبری',
-          description: 'از این نوار برای دسترسی سریع به بخش‌های مختلف داشبورد استفاده کنید.',
+          title: 'دسترسی سریع',
+          description: 'از اینجا می‌توانید به همه بخش‌های فروشگاه خود دسترسی داشته باشید.',
           side: 'bottom',
           align: 'start',
           showButtons: ['next'],

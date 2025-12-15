@@ -202,6 +202,7 @@
         </div>
 
         <div v-if="!commissionPlanStatus?.is_ready" class="inactive-overlay">
+          <v-icon size="18" color="white" class="ml-2">mdi-lock</v-icon>
           <span>غیرفعال</span>
         </div>
 
@@ -316,7 +317,7 @@
         <p>انتخاب کنید و به رشد تجارتان کمک کنید</p>
         <button class="cta-button" @click="selectedPlan = 'premium'">
           <v-icon>mdi-rocket-launch</v-icon>
-          <span>شروع امروز</span>
+          <span>الان شروع کن</span>
         </button>
       </div>
     </div>
@@ -1156,9 +1157,11 @@ function getBillingLabel(period: string): string {
 
 <style scoped>
 :root {
-  --color-primary: #3b82f6;
-  --color-amber: #f59e0b;
-  --color-success: #10b981;
+  --color-primary: #4CAF50;
+  --color-secondary: #388E3C;
+  --color-amber: #F57C00;
+  --color-success: #2E7D32;
+  --color-accent: #69F0AE;
   --color-bg: #ffffff;
   --color-surface: #f9fafb;
   --color-border: #e5e7eb;
@@ -1225,29 +1228,29 @@ function getBillingLabel(period: string): string {
 }
 
 .plan-stat-card.free-stat {
-  border-left: 4px solid #2563eb;
+  border-left: 4px solid #4CAF50;
 }
 
 .plan-stat-card.free-stat .stat-icon {
-  color: #2563eb;
+  color: #4CAF50;
 }
 
 .plan-stat-card.premium-stat {
-  border-left: 4px solid #d97706;
-  background: linear-gradient(135deg, rgba(217, 119, 6, 0.02), transparent);
+  border-left: 4px solid #F57C00;
+  background: linear-gradient(135deg, rgba(245, 124, 0, 0.02), transparent);
 }
 
 .plan-stat-card.premium-stat .stat-icon {
-  color: #d97706;
+  color: #F57C00;
 }
 
 .plan-stat-card.commission-stat {
-  border-left: 4px solid #059669;
-  background: linear-gradient(135deg, rgba(5, 150, 105, 0.02), transparent);
+  border-left: 4px solid #2E7D32;
+  background: linear-gradient(135deg, rgba(46, 125, 50, 0.02), transparent);
 }
 
 .plan-stat-card.commission-stat .stat-icon {
-  color: #059669;
+  color: #2E7D32;
 }
 
 .stat-icon {
@@ -1315,17 +1318,17 @@ function getBillingLabel(period: string): string {
 
   .plan-stat-card.free-stat {
     border-left: none;
-    border-top: 4px solid #2563eb;
+    border-top: 4px solid #4CAF50;
   }
 
   .plan-stat-card.premium-stat {
     border-left: none;
-    border-top: 4px solid #d97706;
+    border-top: 4px solid #F57C00;
   }
 
   .plan-stat-card.commission-stat {
     border-left: none;
-    border-top: 4px solid #059669;
+    border-top: 4px solid #2E7D32;
   }
 
   .stat-icon {
@@ -1380,9 +1383,9 @@ function getBillingLabel(period: string): string {
 .hero-section {
   text-align: center;
   padding: 24px 16px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(245, 158, 11, 0.05));
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.05), rgba(245, 124, 0, 0.05));
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.1);
 }
 
 .hero-content {
@@ -1395,7 +1398,7 @@ function getBillingLabel(period: string): string {
   justify-content: center;
   width: 56px;
   height: 56px;
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(76, 175, 80, 0.1);
   border-radius: 50%;
   margin-bottom: 16px;
 }
@@ -1451,9 +1454,10 @@ function getBillingLabel(period: string): string {
 
 .billing-btn:active,
 .billing-btn.active {
-  background: var(--color-primary);
-  color: white;
-  border-color: var(--color-primary);
+  background: rgba(76, 175, 80, 0.1);
+  color: #388E3C;
+  border-color: #388E3C;
+  font-weight: 600;
 }
 
 .billing-btn:hover:not(.active) {
@@ -1462,7 +1466,7 @@ function getBillingLabel(period: string): string {
 
 .discount-badge {
   display: inline-block;
-  background: #10b981;
+  background: #2E7D32;
   color: white;
   padding: 2px 6px;
   border-radius: 4px;
@@ -1500,23 +1504,23 @@ function getBillingLabel(period: string): string {
 .plan-card:active,
 .plan-selected {
   border-color: var(--color-primary);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.12);
+  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.12);
   transform: translateY(-2px);
 }
 
 .plan-card.featured {
   border: 2px solid var(--color-amber);
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.02), rgba(245, 158, 11, 0.04));
+  background: linear-gradient(135deg, rgba(245, 124, 0, 0.02), rgba(245, 124, 0, 0.04));
 }
 
 .plan-card.featured.plan-selected {
   border-color: var(--color-amber);
-  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.12);
+  box-shadow: 0 8px 24px rgba(245, 124, 0, 0.12);
 }
 
 .plan-card.commission-plan.plan-selected {
   border-color: var(--color-success);
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.12);
+  box-shadow: 0 8px 24px rgba(46, 125, 50, 0.12);
 }
 
 /* Plan Badge */
@@ -1527,7 +1531,7 @@ function getBillingLabel(period: string): string {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(76, 175, 80, 0.1);
   color: var(--color-primary);
   padding: 6px 12px;
   border-radius: 999px;
@@ -1536,7 +1540,7 @@ function getBillingLabel(period: string): string {
 }
 
 .plan-badge.commission-badge {
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(46, 125, 50, 0.1);
   color: var(--color-success);
 }
 
@@ -1555,19 +1559,19 @@ function getBillingLabel(period: string): string {
   width: 48px;
   height: 48px;
   min-width: 48px;
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(76, 175, 80, 0.1);
   color: var(--color-primary);
   border-radius: 50%;
   font-size: 24px;
 }
 
 .plan-icon.premium-icon {
-  background: rgba(245, 158, 11, 0.1);
+  background: rgba(245, 124, 0, 0.1);
   color: var(--color-amber);
 }
 
 .plan-icon.commission-icon {
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(46, 125, 50, 0.1);
   color: var(--color-success);
 }
 
@@ -1646,7 +1650,7 @@ function getBillingLabel(period: string): string {
 
 .savings-badge {
   display: inline-block;
-  background: #10b981;
+  background: #2E7D32;
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -1761,51 +1765,51 @@ function getBillingLabel(period: string): string {
 }
 
 .free-btn {
-  background: #2563eb;
+  background: #4CAF50;
   color: white;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
 }
 
 .free-btn:active {
-  background: #1d4ed8;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  background: #388E3C;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
   transform: scale(0.98);
 }
 
 .free-btn:hover {
-  background: #1d4ed8;
+  background: #388E3C;
 }
 
 .premium-btn {
-  background: #d97706;
+  background: #F57C00;
   color: white;
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.2);
+  box-shadow: 0 2px 8px rgba(245, 124, 0, 0.2);
 }
 
 .premium-btn:active {
-  background: #b45309;
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+  background: #E65100;
+  box-shadow: 0 4px 12px rgba(245, 124, 0, 0.3);
   transform: scale(0.98);
 }
 
 .premium-btn:hover {
-  background: #b45309;
+  background: #E65100;
 }
 
 .commission-btn {
-  background: #059669;
+  background: #2E7D32;
   color: white;
-  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
 }
 
 .commission-btn:active {
-  background: #047857;
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+  background: #1B5E20;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
   transform: scale(0.98);
 }
 
 .commission-btn:hover {
-  background: #047857;
+  background: #1B5E20;
 }
 
 .commission-btn:disabled {
@@ -1831,18 +1835,20 @@ function getBillingLabel(period: string): string {
   font-size: 14px;
   font-weight: 600;
   z-index: 1;
+  display: flex;
+  align-items: center;
 }
 
 .plan-status-alert {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 124, 0, 0.1);
+  border: 1px solid rgba(245, 124, 0, 0.3);
   border-radius: var(--radius-md);
   padding: 12px;
   margin-bottom: 16px;
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  color: #b45309;
+  color: #E65100;
   font-size: 13px;
 }
 
@@ -1889,7 +1895,7 @@ function getBillingLabel(period: string): string {
 }
 
 .comparison-row.header-row {
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(76, 175, 80, 0.08);
   font-weight: 700;
 }
 
@@ -1930,9 +1936,10 @@ function getBillingLabel(period: string): string {
 .cta-section {
   text-align: center;
   padding: 40px 24px;
-  background: linear-gradient(135deg, var(--color-primary), rgba(59, 130, 246, 0.8));
+  background: rgba(76, 175, 80, 0.05);
+  border: 1px solid rgba(76, 175, 80, 0.1);
   border-radius: var(--radius-lg);
-  color: white;
+  color: var(--color-text);
   margin: 0 16px 40px 16px;
 }
 
@@ -1940,11 +1947,12 @@ function getBillingLabel(period: string): string {
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 8px 0;
+  color: var(--color-text);
 }
 
 .cta-content p {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-light);
   margin: 0 0 20px 0;
 }
 
@@ -1952,19 +1960,28 @@ function getBillingLabel(period: string): string {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: white;
-  color: var(--color-primary);
+  background: var(--color-amber);
+  color: white;
   border: none;
   padding: 12px 24px;
   border-radius: var(--radius-md);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(245, 124, 0, 0.25);
+}
+
+.cta-button:hover {
+  background: #FF9800;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(245, 124, 0, 0.35);
 }
 
 .cta-button:active {
+  background: #F57C00;
   transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(245, 124, 0, 0.25);
 }
 
 /* Tablet Styles (md and up) */
@@ -2056,16 +2073,16 @@ function getBillingLabel(period: string): string {
 
   .plan-card:hover {
     border-color: var(--color-primary);
-    box-shadow: 0 12px 32px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 12px 32px rgba(76, 175, 80, 0.15);
     transform: translateY(-4px);
   }
 
   .plan-card.featured:hover {
-    box-shadow: 0 12px 32px rgba(245, 158, 11, 0.15);
+    box-shadow: 0 12px 32px rgba(245, 124, 0, 0.15);
   }
 
   .plan-card.commission-plan:hover {
-    box-shadow: 0 12px 32px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 12px 32px rgba(46, 125, 50, 0.15);
   }
 
   .comparison-row {
