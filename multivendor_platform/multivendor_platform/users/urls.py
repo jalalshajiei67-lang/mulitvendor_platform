@@ -19,6 +19,7 @@ from .views import (
     admin_blog_posts_view, admin_blog_categories_view,
     SupplierViewSet, SupplierCommentViewSet,
     SupplierPortfolioItemViewSet, SupplierTeamMemberViewSet, SupplierContactMessageViewSet,
+    SellerContactViewSet, ContactNoteViewSet, ContactTaskViewSet,
     otp_request_view, otp_verify_view, password_reset_view,
     unblock_all_users_view,
     pricing_tiers_list, activate_commission_plan, upload_commission_contract,
@@ -33,6 +34,9 @@ router.register(r'supplier-comments', SupplierCommentViewSet, basename='supplier
 router.register(r'supplier-portfolio', SupplierPortfolioItemViewSet, basename='supplierportfolio')
 router.register(r'supplier-team', SupplierTeamMemberViewSet, basename='supplierteam')
 router.register(r'supplier-contact', SupplierContactMessageViewSet, basename='suppliercontact')
+router.register(r'crm/contacts', SellerContactViewSet, basename='crm-contact')
+router.register(r'crm/notes', ContactNoteViewSet, basename='crm-note')
+router.register(r'crm/tasks', ContactTaskViewSet, basename='crm-task')
 
 urlpatterns = [
     # Temporary unblock endpoint (remove after use)

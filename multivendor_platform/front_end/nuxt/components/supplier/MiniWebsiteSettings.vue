@@ -5,7 +5,7 @@
       <v-card-title class="text-h4 font-weight-bold d-flex align-center gap-3 pa-6 bg-green-lighten-5">
         <v-icon size="40" color="primary">mdi-palette</v-icon>
         <div>
-          <div>تنظیمات صفحه فروشگاه شما</div>
+          <div>تنظیمات صفحه شرکت شما</div>
           <div class="text-caption text-medium-emphasis mt-2">اطلاعات کسب‌وکار و ظاهر صفحه را تنظیم کنید</div>
         </div>
       </v-card-title>
@@ -26,24 +26,24 @@
           <v-card class="mb-8" elevation="1" rounded="lg" outlined>
             <v-card-title class="text-h6 font-weight-bold pa-5 bg-green-lighten-5">
               <v-icon size="28" class="me-3">mdi-store</v-icon>
-              مشخصات فروشگاه
+              مشخصات شرکت
             </v-card-title>
             <v-card-text class="pa-6">
               <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
-                اطلاعات پایه‌ای فروشگاه خود را وارد کنید. این اطلاعات را مشتریان می‌بینند.
+                اطلاعات پایه‌ای شرکت خود را وارد کنید. این اطلاعات را مشتریان می‌بینند.
               </div>
 
               <!-- Store Name - Most Important -->
               <div class="mb-6">
                 <v-text-field
                   v-model="formData.store_name"
-                  label="نام فروشگاه یا شرکت"
+                  label="نام شرکت"
                   variant="outlined"
                   density="comfortable"
                   size="large"
                   class="text-input-large"
-                  hint="مثال: فروشگاه آرتا برای صنایع"
-                  :rules="[v => !!v || 'لطفاً نام فروشگاه را وارد کنید']"
+                  hint="مثال: شرکت آرتا برای صنایع"
+                  :rules="[v => !!v || 'لطفاً نام شرکت را وارد کنید']"
                   data-tour="store-name-input"
                 >
                   <template #prepend>
@@ -54,7 +54,7 @@
 
               <!-- Description - Important -->
               <div class="mb-6">
-                <div class="text-body-2 font-weight-bold mb-2">توضیحات درباره فروشگاه</div>
+                <div class="text-body-2 font-weight-bold mb-2">توضیحات درباره شرکت</div>
                 <div class="text-caption text-medium-emphasis mb-3">
                   چند جمله درباره کسب‌وکار، تجربه و محصولات خود بنویسید
                 </div>
@@ -97,7 +97,7 @@
           <v-card class="mb-8" elevation="1" rounded="lg" outlined>
             <v-card-title class="text-h6 font-weight-bold pa-5 bg-green-lighten-5">
               <v-icon size="28" class="me-3">mdi-palette</v-icon>
-              رنگ و ظاهر صفحه فروشگاه
+              رنگ و ظاهر صفحه شرکت
             </v-card-title>
             <v-card-text class="pa-6">
               <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
@@ -574,7 +574,7 @@
                       variant="outlined"
                       density="comfortable"
                       counter="60"
-                      hint="مثال: فروشگاه آنلاین ماشین‌آلات"
+                      hint="مثال: شرکت آنلاین ماشین‌آلات"
                       :rules="[v => !v || v.length <= 60 || 'حداکثر 60 حرف']"
                     ></v-text-field>
                   </v-col>
@@ -585,7 +585,7 @@
                       variant="outlined"
                       rows="3"
                       counter="160"
-                      hint="مثال: فروشگاه آنلاین انواع ماشین‌آلات با بهترین کیفیت و قیمت"
+                      hint="مثال: شرکت آنلاین انواع ماشین‌آلات با بهترین کیفیت و قیمت"
                       :rules="[v => !v || v.length <= 160 || 'حداکثر 160 حرف']"
                     ></v-textarea>
                   </v-col>
@@ -624,7 +624,7 @@
           min-width="200"
           data-tour="preview-website"
         >
-          دیدن صفحه فروشگاه
+          دیدن صفحه شرکت
         </v-btn>
 
         <v-btn
@@ -645,7 +645,7 @@
       <v-card-text class="pa-6 d-flex align-center gap-4">
         <v-icon size="32" color="primary">mdi-link</v-icon>
         <div class="flex-grow-1">
-          <div class="text-body-2 text-medium-emphasis mb-2">آدرس صفحه فروشگاه شما:</div>
+          <div class="text-body-2 text-medium-emphasis mb-2">آدرس صفحه شرکت شما:</div>
           <div class="text-body-1 font-weight-bold text-primary">{{ fullPreviewUrl }}</div>
         </div>
         <v-btn
@@ -795,14 +795,14 @@ const employeeCountRules = [
 const miniSiteMetrics = computed(() => [
   {
     key: 'name',
-    label: 'نام فروشگاه',
-    tip: 'نام فروشگاه را وارد کنید',
+    label: 'نام شرکت',
+    tip: 'نام شرکت را وارد کنید',
     weight: 0.15,
     passed: Boolean(formData.value.store_name)
   },
   {
     key: 'about',
-    label: 'توضیحات فروشگاه',
+    label: 'توضیحات شرکت',
     tip: 'درباره شرکت خود بنویسید',
     weight: 0.15,
     passed: Boolean(formData.value.description && formData.value.description.length >= 50)

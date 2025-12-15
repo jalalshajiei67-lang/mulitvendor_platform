@@ -758,6 +758,7 @@ watch(() => editor.value, (newEditor) => {
 .font-size-btn {
   min-width: 120px;
   justify-content: space-between;
+  height: 20px;
 }
 
 .font-size-label {

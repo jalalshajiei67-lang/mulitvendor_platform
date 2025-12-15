@@ -45,16 +45,19 @@
               <v-row>
                 <v-col cols="12" sm="6">
                   <v-text-field
-                    v-model.number="product.price"
+                    v-model="formattedPrice"
                     label="قیمت (تومان)"
                     prepend-inner-icon="mdi-currency-usd"
                     variant="outlined"
-                    type="number"
-                    step="1"
-                    min="0"
-                    :rules="[v => v >= 0 || 'قیمت باید مثبت باشد']"
+                    type="text"
+                    :rules="[v => {
+                      const num = parsePriceValue(v)
+                      return num >= 0 || 'قیمت باید مثبت باشد'
+                    }]"
                     required
                     data-tour="product-price-input"
+                    @input="onPriceInput"
+                    @focus="onPriceFocus"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" sm="6">
@@ -765,6 +768,90 @@ const showSuccessSnackbar = ref(false)
 const showErrorSnackbar = ref(false)
 const successMessage = ref('')
 const errorMessage = ref('')
+
+// Price formatting functions
+const formatPrice = (value: number | string): string => {
+  if (!value && value !== 0) return '00,000'
+  const numValue = typeof value === 'string' ? parsePriceValue(value) : value
+  if (isNaN(numValue) || numValue === 0) return '00,000'
+  return numValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+const parsePriceValue = (value: string | number): number => {
+  if (typeof value === 'number') return value
+  if (!value || value === '00,000') return 0
+  const cleaned = value.toString().replace(/,/g, '').trim()
+  const num = parseInt(cleaned, 10)
+  return isNaN(num) ? 0 : num
+}
+
+// Formatted price computed property
+const formattedPrice = computed({
+  get: () => formatPrice(product.value.price),
+  set: (val: string) => {
+    product.value.price = parsePriceValue(val)
+  }
+})
+
+const onPriceFocus = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  // If the value is "00,000" or empty, select all so user can start typing
+  if (target.value === '00,000' || !target.value) {
+    target.select()
+  }
+}
+
+const onPriceInput = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  let value = target.value
+  const cursorPosition = target.selectionStart || 0
+  
+  // Remove all non-digit characters
+  const cleaned = value.replace(/\D/g, '')
+  
+  // If empty or just zeros, set to 0
+  if (!cleaned || cleaned === '0' || cleaned === '00' || cleaned === '000' || cleaned === '0000' || cleaned === '00000') {
+    product.value.price = 0
+    target.value = '00,000'
+    target.setSelectionRange(0, 0)
+    return
+  }
+  
+  // If the number is less than 6 digits, multiply by 100000 to add 5 zeros
+  // For example: "32" becomes "3200000" (3,200,000)
+  let numericValue: number
+  if (cleaned.length <= 5) {
+    // User is typing the main number, append 5 zeros
+    numericValue = parseInt(cleaned, 10) * 100000
+  } else {
+    // User has typed more than 5 digits, use as is
+    numericValue = parseInt(cleaned, 10)
+  }
+  
+  product.value.price = numericValue
+  
+  // Format the display value with commas
+  const formatted = formatPrice(numericValue)
+  
+  // Update the input value
+  if (target.value !== formatted) {
+    target.value = formatted
+    // Try to maintain cursor position intelligently
+    const digitsBeforeCursor = value.substring(0, cursorPosition).replace(/\D/g, '').length
+    let newPosition = 0
+    let digitCount = 0
+    for (let i = 0; i < formatted.length; i++) {
+      if (/\d/.test(formatted[i])) {
+        digitCount++
+        if (digitCount === digitsBeforeCursor) {
+          newPosition = i + 1
+          break
+        }
+      }
+    }
+    target.setSelectionRange(newPosition, newPosition)
+  }
+}
 
 const descriptionValid = computed(() => {
   if (!product.value.description) return false

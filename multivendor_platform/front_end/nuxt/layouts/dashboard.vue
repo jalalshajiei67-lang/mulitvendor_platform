@@ -217,14 +217,44 @@
               استخر مشتریان
             </v-btn>
             <v-btn
-              to="/seller/dashboard?tab=orders"
+              to="/seller/dashboard?tab=crm"
               variant="text"
               size="small"
               class="text-white nav-btn"
-              prepend-icon="mdi-shopping-outline"
+              prepend-icon="mdi-account-box-multiple"
             >
-              سفارشات
+              CRM مدیریت مشتریان
             </v-btn>
+            <v-tooltip
+              :text="
+                hasProductsUnderThreshold
+                  ? ''
+                  : 'برای دسترسی به بخش سفارشات، باید حداقل یک محصول با قیمت کمتر از ۱۰۰,۰۰۰,۰۰۰ تومان داشته باشید'
+              "
+              location="bottom"
+            >
+              <template v-slot:activator="{ props: tooltipProps }">
+                <v-btn
+                  v-bind="tooltipProps"
+                  :to="hasProductsUnderThreshold ? '/seller/dashboard?tab=orders' : undefined"
+                  :disabled="!hasProductsUnderThreshold"
+                  variant="text"
+                  size="small"
+                  class="text-white nav-btn"
+                  prepend-icon="mdi-shopping-outline"
+                  @click="
+                    !hasProductsUnderThreshold &&
+                      showSnackbar(
+                        'برای دسترسی به بخش سفارشات، باید حداقل یک محصول با قیمت کمتر از ۱۰۰,۰۰۰,۰۰۰ تومان داشته باشید',
+                        'warning'
+                      )
+                  "
+                >
+                  <v-icon v-if="!hasProductsUnderThreshold" start size="small">mdi-lock</v-icon>
+                  سفارشات
+                </v-btn>
+              </template>
+            </v-tooltip>
             <v-btn
               to="/seller/dashboard?tab=reviews"
               variant="text"
@@ -264,13 +294,13 @@
           </div>
 
           <!-- Mobile Navigation (Dropdown) -->
-          <v-menu class="d-lg-none" location="bottom start">
+          <v-menu class="d-md-none" location="bottom start">
             <template v-slot:activator="{ props }">
               <v-btn
                 v-bind="props"
                 variant="text"
                 size="small"
-                class="text-white d-lg-none"
+                class="text-white d-md-none mobile-menu-btn"
                 prepend-icon="mdi-menu"
               >
                 منو
@@ -286,7 +316,21 @@
               <v-list-item to="/seller/dashboard?tab=customerPool" prepend-icon="mdi-account-group">
                 <v-list-item-title>استخر مشتریان</v-list-item-title>
               </v-list-item>
-              <v-list-item to="/seller/dashboard?tab=orders" prepend-icon="mdi-shopping-outline">
+              <v-list-item to="/seller/dashboard?tab=crm" prepend-icon="mdi-account-box-multiple">
+                <v-list-item-title>CRM مدیریت مشتریان</v-list-item-title>
+              </v-list-item>
+              <v-list-item
+                :to="hasProductsUnderThreshold ? '/seller/dashboard?tab=orders' : undefined"
+                :disabled="!hasProductsUnderThreshold"
+                :prepend-icon="hasProductsUnderThreshold ? 'mdi-shopping-outline' : 'mdi-lock'"
+                @click="
+                  !hasProductsUnderThreshold &&
+                    showSnackbar(
+                      'برای دسترسی به بخش سفارشات، باید حداقل یک محصول با قیمت کمتر از ۱۰۰,۰۰۰,۰۰۰ تومان داشته باشید',
+                      'warning'
+                    )
+                "
+              >
                 <v-list-item-title>سفارشات</v-list-item-title>
               </v-list-item>
               <v-list-item to="/seller/dashboard?tab=reviews" prepend-icon="mdi-star-outline">
@@ -324,6 +368,7 @@
 import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useGamificationStore } from '~/stores/gamification'
+import { useToast } from '~/composables/useToast'
 import { storeToRefs } from 'pinia'
 
 const authStore = useAuthStore()
@@ -332,6 +377,37 @@ const { isAuthenticated, isAdmin, isSeller, isBuyer } = storeToRefs(authStore)
 
 const showNotificationsMenu = ref(false)
 const notifications = ref<any[]>([])
+
+// Check if seller has products under 100,000,000 toman
+const hasProductsUnderThreshold = ref<boolean>(false)
+const PRICE_THRESHOLD = 100000000 // 100,000,000 toman
+
+const checkSellerProducts = async () => {
+  if (!isSeller.value) {
+    hasProductsUnderThreshold.value = true
+    return
+  }
+
+  try {
+    const { useProductApi } = await import('~/composables/useProductApi')
+    const productApi = useProductApi()
+    const response = await productApi.getMyProducts({ page_size: 100 })
+
+    const products = Array.isArray(response) ? response : response.results || []
+    
+    // Check if any product has valid price (not null, not 0, and less than threshold)
+    hasProductsUnderThreshold.value = products.some((product: any) => {
+      if (!product.price) return false // No price
+      const price = parseFloat(product.price)
+      if (isNaN(price) || price <= 0) return false // Invalid or zero price
+      return price < PRICE_THRESHOLD // Must be less than 100,000,000
+    })
+  } catch (error) {
+    console.error('Failed to check seller products:', error)
+    // Default to false (locked) if we can't check
+    hasProductsUnderThreshold.value = false
+  }
+}
 
 const dashboardTitle = computed(() => {
   if (isAdmin.value) return 'پنل مدیریت'
@@ -370,8 +446,16 @@ const planButtonLabel = computed(() => {
     return 'ارتقاء به پریمیوم'
   }
 
-  const tier = gamificationStore.userTier || 'نامشخص'
-  return `پلن: ${tier}`
+  const tier = gamificationStore.userTier
+  const tierNameMap: Record<string, string> = {
+    diamond: 'الماس',
+    gold: 'طلا',
+    silver: 'نقره',
+    bronze: 'برنز',
+    inactive: 'غیرفعال',
+  }
+  const tierName = tier ? tierNameMap[tier] || tier : 'نامشخص'
+  return `پلن: ${tierName}`
 })
 
 // Notification logic for buyers
@@ -459,16 +543,37 @@ onUnmounted(() => {
   }
 })
 
-// Load gamification data for sellers
+// Load gamification data for sellers and check products
 onMounted(async () => {
   if (isSeller.value) {
     try {
       await gamificationStore.hydrate()
+      await checkSellerProducts()
     } catch (error) {
       console.warn('Failed to load gamification data', error)
     }
   }
 })
+
+// Watch for seller authentication changes
+watch(
+  [isAuthenticated, isSeller],
+  ([auth, seller]) => {
+    if (auth && seller) {
+      checkSellerProducts()
+    } else {
+      hasProductsUnderThreshold.value = false
+    }
+  },
+  { immediate: true }
+)
+
+// Toast notification
+const { showToast } = useToast()
+
+const showSnackbar = (message: string, color: string = 'info') => {
+  showToast({ message, color })
+}
 
 // Tier helper functions
 const getTierColor = (tier: string | null) => {
@@ -658,5 +763,9 @@ const progressOffset = computed(() => {
 
 .pulse-glow {
   animation: pulse-glow 2s infinite;
+}
+
+.mobile-menu-btn {
+  height: 20px !important;
 }
 </style>

@@ -95,29 +95,21 @@ class GamificationService:
             return self._empty_response('profile', ['برای شروع ابتدا پروفایل خود را بسازید.'])
 
         vendor = self.vendor_profile
+        user = vendor.user
         metrics: List[Metric] = [
-            Metric('name', 'نام فروشگاه', 'نام فروشگاه را کامل وارد کنید.', bool(vendor.store_name), 0.2),
             Metric(
-                'description',
-                'توضیحات',
-                'داستان کوتاهی درباره تجربه کاری اضافه کنید.',
-                bool(vendor.description and len(vendor.description) >= 100),
-                0.25,
+                'name',
+                'نام و نام خانوادگی',
+                'نام و نام خانوادگی خود را کامل وارد کنید.',
+                bool(user.first_name and user.last_name),
+                0.5,
             ),
             Metric(
                 'contact',
                 'اطلاعات تماس',
                 'ایمیل و شماره تماس فعال را درج کنید.',
                 bool(vendor.contact_email and vendor.contact_phone),
-                0.25,
-            ),
-            Metric('website', 'وب‌سایت', 'اگر وب‌سایت دارید لینک را قرار دهید.', bool(vendor.website), 0.1),
-            Metric(
-                'social',
-                'شبکه‌های اجتماعی',
-                'حداقل یک شبکه اجتماعی اضافه کنید.',
-                bool(vendor.social_media and len(vendor.social_media) > 0),
-                0.2,
+                0.5,
             ),
         ]
         return self._build_score_response('profile', metrics)

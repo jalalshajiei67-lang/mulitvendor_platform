@@ -408,96 +408,6 @@
                     </v-card>
                   </v-col>
                 </v-row>
-
-                <v-row>
-                  <v-col cols="12">
-                    <v-card elevation="2" rounded="xl" class="pa-4">
-                      <div class="d-flex align-center justify-space-between mb-4">
-                        <div>
-                          <div class="text-h6 font-weight-bold">مشتریان من</div>
-                          <div class="text-body-2 text-medium-emphasis">
-                            سرنخ‌هایی که اطلاعات تماسشان را مشاهده کرده‌اید
-                          </div>
-                        </div>
-                        <v-btn
-                          variant="text"
-                          color="primary"
-                          prepend-icon="mdi-refresh"
-                          @click="loadMyCustomerPool"
-                          :loading="loadingMyCustomer"
-                        >
-                          به‌روزرسانی
-                        </v-btn>
-                      </div>
-
-                      <v-progress-linear
-                        v-if="loadingMyCustomer"
-                        indeterminate
-                        color="primary"
-                        class="mb-4"
-                      ></v-progress-linear>
-
-                      <v-alert
-                        v-else-if="!loadingMyCustomer && myCustomerPool.length === 0"
-                        type="info"
-                        variant="tonal"
-                        class="mb-0"
-                      >
-                        هنوز مشتری‌ای اضافه نشده است. با مشاهده اطلاعات تماس، اینجا نمایش داده می‌شود.
-                      </v-alert>
-
-                      <v-row v-else class="gy-4">
-                        <v-col
-                          v-for="lead in myCustomerPool"
-                          :key="lead.id"
-                          cols="12"
-                          md="6"
-                          lg="4"
-                        >
-                          <v-card rounded="xl" elevation="1" class="pa-4 h-100 d-flex flex-column gap-3">
-                            <div class="d-flex align-center justify-space-between">
-                              <div class="d-flex align-center gap-3">
-                                <v-avatar color="success" variant="tonal" size="44">
-                                  <v-icon>mdi-account-check</v-icon>
-                                </v-avatar>
-                                <div>
-                                  <div class="text-body-1 font-weight-bold">
-                                    {{ getLeadName(lead) }}
-                                  </div>
-                                  <div class="text-caption text-medium-emphasis">
-                                    {{ lead.company_name || 'مشتری' }}
-                                  </div>
-                                </div>
-                              </div>
-                              <v-chip
-                                :color="lead.is_free ? 'success' : 'primary'"
-                                size="small"
-                                variant="flat"
-                                class="ml-2"
-                              >
-                                {{ getLeadCategoryLabel(lead) }}
-                              </v-chip>
-                            </div>
-
-                            <div class="text-body-2 text-high-emphasis">
-                              {{ lead.unique_needs || 'نیاز مشتری ثبت نشده است.' }}
-                            </div>
-
-                            <v-sheet color="surface-variant" class="pa-3 rounded-lg">
-                              <div class="text-caption text-medium-emphasis mb-1">نام و شماره تماس</div>
-                              <div class="text-body-1 font-weight-bold">
-                                {{ getLeadName(lead) }}
-                              </div>
-                              <div class="text-body-1 font-weight-bold text-primary">
-                                {{ lead.phone_number || '-' }}
-                              </div>
-                            </v-sheet>
-                          </v-card>
-                        </v-col>
-                      </v-row>
-                    </v-card>
-                  </v-col>
-                </v-row>
               </div>
             </v-window-item>
 
@@ -666,7 +576,7 @@
                 <v-tabs v-model="miniWebsiteTab" bg-color="surface" class="mb-4">
                   <v-tab value="profile">پروفایل</v-tab>
                   <v-tab value="products">محصولات من</v-tab>
-                  <v-tab value="settings">تنظیمات فروشگاه</v-tab>
+                  <v-tab value="settings">رزومه شرکت</v-tab>
                   <v-tab value="portfolio">نمونه کارها</v-tab>
                   <v-tab value="team">تیم ما</v-tab>
                   <v-tab value="messages">پیام‌ها و تماس‌ها</v-tab>
@@ -923,6 +833,13 @@
                 </v-row>
               </div>
             </v-window-item>
+
+            <!-- CRM Tab -->
+            <v-window-item value="crm">
+              <div class="py-2">
+                <CrmManager />
+              </div>
+            </v-window-item>
           </v-window>
         </v-card>
       </v-col>
@@ -952,6 +869,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useSellerApi } from '~/composables/useSellerApi'
 import type { SellerOrder, SellerReview } from '~/composables/useSellerApi'
 import { useRfqApi } from '~/composables/useRfqApi'
+import { useCrmApi } from '~/composables/useCrmApi'
 import MiniWebsiteSettings from '~/components/supplier/MiniWebsiteSettings.vue'
 import PortfolioManager from '~/components/supplier/PortfolioManager.vue'
 import TeamManager from '~/components/supplier/TeamManager.vue'
@@ -967,6 +885,7 @@ import CelebrationOverlay from '~/components/gamification/CelebrationOverlay.vue
 import LeaderboardSection from '~/components/gamification/LeaderboardSection.vue'
 import InsightsFeed from '~/components/gamification/InsightsFeed.vue'
 import WelcomeOnboardingTour from '~/components/gamification/WelcomeOnboardingTour.vue'
+import CrmManager from '~/components/crm/CrmManager.vue'
 import { useGamificationStore } from '~/stores/gamification'
 import { useGamificationApi, type SellerInsight } from '~/composables/useGamification'
 import { useGamificationDashboard, type DashboardData, type CurrentTask } from '~/composables/useGamificationDashboard'
@@ -993,6 +912,7 @@ definePageMeta({
 const authStore = useAuthStore()
 const sellerApi = useSellerApi()
 const rfqApi = useRfqApi()
+const crmApi = useCrmApi()
 const gamificationStore = useGamificationStore()
 const gamificationApi = useGamificationApi()
 const dashboardApi = useGamificationDashboard()
@@ -1353,14 +1273,16 @@ const updateProfile = async () => {
     await authStore.fetchCurrentUser()
     // Update profile data from store
     loadProfileData()
-    // Calculate profile score
-    calculateProfileScore()
+    // Load profile score from backend
+    await loadProfileScore()
     // NEW: Complete task and celebrate
     try {
       await completeTaskAndCelebrate('profile')
     } catch (e) {
       console.warn('Failed to complete profile task', e)
     }
+    // Refresh gamification data
+    await loadDashboardGamification()
   } catch (error: any) {
     console.error('Failed to update profile:', error)
     showSnackbar(error?.message || 'خطا در به‌روزرسانی پروفایل', 'error')
@@ -1395,8 +1317,6 @@ const profileMetrics = ref([])
 const profileTips = ref([])
 const profileData = ref({ first_name: '', last_name: '', email: '', phone: '' })
 const customerPool = ref<CustomerLead[]>([])
-const myCustomerPool = ref<CustomerLead[]>([])
-const loadingMyCustomer = ref(false)
 const loadingCustomerPool = ref(false)
 const revealingContact = ref<Record<number, boolean>>({})
 const loading = ref(false)
@@ -1605,40 +1525,72 @@ const loadCustomerPool = async () => {
   }
 }
 
-const loadMyCustomerPool = async () => {
-  loadingMyCustomer.value = true
-  try {
-    const data = await rfqApi.getVendorMy()
-    myCustomerPool.value = (Array.isArray(data) ? data : []).map((lead) => ({
-      ...normalizeLead(lead),
-      contact_revealed: true
-    }))
-  } catch (error: any) {
-    console.error('Failed to load my customers:', error)
-    showSnackbar('خطا در بارگذاری مشتریان من', 'error')
-  } finally {
-    loadingMyCustomer.value = false
-  }
-}
-
 const revealLeadContact = async (leadId: number) => {
   revealingContact.value[leadId] = true
   try {
+    // Reveal contact info from RFQ
     const data = await rfqApi.revealRFQContact(leadId)
-    const idx = customerPool.value.findIndex((lead) => lead.id === leadId)
-    if (idx !== -1) {
-      const revealed = {
-        ...customerPool.value[idx],
-        ...normalizeLead(data),
-        contact_revealed: true
+    const normalizedLead = normalizeLead(data)
+    
+    // Check if contact already exists in CRM by phone number (only if phone exists)
+    if (normalizedLead.phone_number) {
+      const existingContacts = await crmApi.getContacts(normalizedLead.phone_number)
+      const existingContact = existingContacts.find(
+        (contact) => contact.phone === normalizedLead.phone_number
+      )
+      
+      if (existingContact) {
+        // Contact already exists in CRM
+        const idx = customerPool.value.findIndex((lead) => lead.id === leadId)
+        if (idx !== -1) {
+          customerPool.value.splice(idx, 1)
+        }
+        showSnackbar('این مخاطب قبلاً در CRM شما ثبت شده است', 'info')
+        return
       }
-      customerPool.value.splice(idx, 1)
-      myCustomerPool.value.unshift(revealed)
     }
-    showSnackbar('اطلاعات تماس نمایش داده شد', 'success')
+    
+    // Add to CRM
+    try {
+      await crmApi.createContact({
+        first_name: normalizedLead.first_name || '',
+        last_name: normalizedLead.last_name || '',
+        company_name: normalizedLead.company_name || null,
+        phone: normalizedLead.phone_number || '',
+        notes: normalizedLead.unique_needs || null,
+        source_order: leadId
+      })
+      
+      // Remove from customer pool
+      const idx = customerPool.value.findIndex((lead) => lead.id === leadId)
+      if (idx !== -1) {
+        customerPool.value.splice(idx, 1)
+      }
+      
+      showSnackbar('اطلاعات با موفقیت به CRM اضافه شد. برای مشاهده به تب CRM مراجعه کنید.', 'success')
+    } catch (crmError: any) {
+      console.error('Failed to add contact to CRM:', crmError)
+      // Don't show contact info if CRM add fails
+      showSnackbar('خطا در افزودن به CRM. لطفاً دوباره تلاش کنید.', 'error')
+    }
   } catch (error: any) {
     console.error('Failed to reveal contact:', error)
-    showSnackbar(error?.message || 'دسترسی به این سرنخ ممکن نیست', 'error')
+    
+    // Extract error message from response
+    const statusCode = error?.statusCode || error?.status || error?.response?.status
+    let errorMessage = 'دسترسی به این سرنخ ممکن نیست'
+    
+    // Handle 429 rate limit error specifically
+    if (statusCode === 429) {
+      errorMessage = error?.data?.detail || 'شما به حد مجاز روزانه برای مشاهده سرنخ‌های جدید رسیده‌اید. لطفاً بعداً تلاش کنید.'
+    } else if (error?.data?.detail) {
+      errorMessage = error.data.detail
+    } else if (error?.message) {
+      errorMessage = error.message
+    }
+    
+    // Don't show contact info if reveal fails - just show error message
+    showSnackbar(errorMessage, 'error')
   } finally {
     revealingContact.value[leadId] = false
   }
@@ -1671,58 +1623,36 @@ const loadProfileData = () => {
   }
 }
 
-const calculateProfileScore = () => {
-  const user = authStore.user
-  if (!user) {
+const loadProfileScore = async () => {
+  try {
+    const scores = await gamificationApi.fetchScores()
+    if (scores && scores.profile) {
+      const profileData = scores.profile
+      profileScore.value = profileData.score || 0
+      // Convert backend metrics format to frontend format
+      // Backend returns: { key, label, tip, weight, passed }
+      // FormQualityScore expects: { key, label, tip, weight, passed }
+      profileMetrics.value = (profileData.metrics || []).map((m: any) => ({
+        key: m.key || '',
+        label: m.label || '',
+        tip: m.tip || '',
+        weight: typeof m.weight === 'number' ? m.weight : 0,
+        passed: m.passed === true
+      }))
+      profileTips.value = profileData.tips || []
+    } else {
+      // Fallback to empty state
+      profileScore.value = 0
+      profileMetrics.value = []
+      profileTips.value = []
+    }
+  } catch (error) {
+    console.error('Failed to load profile score:', error)
+    // Fallback to empty state on error
     profileScore.value = 0
     profileMetrics.value = []
     profileTips.value = []
-    return
   }
-
-  let score = 0
-  const metrics: any[] = []
-  const tips: string[] = []
-
-  // Check first name (25 points)
-  if (user.first_name) {
-    score += 25
-    metrics.push({ label: 'نام', completed: true })
-  } else {
-    metrics.push({ label: 'نام', completed: false })
-    tips.push('نام خود را تکمیل کنید')
-  }
-
-  // Check last name (25 points)
-  if (user.last_name) {
-    score += 25
-    metrics.push({ label: 'نام خانوادگی', completed: true })
-  } else {
-    metrics.push({ label: 'نام خانوادگی', completed: false })
-    tips.push('نام خانوادگی خود را تکمیل کنید')
-  }
-
-  // Check email (25 points)
-  if (user.email) {
-    score += 25
-    metrics.push({ label: 'ایمیل', completed: true })
-  } else {
-    metrics.push({ label: 'ایمیل', completed: false })
-    tips.push('ایمیل خود را تکمیل کنید')
-  }
-
-  // Check phone (25 points)
-  if (user.profile?.phone) {
-    score += 25
-    metrics.push({ label: 'تلفن', completed: true })
-  } else {
-    metrics.push({ label: 'تلفن', completed: false })
-    tips.push('شماره تلفن خود را تکمیل کنید')
-  }
-
-  profileScore.value = score
-  profileMetrics.value = metrics
-  profileTips.value = tips
 }
 
 // Watch tab changes to load data when needed
@@ -1733,10 +1663,18 @@ watch(tab, async (newTab) => {
     await loadReviews()
   } else if (newTab === 'insights' && !insightsLoaded.value && !insightsLoading.value) {
     await loadInsights()
-  } else if (newTab === 'customerPool' && myCustomerPool.value.length === 0 && !loadingMyCustomer.value) {
-    await loadMyCustomerPool()
   } else if (newTab === 'chats' && chatRooms.value.length === 0 && !loadingChats.value) {
     await loadChatRooms()
+  } else if (newTab === 'miniwebsite' && miniWebsiteTab.value === 'profile') {
+    // Load profile score when profile tab is accessed
+    await loadProfileScore()
+  }
+})
+
+// Watch miniWebsiteTab to load profile score when profile tab is selected
+watch(miniWebsiteTab, async (newTab) => {
+  if (newTab === 'profile') {
+    await loadProfileScore()
   }
 })
 
@@ -1755,8 +1693,8 @@ onMounted(async () => {
     loadCustomerPool()
   ])
   
-  // Calculate profile score after loading profile data
-  calculateProfileScore()
+  // Load profile score from backend after loading profile data
+  await loadProfileScore()
   
   // Load chat rooms if on chats tab
   if (tab.value === 'chats') {
@@ -1765,11 +1703,15 @@ onMounted(async () => {
   if (tab.value === 'insights') {
     await loadInsights()
   }
+  // Load profile score if on miniwebsite profile tab
+  if (tab.value === 'miniwebsite' && miniWebsiteTab.value === 'profile') {
+    await loadProfileScore()
+  }
 })
 
 // Gamification: Sync profile score with store
 watch(profileScore, (score) => {
-  if (score > 0) {
+  if (score >= 0) {
     gamificationStore.updateLocalScore('profile', {
       title: 'profile',
       score,

@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 from .models import (
     UserProfile, BuyerProfile, VendorProfile, SellerAd, SellerAdImage, 
     ProductReview, SupplierComment, UserActivity, SupplierPortfolioItem, 
-    SupplierTeamMember, SupplierContactMessage, OTP
+    SupplierTeamMember, SupplierContactMessage, OTP,
+    SellerContact, ContactNote, ContactTask
 )
 
 class UserSerializer(serializers.ModelSerializer):
@@ -431,3 +432,61 @@ class PasswordResetSerializer(serializers.Serializer):
             data['phone'] = cleaned
 
         return data
+
+
+class SellerContactSerializer(serializers.ModelSerializer):
+    """Serializer for CRM contacts"""
+    notes_count = serializers.SerializerMethodField()
+    tasks_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SellerContact
+        fields = [
+            'id', 'seller', 'first_name', 'last_name', 'company_name', 
+            'phone', 'email', 'address', 'notes', 'source_order',
+            'notes_count', 'tasks_count', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['seller', 'created_at', 'updated_at']
+    
+    def get_notes_count(self, obj):
+        return obj.contact_notes.count()
+    
+    def get_tasks_count(self, obj):
+        return obj.tasks.count()
+
+
+class ContactNoteSerializer(serializers.ModelSerializer):
+    """Serializer for contact notes"""
+    contact_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ContactNote
+        fields = ['id', 'contact', 'contact_name', 'seller', 'content', 'created_at', 'updated_at']
+        read_only_fields = ['seller', 'created_at', 'updated_at']
+    
+    def get_contact_name(self, obj):
+        return str(obj.contact)
+
+
+class ContactTaskSerializer(serializers.ModelSerializer):
+    """Serializer for contact tasks/reminders"""
+    contact_name = serializers.SerializerMethodField()
+    priority_display = serializers.CharField(source='get_priority_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    is_overdue = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ContactTask
+        fields = [
+            'id', 'contact', 'contact_name', 'seller', 'title', 'description',
+            'due_date', 'priority', 'priority_display', 'status', 'status_display',
+            'is_overdue', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['seller', 'created_at', 'updated_at']
+    
+    def get_contact_name(self, obj):
+        return str(obj.contact) if obj.contact else None
+    
+    def get_is_overdue(self, obj):
+        from django.utils import timezone
+        return obj.status == 'pending' and obj.due_date < timezone.now()

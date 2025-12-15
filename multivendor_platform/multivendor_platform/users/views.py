@@ -12,14 +12,15 @@ from django.utils.decorators import method_decorator
 from .models import (
     UserProfile, VendorProfile, SellerAd, SellerAdImage, SupplierComment, UserActivity,
     SupplierPortfolioItem, SupplierTeamMember, SupplierContactMessage, VendorSubscription,
-    PricingTier
+    PricingTier, SellerContact, ContactNote, ContactTask
 )
 from .serializers import (
     UserSerializer, UserProfileSerializer, VendorProfileSerializer, 
     SellerAdSerializer, SellerAdImageSerializer, SupplierCommentSerializer, UserActivitySerializer,
     RegisterSerializer, UserDetailSerializer, PasswordChangeSerializer,
     SupplierPortfolioItemSerializer, SupplierTeamMemberSerializer, SupplierContactMessageSerializer,
-    OTPRequestSerializer, OTPVerifySerializer, PasswordResetSerializer
+    OTPRequestSerializer, OTPVerifySerializer, PasswordResetSerializer,
+    SellerContactSerializer, ContactNoteSerializer, ContactTaskSerializer
 )
 from orders.models import Order, OrderItem
 from orders.serializers import OrderSerializer
@@ -2539,3 +2540,120 @@ def admin_reject_commission_plan(request, subscription_id):
             {'error': 'اشتراک یافت نشد'},
             status=status.HTTP_404_NOT_FOUND
         )
+
+
+# ===== CRM VIEWSETS =====
+
+class SellerContactViewSet(viewsets.ModelViewSet):
+    """ViewSet for CRM contacts"""
+    serializer_class = SellerContactSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Return contacts only for the authenticated seller"""
+        user = self.request.user
+        queryset = SellerContact.objects.filter(seller=user)
+        
+        # Search by name or phone
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(phone__icontains=search) |
+                Q(company_name__icontains=search)
+            )
+        
+        return queryset.order_by('-created_at')
+    
+    def perform_create(self, serializer):
+        """Set seller automatically"""
+        serializer.save(seller=self.request.user)
+    
+    @action(detail=True, methods=['get'])
+    def notes(self, request, pk=None):
+        """Get all notes for a contact"""
+        contact = self.get_object()
+        notes = contact.contact_notes.filter(seller=request.user).order_by('-created_at')
+        serializer = ContactNoteSerializer(notes, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def tasks(self, request, pk=None):
+        """Get all tasks for a contact"""
+        contact = self.get_object()
+        tasks = contact.tasks.filter(seller=request.user).order_by('due_date', '-priority')
+        serializer = ContactTaskSerializer(tasks, many=True)
+        return Response(serializer.data)
+
+
+class ContactNoteViewSet(viewsets.ModelViewSet):
+    """ViewSet for contact notes"""
+    serializer_class = ContactNoteSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Return notes only for the authenticated seller"""
+        user = self.request.user
+        queryset = ContactNote.objects.filter(seller=user)
+        
+        # Filter by contact if provided
+        contact_id = self.request.query_params.get('contact')
+        if contact_id:
+            queryset = queryset.filter(contact_id=contact_id)
+        
+        return queryset.order_by('-created_at')
+    
+    def perform_create(self, serializer):
+        """Set seller automatically"""
+        serializer.save(seller=self.request.user)
+
+
+class ContactTaskViewSet(viewsets.ModelViewSet):
+    """ViewSet for contact tasks/reminders"""
+    serializer_class = ContactTaskSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Return tasks only for the authenticated seller"""
+        user = self.request.user
+        queryset = ContactTask.objects.filter(seller=user)
+        
+        # Filter by status if provided
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Filter by contact if provided
+        contact_id = self.request.query_params.get('contact')
+        if contact_id:
+            queryset = queryset.filter(contact_id=contact_id)
+        
+        # Filter by priority if provided
+        priority_filter = self.request.query_params.get('priority')
+        if priority_filter:
+            queryset = queryset.filter(priority=priority_filter)
+        
+        return queryset.order_by('due_date', '-priority')
+    
+    def perform_create(self, serializer):
+        """Set seller automatically"""
+        serializer.save(seller=self.request.user)
+    
+    @action(detail=True, methods=['patch'])
+    def complete(self, request, pk=None):
+        """Mark task as completed"""
+        task = self.get_object()
+        task.status = 'completed'
+        task.save()
+        serializer = self.get_serializer(task)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['patch'])
+    def cancel(self, request, pk=None):
+        """Mark task as cancelled"""
+        task = self.get_object()
+        task.status = 'cancelled'
+        task.save()
+        serializer = self.get_serializer(task)
+        return Response(serializer.data)

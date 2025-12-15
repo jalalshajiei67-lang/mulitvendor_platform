@@ -623,3 +623,93 @@ class OTP(models.Model):
         """Check if OTP has expired"""
         from django.utils import timezone
         return timezone.now() > self.expires_at
+
+
+class SellerContact(models.Model):
+    """CRM Contact management for sellers"""
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='crm_contacts')
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    company_name = models.CharField(max_length=200, blank=True, null=True)
+    phone = models.CharField(max_length=20)
+    email = models.EmailField(blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    notes = models.TextField(blank=True, null=True, help_text="General notes about the contact")
+    source_order = models.ForeignKey('orders.Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_contacts', help_text="Order/RFQ that created this contact")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Seller Contact"
+        verbose_name_plural = "Seller Contacts"
+        indexes = [
+            models.Index(fields=['seller', '-created_at']),
+            models.Index(fields=['phone']),
+            models.Index(fields=['email']),
+        ]
+    
+    def __str__(self):
+        name = f"{self.first_name} {self.last_name}".strip()
+        if self.company_name:
+            return f"{name} ({self.company_name})"
+        return name or self.phone
+
+
+class ContactNote(models.Model):
+    """Notes linked to CRM contacts"""
+    contact = models.ForeignKey(SellerContact, on_delete=models.CASCADE, related_name='contact_notes')
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='crm_notes')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Contact Note"
+        verbose_name_plural = "Contact Notes"
+        indexes = [
+            models.Index(fields=['contact', '-created_at']),
+            models.Index(fields=['seller', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Note for {self.contact} - {self.created_at.strftime('%Y-%m-%d')}"
+
+
+class ContactTask(models.Model):
+    """Tasks/Reminders for CRM"""
+    PRIORITY_CHOICES = (
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    )
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    )
+    
+    contact = models.ForeignKey(SellerContact, on_delete=models.CASCADE, related_name='tasks', null=True, blank=True, help_text="Optional: link task to a contact")
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='crm_tasks')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    due_date = models.DateTimeField()
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['due_date', '-priority']
+        verbose_name = "Contact Task"
+        verbose_name_plural = "Contact Tasks"
+        indexes = [
+            models.Index(fields=['seller', 'status', 'due_date']),
+            models.Index(fields=['contact', 'status']),
+            models.Index(fields=['due_date']),
+        ]
+    
+    def __str__(self):
+        contact_str = f" for {self.contact}" if self.contact else ""
+        return f"{self.title}{contact_str} - {self.get_status_display()}"

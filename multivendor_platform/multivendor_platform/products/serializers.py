@@ -17,6 +17,55 @@ from gamification.models import EarnedBadge
 from gamification.services import GamificationService
 from .utils import build_absolute_uri
 
+class SubcategoryField(serializers.Field):
+    """
+    Custom field for subcategories that accepts any type.
+    Validation is skipped - the view will handle conversion to integers.
+    """
+    def __init__(self, **kwargs):
+        kwargs['write_only'] = True
+        kwargs['required'] = False
+        kwargs['allow_null'] = True
+        super().__init__(**kwargs)
+    
+    def get_value(self, dictionary):
+        """
+        Return empty to skip validation - view will handle actual values from request.data.
+        This prevents DRF from trying to validate the field.
+        """
+        # Check if this is FormData (has getlist method)
+        if hasattr(dictionary, 'getlist'):
+            # For FormData, return empty to skip validation
+            return serializers.empty
+        # For regular dict, also return empty
+        return serializers.empty
+    
+    def to_internal_value(self, data):
+        """
+        Should never be called since get_value returns empty, but if it is, return empty list
+        """
+        # This should never be called, but if it is, return empty list
+        return []
+    
+    def to_representation(self, value):
+        """
+        Return as list of IDs for read operations (though this shouldn't be called since write_only=True)
+        """
+        if hasattr(value, 'all'):
+            return [obj.id for obj in value.all()]
+        if isinstance(value, list):
+            return [obj.id if hasattr(obj, 'id') else obj for obj in value]
+        return value
+    
+    def run_validation(self, data=serializers.empty):
+        """
+        Override to skip validation completely - view will handle it
+        """
+        if data is serializers.empty:
+            return serializers.empty
+        # If somehow data is provided, return empty list
+        return []
+
 class DepartmentSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField(read_only=True)
     og_image_url = serializers.SerializerMethodField(read_only=True)
@@ -348,6 +397,8 @@ class ProductSerializer(serializers.ModelSerializer):
     promotional_labels = serializers.SerializerMethodField()
     category_request = serializers.SerializerMethodField(read_only=True)
     features = ProductFeatureSerializer(many=True, read_only=True)
+    # Override subcategories field - view will handle conversion, so we skip validation
+    subcategories = SubcategoryField(write_only=True, required=False)
     
     class Meta:
         model = Product
@@ -396,6 +447,7 @@ class ProductSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         request = self.context.get('request')
+        
         if request and request.user.is_staff:
             # Admin users can modify vendor field, but it's optional (will default to current user if not provided)
             self.Meta.read_only_fields = ['created_at', 'updated_at']
@@ -646,6 +698,9 @@ class ProductSerializer(serializers.ModelSerializer):
         return data
     
     def validate(self, data):
+        # Remove subcategories from data before validation - view will handle it
+        data.pop('subcategories', None)
+        
         # Check if images are being uploaded via FormData
         request = self.context.get('request')
         if request and hasattr(request, 'FILES'):
