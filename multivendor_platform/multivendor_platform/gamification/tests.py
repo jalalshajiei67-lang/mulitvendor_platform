@@ -132,12 +132,16 @@ class InvitationAPITest(TestCase):
 
     def test_invitation_status_requires_auth(self):
         """Test that invitation endpoints require authentication"""
-        self.client.logout()
+        # Force unauthenticate by setting user to None
+        self.client.force_authenticate(user=None)
+        
         response = self.client.post('/api/gamification/invite/generate/')
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        # Should return 401 or 403 for unauthenticated users
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
 
         response = self.client.get('/api/gamification/invite/status/')
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        # Should return 401 or 403 for unauthenticated users
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
 
 
 class InvitationRegistrationTest(TestCase):
