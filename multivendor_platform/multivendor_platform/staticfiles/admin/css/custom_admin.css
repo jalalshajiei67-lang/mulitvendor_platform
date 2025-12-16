@@ -1,0 +1,351 @@
+/* Custom Admin CSS - Fix Action Button Visibility */
+
+/* Ensure bulk actions bar is always visible */
+.actions {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+/* Style the action select dropdown */
+.actions select[name="action"] {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 200px;
+}
+
+/* Style and SHOW the Go button */
+.actions button[type="submit"],
+.actions input[type="submit"],
+.actions button[name="index"] {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 8px 20px !important;
+    background: #007bff !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 4px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: background 0.3s !important;
+}
+
+.actions button[type="submit"]:hover,
+.actions input[type="submit"]:hover,
+.actions button[name="index"]:hover {
+    background: #0056b3 !important;
+}
+
+/* Fix for Unfold theme hiding the button */
+.unfold-admin .actions button,
+.unfold-admin .actions input[type="submit"] {
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
+/* Make the "All" checkbox more visible */
+.actions .action-select {
+    margin-right: 10px;
+}
+
+/* Style the action counter */
+.actions .action-counter {
+    font-size: 13px;
+    color: #6c757d;
+    margin-left: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .actions select[name="action"],
+    .actions button[type="submit"],
+    .actions input[type="submit"] {
+        width: 100%;
+    }
+}
+
+/* Handle broken images gracefully in admin */
+img[src*="imgi_"],
+img[src*="static/imgi_"],
+img[src*="/static/imgi_"] {
+    display: none !important;
+}
+
+/* Hide broken images in TinyMCE editor and admin */
+.mce-content-body img[src=""],
+.mce-content-body img:not([src]),
+.mce-content-body img[src*="404"],
+iframe img[src*="imgi_"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Error handling for broken images */
+img::before {
+    content: '';
+    display: block;
+}
+
+img[src=""],
+img:not([src]) {
+    display: none;
+}
+
+/* ============================================
+   FIX INPUT FIELD BORDERS - Make them visible!
+   ============================================ */
+
+/* All text input fields - force visible borders */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="url"],
+input[type="number"],
+input[type="tel"],
+input[type="search"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"],
+input[type="week"],
+.vTextField,
+.vUUIDField,
+.vIntegerField,
+.vDecimalField,
+.vBigIntegerField,
+.vSmallIntegerField,
+.vPositiveIntegerField,
+.vPositiveSmallIntegerField,
+.vSlugField,
+.vURLField,
+.vEmailField,
+.vIPAddressField,
+.vGenericIPAddressField,
+.vCommaSeparatedIntegerField {
+    border: 2px solid #cbd5e0 !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    background-color: #ffffff !important;
+    color: #1a202c !important;
+    font-size: 14px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    min-height: 38px !important;
+    box-sizing: border-box !important;
+}
+
+/* Text input types only - set to 90% width */
+input[type="text"],
+.vTextField,
+.vSlugField {
+    width: 90% !important;
+    max-width: 90% !important;
+}
+
+/* Textarea fields */
+textarea,
+.vLargeTextField {
+    border: 2px solid #cbd5e0 !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    background-color: #ffffff !important;
+    color: #1a202c !important;
+    font-size: 14px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    box-sizing: border-box !important;
+}
+
+/* Select dropdowns */
+select,
+.vSelectMultipleField {
+    border: 2px solid #cbd5e0 !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    background-color: #ffffff !important;
+    color: #1a202c !important;
+    font-size: 14px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    min-height: 38px !important;
+    box-sizing: border-box !important;
+}
+
+/* Focus state - make borders more prominent */
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="number"]:focus,
+input[type="tel"]:focus,
+input[type="search"]:focus,
+input[type="date"]:focus,
+input[type="datetime-local"]:focus,
+input[type="time"]:focus,
+textarea:focus,
+select:focus,
+.vTextField:focus,
+.vUUIDField:focus,
+.vIntegerField:focus,
+.vDecimalField:focus,
+.vLargeTextField:focus,
+.vSelectMultipleField:focus {
+    border-color: #4299e1 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1) !important;
+}
+
+/* Hover state */
+input[type="text"]:hover,
+input[type="password"]:hover,
+input[type="email"]:hover,
+input[type="url"]:hover,
+input[type="number"]:hover,
+input[type="tel"]:hover,
+textarea:hover,
+select:hover,
+.vTextField:hover,
+.vUUIDField:hover,
+.vIntegerField:hover,
+.vDecimalField:hover,
+.vLargeTextField:hover {
+    border-color: #a0aec0 !important;
+}
+
+/* Error state - red border */
+.form-row.errors input,
+.form-row.errors textarea,
+.form-row.errors select,
+.form-row.errors .vTextField,
+input.errorlist,
+textarea.errorlist,
+select.errorlist {
+    border-color: #e53e3e !important;
+    background-color: #fff5f5 !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    input[type="url"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="search"],
+    textarea,
+    select,
+    .vTextField,
+    .vUUIDField,
+    .vIntegerField,
+    .vDecimalField,
+    .vLargeTextField {
+        border-color: #4a5568 !important;
+        background-color: #2d3748 !important;
+        color: #e2e8f0 !important;
+    }
+    
+    /* Text input types - maintain 90% width in dark mode */
+    input[type="text"],
+    .vTextField,
+    .vSlugField {
+        width: 90% !important;
+        max-width: 90% !important;
+    }
+    
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="email"]:focus,
+    input[type="url"]:focus,
+    input[type="number"]:focus,
+    input[type="tel"]:focus,
+    textarea:focus,
+    select:focus,
+    .vTextField:focus,
+    .vUUIDField:focus,
+    .vIntegerField:focus,
+    .vDecimalField:focus,
+    .vLargeTextField:focus {
+        border-color: #63b3ed !important;
+        box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.2) !important;
+    }
+    
+    input[type="text"]:hover,
+    input[type="password"]:hover,
+    input[type="email"]:hover,
+    input[type="url"]:hover,
+    input[type="number"]:hover,
+    input[type="tel"]:hover,
+    textarea:hover,
+    select:hover,
+    .vTextField:hover,
+    .vUUIDField:hover,
+    .vIntegerField:hover,
+    .vDecimalField:hover,
+    .vLargeTextField:hover {
+        border-color: #718096 !important;
+    }
+}
+
+/* Unfold theme specific fixes */
+.unfold-admin input[type="text"],
+.unfold-admin input[type="password"],
+.unfold-admin input[type="email"],
+.unfold-admin input[type="url"],
+.unfold-admin input[type="number"],
+.unfold-admin input[type="tel"],
+.unfold-admin textarea,
+.unfold-admin select,
+.unfold-admin .vTextField,
+.unfold-admin .vUUIDField,
+.unfold-admin .vIntegerField,
+.unfold-admin .vDecimalField,
+.unfold-admin .vLargeTextField {
+    border: 2px solid #cbd5e0 !important;
+    background-color: #ffffff !important;
+}
+
+/* Unfold theme - text input types 90% width */
+.unfold-admin input[type="text"],
+.unfold-admin .vTextField,
+.unfold-admin .vSlugField {
+    width: 90% !important;
+    max-width: 90% !important;
+}
+
+/* Ensure form rows have proper spacing */
+.form-row {
+    margin-bottom: 15px;
+}
+
+.form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #2d3748;
+}
+
+/* Make sure fieldsets are visible */
+fieldset {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background-color: #ffffff;
+}
+
+fieldset legend {
+    font-weight: 600;
+    padding: 0 10px;
+    color: #2d3748;
+}

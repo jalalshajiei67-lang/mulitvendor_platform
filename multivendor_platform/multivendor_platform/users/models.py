@@ -155,7 +155,14 @@ class PricingTier(models.Model):
         decimal_places=2,
         null=True,
         blank=True,
-        help_text="Monthly subscription price (if applicable)"
+        help_text="Monthly subscription price in Toman (if applicable)"
+    )
+    monthly_price_rial = models.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        null=True,
+        blank=True,
+        help_text="Monthly subscription price in Rial for Zibal payment gateway"
     )
     
     daily_customer_unlock_limit = models.PositiveIntegerField(
@@ -240,6 +247,8 @@ class VendorSubscription(models.Model):
     tier = models.ForeignKey(PricingTier, on_delete=models.PROTECT, related_name='subscriptions')
     started_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(blank=True, null=True, help_text="Optional expiration for paid plans")
+    auto_renew = models.BooleanField(default=False, help_text="Auto-renew subscription on expiry")
+    expiry_reminder_sent = models.DateTimeField(blank=True, null=True, help_text="When expiry reminder was sent")
     last_customer_unlock_at = models.DateTimeField(blank=True, null=True, help_text="Last time a new customer was unlocked")
     total_customer_unlocks = models.PositiveIntegerField(default=0, help_text="Total unlocks ever made by this vendor")
     is_active = models.BooleanField(default=True)

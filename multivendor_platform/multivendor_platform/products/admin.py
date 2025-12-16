@@ -663,7 +663,7 @@ class DepartmentAdmin(admin.ModelAdmin):
         return True
     
     class Media:
-        js = ('admin/js/fix_action_button.js',)
+        js = ('admin/js/fix_action_button.js', 'admin/js/tinymce_image_picker.js',)
         css = {
             'all': ('admin/css/custom_admin.css', 'admin/css/force_action_button.css',)
         }
@@ -722,7 +722,7 @@ class CategoryAdmin(admin.ModelAdmin):
         return True
     
     class Media:
-        js = ('admin/js/fix_action_button.js',)
+        js = ('admin/js/fix_action_button.js', 'admin/js/tinymce_image_picker.js',)
         css = {
             'all': ('admin/css/custom_admin.css', 'admin/css/force_action_button.css',)
         }
@@ -792,7 +792,7 @@ class SubcategoryAdmin(admin.ModelAdmin):
         return True
     
     class Media:
-        js = ('admin/js/fix_action_button.js',)
+        js = ('admin/js/fix_action_button.js', 'admin/js/tinymce_image_picker.js',)
         css = {
             'all': ('admin/css/custom_admin.css', 'admin/css/force_action_button.css',)
         }
@@ -987,7 +987,7 @@ class ProductAdmin(admin.ModelAdmin):
                         product_image.save()
     
     class Media:
-        js = ('admin/js/fix_action_button.js', 'admin/js/price_formatter.js',)
+        js = ('admin/js/fix_action_button.js', 'admin/js/price_formatter.js', 'admin/js/tinymce_image_picker.js',)
         css = {
             'all': ('admin/css/custom_admin.css', 'admin/css/force_action_button.css',)
         }

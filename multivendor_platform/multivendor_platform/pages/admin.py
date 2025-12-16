@@ -1,14 +1,39 @@
 from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import reverse
+from django import forms
+from tinymce.widgets import TinyMCE
 from .models import AboutPage, ContactPage
 
+
+class AboutPageAdminForm(forms.ModelForm):
+    content_fa = forms.CharField(
+        widget=TinyMCE(attrs={'cols': 80, 'rows': 30}),
+        help_text="محتوای کامل صفحه درباره ما به فارسی با قابلیت فرمت‌دهی"
+    )
+    content_en = forms.CharField(
+        widget=TinyMCE(attrs={'cols': 80, 'rows': 30}),
+        help_text="Full About Us page content in English with rich text formatting",
+        required=False
+    )
+    
+    class Meta:
+        model = AboutPage
+        fields = '__all__'
+        widgets = {
+            'content_fa': TinyMCE(attrs={'cols': 80, 'rows': 30}),
+            'content_en': TinyMCE(attrs={'cols': 80, 'rows': 30}),
+        }
 
 @admin.register(AboutPage)
 class AboutPageAdmin(admin.ModelAdmin):
     """
     Admin interface for About Us page
     """
+    form = AboutPageAdminForm
+    
+    class Media:
+        js = ('admin/js/tinymce_image_picker.js',)
     fieldsets = (
         ('محتوای فارسی (Persian Content)', {
             'fields': ('title_fa', 'content_fa'),
@@ -63,11 +88,34 @@ class AboutPageAdmin(admin.ModelAdmin):
         return False
 
 
+class ContactPageAdminForm(forms.ModelForm):
+    content_fa = forms.CharField(
+        widget=TinyMCE(attrs={'cols': 80, 'rows': 30}),
+        help_text="محتوای کامل صفحه تماس با ما به فارسی با قابلیت فرمت‌دهی"
+    )
+    content_en = forms.CharField(
+        widget=TinyMCE(attrs={'cols': 80, 'rows': 30}),
+        help_text="Full Contact Us page content in English with rich text formatting",
+        required=False
+    )
+    
+    class Meta:
+        model = ContactPage
+        fields = '__all__'
+        widgets = {
+            'content_fa': TinyMCE(attrs={'cols': 80, 'rows': 30}),
+            'content_en': TinyMCE(attrs={'cols': 80, 'rows': 30}),
+        }
+
 @admin.register(ContactPage)
 class ContactPageAdmin(admin.ModelAdmin):
     """
     Admin interface for Contact Us page
     """
+    form = ContactPageAdminForm
+    
+    class Media:
+        js = ('admin/js/tinymce_image_picker.js',)
     fieldsets = (
         ('محتوای فارسی (Persian Content)', {
             'fields': ('title_fa', 'content_fa'),

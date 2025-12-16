@@ -1,0 +1,117 @@
+/* admin/css/tiptap.css */
+.tiptap-wrapper {
+    margin-top: 10px;
+}
+
+.tiptap-toolbar {
+    border: 1px solid #ddd;
+    border-bottom: none;
+    background: #f8f9fa;
+    padding: 8px;
+    border-radius: 4px 4px 0 0;
+}
+
+.tiptap-toolbar-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.tiptap-toolbar-buttons button {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.tiptap-toolbar-buttons button:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.tiptap-toolbar-buttons button.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.tiptap-content {
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    min-height: 300px;
+}
+
+.tiptap-editor-content {
+    outline: none;
+    direction: rtl;
+    text-align: right;
+    font-family: 'Vazir', 'Tahoma', sans-serif;
+}
+
+.tiptap-editor-content p {
+    margin: 0.5em 0;
+}
+
+.tiptap-editor-content h1,
+.tiptap-editor-content h2,
+.tiptap-editor-content h3 {
+    font-weight: bold;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+.tiptap-editor-content h1 {
+    font-size: 2em;
+}
+
+.tiptap-editor-content h2 {
+    font-size: 1.5em;
+}
+
+.tiptap-editor-content h3 {
+    font-size: 1.25em;
+}
+
+.tiptap-editor-content ul,
+.tiptap-editor-content ol {
+    padding-right: 1.5em;
+    margin: 0.5em 0;
+}
+
+.tiptap-editor-content li {
+    margin: 0.25em 0;
+}
+
+.tiptap-editor-content a {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.tiptap-editor-content img {
+    max-width: 100%;
+    height: auto;
+    margin: 0.5em 0;
+}
+
+.tiptap-editor-content table {
+    border-collapse: collapse;
+    margin: 0.5em 0;
+    width: 100%;
+}
+
+.tiptap-editor-content table td,
+.tiptap-editor-content table th {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: right;
+}
+
+.tiptap-editor-content table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+

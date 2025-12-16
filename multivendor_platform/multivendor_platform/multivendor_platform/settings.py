@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'pages',
     'gamification',
     'chat',  # Chat system
+    'payments',  # Payment management
 ]
 
 MIDDLEWARE = [
@@ -137,8 +138,9 @@ STATICFILES_DIRS = [
 ]
 
 # WhiteNoise configuration for serving static files in production
-# Using ManifestStaticFilesStorage - WhiteNoise will handle compression on-the-fly
-STATICFILES_STORAGE = 'whitenoise.storage.ManifestStaticFilesStorage'
+# Using custom storage class that ignores missing source map files
+# This prevents collectstatic from failing on missing .map files
+STATICFILES_STORAGE = 'multivendor_platform.storage.IgnoreMissingSourceMapsStorage'
 
 # Media files (user uploaded content)
 # Use an absolute URL in production if the PUBLIC_MEDIA_URL env var is set,
@@ -270,23 +272,9 @@ TINYMCE_DEFAULT_CONFIG = {
     'custom_undo_redo_levels': 20,
     'selector': 'textarea',
     'theme': 'silver',
-    'plugins': '''
-            save link image media preview codesample contextmenu
-            table code lists fullscreen insertdatetime nonbreaking
-            directionality searchreplace wordcount visualblocks
-            visualchars autolink charmap print hr
-            anchor pagebreak
-            ''',
-    'toolbar1': '''
-            fullscreen preview bold italic underline | h1 h2 h3 h4 |
-            fontselect, fontsizeselect | forecolor backcolor | alignleft alignright |
-            aligncenter alignjustify | indent outdent | bullist numlist table |
-            | link image media | codesample |
-            ''',
-    'toolbar2': '''
-            visualblocks visualchars |
-            charmap hr pagebreak nonbreaking anchor | code | ltr rtl
-            ''',
+    'plugins': 'save link image media preview codesample contextmenu table code lists fullscreen insertdatetime nonbreaking directionality searchreplace wordcount visualblocks visualchars autolink charmap print hr anchor pagebreak imagetools',
+    'toolbar1': 'fullscreen preview bold italic underline | h1 h2 h3 h4 | fontselect fontsizeselect | forecolor backcolor | alignleft alignright aligncenter alignjustify | indent outdent | bullist numlist table | link image media | codesample',
+    'toolbar2': 'visualblocks visualchars | charmap hr pagebreak nonbreaking anchor | code | ltr rtl',
     'contextmenu': 'formats | link image',
     'menubar': True,
     'statusbar': True,
@@ -303,9 +291,36 @@ TINYMCE_DEFAULT_CONFIG = {
     'table_default_attributes': {
         'border': '1'
     },
-    'paste_data_images': True,
-    'extended_valid_elements': 'table[*],tr[*],td[*],th[*]',
+    # Image upload configuration - Direct file picker (no dialog)
+    'file_picker_callback': 'tinymceImageFilePicker',  # Custom file picker function
+    'file_picker_types': 'image',  # Only show for images
+    'images_upload_url': '/tinymce/upload-image/',  # Image upload endpoint
+    'images_upload_base_path': '/media/',  # Base path for images
+    'images_upload_credentials': True,  # Include credentials in upload request
+    'images_reuse_filename': False,  # Generate unique filenames
+    'images_file_types': 'jpg,jpeg,png,gif,webp',  # Allowed image types
+    'paste_data_images': True,  # Allow pasting images from clipboard
+    'image_advtab': False,  # Disable advanced tab (we use direct upload)
+    'image_caption': True,  # Enable image captions
+    'image_list': False,  # Disable image list
+    'image_title': True,  # Enable image title attribute
+    'image_dimensions': True,  # Show image dimensions
+    'image_class_list': [
+        {'title': 'None', 'value': ''},
+        {'title': 'Responsive', 'value': 'img-responsive'},
+        {'title': 'Rounded', 'value': 'img-rounded'},
+        {'title': 'Circle', 'value': 'img-circle'},
+        {'title': 'Thumbnail', 'value': 'img-thumbnail'},
+    ],
+    'image_uploadtab': False,  # Disable upload tab (we use file picker)
+    'extended_valid_elements': 'table[*],tr[*],td[*],th[*],img[*]',
     'block_formats': 'Paragraph=p; Header 1=h1; Header 2=h2; Header 3=h3; Header 4=h4; Header 5=h5; Header 6=h6; Preformatted=pre',
+    'relative_urls': False,
+    'remove_script_host': False,
+    'convert_urls': True,
+    'browser_spellcheck': True,
+    'resize': True,
+    'branding': False,
 }
 
 # OTP Configuration
@@ -353,3 +368,8 @@ if DEBUG and REDIS_HOST == 'localhost':
                 'BACKEND': 'channels.layers.InMemoryChannelLayer'
             }
         }
+
+# Zibal Payment Gateway Settings
+ZIBAL_MERCHANT = os.environ.get('ZIBAL_MERCHANT', 'zibal')  # Use 'zibal' for test mode
+ZIBAL_API_BASE = 'https://gateway.zibal.ir'
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')

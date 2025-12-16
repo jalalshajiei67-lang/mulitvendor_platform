@@ -8,11 +8,13 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.http import HttpResponse, JsonResponse
+from django.shortcuts import redirect
 from django.urls import include, path, re_path
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.views.generic import View
 from django.views.static import serve as static_serve
+from multivendor_platform.tinymce_views import tinymce_image_upload
 
 # Import sitemaps
 from products.sitemaps import ProductSitemap, DepartmentSitemap, CategorySitemap, SubcategorySitemap, StaticViewSitemap
@@ -129,6 +131,69 @@ def cors_preflight_handler(request):
     # CORS headers will be added by corsheaders middleware
     return response
 
+def register_redirect_view(request):
+    """
+    Redirect /register requests to the frontend registration page.
+    This handles invitation links that point to the backend URL.
+    Preserves the 'ref' query parameter for invitation codes.
+    """
+    import os
+    
+    # Get current request URL for comparison
+    current_url = request.build_absolute_uri('/register').split('?')[0]
+    
+    # In development, always use port 3000 for frontend (Nuxt dev server)
+    # This prevents redirect loops when SITE_URL points to backend
+    if settings.DEBUG:
+        protocol = 'https' if request.is_secure() else 'http'
+        host = request.get_host().split(':')[0]  # Get hostname without port
+        frontend_url = f'{protocol}://{host}:3000'
+    else:
+        # Production: Get frontend URL from settings or environment
+        frontend_url = getattr(settings, 'FRONTEND_URL', None)
+        
+        # If FRONTEND_URL is not set in settings, try environment variable
+        if not frontend_url:
+            frontend_url = os.environ.get('FRONTEND_URL', '').strip()
+        
+        # If FRONTEND_URL is not set, try SITE_URL (which should point to frontend)
+        if not frontend_url:
+            frontend_url = getattr(settings, 'SITE_URL', '').strip()
+            # Also check environment variable
+            if not frontend_url:
+                frontend_url = os.environ.get('SITE_URL', '').strip()
+        
+        # If still not set, return error
+        if not frontend_url:
+            return HttpResponse(
+                "Frontend URL not configured. Please set FRONTEND_URL environment variable.",
+                status=500,
+                content_type='text/plain'
+            )
+    
+    # Remove trailing slash
+    frontend_url = frontend_url.rstrip('/')
+    
+    # Build redirect URL with query parameters preserved
+    redirect_url = f'{frontend_url}/register'
+    
+    # Preserve query parameters (especially 'ref' for invitation codes)
+    query_string = request.META.get('QUERY_STRING', '')
+    if query_string:
+        redirect_url = f'{redirect_url}?{query_string}'
+    
+    # Safety check: prevent redirect loop
+    # If redirect URL is the same as current URL, something is wrong
+    if redirect_url.split('?')[0] == current_url:
+        return HttpResponse(
+            f"Redirect loop detected. Current URL: {current_url}, Redirect URL: {redirect_url}. "
+            f"Please configure FRONTEND_URL to point to the frontend server (e.g., http://localhost:3000 in development).",
+            status=500,
+            content_type='text/plain'
+        )
+    
+    return redirect(redirect_url, permanent=False)
+
 # FrontendAppView removed - Frontend is now served by separate Nuxt server
 # No longer needed since Nuxt runs as a separate service
 
@@ -152,8 +217,16 @@ urlpatterns = [
     # Home page
     path('', HomeView.as_view(), name='home'),
     
+    # Register redirect (redirects to frontend registration page)
+    # This handles invitation links that may point to backend URL
+    # Handle both with and without trailing slash
+    path('register/', register_redirect_view, name='register-redirect'),
+    path('register', register_redirect_view, name='register-redirect-no-slash'),
+    
     # TinyMCE
     path('tinymce/', include('tinymce.urls')),
+    # TinyMCE image upload endpoint
+    path('tinymce/upload-image/', tinymce_image_upload, name='tinymce-upload-image'),
     
     # Your API URLs
     path('api/', include('products.urls')),
@@ -164,6 +237,7 @@ urlpatterns = [
     path('api/gamification/', include('gamification.urls')),
     path('api/pages/', include('pages.urls')),  # For static pages (About Us, Contact Us)
     path('api/chat/', include('chat.urls')),  # For chat functionality
+    path('api/payments/', include('payments.urls')),  # For payment processing
     
     # --- DASHBOARD URLS ---
     path('dashboard/', VendorDashboardView.as_view(), name='vendor-dashboard'),

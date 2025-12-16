@@ -50,7 +50,7 @@ class BlogCategoryAdmin(admin.ModelAdmin):
         return True
     
     class Media:
-        js = ('admin/js/fix_action_button.js',)
+        js = ('admin/js/fix_action_button.js', 'admin/js/tinymce_image_picker.js',)
         css = {
             'all': ('admin/css/force_action_button.css',)
         }
@@ -110,7 +110,7 @@ class BlogPostAdmin(admin.ModelAdmin):
         return True
     
     class Media:
-        js = ('admin/js/fix_action_button.js',)
+        js = ('admin/js/fix_action_button.js', 'admin/js/tinymce_image_picker.js',)
         css = {
             'all': ('admin/css/force_action_button.css',)
         }
@@ -140,7 +140,7 @@ class BlogCommentAdmin(admin.ModelAdmin):
         return True
     
     class Media:
-        js = ('admin/js/fix_action_button.js',)
+        js = ('admin/js/fix_action_button.js', 'admin/js/tinymce_image_picker.js',)
         css = {
             'all': ('admin/css/force_action_button.css',)
         }

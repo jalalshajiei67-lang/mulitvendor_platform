@@ -435,11 +435,36 @@ class GenerateInviteCodeView(APIView):
         )
         
         # Generate invite link
-        # Get base URL from settings or request
-        base_url = getattr(settings, 'FRONTEND_URL', request.build_absolute_uri('/'))
-        if not base_url.endswith('/'):
-            base_url += '/'
-        invite_link = f"{base_url}register?ref={invite_code}"
+        # Get base URL from settings or environment
+        import os
+        base_url = getattr(settings, 'FRONTEND_URL', None)
+        
+        # If FRONTEND_URL is not set in settings, try environment variable
+        if not base_url:
+            base_url = os.environ.get('FRONTEND_URL', '').strip()
+        
+        # If FRONTEND_URL is not set, try SITE_URL (which should point to frontend)
+        if not base_url:
+            base_url = getattr(settings, 'SITE_URL', '').strip()
+            if not base_url:
+                base_url = os.environ.get('SITE_URL', '').strip()
+        
+        # If still not set, use intelligent defaults
+        if not base_url:
+            if settings.DEBUG:
+                # Development: assume Nuxt runs on port 3000
+                protocol = 'https' if request.is_secure() else 'http'
+                host = request.get_host().split(':')[0]  # Get hostname without port
+                base_url = f'{protocol}://{host}:3000'
+            else:
+                # Production: This should be configured, but fallback to request host
+                # Note: This might point to backend, but it's better than nothing
+                base_url = request.build_absolute_uri('/').rstrip('/')
+        
+        # Remove trailing slash
+        base_url = base_url.rstrip('/')
+        
+        invite_link = f"{base_url}/register?ref={invite_code}"
         
         return Response({
             'invite_code': invite_code,
