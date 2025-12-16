@@ -291,15 +291,35 @@
             >
               اشتراک تجربه
             </v-btn>
-            <v-btn
-              to="/seller/dashboard?tab=invite"
-              variant="text"
-              size="small"
-              class="text-white nav-btn"
-              prepend-icon="mdi-share-variant"
+            <v-tooltip
+              :text="
+                hasGoldTierOrAbove
+                  ? ''
+                  : 'برای دسترسی به بخش دعوت، باید به رتبه طلا یا الماس دست یابید'
+              "
+              location="bottom"
             >
-              دعوت و امتیاز
-            </v-btn>
+              <template v-slot:activator="{ props: tooltipProps }">
+                <v-btn
+                  v-bind="tooltipProps"
+                  :to="hasGoldTierOrAbove ? '/seller/dashboard?tab=invite' : undefined"
+                  :disabled="!hasGoldTierOrAbove"
+                  variant="text"
+                  size="small"
+                  class="text-white nav-btn"
+                  :prepend-icon="hasGoldTierOrAbove ? 'mdi-share-variant' : 'mdi-lock'"
+                  @click="
+                    !hasGoldTierOrAbove &&
+                      showSnackbar(
+                        'برای دسترسی به بخش دعوت، باید به رتبه طلا یا الماس دست یابید',
+                        'warning'
+                      )
+                  "
+                >
+                  دعوت و امتیاز
+                </v-btn>
+              </template>
+            </v-tooltip>
           </div>
 
           <!-- Mobile Navigation (Dropdown) -->
@@ -360,7 +380,18 @@
               >
                 <v-list-item-title>اشتراک تجربه</v-list-item-title>
               </v-list-item>
-              <v-list-item to="/seller/dashboard?tab=invite" prepend-icon="mdi-share-variant">
+              <v-list-item
+                :to="hasGoldTierOrAbove ? '/seller/dashboard?tab=invite' : undefined"
+                :disabled="!hasGoldTierOrAbove"
+                :prepend-icon="hasGoldTierOrAbove ? 'mdi-share-variant' : 'mdi-lock'"
+                @click="
+                  !hasGoldTierOrAbove &&
+                    showSnackbar(
+                      'برای دسترسی به بخش دعوت، باید به رتبه طلا یا الماس دست یابید',
+                      'warning'
+                    )
+                "
+              >
                 <v-list-item-title>دعوت و امتیاز</v-list-item-title>
               </v-list-item>
             </v-list>
@@ -431,6 +462,12 @@ const dashboardLink = computed(() => {
   if (isAdmin.value) return '/admin/dashboard'
   if (isSeller.value) return '/seller/dashboard'
   return '/buyer/dashboard'
+})
+
+// Check if seller has gold tier or above (gold/diamond)
+const hasGoldTierOrAbove = computed(() => {
+  const tier = gamificationStore.userTier
+  return tier === 'gold' || tier === 'diamond'
 })
 
 // Plan/Subscription Status

@@ -70,22 +70,27 @@
                       class="h-100"
                       elevation="0"
                       rounded="lg"
-                      color="info"
+                      :color="hasProductsUnderThreshold ? 'info' : 'grey'"
                       variant="tonal"
                       :loading="loading"
                     >
                       <v-card-text class="pa-4">
                         <div class="d-flex align-center justify-space-between">
                           <div>
-                            <div class="text-caption mb-1">سفارشات</div>
+                            <div class="text-caption mb-1 d-flex align-center gap-1">
+                              سفارشات
+                              <v-icon v-if="!hasProductsUnderThreshold" size="14" color="warning">mdi-lock</v-icon>
+                            </div>
                             <div class="text-h5 font-weight-bold">
-                              {{ dashboardData.total_orders || 0 }}
+                              {{ hasProductsUnderThreshold ? (dashboardData.total_orders || 0) : '--' }}
                             </div>
                             <div class="text-caption opacity-70">
-                              کل سفارشات
+                              {{ hasProductsUnderThreshold ? 'کل سفارشات' : 'قفل شده' }}
                             </div>
                           </div>
-                          <v-icon size="32" color="info">mdi-shopping-outline</v-icon>
+                          <v-icon size="32" :color="hasProductsUnderThreshold ? 'info' : 'grey'">
+                            {{ hasProductsUnderThreshold ? 'mdi-shopping-outline' : 'mdi-lock' }}
+                          </v-icon>
                         </div>
                       </v-card-text>
                     </v-card>
@@ -258,7 +263,7 @@
                 </v-row>
 
                 <!-- Recent Orders Section -->
-                <v-row class="mb-4" v-if="recentOrders.length > 0">
+                <v-row class="mb-4" v-if="hasProductsUnderThreshold && recentOrders.length > 0">
                   <v-col cols="12">
                     <v-card elevation="2" rounded="xl" class="pa-2">
                       <v-card-title class="d-flex align-center justify-space-between px-4 pt-4">
@@ -439,58 +444,76 @@
             <!-- Orders Tab -->
             <v-window-item value="orders">
               <v-card elevation="2" rounded="xl" class="pa-4 mt-4">
-                <div class="d-flex align-center justify-space-between mb-6">
-                  <h3 class="text-h6 font-weight-bold">سفارشات</h3>
+                <div v-if="!hasProductsUnderThreshold" class="text-center pa-12">
+                  <v-icon size="96" color="warning" class="mb-4">mdi-lock</v-icon>
+                  <h3 class="text-h5 font-weight-bold mb-4">بخش سفارشات قفل است</h3>
+                  <p class="text-body-1 text-medium-emphasis mb-6">
+                    برای دسترسی به بخش سفارشات، باید حداقل یک محصول با قیمت کمتر از ۱۰۰,۰۰۰,۰۰۰ تومان داشته باشید.
+                  </p>
                   <v-btn
-                    variant="text"
                     color="primary"
-                    prepend-icon="mdi-refresh"
-                    @click="loadOrders"
-                    :loading="loadingOrders"
+                    variant="flat"
+                    size="large"
+                    prepend-icon="mdi-package-variant"
+                    @click="tab = 'miniwebsite'; miniWebsiteTab = 'products'"
                   >
-                    به‌روزرسانی
+                    افزودن محصول جدید
                   </v-btn>
                 </div>
-                
-                <v-progress-linear v-if="loadingOrders" indeterminate color="primary" class="mb-4"></v-progress-linear>
-                
-                <v-data-table
-                  v-if="!loadingOrders && orders.length > 0"
-                  :headers="orderHeaders"
-                  :items="orders"
-                  :items-per-page="10"
-                  class="elevation-0"
-                  no-data-text="سفارشی یافت نشد"
-                >
-                  <template v-slot:item.order_number="{ item }">
-                    <span class="font-weight-bold">{{ item.order_number }}</span>
-                  </template>
-                  <template v-slot:item.buyer_username="{ item }">
-                    {{ item.buyer_username || 'کاربر مهمان' }}
-                  </template>
-                  <template v-slot:item.total_amount="{ item }">
-                    <span class="font-weight-bold text-primary">{{ formatPrice(item.total_amount) }} تومان</span>
-                  </template>
-                  <template v-slot:item.status="{ item }">
-                    <v-chip
-                      :color="getStatusColor(item.status)"
-                      size="small"
-                      variant="tonal"
-                      label
+                <div v-else>
+                  <div class="d-flex align-center justify-space-between mb-6">
+                    <h3 class="text-h6 font-weight-bold">سفارشات</h3>
+                    <v-btn
+                      variant="text"
+                      color="primary"
+                      prepend-icon="mdi-refresh"
+                      @click="loadOrders"
+                      :loading="loadingOrders"
                     >
-                      {{ getStatusLabel(item.status) }}
-                    </v-chip>
-                  </template>
-                  <template v-slot:item.created_at="{ item }">
-                    {{ formatDate(item.created_at) }}
-                  </template>
-                </v-data-table>
-                
-                <v-card v-else-if="!loadingOrders && orders.length === 0" elevation="1" class="text-center pa-8">
-                  <v-icon size="80" color="grey-lighten-1">mdi-shopping-outline</v-icon>
-                  <p class="text-h6 mt-4 mb-2">هنوز سفارشی ثبت نشده است</p>
-                  <p class="text-body-2 text-grey">با تکمیل پروفایل و محصولات، اعتماد خریداران را جلب کنید تا اولین سفارش ثبت شود.</p>
-                </v-card>
+                      به‌روزرسانی
+                    </v-btn>
+                  </div>
+                  
+                  <v-progress-linear v-if="loadingOrders" indeterminate color="primary" class="mb-4"></v-progress-linear>
+                  
+                  <v-data-table
+                    v-if="!loadingOrders && orders.length > 0"
+                    :headers="orderHeaders"
+                    :items="orders"
+                    :items-per-page="10"
+                    class="elevation-0"
+                    no-data-text="سفارشی یافت نشد"
+                  >
+                    <template v-slot:item.order_number="{ item }">
+                      <span class="font-weight-bold">{{ item.order_number }}</span>
+                    </template>
+                    <template v-slot:item.buyer_username="{ item }">
+                      {{ item.buyer_username || 'کاربر مهمان' }}
+                    </template>
+                    <template v-slot:item.total_amount="{ item }">
+                      <span class="font-weight-bold text-primary">{{ formatPrice(item.total_amount) }} تومان</span>
+                    </template>
+                    <template v-slot:item.status="{ item }">
+                      <v-chip
+                        :color="getStatusColor(item.status)"
+                        size="small"
+                        variant="tonal"
+                        label
+                      >
+                        {{ getStatusLabel(item.status) }}
+                      </v-chip>
+                    </template>
+                    <template v-slot:item.created_at="{ item }">
+                      {{ formatDate(item.created_at) }}
+                    </template>
+                  </v-data-table>
+                  
+                  <v-card v-else-if="!loadingOrders && orders.length === 0" elevation="1" class="text-center pa-8">
+                    <v-icon size="80" color="grey-lighten-1">mdi-shopping-outline</v-icon>
+                    <p class="text-h6 mt-4 mb-2">هنوز سفارشی ثبت نشده است</p>
+                    <p class="text-body-2 text-grey">با تکمیل پروفایل و محصولات، اعتماد خریداران را جلب کنید تا اولین سفارش ثبت شود.</p>
+                  </v-card>
+                </div>
               </v-card>
             </v-window-item>
 
@@ -578,20 +601,41 @@
             <!-- Invite & Earn Tab -->
             <v-window-item value="invite">
               <v-card elevation="2" rounded="xl" class="pa-6 mt-4 text-center">
-                <v-icon size="56" color="primary" class="mb-4">mdi-share-variant</v-icon>
-                <h3 class="text-h6 font-weight-bold mb-2">همکاران خود را دعوت کنید</h3>
-                <p class="text-body-2 text-medium-emphasis mb-6">
-                  از همکاران معتبر خود دعوت کنید تا شما را تائید نمایند، با اینکار به آنها هدیه می دهید و باعث افزایش اعتبار شرکت خود می شوید.
-                </p>
-                <v-btn
-                  color="primary"
-                  size="large"
-                  rounded="lg"
-                  prepend-icon="mdi-open-in-new"
-                  @click="navigateTo('/vendor/invite')"
-                >
-                  رفتن به صفحه دعوت
-                </v-btn>
+                <div v-if="!hasGoldTierOrAbove">
+                  <v-icon size="96" color="warning" class="mb-4">mdi-lock</v-icon>
+                  <h3 class="text-h5 font-weight-bold mb-4">بخش دعوت قفل است</h3>
+                  <p class="text-body-1 text-medium-emphasis mb-6">
+                    برای دسترسی به بخش دعوت و کسب امتیاز، باید به رتبه طلا یا الماس دست یابید.
+                  </p>
+                  <p class="text-body-2 text-medium-emphasis mb-6">
+                    برای دستیابی به رتبه طلا نیاز به حداقل ۵۰۰ امتیاز و امتیاز اعتبار ۶۰+ دارید.
+                  </p>
+                  <v-btn
+                    color="primary"
+                    variant="flat"
+                    size="large"
+                    prepend-icon="mdi-trophy"
+                    @click="tab = 'home'"
+                  >
+                    مشاهده داشبورد
+                  </v-btn>
+                </div>
+                <div v-else>
+                  <v-icon size="56" color="primary" class="mb-4">mdi-share-variant</v-icon>
+                  <h3 class="text-h6 font-weight-bold mb-2">همکاران خود را دعوت کنید</h3>
+                  <p class="text-body-2 text-medium-emphasis mb-6">
+                    از همکاران معتبر خود دعوت کنید تا شما را تائید نمایند، با اینکار به آنها هدیه می دهید و باعث افزایش اعتبار شرکت خود می شوید.
+                  </p>
+                  <v-btn
+                    color="primary"
+                    size="large"
+                    rounded="lg"
+                    prepend-icon="mdi-open-in-new"
+                    to="/vendor/invite"
+                  >
+                    رفتن به صفحه دعوت
+                  </v-btn>
+                </div>
               </v-card>
             </v-window-item>
 
@@ -1142,6 +1186,8 @@ const onProductSaved = async () => {
     productListRef.value.loadProducts()
   }
   loadDashboardData()
+  // Recheck products threshold after adding/editing product
+  await checkSellerProducts()
   // NEW: Complete task and celebrate
   try {
     await completeTaskAndCelebrate('products')
@@ -1395,12 +1441,49 @@ const snackbarColor = ref('success')
 const showProductForm = ref(false)
 const editingProduct = ref<any>(null)
 const productListRef = ref<any>(null)
+
+// Check if seller has products under 100,000,000 toman
+const hasProductsUnderThreshold = ref<boolean>(false)
+const PRICE_THRESHOLD = 100000000 // 100,000,000 toman
+
+// Check if seller has gold tier or above (gold/diamond)
+const hasGoldTierOrAbove = computed(() => {
+  const tier = dashboardGamification.value?.status?.tier || gamificationStore.userTier
+  return tier === 'gold' || tier === 'diamond'
+})
+
+const checkSellerProducts = async () => {
+  if (!authStore.isSeller) {
+    hasProductsUnderThreshold.value = true
+    return
+  }
+
+  try {
+    const { useProductApi } = await import('~/composables/useProductApi')
+    const productApi = useProductApi()
+    const response = await productApi.getMyProducts({ page_size: 100 })
+
+    const products = Array.isArray(response) ? response : response.results || []
+    
+    // Check if any product has valid price (not null, not 0, and less than threshold)
+    hasProductsUnderThreshold.value = products.some((product: any) => {
+      if (!product.price) return false // No price
+      const price = parseFloat(product.price)
+      if (isNaN(price) || price <= 0) return false // Invalid or zero price
+      return price < PRICE_THRESHOLD // Must be less than 100,000,000
+    })
+  } catch (error) {
+    console.error('Failed to check seller products:', error)
+    // Default to false (locked) if we can't check
+    hasProductsUnderThreshold.value = false
+  }
+}
 const orderHeaders = ref([
-  { title: 'شماره سفارش', key: 'order_number', align: 'start' },
-  { title: 'خریدار', key: 'buyer_username', align: 'start' },
-  { title: 'مبلغ', key: 'total_amount', align: 'start' },
-  { title: 'وضعیت', key: 'status', align: 'start' },
-  { title: 'تاریخ', key: 'created_at', align: 'start' }
+  { title: 'شماره سفارش', key: 'order_number', align: 'start' as const },
+  { title: 'خریدار', key: 'buyer_username', align: 'start' as const },
+  { title: 'مبلغ', key: 'total_amount', align: 'start' as const },
+  { title: 'وضعیت', key: 'status', align: 'start' as const },
+  { title: 'تاریخ', key: 'created_at', align: 'start' as const }
 ])
 
 const reviewHeaders = ref([
@@ -1414,7 +1497,7 @@ const reviewHeaders = ref([
 const loadDashboardData = async () => {
   loading.value = true
   try {
-    const data = await sellerApi.getSellerDashboard()
+    const data = await sellerApi.getSellerDashboard() as SellerDashboardData & { recent_orders?: SellerOrder[] }
     dashboardData.value = {
       total_products: data.total_products || 0,
       active_products: data.active_products || 0,
@@ -1764,8 +1847,12 @@ const loadProfileScore = async () => {
 
 // Watch tab changes to load data when needed
 watch(tab, async (newTab) => {
-  if (newTab === 'orders' && orders.value.length === 0 && !loadingOrders.value) {
-    await loadOrders()
+  if (newTab === 'orders') {
+    // Recheck products threshold when accessing orders tab
+    await checkSellerProducts()
+    if (hasProductsUnderThreshold.value && orders.value.length === 0 && !loadingOrders.value) {
+      await loadOrders()
+    }
   } else if (newTab === 'reviews' && reviews.value.length === 0 && !loadingReviews.value) {
     await loadReviews()
   } else if (newTab === 'insights' && !insightsLoaded.value && !insightsLoading.value) {
@@ -1792,6 +1879,9 @@ onMounted(async () => {
   } catch (error) {
     console.warn('Failed to load gamification data', error)
   }
+  
+  // Check if seller has products under threshold
+  await checkSellerProducts()
   
   // Load initial data
   await Promise.all([

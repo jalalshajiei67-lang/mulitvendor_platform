@@ -2,95 +2,274 @@
   <div class="chat-room">
     <!-- Header -->
     <div class="chat-room-header">
-      <v-btn icon size="small" @click="emit('back')">
+      <v-btn 
+        icon 
+        size="small" 
+        variant="text"
+        @click="emit('back')"
+        class="back-btn"
+      >
         <v-icon>mdi-arrow-right</v-icon>
       </v-btn>
-      <div class="flex-grow-1 mr-2">
+      
+      <v-avatar 
+        :color="getAvatarColor(room?.other_participant)"
+        size="40"
+        class="mr-2"
+      >
+        <span class="text-white font-weight-bold">
+          {{ getInitials(room?.other_participant) }}
+        </span>
+      </v-avatar>
+
+      <div class="flex-grow-1">
         <div class="font-weight-bold">
-          {{ room?.other_participant?.username || 'کاربر' }}
+          {{ room?.other_participant?.username || room?.other_participant?.first_name || 'کاربر' }}
         </div>
-        <div v-if="room?.product_name" class="text-caption text-grey">
-          {{ room.product_name }}
+        <div class="text-caption" :class="isOtherUserTyping ? 'text-primary' : 'text-grey'">
+          <span v-if="isOtherUserTyping">
+            <v-icon size="x-small" class="typing-icon">mdi-circle</v-icon>
+            در حال نوشتن...
+          </span>
+          <span v-else-if="room?.product_name">
+            <v-icon size="x-small">mdi-package-variant</v-icon>
+            {{ room.product_name }}
+          </span>
         </div>
       </div>
+
+      <v-menu>
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            icon
+            size="small"
+            variant="text"
+          >
+            <v-icon>mdi-dots-vertical</v-icon>
+          </v-btn>
+        </template>
+        <v-list density="compact">
+          <v-list-item @click="clearMessages">
+            <template #prepend>
+              <v-icon size="small">mdi-delete-sweep</v-icon>
+            </template>
+            <v-list-item-title>پاک کردن پیام‌ها</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="viewProductDetails" v-if="room?.product">
+            <template #prepend>
+              <v-icon size="small">mdi-information</v-icon>
+            </template>
+            <v-list-item-title>مشاهده محصول</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </div>
 
     <!-- Messages -->
     <div ref="messagesContainer" class="chat-messages">
-      <div v-if="loading" class="text-center pa-4">
+      <div v-if="loading" class="text-center pa-8">
         <v-progress-circular indeterminate color="primary" size="32" />
+        <p class="text-grey mt-2">در حال بارگذاری پیام‌ها...</p>
       </div>
 
-      <div v-else-if="messages.length === 0" class="text-center pa-4 text-grey">
-        هنوز پیامی ارسال نشده است
+      <div v-else-if="messages.length === 0" class="empty-messages">
+        <v-icon size="64" color="grey-lighten-2">mdi-chat-processing-outline</v-icon>
+        <p class="text-grey mt-4">هنوز پیامی ارسال نشده است</p>
+        <p class="text-caption text-grey">اولین پیام را ارسال کنید!</p>
       </div>
 
-      <div v-else>
-        <div
-          v-for="message in messages"
-          :key="message.id"
-          :class="['message', isOwnMessage(message) ? 'message-own' : 'message-other']"
-        >
-          <div class="message-bubble">
-            <div class="message-sender" v-if="!isOwnMessage(message)">
-              {{ message.sender_username }}
-            </div>
-            <div class="message-content">{{ message.content }}</div>
-            <div class="message-time">
-              {{ formatMessageTime(message.created_at) }}
-              <v-icon
-                v-if="isOwnMessage(message)"
-                size="small"
-                :color="message.is_read ? 'primary' : 'grey'"
-                class="mr-1"
-              >
-                {{ message.is_read ? 'mdi-check-all' : 'mdi-check' }}
-              </v-icon>
-            </div>
+      <div v-else class="messages-list">
+        <template v-for="(group, date) in groupedMessages" :key="date">
+          <!-- Date Divider -->
+          <div class="date-divider">
+            <v-chip size="x-small" variant="tonal">
+              {{ date }}
+            </v-chip>
           </div>
-        </div>
+
+          <!-- Messages for this date -->
+          <div
+            v-for="message in group"
+            :key="message.id"
+            :class="['message', isOwnMessage(message) ? 'message-own' : 'message-other']"
+          >
+            <!-- Avatar for own messages (shown on right in RTL) -->
+            <v-avatar 
+              v-if="isOwnMessage(message)"
+              :color="getAvatarColor(authStore.user)"
+              size="32"
+              class="message-avatar message-avatar-own"
+            >
+              <span class="text-white text-caption font-weight-bold">
+                {{ getInitials(authStore.user) }}
+              </span>
+            </v-avatar>
+
+            <!-- Message Bubble -->
+            <div class="message-bubble">
+              <div class="message-sender" v-if="!isOwnMessage(message)">
+                {{ message.sender_username }}
+              </div>
+              <div class="message-content">{{ message.content }}</div>
+              <div class="message-time">
+                {{ formatMessageTime(message.created_at) }}
+                <v-icon
+                  v-if="isOwnMessage(message)"
+                  size="x-small"
+                  :color="message.is_read ? 'white' : 'rgba(255,255,255,0.6)'"
+                  class="mr-1"
+                >
+                  {{ message.is_read ? 'mdi-check-all' : 'mdi-check' }}
+                </v-icon>
+              </div>
+            </div>
+
+            <!-- Avatar for other's messages (shown on left in RTL) -->
+            <v-avatar 
+              v-if="!isOwnMessage(message)"
+              :color="getAvatarColor(room?.other_participant)"
+              size="32"
+              class="message-avatar message-avatar-other"
+            >
+              <span class="text-white text-caption font-weight-bold">
+                {{ getInitials(room?.other_participant) }}
+              </span>
+            </v-avatar>
+          </div>
+        </template>
       </div>
 
       <!-- Typing Indicator -->
-      <div v-if="typingUsers.length > 0" class="message message-other">
-        <div class="message-bubble typing-indicator">
-          <span>{{ typingUsers[0].username }} در حال نوشتن</span>
-          <span class="typing-dots">
-            <span>.</span><span>.</span><span>.</span>
-          </span>
+      <v-fade-transition>
+        <div v-if="typingUsers.length > 0" class="message message-other">
+          <div class="message-bubble typing-indicator">
+            <div class="typing-animation">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+          <v-avatar 
+            :color="getAvatarColor(room?.other_participant)"
+            size="32"
+            class="message-avatar message-avatar-other"
+          >
+            <span class="text-white text-caption font-weight-bold">
+              {{ getInitials(room?.other_participant) }}
+            </span>
+          </v-avatar>
         </div>
-      </div>
+      </v-fade-transition>
+
+      <!-- Scroll to bottom button -->
+      <v-fade-transition>
+        <v-btn
+          v-if="showScrollButton"
+          icon
+          size="small"
+          color="primary"
+          class="scroll-to-bottom"
+          @click="scrollToBottom"
+        >
+          <v-icon>mdi-chevron-down</v-icon>
+        </v-btn>
+      </v-fade-transition>
     </div>
+
+    <!-- Quick Replies -->
+    <v-slide-y-reverse-transition>
+      <div v-if="showQuickReplies && quickReplies.length > 0" class="quick-replies">
+        <v-chip
+          v-for="(reply, index) in quickReplies"
+          :key="index"
+          size="small"
+          variant="outlined"
+          @click="insertQuickReply(reply)"
+          class="ml-1 mb-1"
+        >
+          {{ reply }}
+        </v-chip>
+      </div>
+    </v-slide-y-reverse-transition>
 
     <!-- Input -->
     <div class="chat-input">
-      <v-text-field
+      <v-btn
+        :disabled="!messageText.trim() || isSending"
+        @click="sendMessage"
+        :color="messageText.trim() && !isSending ? 'primary' : 'grey'"
+        class="send-btn"
+        size="large"
+        icon
+        elevation="2"
+      >
+        <v-icon>mdi-send</v-icon>
+      </v-btn>
+
+      <v-textarea
         v-model="messageText"
         placeholder="پیام خود را بنویسید..."
         variant="outlined"
-        density="compact"
+        density="comfortable"
         hide-details
-        @keydown.enter="sendMessage"
+        rows="1"
+        auto-grow
+        max-rows="4"
+        @keydown.enter.exact.prevent="sendMessage"
+        :disabled="isSending"
+        @keydown.shift.enter="handleShiftEnter"
         @input="handleTyping"
+        class="message-input"
+      />
+
+      <v-btn
+        icon
+        size="small"
+        variant="text"
+        @click="showQuickReplies = !showQuickReplies"
+        class="quick-reply-btn"
       >
-        <template #append-inner>
+        <v-icon>mdi-lightning-bolt</v-icon>
+      </v-btn>
+
+      <v-menu
+        v-model="showEmojiPicker"
+        :close-on-content-click="false"
+        location="top"
+      >
+        <template #activator="{ props }">
           <v-btn
+            v-bind="props"
             icon
             size="small"
-            color="primary"
-            :disabled="!messageText.trim()"
-            @click="sendMessage"
+            variant="text"
+            class="emoji-btn"
           >
-            <v-icon>mdi-send</v-icon>
+            <v-icon>mdi-emoticon-happy-outline</v-icon>
           </v-btn>
         </template>
-      </v-text-field>
+        <v-card class="emoji-picker" max-width="300">
+          <v-card-text class="pa-2">
+            <div class="emoji-grid">
+              <span
+                v-for="emoji in commonEmojis"
+                :key="emoji"
+                class="emoji-item"
+                @click="insertEmoji(emoji)"
+              >
+                {{ emoji }}
+              </span>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-menu>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useChatStore } from '~/stores/chat'
 import { useAuthStore } from '~/stores/auth'
 
@@ -108,11 +287,77 @@ const authStore = useAuthStore()
 const messageText = ref('')
 const loading = ref(true)
 const messagesContainer = ref<HTMLElement | null>(null)
-const typingTimeout = ref<NodeJS.Timeout | null>(null)
+const typingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+const showScrollButton = ref(false)
+const showEmojiPicker = ref(false)
+const showQuickReplies = ref(false)
+const isSending = ref(false)
+const lastSentContent = ref<string | null>(null)
+const sendingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+
+const commonEmojis = [
+  '😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊',
+  '😇', '🙂', '😉', '😌', '😍', '🥰', '😘', '😗',
+  '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨',
+  '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞',
+  '😔', '😟', '😕', '🙁', '😢', '😭', '😤', '😠',
+  '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨',
+  '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '👏',
+  '🙌', '👐', '🤲', '🤝', '🙏', '💪', '❤️', '🧡',
+  '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
+  '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝',
+  '✅', '❌', '⭐', '🌟', '💫', '✨', '🔥', '💯'
+]
+
+const quickReplies = [
+  'سلام',
+  'ممنون',
+  'وقت بخیر',
+  'ممنون میشم قیمت رو بفرمایید.',
+  'موجود هست؟',
+  'چه زمانی می تونید تحویل بدید؟',
+]
 
 const room = computed(() => chatStore.rooms.find(r => r.room_id === props.roomId))
 const messages = computed(() => chatStore.messages[props.roomId] || [])
-const typingUsers = computed(() => chatStore.typingStatuses[props.roomId] || [])
+const typingUsers = computed(() => {
+  const statuses = chatStore.typingStatuses[props.roomId] || []
+  // Filter out own typing status
+  return statuses.filter(s => s.user_id !== authStore.user?.id)
+})
+
+const isOtherUserTyping = computed(() => typingUsers.value.length > 0)
+
+const groupedMessages = computed(() => {
+  const grouped: Record<string, any[]> = {}
+  
+  messages.value.forEach(message => {
+    const date = new Date(message.created_at)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    
+    let dateKey = ''
+    if (date.toDateString() === today.toDateString()) {
+      dateKey = 'امروز'
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      dateKey = 'دیروز'
+    } else {
+      dateKey = date.toLocaleDateString('fa-IR', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })
+    }
+    
+    if (!grouped[dateKey]) {
+      grouped[dateKey] = []
+    }
+    grouped[dateKey].push(message)
+  })
+  
+  return grouped
+})
 
 const isOwnMessage = (message: any) => {
   if (authStore.user) {
@@ -121,16 +366,53 @@ const isOwnMessage = (message: any) => {
   return false
 }
 
+const getInitials = (user: any) => {
+  if (!user) return '؟'
+  const name = user.username || user.first_name || user.email || 'کاربر'
+  
+  // For Persian/Arabic names, take first character
+  if (/[\u0600-\u06FF]/.test(name)) {
+    return name.charAt(0)
+  }
+  
+  // For English names, take first character uppercase
+  return name.charAt(0).toUpperCase()
+}
+
+const getAvatarColor = (user: any) => {
+  const colors = [
+    '#4CAF50', '#388E3C', '#2E7D32', '#66BB6A',
+    '#81C784', '#00796B', '#0097A7', '#F57C00'
+  ]
+  
+  const username = user?.username || user?.first_name || 'user'
+  const hash = username.split('').reduce((acc: number, char: string) => {
+    return char.charCodeAt(0) + ((acc << 5) - acc)
+  }, 0)
+  
+  return colors[Math.abs(hash) % colors.length]
+}
+
 const formatMessageTime = (timestamp: string) => {
   const date = new Date(timestamp)
   return date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
 }
 
 const sendMessage = () => {
-  if (!messageText.value.trim()) return
+  // Prevent double submission
+  if (isSending.value || !messageText.value.trim()) return
 
-  chatStore.sendMessage(props.roomId, messageText.value.trim())
+  const content = messageText.value.trim()
+  
+  // Set sending flag to prevent duplicate submissions
+  isSending.value = true
+  lastSentContent.value = content
+  
+  // Clear input immediately for better UX
   messageText.value = ''
+
+  // Send message
+  chatStore.sendMessage(props.roomId, content)
 
   // Stop typing indicator
   chatStore.setTyping(props.roomId, false)
@@ -140,6 +422,21 @@ const sendMessage = () => {
   }
 
   scrollToBottom()
+
+  // Reset sending flag after a delay as a safety mechanism
+  // This will be cleared earlier if we receive our message back
+  if (sendingTimeout.value) {
+    clearTimeout(sendingTimeout.value)
+  }
+  sendingTimeout.value = setTimeout(() => {
+    isSending.value = false
+    lastSentContent.value = null
+  }, 1000)
+}
+
+const handleShiftEnter = (event: KeyboardEvent) => {
+  // Allow shift+enter to add new line (default textarea behavior)
+  return true
 }
 
 const handleTyping = () => {
@@ -157,16 +454,76 @@ const handleTyping = () => {
   }, 3000)
 }
 
-const scrollToBottom = () => {
+const insertEmoji = (emoji: string) => {
+  messageText.value += emoji
+  showEmojiPicker.value = false
+  // Focus back on input
+  nextTick(() => {
+    const textarea = document.querySelector('.message-input textarea') as HTMLTextAreaElement
+    textarea?.focus()
+  })
+}
+
+const insertQuickReply = (reply: string) => {
+  messageText.value = reply
+  showQuickReplies.value = false
+}
+
+const scrollToBottom = (smooth = true) => {
   nextTick(() => {
     if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      messagesContainer.value.scrollTo({
+        top: messagesContainer.value.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto'
+      })
     }
   })
 }
 
-watch(messages, () => {
-  scrollToBottom()
+const handleScroll = () => {
+  if (messagesContainer.value) {
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value
+    showScrollButton.value = scrollHeight - scrollTop - clientHeight > 100
+  }
+}
+
+const clearMessages = () => {
+  // TODO: Implement clear messages functionality
+  console.log('Clear messages')
+}
+
+const viewProductDetails = () => {
+  if (room.value?.product_id) {
+    // Navigate to product page
+    navigateTo(`/products/${room.value.product_id}`)
+  }
+}
+
+watch(messages, (newMessages, oldMessages) => {
+  // Reset sending flag if we see our own message appear
+  if (isSending.value && lastSentContent.value && authStore.user) {
+    const lastMessage = newMessages[newMessages.length - 1]
+    if (lastMessage && 
+        lastMessage.sender === authStore.user.id && 
+        lastMessage.content === lastSentContent.value) {
+      // Our message was successfully received, reset sending flag
+      isSending.value = false
+      lastSentContent.value = null
+      if (sendingTimeout.value) {
+        clearTimeout(sendingTimeout.value)
+        sendingTimeout.value = null
+      }
+    }
+  }
+
+  // Only auto-scroll if user is near bottom
+  if (messagesContainer.value) {
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+    if (isNearBottom) {
+      scrollToBottom()
+    }
+  }
 }, { deep: true })
 
 onMounted(async () => {
@@ -180,11 +537,29 @@ onMounted(async () => {
     // Mark as read
     chatStore.markAsRead(props.roomId)
 
-    scrollToBottom()
+    scrollToBottom(false)
+
+    // Add scroll listener
+    if (messagesContainer.value) {
+      messagesContainer.value.addEventListener('scroll', handleScroll)
+    }
   } catch (error) {
     console.error('Failed to load chat room:', error)
   } finally {
     loading.value = false
+  }
+})
+
+onUnmounted(() => {
+  // Clean up
+  if (messagesContainer.value) {
+    messagesContainer.value.removeEventListener('scroll', handleScroll)
+  }
+  if (typingTimeout.value) {
+    clearTimeout(typingTimeout.value)
+  }
+  if (sendingTimeout.value) {
+    clearTimeout(sendingTimeout.value)
   }
 })
 </script>
@@ -195,57 +570,178 @@ onMounted(async () => {
   flex-direction: column;
   height: 100%;
   direction: rtl;
+  background-color: #fafafa;
 }
 
 .chat-room-header {
   display: flex;
   align-items: center;
-  padding: 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-  background-color: #f5f5f5;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+}
+
+.back-btn {
+  margin-left: 8px;
+}
+
+.typing-icon {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  background-color: #fafafa;
+  background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+  position: relative;
+}
+
+.empty-messages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+}
+
+.messages-list {
+  padding-bottom: 16px;
+}
+
+.date-divider {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
 }
 
 .message {
   margin-bottom: 12px;
   display: flex;
+  align-items: flex-start; /* Align avatars to top of bubble */
+  animation: slideIn 0.3s ease-out;
+  gap: 8px;
 }
 
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Own messages: Avatar (right) → Bubble (left) in RTL */
 .message-own {
   justify-content: flex-start;
+  flex-direction: row; /* Avatar first, then bubble */
 }
 
+/* Other's messages: Bubble (right) → Avatar (left) in RTL */
 .message-other {
   justify-content: flex-end;
+  flex-direction: row; /* Bubble first, then avatar */
+}
+
+.message-avatar {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 2px; /* Align with top of bubble content */
+}
+
+.message-avatar:hover {
+  transform: scale(1.1);
+}
+
+.message-avatar-own {
+  /* Avatar for own messages - appears on the right */
+  order: -1;
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.message-avatar-other {
+  /* Avatar for other's messages - appears on the left */
+  order: 1;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .message-bubble {
   max-width: 70%;
-  padding: 8px 12px;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  padding: 10px 14px;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+  position: relative;
+  word-wrap: break-word;
 }
 
+.message-bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Own messages - Green bubble with tail on right */
 .message-own .message-bubble {
-  background-color: #4caf50;
+  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
   color: white;
-  border-bottom-right-radius: 4px;
+  border-top-right-radius: 4px;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
 }
 
+.message-own .message-bubble::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid #4CAF50;
+  border-top: 8px solid #4CAF50;
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid transparent;
+}
+
+/* Other's messages - White bubble with tail on left */
 .message-other .message-bubble {
   background-color: white;
   color: #333;
-  border-bottom-left-radius: 4px;
+  border-top-left-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.message-other .message-bubble::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 0;
+  height: 0;
+  border-right: 8px solid white;
+  border-top: 8px solid white;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid transparent;
 }
 
 .message-sender {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: bold;
   margin-bottom: 4px;
   color: #666;
@@ -253,19 +749,22 @@ onMounted(async () => {
 
 .message-content {
   word-wrap: break-word;
-  line-height: 1.4;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  font-size: 14px;
 }
 
 .message-time {
-  font-size: 11px;
-  margin-top: 4px;
+  font-size: 10px;
+  margin-top: 6px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 2px;
 }
 
 .message-own .message-time {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .message-other .message-time {
@@ -273,36 +772,208 @@ onMounted(async () => {
 }
 
 .typing-indicator {
-  background-color: #e0e0e0;
-  color: #666;
+  background-color: #e8e8e8;
+  padding: 12px 16px;
 }
 
-.typing-dots span {
-  animation: typing 1.4s infinite;
-  margin-left: 2px;
+.typing-animation {
+  display: flex;
+  gap: 4px;
+  align-items: center;
 }
 
-.typing-dots span:nth-child(2) {
+.typing-animation span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #999;
+  animation: typing-bounce 1.4s infinite ease-in-out;
+}
+
+.typing-animation span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-animation span:nth-child(2) {
   animation-delay: 0.2s;
 }
 
-.typing-dots span:nth-child(3) {
+.typing-animation span:nth-child(3) {
   animation-delay: 0.4s;
 }
 
-@keyframes typing {
+@keyframes typing-bounce {
   0%, 60%, 100% {
-    opacity: 0.3;
+    transform: translateY(0);
+    opacity: 0.7;
   }
   30% {
+    transform: translateY(-8px);
     opacity: 1;
   }
 }
 
-.chat-input {
-  padding: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+.scroll-to-bottom {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 5;
+}
+
+.quick-replies {
+  padding: 8px 12px;
   background-color: white;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chat-input {
+  display: flex;
+  align-items: center; /* Center align all items */
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.emoji-btn,
+.quick-reply-btn {
+  flex-shrink: 0;
+  align-self: center; /* Align to center with text box */
+}
+
+.message-input {
+  flex: 1;
+}
+
+.send-btn {
+  flex-shrink: 0;
+  transition: all 0.3s;
+  order: -1; /* Ensure it appears first (rightmost in RTL) */
+  min-height: 48px !important;
+  height: 48px !important;
+  width: 48px !important;
+  align-self: flex-end; /* Align to bottom with textarea */
+}
+
+.send-btn:not(:disabled) {
+  box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
+}
+
+.send-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+.send-btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.emoji-picker {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+
+.emoji-item {
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  text-align: center;
+  transition: background-color 0.2s;
+}
+
+.emoji-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Custom scrollbar */
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 600px) {
+  .message-bubble {
+    max-width: 85%;
+  }
+
+  .emoji-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .chat-input {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .send-btn {
+    order: 1;
+    margin-left: auto;
+    min-height: 40px !important;
+    height: 40px !important;
+    width: 40px !important;
+  }
+
+  .message-input {
+    flex-basis: 100%;
+    order: 2;
+  }
+
+  .emoji-btn,
+  .quick-reply-btn {
+    order: 3;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .chat-room {
+    background-color: #121212;
+  }
+
+  .chat-room-header {
+    background-color: #1e1e1e;
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .chat-messages {
+    background: linear-gradient(to bottom, #121212 0%, #1a1a1a 100%);
+  }
+
+  .message-other .message-bubble {
+    background-color: #2c2c2c;
+    color: #e0e0e0;
+  }
+
+  .chat-input,
+  .quick-replies {
+    background-color: #1e1e1e;
+    border-top-color: rgba(255, 255, 255, 0.12);
+  }
 }
 </style>
 

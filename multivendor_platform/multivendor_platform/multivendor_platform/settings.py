@@ -50,6 +50,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Add this at the top
+    'pages.middleware.RedirectMiddleware',  # Handle manual redirects from admin
+    'multivendor_platform.robots_middleware.BackendRobotsNoIndexMiddleware',  # Block indexing on backend domains
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',  # Required for admin

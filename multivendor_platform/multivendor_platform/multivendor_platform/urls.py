@@ -53,15 +53,37 @@ def health_check(request):
 def robots_txt(request):
     """
     Serve robots.txt file to restrict crawlers from unnecessary sections.
-    Blocks all indexing on backend domain (multivendor-backend.indexo.ir).
-    Allows indexing on frontend domains (indexo.ir, www.indexo.ir) except admin/API.
+    Blocks all indexing on backend domains (production and staging).
+    Allows indexing on frontend domains (indexo.ir, www.indexo.ir, staging.indexo.ir) except admin/API.
     """
-    # Get the host from the request
-    host = request.get_host().lower()
+    # Get the host from the request (remove port if present)
+    host_with_port = request.get_host()
+    # Split to get hostname without port
+    host = host_with_port.split(':')[0].lower()
     
-    # Check if this is the backend domain (should be completely blocked)
-    backend_domains = ['multivendor-backend.indexo.ir']
-    is_backend_domain = any(host == domain or host.endswith('.' + domain) for domain in backend_domains)
+    # Define backend domains that should be completely blocked
+    # Includes both production and staging backend domains
+    backend_domains = [
+        # Production backend domains
+        'multivendor-backend.indexo.ir',
+        'api.indexo.ir',
+        # Staging backend domains
+        'staging-api.indexo.ir',
+        'staging-backend.indexo.ir',
+    ]
+    
+    # Check if this is the backend domain (exact match or subdomain)
+    # More precise matching: exact match or subdomain (e.g., api.multivendor-backend.indexo.ir)
+    is_backend_domain = False
+    for backend_domain in backend_domains:
+        if host == backend_domain:
+            is_backend_domain = True
+            break
+        # Check if host is a subdomain of backend domain
+        # e.g., api.multivendor-backend.indexo.ir should match multivendor-backend.indexo.ir
+        if host.endswith('.' + backend_domain):
+            is_backend_domain = True
+            break
     
     if is_backend_domain:
         # Backend domain: Block everything
@@ -74,7 +96,8 @@ def robots_txt(request):
             '',
         ]
     else:
-        # Frontend domain (indexo.ir, www.indexo.ir): Allow most content, block only admin/API
+        # Frontend domain (indexo.ir, www.indexo.ir, or any other domain): 
+        # Allow most content, block only admin/API
         # Get SITE_URL from settings, fallback to request if not configured
         site_url = getattr(settings, 'SITE_URL', '').strip()
         
@@ -86,7 +109,8 @@ def robots_txt(request):
         else:
             # Fallback to request-based URL (for development or when SITE_URL not set)
             protocol = 'https' if request.is_secure() else 'http'
-            domain = request.get_host()
+            # Use host without port for sitemap URL
+            domain = host
             sitemap_url = f'{protocol}://{domain}/sitemap.xml'
         
         robots_lines = [
@@ -131,23 +155,18 @@ def cors_preflight_handler(request):
     # CORS headers will be added by corsheaders middleware
     return response
 
-def register_redirect_view(request):
+def get_frontend_url(request):
     """
-    Redirect /register requests to the frontend registration page.
-    This handles invitation links that point to the backend URL.
-    Preserves the 'ref' query parameter for invitation codes.
+    Helper function to get frontend URL from settings or environment.
+    Used by redirect views to redirect backend URLs to frontend.
     """
     import os
     
-    # Get current request URL for comparison
-    current_url = request.build_absolute_uri('/register').split('?')[0]
-    
     # In development, always use port 3000 for frontend (Nuxt dev server)
-    # This prevents redirect loops when SITE_URL points to backend
     if settings.DEBUG:
         protocol = 'https' if request.is_secure() else 'http'
         host = request.get_host().split(':')[0]  # Get hostname without port
-        frontend_url = f'{protocol}://{host}:3000'
+        return f'{protocol}://{host}:3000'
     else:
         # Production: Get frontend URL from settings or environment
         frontend_url = getattr(settings, 'FRONTEND_URL', None)
@@ -163,16 +182,23 @@ def register_redirect_view(request):
             if not frontend_url:
                 frontend_url = os.environ.get('SITE_URL', '').strip()
         
-        # If still not set, return error
-        if not frontend_url:
-            return HttpResponse(
-                "Frontend URL not configured. Please set FRONTEND_URL environment variable.",
-                status=500,
-                content_type='text/plain'
-            )
+        # If still not set, return None (caller should handle error)
+        return frontend_url.rstrip('/') if frontend_url else None
+
+def register_redirect_view(request):
+    """
+    Redirect /register requests to the frontend registration page.
+    This handles invitation links that point to the backend URL.
+    Preserves the 'ref' query parameter for invitation codes.
+    """
+    frontend_url = get_frontend_url(request)
     
-    # Remove trailing slash
-    frontend_url = frontend_url.rstrip('/')
+    if not frontend_url:
+        return HttpResponse(
+            "Frontend URL not configured. Please set FRONTEND_URL environment variable.",
+            status=500,
+            content_type='text/plain'
+        )
     
     # Build redirect URL with query parameters preserved
     redirect_url = f'{frontend_url}/register'
@@ -182,17 +208,50 @@ def register_redirect_view(request):
     if query_string:
         redirect_url = f'{redirect_url}?{query_string}'
     
-    # Safety check: prevent redirect loop
-    # If redirect URL is the same as current URL, something is wrong
-    if redirect_url.split('?')[0] == current_url:
+    return redirect(redirect_url, permanent=False)
+
+def backend_to_frontend_redirect(request, path=''):
+    """
+    Generic redirect view for backend URLs that should be served by frontend.
+    Redirects product, category, subcategory, and department URLs to frontend.
+    This prevents backend pages from being indexed by search engines.
+    """
+    frontend_url = get_frontend_url(request)
+    
+    if not frontend_url:
         return HttpResponse(
-            f"Redirect loop detected. Current URL: {current_url}, Redirect URL: {redirect_url}. "
-            f"Please configure FRONTEND_URL to point to the frontend server (e.g., http://localhost:3000 in development).",
+            "Frontend URL not configured. Please set FRONTEND_URL environment variable.",
             status=500,
             content_type='text/plain'
         )
     
-    return redirect(redirect_url, permanent=False)
+    # Build redirect URL preserving the path
+    redirect_url = f'{frontend_url}/{path}'.rstrip('/')
+    
+    # Preserve query parameters
+    query_string = request.META.get('QUERY_STRING', '')
+    if query_string:
+        redirect_url = f'{redirect_url}?{query_string}'
+    
+    # Use 301 permanent redirect to signal search engines this is permanent
+    # This helps with SEO and tells Google to update the indexed URL
+    return redirect(redirect_url, permanent=True)
+
+def product_redirect_view(request, path):
+    """Redirect product URLs from backend to frontend"""
+    return backend_to_frontend_redirect(request, f'products/{path}')
+
+def category_redirect_view(request, path):
+    """Redirect category URLs from backend to frontend"""
+    return backend_to_frontend_redirect(request, f'categories/{path}')
+
+def subcategory_redirect_view(request, path):
+    """Redirect subcategory URLs from backend to frontend"""
+    return backend_to_frontend_redirect(request, f'subcategories/{path}')
+
+def department_redirect_view(request, path):
+    """Redirect department URLs from backend to frontend"""
+    return backend_to_frontend_redirect(request, f'departments/{path}')
 
 # FrontendAppView removed - Frontend is now served by separate Nuxt server
 # No longer needed since Nuxt runs as a separate service
@@ -222,6 +281,14 @@ urlpatterns = [
     # Handle both with and without trailing slash
     path('register/', register_redirect_view, name='register-redirect'),
     path('register', register_redirect_view, name='register-redirect-no-slash'),
+    
+    # Redirect product/category URLs from backend to frontend
+    # This prevents backend pages from being indexed by search engines
+    # These routes must come BEFORE the API routes to catch these paths
+    re_path(r'^products/(?P<path>.*)$', product_redirect_view, name='product-redirect'),
+    re_path(r'^categories/(?P<path>.*)$', category_redirect_view, name='category-redirect'),
+    re_path(r'^subcategories/(?P<path>.*)$', subcategory_redirect_view, name='subcategory-redirect'),
+    re_path(r'^departments/(?P<path>.*)$', department_redirect_view, name='department-redirect'),
     
     # TinyMCE
     path('tinymce/', include('tinymce.urls')),

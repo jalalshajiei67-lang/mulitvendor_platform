@@ -320,23 +320,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
             
             # Admin has access to all rooms
             if self.user and self.user.is_staff:
-                print("Access granted: User is admin")
+                print("✅ Access granted: User is admin")
                 return True
             
             # Check if user is a participant
             if self.user and room.participants.filter(id=self.user.id).exists():
-                print("Access granted: User is participant")
+                print("✅ Access granted: User is participant")
                 return True
             
             # Check if room is associated with this guest session
             if self.guest_session and room.guest_session == self.guest_session:
-                print("Access granted: Guest session matches")
+                print("✅ Access granted: Guest session matches")
                 return True
             
-            print("Access denied: No matching criteria")
+            # Check if guest session is linked to a participant user
+            if self.guest_session and self.guest_session.linked_user:
+                if room.participants.filter(id=self.guest_session.linked_user.id).exists():
+                    print("✅ Access granted: Guest session linked to participant")
+                    return True
+            
+            print("❌ Access denied: No matching criteria")
+            print(f"   - Room is for authenticated users: {list(room.participants.values_list('username', flat=True))}")
+            print(f"   - Current guest session: {self.guest_session.session_id if self.guest_session else 'None'}")
             return False
         except ChatRoom.DoesNotExist:
-            print(f"Room not found: {room_id}")
+            print(f"❌ Room not found: {room_id}")
             return False
     
     @database_sync_to_async

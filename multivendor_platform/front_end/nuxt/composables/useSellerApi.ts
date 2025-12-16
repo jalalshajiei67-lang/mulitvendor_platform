@@ -7,6 +7,7 @@ export interface SellerDashboardData {
   total_orders: number
   product_views: number
   total_reviews: number
+  recent_orders?: SellerOrder[]
 }
 
 export interface SellerOrder {

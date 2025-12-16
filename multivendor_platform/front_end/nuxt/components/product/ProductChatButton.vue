@@ -1,25 +1,52 @@
 <template>
-  <v-btn
-    color="success"
-    variant="outlined"
-    :loading="loading"
-    :block="block"
-    :size="size"
-    @click="startChat"
-  >
-    <v-icon class="ml-2">mdi-chat</v-icon>
-    گفتگو با فروشنده
-  </v-btn>
+  <div>
+    <v-btn
+      color="success"
+      :variant="outlined ? 'outlined' : 'flat'"
+      :loading="loading"
+      :block="block"
+      :size="size"
+      @click="startChat"
+      class="chat-button"
+      elevation="2"
+    >
+      <v-icon class="ml-2">mdi-message-text</v-icon>
+      <span class="button-text">گفتگو با فروشنده</span>
+      <v-icon class="mr-2" size="x-small">mdi-chevron-left</v-icon>
+    </v-btn>
 
-  <!-- Success snackbar -->
-  <v-snackbar v-model="showSuccess" color="success" :timeout="3000">
-    گفتگو شروع شد! پنجره چت را در پایین صفحه ببینید
-  </v-snackbar>
+    <!-- Success snackbar with icon -->
+    <v-snackbar 
+      v-model="showSuccess" 
+      color="success" 
+      :timeout="4000"
+      location="top"
+    >
+      <div class="d-flex align-center">
+        <v-icon class="ml-2">mdi-check-circle</v-icon>
+        <div>
+          <div class="font-weight-bold">گفتگو شروع شد!</div>
+          <div class="text-caption">پنجره چت را در پایین صفحه ببینید</div>
+        </div>
+      </div>
+    </v-snackbar>
 
-  <!-- Error snackbar -->
-  <v-snackbar v-model="showError" color="error" :timeout="3000">
-    خطا در شروع گفتگو. لطفا دوباره تلاش کنید
-  </v-snackbar>
+    <!-- Error snackbar with icon -->
+    <v-snackbar 
+      v-model="showError" 
+      color="error" 
+      :timeout="4000"
+      location="top"
+    >
+      <div class="d-flex align-center">
+        <v-icon class="ml-2">mdi-alert-circle</v-icon>
+        <div>
+          <div class="font-weight-bold">خطا در شروع گفتگو</div>
+          <div class="text-caption">لطفا دوباره تلاش کنید</div>
+        </div>
+      </div>
+    </v-snackbar>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -31,9 +58,11 @@ const props = withDefaults(defineProps<{
   productId: number
   vendorId: number
   block?: boolean
+  outlined?: boolean
   size?: 'x-small' | 'small' | 'default' | 'large' | 'x-large'
 }>(), {
   block: false,
+  outlined: false,
   size: 'large'
 })
 
@@ -103,6 +132,33 @@ const startChat = async () => {
 </script>
 
 <style scoped>
-/* Add any custom styles if needed */
+.chat-button {
+  transition: all 0.3s ease;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+.chat-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3) !important;
+}
+
+.button-text {
+  font-weight: 600;
+}
+
+/* Animate the chevron on hover */
+.chat-button:hover .mdi-chevron-left {
+  animation: slideLeft 0.6s ease-in-out infinite;
+}
+
+@keyframes slideLeft {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-4px);
+  }
+}
 </style>
 

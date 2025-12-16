@@ -1,13 +1,34 @@
 <template>
   <v-container fluid class="pa-4 pa-md-6">
-    <v-row>
-      <v-col cols="12">
-        <h1 class="text-h4 font-weight-bold mb-4">دعوت و کسب امتیاز</h1>
-        <p class="text-body-1 text-medium-emphasis mb-6">
-          دوستان خود را دعوت کنید و برای هر ثبت‌نام موفق ۱۰۰ امتیاز دریافت کنید
-        </p>
-      </v-col>
-    </v-row>
+    <div v-if="!hasGoldTierOrAbove" class="text-center pa-12">
+      <v-icon size="96" color="warning" class="mb-4">mdi-lock</v-icon>
+      <h1 class="text-h4 font-weight-bold mb-4">بخش دعوت قفل است</h1>
+      <p class="text-body-1 text-medium-emphasis mb-6">
+        برای دسترسی به بخش دعوت و کسب امتیاز، باید به رتبه طلا یا الماس دست یابید.
+      </p>
+      <p class="text-body-2 text-medium-emphasis mb-6">
+        برای دستیابی به رتبه طلا نیاز به حداقل ۵۰۰ امتیاز و امتیاز اعتبار ۶۰+ دارید.
+      </p>
+      <v-btn
+        color="primary"
+        variant="flat"
+        size="large"
+        prepend-icon="mdi-trophy"
+        to="/seller/dashboard"
+        rounded="lg"
+      >
+        بازگشت به داشبورد
+      </v-btn>
+    </div>
+    <div v-else>
+      <v-row>
+        <v-col cols="12">
+          <h1 class="text-h4 font-weight-bold mb-4">دعوت و کسب امتیاز</h1>
+          <p class="text-body-1 text-medium-emphasis mb-6">
+            دوستان خود را دعوت کنید و برای هر ثبت‌نام موفق ۱۰۰ امتیاز دریافت کنید
+          </p>
+        </v-col>
+      </v-row>
 
     <!-- Invite Link Section -->
     <v-row>
@@ -210,16 +231,19 @@
       </v-col>
     </v-row>
 
-    <!-- Success Snackbar -->
-    <v-snackbar v-model="showSnackbar" :color="snackbarColor" :timeout="3000" location="top">
-      {{ snackbarMessage }}
-    </v-snackbar>
+      <!-- Success Snackbar -->
+      <v-snackbar v-model="showSnackbar" :color="snackbarColor" :timeout="3000" location="top">
+        {{ snackbarMessage }}
+      </v-snackbar>
+    </div>
   </v-container>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useGamificationApi } from '~/composables/useGamification'
+import { useGamificationStore } from '~/stores/gamification'
+import { useGamificationDashboard } from '~/composables/useGamificationDashboard'
 
 definePageMeta({
   layout: 'dashboard',
@@ -227,6 +251,14 @@ definePageMeta({
 })
 
 const api = useGamificationApi()
+const gamificationStore = useGamificationStore()
+const dashboardApi = useGamificationDashboard()
+
+// Check if seller has gold tier or above (gold/diamond)
+const hasGoldTierOrAbove = computed(() => {
+  const tier = gamificationStore.userTier || dashboardApi.data.value?.status?.tier
+  return tier === 'gold' || tier === 'diamond'
+})
 
 const inviteLink = ref<string>('')
 const loadingInvite = ref(false)
@@ -290,6 +322,7 @@ const copyInviteLink = async () => {
 }
 
 const loadInvitationStatus = async () => {
+  if (!hasGoldTierOrAbove.value) return
   loadingStatus.value = true
   try {
     const response = await api.getInvitationStatus()
@@ -309,6 +342,7 @@ const loadInvitationStatus = async () => {
     loadingStatus.value = false
   }
 }
+
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -381,7 +415,11 @@ const showMessage = (message: string, color: 'success' | 'error' = 'success') =>
 }
 
 onMounted(async () => {
-  await loadInvitationStatus()
+  // Load gamification data to check tier
+  await gamificationStore.hydrate()
+  if (hasGoldTierOrAbove.value) {
+    await loadInvitationStatus()
+  }
 })
 </script>
 

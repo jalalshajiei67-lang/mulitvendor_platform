@@ -2,8 +2,9 @@ from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import reverse
 from django import forms
+from django.utils.html import format_html
 from tinymce.widgets import TinyMCE
-from .models import AboutPage, ContactPage
+from .models import AboutPage, ContactPage, Redirect
 
 
 class AboutPageAdminForm(forms.ModelForm):
@@ -173,3 +174,57 @@ class ContactPageAdmin(admin.ModelAdmin):
         """
         return False
 
+
+@admin.register(Redirect)
+class RedirectAdmin(admin.ModelAdmin):
+    """
+    Admin interface for URL redirects management
+    """
+    list_display = ('from_path', 'to_path_display', 'redirect_type', 'is_active', 'created_at', 'updated_at')
+    list_filter = ('is_active', 'redirect_type', 'created_at')
+    search_fields = ('from_path', 'to_path', 'notes')
+    readonly_fields = ('created_at', 'updated_at', 'created_by')
+    
+    fieldsets = (
+        ('اطلاعات هدایت (Redirect Information)', {
+            'fields': ('from_path', 'to_path', 'redirect_type', 'is_active'),
+            'description': 'مسیر قدیمی و جدید را وارد کنید. نوع هدایت را انتخاب کنید (301 برای دائمی، 302 برای موقت).'
+        }),
+        ('یادداشت‌ها (Notes)', {
+            'fields': ('notes',),
+            'classes': ('collapse',),
+        }),
+        ('اطلاعات (Information)', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+    
+    def to_path_display(self, obj):
+        """Display to_path with styling"""
+        if obj.to_path.startswith('http'):
+            return format_html('<a href="{}" target="_blank">{}</a>', obj.to_path, obj.to_path)
+        return obj.to_path
+    to_path_display.short_description = 'به مسیر'
+    
+    def save_model(self, request, obj, form, change):
+        """Set created_by when creating new redirect"""
+        if not change:  # Only set on creation
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    actions = ['activate_redirects', 'deactivate_redirects']
+    
+    @admin.action(description='فعال کردن هدایت‌های انتخاب شده')
+    def activate_redirects(self, request, queryset):
+        """Activate selected redirects"""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated} هدایت فعال شد.')
+    activate_redirects.short_description = 'فعال کردن هدایت‌های انتخاب شده'
+    
+    @admin.action(description='غیرفعال کردن هدایت‌های انتخاب شده')
+    def deactivate_redirects(self, request, queryset):
+        """Deactivate selected redirects"""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated} هدایت غیرفعال شد.')
+    deactivate_redirects.short_description = 'غیرفعال کردن هدایت‌های انتخاب شده'

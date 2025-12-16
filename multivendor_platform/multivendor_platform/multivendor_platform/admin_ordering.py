@@ -89,6 +89,7 @@ MODEL_ORDER: Dict[str, List[str]] = {
     ],
     # Static pages
     "pages": [
+        "Redirect",
         "ContactPage",
         "AboutPage",
     ],

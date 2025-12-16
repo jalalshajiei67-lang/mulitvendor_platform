@@ -282,6 +282,14 @@ export const useChatStore = defineStore('chat', () => {
         
       case 'error':
         console.error('WebSocket error:', data.message)
+        // Handle access denied errors gracefully
+        if (data.message.includes('Access denied')) {
+          console.warn('⚠️ Access denied to room - this may be a room from another session')
+          // Optionally refresh rooms to remove inaccessible ones
+          if (authStore.isAuthenticated) {
+            fetchRooms().catch(err => console.error('Failed to refresh rooms:', err))
+          }
+        }
         break
     }
   }
@@ -372,6 +380,12 @@ export const useChatStore = defineStore('chat', () => {
     if (!isConnected.value || !websocket.value) {
       console.error('WebSocket not connected')
       return
+    }
+    
+    // Check if room exists in our rooms list
+    const room = rooms.value.find(r => r.room_id === roomId)
+    if (!room) {
+      console.warn(`⚠️ Attempting to join room ${roomId} that is not in rooms list`)
     }
     
     currentRoomId.value = roomId
@@ -539,12 +553,21 @@ export const useChatStore = defineStore('chat', () => {
   const initializeChat = async () => {
     const authStore = useAuthStore()
     
+    // Clear old data when initializing
+    rooms.value = []
+    messages.value = {}
+    currentRoomId.value = null
+    
     // Load guest session from localStorage if exists
     if (process.client && !authStore.isAuthenticated) {
       const storedGuestSession = localStorage.getItem('chatGuestSession')
       if (storedGuestSession) {
         guestSessionId.value = storedGuestSession
       }
+    } else if (authStore.isAuthenticated && process.client) {
+      // User is authenticated, clear any guest session
+      guestSessionId.value = null
+      localStorage.removeItem('chatGuestSession')
     }
     
     // Connect WebSocket if authenticated or has guest session
@@ -568,6 +591,17 @@ export const useChatStore = defineStore('chat', () => {
   
   const toggleWidget = () => {
     widgetOpen.value = !widgetOpen.value
+  }
+  
+  const clearChatState = () => {
+    // Clear all chat data (useful on logout/login)
+    rooms.value = []
+    messages.value = {}
+    typingStatuses.value = {}
+    currentRoomId.value = null
+    widgetOpen.value = false
+    
+    console.log('🧹 Chat state cleared')
   }
   
   return {
@@ -603,6 +637,7 @@ export const useChatStore = defineStore('chat', () => {
     openRoom,
     closeWidget,
     toggleWidget,
+    clearChatState,
   }
 })
 

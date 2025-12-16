@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 from tinymce.models import HTMLField
 
 
@@ -267,4 +268,103 @@ class ContactPage(models.Model):
             kwargs.pop('force_insert', None)
             return super(ContactPage, existing).save(force_update=True, *args, **kwargs)
         return super().save(*args, **kwargs)
+
+
+class Redirect(models.Model):
+    """
+    Manual redirect management for URL redirects.
+    Allows admins to create custom redirects from old URLs to new URLs.
+    """
+    REDIRECT_TYPE_CHOICES = [
+        ('301', '301 Permanent Redirect'),
+        ('302', '302 Temporary Redirect'),
+    ]
+    
+    # Source URL (the old URL that should redirect)
+    from_path = models.CharField(
+        max_length=500,
+        verbose_name='از مسیر',
+        help_text='مسیر قدیمی که باید به مسیر جدید هدایت شود (مثال: /old-page)',
+        db_index=True,
+        unique=True
+    )
+    
+    # Destination URL (the new URL)
+    to_path = models.CharField(
+        max_length=500,
+        verbose_name='به مسیر',
+        help_text='مسیر جدید که باید به آن هدایت شود (مثال: /new-page یا https://example.com/page)',
+    )
+    
+    # Redirect type
+    redirect_type = models.CharField(
+        max_length=3,
+        choices=REDIRECT_TYPE_CHOICES,
+        default='301',
+        verbose_name='نوع هدایت',
+        help_text='301 برای هدایت دائمی (بهتر برای SEO)، 302 برای هدایت موقت'
+    )
+    
+    # Status
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='فعال',
+        help_text='اگر غیرفعال باشد، این هدایت اعمال نخواهد شد'
+    )
+    
+    # Notes for admin
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='یادداشت',
+        help_text='یادداشت‌های اضافی درباره این هدایت'
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='تاریخ ایجاد'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='آخرین بروزرسانی'
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='redirects_created',
+        verbose_name='ایجاد شده توسط'
+    )
+    
+    class Meta:
+        verbose_name = 'URL Redirect'
+        verbose_name_plural = 'URL Redirects'
+        db_table = 'pages_redirect'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['from_path', 'is_active']),
+        ]
+    
+    def __str__(self):
+        status = '✓' if self.is_active else '✗'
+        return f"{status} {self.from_path} → {self.to_path}"
+    
+    def clean(self):
+        """Validate the redirect paths"""
+        from django.core.exceptions import ValidationError
+        
+        # Ensure from_path starts with /
+        if not self.from_path.startswith('/'):
+            raise ValidationError({'from_path': 'مسیر باید با / شروع شود'})
+        
+        # Ensure to_path is either relative (starts with /) or absolute URL
+        if not (self.to_path.startswith('/') or self.to_path.startswith('http://') or self.to_path.startswith('https://')):
+            raise ValidationError({'to_path': 'مسیر باید با / یا http:// یا https:// شروع شود'})
+    
+    def save(self, *args, **kwargs):
+        """Clean and save the redirect"""
+        self.full_clean()
+        super().save(*args, **kwargs)
 
