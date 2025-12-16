@@ -58,6 +58,23 @@ OTP_RATE_LIMIT_REQUESTS=3
 OTP_RATE_LIMIT_WINDOW_MINUTES=15
 ```
 
+### Zibal Payment Gateway
+```env
+ZIBAL_MERCHANT=zibal
+SITE_URL=https://indexo.ir
+```
+
+**ZIBAL_MERCHANT:**
+- برای محیط تست از مقدار `zibal` استفاده کنید
+- برای محیط production باید merchant واقعی خود را از پنل زیبال دریافت کنید
+
+**SITE_URL:**
+- آدرس اصلی سایت که برای callback زیبال استفاده می‌شود
+- در development: `http://localhost:8000`
+- در production: `https://indexo.ir`
+
+برای اطلاعات بیشتر درباره یکپارچه‌سازی زیبال، مستندات `docs/ZIBAL_PAYMENT_INTEGRATION.md` را مطالعه کنید.
+
 ---
 
 ## 🎨 Frontend Environment Variables (CapRover)

@@ -2,6 +2,9 @@
   <v-container class="pricing-plans" fluid dir="rtl">
     <!-- Commission Plan Activation Dialog -->
     <CommissionPlanActivation v-model="showCommissionDialog" @success="handleCommissionSuccess" />
+    
+    <!-- Premium Payment Dialog -->
+    <PremiumPaymentDialog v-model="showPremiumDialog" @success="handlePremiumSuccess" />
 
     <!-- Plans Overview Section -->
     <div class="plans-overview mb-8">
@@ -181,7 +184,7 @@
           </ul>
         </div>
 
-        <button class="plan-action-btn premium-btn" @click="selectedPlan = 'premium'">
+        <button class="plan-action-btn premium-btn" @click="handlePremiumClick">
           <v-icon v-if="selectedPlan === 'premium'" size="20">mdi-check-circle</v-icon>
           <span>{{ selectedPlan === 'premium' ? 'فعال شده' : 'ارتقاء به پریمیوم' }}</span>
         </button>
@@ -749,6 +752,8 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useToast } from '~/composables/useToast'
+import PremiumPaymentDialog from '~/components/seller/PremiumPaymentDialog.vue'
+import CommissionPlanActivation from '~/components/seller/CommissionPlanActivation.vue'
 
 type PlanType = 'free' | 'premium' | 'commission' | null
 type BillingPeriod = 'monthly' | 'quarterly' | 'semiannual' | 'yearly'
@@ -774,6 +779,7 @@ interface ComparisonRow {
 const selectedPlan = ref<PlanType>('free')
 const billingPeriod = ref<BillingPeriod>('monthly')
 const showCommissionDialog = ref(false)
+const showPremiumDialog = ref(false)
 const commissionPlanStatus = ref<any>(null)
 const loadingCommissionStatus = ref(false)
 
@@ -801,6 +807,22 @@ function scrollToPlan(planType: PlanType) {
       block: 'start',
     })
   }
+}
+
+function handlePremiumClick() {
+  if (selectedPlan.value === 'premium') {
+    selectedPlan.value = null
+  } else {
+    showPremiumDialog.value = true
+  }
+}
+
+function handlePremiumSuccess() {
+  selectedPlan.value = 'premium'
+  showToast({
+    message: 'پرداخت با موفقیت انجام شد و پلن پریمیوم فعال گردید',
+    color: 'success',
+  })
 }
 
 function handleCommissionClick() {

@@ -47,7 +47,7 @@
                 v-for="role in roleOptions"
                 :key="role.value"
                 cols="12"
-                sm="4"
+                sm="6"
                 class="pa-2"
               >
                 <v-card
@@ -141,7 +141,7 @@
                     density="comfortable"
                     dir="rtl"
                     type="tel"
-                    placeholder="09123456789"
+                    placeholder=""
                     hint="شماره موبایل شما همان نام کاربری شما خواهد بود (مثال: 09123456789)"
                     persistent-hint
                     @input="clearError"
@@ -339,12 +339,6 @@ const roleOptions = [
     value: 'seller',
     icon: 'mdi-store',
     description: 'می‌خواهم محصولات و ماشین‌آلات خود را بفروشم'
-  },
-  {
-    label: 'خریدار و فروشنده',
-    value: 'both',
-    icon: 'mdi-account-multiple',
-    description: 'هم می‌خواهم بخرم و هم بفروشم'
   }
 ]
 

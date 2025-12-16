@@ -894,7 +894,10 @@ onMounted(() => {
   bottom: 24px;
   left: 24px;
   z-index: 100;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important
+  
+  
+  ;
 }
 
 .floating-contact-btn:hover {

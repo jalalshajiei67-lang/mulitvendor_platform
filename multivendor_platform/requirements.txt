@@ -34,3 +34,6 @@ fake-useragent>=1.4.0
 # Additional utilities
 python-slugify>=8.0.0
 
+# Payment Processing
+reportlab>=4.0.0  # For PDF invoice generation
+

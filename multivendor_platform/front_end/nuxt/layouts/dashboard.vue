@@ -265,6 +265,15 @@
               نظرات
             </v-btn>
             <v-btn
+              to="/seller/dashboard?tab=payments"
+              variant="text"
+              size="small"
+              class="text-white nav-btn"
+              prepend-icon="mdi-credit-card-outline"
+            >
+              پرداخت‌ها
+            </v-btn>
+            <v-btn
               to="/seller/dashboard?tab=chats"
               variant="text"
               size="small"
@@ -335,6 +344,9 @@
               </v-list-item>
               <v-list-item to="/seller/dashboard?tab=reviews" prepend-icon="mdi-star-outline">
                 <v-list-item-title>نظرات</v-list-item-title>
+              </v-list-item>
+              <v-list-item to="/seller/dashboard?tab=payments" prepend-icon="mdi-credit-card-outline">
+                <v-list-item-title>پرداخت‌ها</v-list-item-title>
               </v-list-item>
               <v-list-item
                 to="/seller/dashboard?tab=chats"

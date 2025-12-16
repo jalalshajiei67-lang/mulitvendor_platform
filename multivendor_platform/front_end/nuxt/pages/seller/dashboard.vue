@@ -140,6 +140,31 @@
                       </v-card-text>
                     </v-card>
                   </v-col>
+                  <v-col cols="6" sm="4" md="3">
+                    <v-card
+                      class="h-100 cursor-pointer"
+                      elevation="0"
+                      rounded="lg"
+                      color="amber"
+                      variant="tonal"
+                      @click="tab = 'payments'"
+                    >
+                      <v-card-text class="pa-4">
+                        <div class="d-flex align-center justify-space-between">
+                          <div>
+                            <div class="text-caption mb-1">پرداخت‌ها</div>
+                            <div class="text-h5 font-weight-bold">
+                              --
+                            </div>
+                            <div class="text-caption opacity-70">
+                              تاریخچه و فاکتورها
+                            </div>
+                          </div>
+                          <v-icon size="32" color="amber-darken-2">mdi-credit-card-outline</v-icon>
+                        </div>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
                 </v-row>
 
                 <!-- Customer Pool Preview -->
@@ -840,6 +865,32 @@
                 <CrmManager />
               </div>
             </v-window-item>
+
+            <!-- Payments Tab -->
+            <v-window-item value="payments">
+              <div class="py-2">
+                <v-card elevation="2" rounded="xl">
+                  <v-card-title class="d-flex align-center justify-space-between pa-6">
+                    <div class="d-flex align-center gap-2">
+                      <v-icon size="28" color="primary">mdi-credit-card-outline</v-icon>
+                      <span class="text-h6 font-weight-bold">تاریخچه پرداخت‌ها</span>
+                    </div>
+                    <v-btn
+                      color="amber-darken-2"
+                      variant="flat"
+                      prepend-icon="mdi-crown"
+                      to="/seller/pricing"
+                    >
+                      ارتقاء پلن
+                    </v-btn>
+                  </v-card-title>
+                  <v-divider />
+                  <v-card-text class="pa-0">
+                    <PaymentHistorySection />
+                  </v-card-text>
+                </v-card>
+              </div>
+            </v-window-item>
           </v-window>
         </v-card>
       </v-col>
@@ -886,6 +937,7 @@ import LeaderboardSection from '~/components/gamification/LeaderboardSection.vue
 import InsightsFeed from '~/components/gamification/InsightsFeed.vue'
 import WelcomeOnboardingTour from '~/components/gamification/WelcomeOnboardingTour.vue'
 import CrmManager from '~/components/crm/CrmManager.vue'
+import PaymentHistorySection from '~/components/seller/PaymentHistorySection.vue'
 import { useGamificationStore } from '~/stores/gamification'
 import { useGamificationApi, type SellerInsight } from '~/composables/useGamification'
 import { useGamificationDashboard, type DashboardData, type CurrentTask } from '~/composables/useGamificationDashboard'
