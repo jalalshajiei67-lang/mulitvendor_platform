@@ -61,6 +61,8 @@ const newsletter = ref('')
 
 const quickLinks = [
   { to: '/', label: 'خانه' },
+  { to: '/for-buyers', label: 'ایندکسو برای خریداران' },
+  { to: '/for-sellers', label: 'ایندکسو برای فروشندگان' },
   { to: '/rfq', label: 'درخواست خرید' },
   { to: '/faqs', label: 'سؤالات متداول' },
   { to: '/terms', label: 'قوانین و مقررات' }

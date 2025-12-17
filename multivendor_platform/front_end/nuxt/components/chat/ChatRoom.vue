@@ -1,5 +1,13 @@
 <template>
   <div class="chat-room">
+    <!-- Offline Banner -->
+    <v-slide-y-transition>
+      <div v-if="!chatStore.isConnected" class="offline-banner">
+        <v-icon size="small" class="ml-2">mdi-wifi-off</v-icon>
+        <span>ارتباط قطع شده است. پیام‌های شما پس از برقراری مجدد ارسال می‌شوند.</span>
+      </div>
+    </v-slide-y-transition>
+
     <!-- Header -->
     <div class="chat-room-header">
       <v-btn 
@@ -107,21 +115,66 @@
             </v-avatar>
 
             <!-- Message Bubble -->
-            <div class="message-bubble">
+            <div class="message-bubble" :class="{'message-bubble-pending': message.status === 'pending', 'message-bubble-failed': message.status === 'failed'}">
               <div class="message-sender" v-if="!isOwnMessage(message)">
                 {{ message.sender_username }}
               </div>
               <div class="message-content">{{ message.content }}</div>
               <div class="message-time">
                 {{ formatMessageTime(message.created_at) }}
-                <v-icon
-                  v-if="isOwnMessage(message)"
+                <!-- Status indicators for own messages -->
+                <template v-if="isOwnMessage(message)">
+                  <!-- Sending/Pending -->
+                  <v-icon
+                    v-if="message.status === 'pending'"
+                    size="x-small"
+                    color="rgba(255,255,255,0.6)"
+                    class="mr-1 rotating"
+                  >
+                    mdi-clock-outline
+                  </v-icon>
+                  <!-- Failed -->
+                  <v-icon
+                    v-else-if="message.status === 'failed'"
+                    size="x-small"
+                    color="rgba(255,100,100,0.9)"
+                    class="mr-1"
+                  >
+                    mdi-alert-circle
+                  </v-icon>
+                  <!-- Sent (read/unread) -->
+                  <v-icon
+                    v-else
+                    size="x-small"
+                    :color="message.is_read ? 'white' : 'rgba(255,255,255,0.6)'"
+                    class="mr-1"
+                  >
+                    {{ message.is_read ? 'mdi-check-all' : 'mdi-check' }}
+                  </v-icon>
+                </template>
+              </div>
+              
+              <!-- Retry/Delete buttons for failed messages -->
+              <div v-if="message.status === 'failed' && isOwnMessage(message)" class="message-actions">
+                <v-btn
                   size="x-small"
-                  :color="message.is_read ? 'white' : 'rgba(255,255,255,0.6)'"
-                  class="mr-1"
+                  variant="text"
+                  color="white"
+                  @click="retryMessage(message)"
+                  class="retry-btn"
                 >
-                  {{ message.is_read ? 'mdi-check-all' : 'mdi-check' }}
-                </v-icon>
+                  <v-icon size="small">mdi-refresh</v-icon>
+                  <span class="mr-1">تلاش مجدد</span>
+                </v-btn>
+                <v-btn
+                  size="x-small"
+                  variant="text"
+                  color="white"
+                  @click="deleteMessage(message)"
+                  class="delete-btn"
+                >
+                  <v-icon size="small">mdi-delete</v-icon>
+                </v-btn>
               </div>
             </div>
 
@@ -196,9 +249,9 @@
     <!-- Input -->
     <div class="chat-input">
       <v-btn
-        :disabled="!messageText.trim() || isSending"
+        :disabled="!messageText.trim()"
         @click="sendMessage"
-        :color="messageText.trim() && !isSending ? 'primary' : 'grey'"
+        :color="messageText.trim() ? 'primary' : 'grey'"
         class="send-btn"
         size="large"
         icon
@@ -217,7 +270,6 @@
         auto-grow
         max-rows="4"
         @keydown.enter.exact.prevent="sendMessage"
-        :disabled="isSending"
         @keydown.shift.enter="handleShiftEnter"
         @input="handleTyping"
         class="message-input"
@@ -291,9 +343,6 @@ const typingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const showScrollButton = ref(false)
 const showEmojiPicker = ref(false)
 const showQuickReplies = ref(false)
-const isSending = ref(false)
-const lastSentContent = ref<string | null>(null)
-const sendingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
 const commonEmojis = [
   '😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊',
@@ -399,19 +448,15 @@ const formatMessageTime = (timestamp: string) => {
 }
 
 const sendMessage = () => {
-  // Prevent double submission
-  if (isSending.value || !messageText.value.trim()) return
+  // Prevent empty messages
+  if (!messageText.value.trim()) return
 
   const content = messageText.value.trim()
-  
-  // Set sending flag to prevent duplicate submissions
-  isSending.value = true
-  lastSentContent.value = content
   
   // Clear input immediately for better UX
   messageText.value = ''
 
-  // Send message
+  // Send message (now returns tempId)
   chatStore.sendMessage(props.roomId, content)
 
   // Stop typing indicator
@@ -422,16 +467,6 @@ const sendMessage = () => {
   }
 
   scrollToBottom()
-
-  // Reset sending flag after a delay as a safety mechanism
-  // This will be cleared earlier if we receive our message back
-  if (sendingTimeout.value) {
-    clearTimeout(sendingTimeout.value)
-  }
-  sendingTimeout.value = setTimeout(() => {
-    isSending.value = false
-    lastSentContent.value = null
-  }, 1000)
 }
 
 const handleShiftEnter = (event: KeyboardEvent) => {
@@ -499,23 +534,19 @@ const viewProductDetails = () => {
   }
 }
 
-watch(messages, (newMessages, oldMessages) => {
-  // Reset sending flag if we see our own message appear
-  if (isSending.value && lastSentContent.value && authStore.user) {
-    const lastMessage = newMessages[newMessages.length - 1]
-    if (lastMessage && 
-        lastMessage.sender === authStore.user.id && 
-        lastMessage.content === lastSentContent.value) {
-      // Our message was successfully received, reset sending flag
-      isSending.value = false
-      lastSentContent.value = null
-      if (sendingTimeout.value) {
-        clearTimeout(sendingTimeout.value)
-        sendingTimeout.value = null
-      }
-    }
+const retryMessage = (message: any) => {
+  if (message.tempId) {
+    chatStore.retryFailedMessage(message.tempId)
   }
+}
 
+const deleteMessage = (message: any) => {
+  if (message.tempId) {
+    chatStore.deleteFailedMessage(props.roomId, message.tempId)
+  }
+}
+
+watch(messages, () => {
   // Only auto-scroll if user is near bottom
   if (messagesContainer.value) {
     const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value
@@ -558,9 +589,6 @@ onUnmounted(() => {
   if (typingTimeout.value) {
     clearTimeout(typingTimeout.value)
   }
-  if (sendingTimeout.value) {
-    clearTimeout(sendingTimeout.value)
-  }
 })
 </script>
 
@@ -571,6 +599,31 @@ onUnmounted(() => {
   height: 100%;
   direction: rtl;
   background-color: #fafafa;
+}
+
+.offline-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 11;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .chat-room-header {
@@ -598,6 +651,19 @@ onUnmounted(() => {
   50% {
     opacity: 0.5;
   }
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rotating {
+  animation: rotating 2s linear infinite;
 }
 
 .chat-messages {
@@ -706,6 +772,17 @@ onUnmounted(() => {
   box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
 }
 
+/* Pending message style */
+.message-bubble-pending {
+  opacity: 0.7;
+}
+
+/* Failed message style */
+.message-bubble-failed {
+  background: linear-gradient(135deg, #f44336 0%, #c62828 100%) !important;
+  opacity: 0.85;
+}
+
 .message-own .message-bubble::before {
   content: '';
   position: absolute;
@@ -717,6 +794,12 @@ onUnmounted(() => {
   border-top: 8px solid #4CAF50;
   border-bottom: 8px solid transparent;
   border-right: 8px solid transparent;
+}
+
+/* Failed message tail - red to match red bubble */
+.message-own .message-bubble-failed::before {
+  border-left-color: #f44336;
+  border-top-color: #f44336;
 }
 
 /* Other's messages - White bubble with tail on left */
@@ -769,6 +852,31 @@ onUnmounted(() => {
 
 .message-other .message-time {
   color: #999;
+}
+
+.message-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  justify-content: flex-end;
+}
+
+.retry-btn,
+.delete-btn {
+  font-size: 11px !important;
+  height: 24px !important;
+  min-width: auto !important;
+  padding: 0 8px !important;
+}
+
+.retry-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.delete-btn:hover {
+  background-color: rgba(255, 0, 0, 0.2) !important;
 }
 
 .typing-indicator {

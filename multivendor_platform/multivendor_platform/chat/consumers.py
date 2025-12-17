@@ -132,6 +132,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """Send a chat message"""
         room_id = data.get('room_id')
         content = data.get('content', '').strip()
+        temp_id = data.get('temp_id')  # Get temp_id for message confirmation
         
         if not room_id or not content:
             await self.send(text_data=json.dumps({
@@ -173,6 +174,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'content': content,
                 'created_at': message['created_at'],
                 'is_read': False,
+                'temp_id': temp_id,  # Include temp_id for message confirmation
             }
         )
     
@@ -224,7 +226,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # Group message handlers
     async def chat_message(self, event):
         """Receive message from room group"""
-        await self.send(text_data=json.dumps({
+        response = {
             'type': 'message',
             'message_id': event['message_id'],
             'room_id': event['room_id'],
@@ -233,7 +235,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'content': event['content'],
             'created_at': event['created_at'],
             'is_read': event['is_read'],
-        }))
+        }
+        
+        # Include temp_id if present (for message confirmation)
+        if event.get('temp_id'):
+            response['temp_id'] = event['temp_id']
+        
+        await self.send(text_data=json.dumps(response))
     
     async def messages_read(self, event):
         """Receive read receipt from room group"""

@@ -24,14 +24,15 @@
                 <div class="search-wrapper" ref="searchContainer">
                   <v-text-field
                     v-model="searchQuery"
-                    placeholder="نام دستگاه یا ماشین آلات مورد نظر خود را بنویسید"
+                    :placeholder="animatedPlaceholder"
                     append-inner-icon="mdi-magnify"
                     variant="outlined"
                     rounded="lg"
                     hide-details
                     class="hero-search-input mb-6"
                     density="comfortable"
-                    @focus="isSearchFocused = true"
+                    @focus="handleSearchFocus"
+                    @blur="handleSearchBlur"
                     @keydown.enter.prevent="performSearch"
                     @keydown.escape="closeAutocomplete"
                     @click:append-inner="performSearch"
@@ -457,6 +458,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { debounce } from '@/composables/useDebounce'
+import { useTypingAnimation } from '@/composables/useTypingAnimation'
 import { useDisplay } from 'vuetify'
 import LabelFilters from '~/components/product/LabelFilters.vue'
 import ListSkeleton from '~/components/skeletons/ListSkeleton.vue'
@@ -496,6 +498,33 @@ const searchResults = ref<SearchResponse extends Promise<infer R> ? R : SearchRe
 const isLoadingSearch = ref(false)
 const isSearchFocused = ref(false)
 const searchContainer = ref<HTMLElement | null>(null)
+
+// Typing animation for search placeholder
+const searchQueries = [
+  'جت پرینتر',
+  'خط تولید لنت',
+  'پرس هیدرولیک',
+  'دستگاه جوش لیزر',
+  'لیزر حکاکی',
+  'کمپرسور هوا',
+  'دستگاه برش لیزری',
+]
+
+const typingAnimation = useTypingAnimation(searchQueries, {
+  typingSpeed: 80,
+  deletingSpeed: 40,
+  pauseAfterTyping: 2500,
+  pauseAfterDeleting: 800,
+  startDelay: 1000
+})
+
+const animatedPlaceholder = computed(() => {
+  // Show animated text only when input is empty and not focused
+  if (!searchQuery.value && !isSearchFocused.value) {
+    return typingAnimation.currentText.value || 'نام دستگاه یا ماشین آلات مورد نظر خود را بنویسید'
+  }
+  return 'نام دستگاه یا ماشین آلات مورد نظر خود را بنویسید'
+})
 
 // Products store and state
 const productStore = useProductStore()
@@ -882,15 +911,39 @@ const performSearch = async () => {
   await applyFilters()
 }
 
-// Sync hero search with filter search
+// Sync hero search with filter search and control animation
 watch(searchQuery, (newValue) => {
+  // Sync with filter search
   if (newValue && newValue !== search.value) {
     search.value = newValue
+  }
+  
+  // Control typing animation
+  if (newValue) {
+    // Stop animation when user types
+    typingAnimation.pause()
+  } else if (!isSearchFocused.value) {
+    // Resume animation when input is cleared and not focused
+    typingAnimation.resume()
   }
 })
 
 const closeAutocomplete = () => {
   isSearchFocused.value = false
+}
+
+const handleSearchFocus = () => {
+  isSearchFocused.value = true
+  // Pause animation when user focuses on input
+  typingAnimation.pause()
+}
+
+const handleSearchBlur = () => {
+  isSearchFocused.value = false
+  // Resume animation when user blurs and input is empty
+  if (!searchQuery.value) {
+    typingAnimation.resume()
+  }
 }
 
 const formatPrice = (price: number | string) => {
@@ -933,6 +986,8 @@ watch(
 onMounted(() => {
   if (import.meta.client) {
     document.addEventListener('click', handleClickOutside)
+    // Start typing animation
+    typingAnimation.start()
   }
 })
 
