@@ -73,6 +73,33 @@ export const useProductApi = () => {
       return useApiFetch<{ results: any[] }>('subcategories/', {
         params
       })
+    },
+
+    // Subcategory Feature Templates
+    async getSubcategoryFeatureTemplates(subcategoryId: string | number) {
+      return useApiFetch<{ results: any[] }>('subcategory-feature-templates/', {
+        params: { subcategory: subcategoryId }
+      })
+    },
+
+    async createSubcategoryFeatureTemplate(data: Record<string, any>) {
+      return useApiFetch('subcategory-feature-templates/', {
+        method: 'POST',
+        body: data
+      })
+    },
+
+    async updateSubcategoryFeatureTemplate(templateId: string | number, data: Record<string, any>) {
+      return useApiFetch(`subcategory-feature-templates/${templateId}/`, {
+        method: 'PUT',
+        body: data
+      })
+    },
+
+    async deleteSubcategoryFeatureTemplate(templateId: string | number) {
+      return useApiFetch(`subcategory-feature-templates/${templateId}/`, {
+        method: 'DELETE'
+      })
     }
   }
 }

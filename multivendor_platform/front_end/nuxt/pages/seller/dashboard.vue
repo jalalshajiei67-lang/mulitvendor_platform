@@ -517,6 +517,65 @@
               </v-card>
             </v-window-item>
 
+            <!-- Auctions Tab -->
+            <v-window-item value="auctions">
+              <div class="py-4">
+                <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2">
+                  <h3 class="text-h6">مناقصه‌های فعال</h3>
+                  <v-select
+                    v-model="selectedSubcategory"
+                    :items="subcategories"
+                    label="فیلتر بر اساس زیردسته"
+                    density="compact"
+                    variant="outlined"
+                    hide-details
+                    style="max-width: 250px;"
+                    clearable
+                  ></v-select>
+                </div>
+                
+                <v-data-table
+                  :headers="auctionHeaders"
+                  :items="activeAuctions"
+                  :loading="loadingAuctions"
+                  item-value="id"
+                  class="elevation-1"
+                  :items-per-page="10"
+                >
+                  <template v-slot:item.id="{ item }">
+                    <v-btn
+                      variant="text"
+                      color="primary"
+                      @click="navigateTo(`/seller/auctions/${item.id}`)"
+                    >
+                      #{{ item.id }}
+                    </v-btn>
+                  </template>
+                  <template v-slot:item.deposit_status="{ item }">
+                    <v-chip
+                      :color="getDepositBadgeColor(item.deposit_status)"
+                      size="small"
+                      variant="flat"
+                    >
+                      {{ getDepositBadgeLabel(item.deposit_status) }}
+                    </v-chip>
+                  </template>
+                  <template v-slot:item.bid_count="{ item }">
+                    <span class="font-weight-bold">{{ item.bid_count || 0 }}</span>
+                  </template>
+                  <template v-slot:item.end_time="{ item }">
+                    {{ formatDate(item.end_time) }}
+                  </template>
+                  <template v-slot:no-data>
+                    <div class="text-center py-8">
+                      <v-icon size="64" color="grey-lighten-1">mdi-gavel</v-icon>
+                      <p class="text-body-1 mt-4 text-grey">مناقصه فعالی یافت نشد</p>
+                    </div>
+                  </template>
+                </v-data-table>
+              </div>
+            </v-window-item>
+
             <!-- Reviews Tab -->
             <v-window-item value="reviews">
               <v-card elevation="2" rounded="xl" class="pa-4 mt-4">
@@ -645,6 +704,7 @@
                 <v-tabs v-model="miniWebsiteTab" bg-color="surface" class="mb-4">
                   <v-tab value="profile">پروفایل</v-tab>
                   <v-tab value="products">محصولات من</v-tab>
+                  <v-tab value="auctions">مناقصه</v-tab>
                   <v-tab value="settings">رزومه شرکت</v-tab>
                   <v-tab value="portfolio">نمونه کارها</v-tab>
                   <v-tab value="team">تیم ما</v-tab>
@@ -962,6 +1022,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useSellerApi } from '~/composables/useSellerApi'
+import { useAuctionApi, type AuctionRequest } from '~/composables/useAuctionApi'
+import { useProductApi } from '~/composables/useProductApi'
 import type { SellerOrder, SellerReview } from '~/composables/useSellerApi'
 import { useRfqApi } from '~/composables/useRfqApi'
 import { useCrmApi } from '~/composables/useCrmApi'
@@ -1017,6 +1079,8 @@ const authStore = useAuthStore()
 const sellerApi = useSellerApi()
 const rfqApi = useRfqApi()
 const crmApi = useCrmApi()
+const auctionApi = useAuctionApi()
+const productApi = useProductApi()
 const gamificationStore = useGamificationStore()
 const gamificationApi = useGamificationApi()
 const dashboardApi = useGamificationDashboard()
@@ -1434,7 +1498,11 @@ const loading = ref(false)
 const loadingOrders = ref(false)
 const loadingReviews = ref(false)
 const loadingChats = ref(false)
+const loadingAuctions = ref(false)
 const saving = ref(false)
+const activeAuctions = ref<AuctionRequest[]>([])
+const selectedSubcategory = ref<number | null>(null)
+const subcategories = ref<any[]>([])
 const snackbar = ref(false)
 const snackbarMessage = ref('')
 const snackbarColor = ref('success')
@@ -1484,6 +1552,13 @@ const orderHeaders = ref([
   { title: 'مبلغ', key: 'total_amount', align: 'start' as const },
   { title: 'وضعیت', key: 'status', align: 'start' as const },
   { title: 'تاریخ', key: 'created_at', align: 'start' as const }
+])
+
+const auctionHeaders = ref([
+  { title: 'شماره', key: 'id', sortable: true },
+  { title: 'وضعیت واریز', key: 'deposit_status', sortable: true },
+  { title: 'تعداد پیشنهاد', key: 'bid_count', sortable: true },
+  { title: 'زمان پایان', key: 'end_time', sortable: true },
 ])
 
 const reviewHeaders = ref([
@@ -1845,6 +1920,45 @@ const loadProfileScore = async () => {
   }
 }
 
+const loadAuctions = async () => {
+  loadingAuctions.value = true
+  try {
+    const auctions = await auctionApi.getActiveAuctions(selectedSubcategory.value || undefined)
+    activeAuctions.value = auctions
+  } catch (error) {
+    console.error('Failed to load auctions:', error)
+    showSnackbar('خطا در بارگذاری مناقصه‌ها', 'error')
+  } finally {
+    loadingAuctions.value = false
+  }
+}
+
+const loadSubcategories = async () => {
+  try {
+    const response = await productApi.getSubcategories()
+    if (response && (response as any).results) {
+      subcategories.value = (response as any).results.map((sub: any) => ({
+        title: sub.name,
+        value: sub.id
+      }))
+    }
+  } catch (error) {
+    console.error('Error loading subcategories:', error)
+  }
+}
+
+const getDepositBadgeColor = (status: string) => {
+  if (status === 'held_in_escrow') return 'success'
+  if (status === 'paid') return 'success'
+  return 'grey'
+}
+
+const getDepositBadgeLabel = (status: string) => {
+  if (status === 'held_in_escrow') return 'واریز پرداخت شده'
+  if (status === 'paid') return 'پرداخت شده'
+  return 'بدون واریز'
+}
+
 // Watch tab changes to load data when needed
 watch(tab, async (newTab) => {
   if (newTab === 'orders') {
@@ -1855,6 +1969,8 @@ watch(tab, async (newTab) => {
     }
   } else if (newTab === 'reviews' && reviews.value.length === 0 && !loadingReviews.value) {
     await loadReviews()
+  } else if (newTab === 'auctions' && activeAuctions.value.length === 0 && !loadingAuctions.value) {
+    await loadAuctions()
   } else if (newTab === 'insights' && !insightsLoaded.value && !insightsLoading.value) {
     await loadInsights()
   } else if (newTab === 'chats' && chatRooms.value.length === 0 && !loadingChats.value) {
@@ -1862,6 +1978,12 @@ watch(tab, async (newTab) => {
   } else if (newTab === 'miniwebsite' && miniWebsiteTab.value === 'profile') {
     // Load profile score when profile tab is accessed
     await loadProfileScore()
+  }
+})
+
+watch(selectedSubcategory, async () => {
+  if (tab.value === 'auctions') {
+    await loadAuctions()
   }
 })
 
@@ -1887,8 +2009,14 @@ onMounted(async () => {
   await Promise.all([
     loadDashboardData(),
     loadProfileData(),
-    loadCustomerPool()
+    loadCustomerPool(),
+    loadSubcategories()
   ])
+  
+  // Load auctions if on auctions tab
+  if (tab.value === 'auctions') {
+    await loadAuctions()
+  }
   
   // Load profile score from backend after loading profile data
   await loadProfileScore()

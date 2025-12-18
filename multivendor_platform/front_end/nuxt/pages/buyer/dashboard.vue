@@ -41,6 +41,10 @@
               <v-icon start>mdi-comment-text</v-icon>
               نظرات من
             </v-tab>
+            <v-tab value="auctions">
+              <v-icon start>mdi-gavel</v-icon>
+              مناقصه
+            </v-tab>
           </v-tabs>
 
           <v-card-text class="pa-4">
@@ -553,6 +557,79 @@
                   </v-data-table>
                 </div>
               </v-window-item>
+
+              <!-- Auctions Tab -->
+              <v-window-item value="auctions">
+                <div class="py-4">
+                  <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2">
+                    <h3 class="text-h6">مناقصه‌های من</h3>
+                    <v-btn
+                      color="primary"
+                      prepend-icon="mdi-plus"
+                      @click="navigateTo('/products')"
+                    >
+                      ایجاد درخواست جدید
+                    </v-btn>
+                  </div>
+                  
+                  <v-data-table
+                    :headers="auctionHeaders"
+                    :items="auctions"
+                    :loading="loadingAuctions"
+                    item-value="id"
+                    class="elevation-1"
+                    :items-per-page="10"
+                  >
+                    <template v-slot:item.id="{ item }">
+                      <v-btn
+                        variant="text"
+                        color="primary"
+                        @click="navigateTo(`/buyer/auctions/${item.id}`)"
+                      >
+                        #{{ item.id }}
+                      </v-btn>
+                    </template>
+                    <template v-slot:item.status="{ item }">
+                      <v-chip
+                        :color="getAuctionStatusColor(item.status)"
+                        size="small"
+                        variant="flat"
+                      >
+                        {{ getAuctionStatusLabel(item.status) }}
+                      </v-chip>
+                    </template>
+                    <template v-slot:item.deposit_status="{ item }">
+                      <v-chip
+                        :color="item.deposit_status === 'held_in_escrow' ? 'success' : 'grey'"
+                        size="small"
+                        variant="flat"
+                      >
+                        {{ item.deposit_status === 'held_in_escrow' ? 'پرداخت شده' : 'پرداخت نشده' }}
+                      </v-chip>
+                    </template>
+                    <template v-slot:item.bid_count="{ item }">
+                      <span class="font-weight-bold">{{ item.bid_count || 0 }}</span>
+                    </template>
+                    <template v-slot:item.created_at="{ item }">
+                      {{ formatDate(item.created_at) }}
+                    </template>
+                    <template v-slot:no-data>
+                      <div class="text-center py-8">
+                        <v-icon size="64" color="grey-lighten-1">mdi-gavel</v-icon>
+                        <p class="text-body-1 mt-4 text-grey">درخواست مناقصه‌ای ثبت نشده است</p>
+                        <v-btn
+                          color="primary"
+                          class="mt-4"
+                          prepend-icon="mdi-plus"
+                          @click="navigateTo('/products')"
+                        >
+                          ایجاد درخواست جدید
+                        </v-btn>
+                      </div>
+                    </template>
+                  </v-data-table>
+                </div>
+              </v-window-item>
             </v-window>
           </v-card-text>
         </v-card>
@@ -570,6 +647,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useBuyerApi } from '~/composables/useBuyerApi'
+import { useAuctionApi, type AuctionRequest } from '~/composables/useAuctionApi'
 import type { BuyerOrder, BuyerReview, BuyerRFQ } from '~/composables/useBuyerApi'
 
 definePageMeta({
@@ -579,6 +657,7 @@ definePageMeta({
 
 const authStore = useAuthStore()
 const buyerApi = useBuyerApi()
+const auctionApi = useAuctionApi()
 const route = useRoute()
 
 // Check for tab query parameter - default to 'home'
@@ -604,10 +683,12 @@ const dashboardData = ref({
 const orders = ref<BuyerOrder[]>([])
 const rfqs = ref<BuyerRFQ[]>([])
 const reviews = ref<BuyerReview[]>([])
+const auctions = ref<AuctionRequest[]>([])
 const loading = ref(false)
 const loadingOrders = ref(false)
 const loadingRFQs = ref(false)
 const loadingReviews = ref(false)
+const loadingAuctions = ref(false)
 const saving = ref(false)
 const snackbar = ref(false)
 const snackbarMessage = ref('')
@@ -659,6 +740,15 @@ const reviewHeaders = [
   { title: 'محصول', key: 'product', sortable: false },
   { title: 'امتیاز', key: 'rating', sortable: true },
   { title: 'نظر', key: 'comment', sortable: false },
+  { title: 'تاریخ', key: 'created_at', sortable: true }
+]
+
+const auctionHeaders = [
+  { title: 'شماره', key: 'id', sortable: true },
+  { title: 'وضعیت', key: 'status', sortable: true },
+  { title: 'نوع', key: 'request_type', sortable: true },
+  { title: 'وضعیت واریز', key: 'deposit_status', sortable: true },
+  { title: 'تعداد پیشنهاد', key: 'bid_count', sortable: true },
   { title: 'تاریخ', key: 'created_at', sortable: true }
 ]
 
@@ -724,6 +814,45 @@ const loadReviews = async () => {
   } finally {
     loadingReviews.value = false
   }
+}
+
+const loadAuctions = async () => {
+  loadingAuctions.value = true
+  try {
+    const response = await auctionApi.getAuctionRequests()
+    auctions.value = response
+  } catch (error) {
+    console.error('Failed to load auctions:', error)
+    showSnackbar('خطا در بارگذاری مناقصه‌ها', 'error')
+  } finally {
+    loadingAuctions.value = false
+  }
+}
+
+const getAuctionStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    draft: 'grey',
+    pending_review: 'warning',
+    approved: 'info',
+    rejected: 'error',
+    active: 'success',
+    closed: 'primary',
+    abandoned: 'error'
+  }
+  return colors[status] || 'grey'
+}
+
+const getAuctionStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    draft: 'پیش‌نویس',
+    pending_review: 'در انتظار بررسی',
+    approved: 'تایید شده',
+    rejected: 'رد شده',
+    active: 'فعال',
+    closed: 'بسته شده',
+    abandoned: 'لغو شده'
+  }
+  return labels[status] || status
 }
 
 const updateProfile = async () => {
@@ -816,6 +945,8 @@ watch(tab, (newTab) => {
     loadOrders()
   } else if (newTab === 'reviews' && reviews.value.length === 0) {
     loadReviews()
+  } else if (newTab === 'auctions' && auctions.value.length === 0) {
+    loadAuctions()
   }
 })
 
@@ -833,6 +964,7 @@ onMounted(() => {
   loadOrders()
   loadReviews()
   loadRFQs() // Load RFQs for home tab display
+  loadAuctions() // Load auctions for home tab display
 })
 </script>
 

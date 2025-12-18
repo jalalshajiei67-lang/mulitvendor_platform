@@ -8,6 +8,7 @@ from .models import (
     ProductImage,
     ProductComment,
     ProductFeature,
+    SubcategoryFeatureTemplate,
     Label,
     LabelGroup,
     LabelComboSeoPage,
@@ -194,6 +195,20 @@ class ProductFeatureSerializer(serializers.ModelSerializer):
         model = ProductFeature
         fields = ['id', 'name', 'value', 'sort_order', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
+
+class SubcategoryFeatureTemplateSerializer(serializers.ModelSerializer):
+    """Serializer for subcategory feature templates"""
+    
+    class Meta:
+        model = SubcategoryFeatureTemplate
+        fields = ['id', 'subcategory', 'feature_name', 'is_required', 'sort_order', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def validate_feature_name(self, value):
+        """Validate feature name"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("نام ویژگی نمی‌تواند خالی باشد")
+        return value.strip()
 
 class ProductImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField(read_only=True)

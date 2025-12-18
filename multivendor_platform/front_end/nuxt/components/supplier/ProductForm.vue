@@ -134,78 +134,6 @@
             </v-card-text>
           </v-card>
 
-          <!-- Key Features -->
-          <v-card elevation="2" rounded="lg" class="mb-4">
-            <v-card-title class="text-h6 font-weight-bold bg-info pa-4">
-              <v-icon class="ml-2">mdi-feature-search</v-icon>
-              ویژگی‌های کلیدی
-            </v-card-title>
-            <v-card-text class="pa-4">
-              <v-alert 
-                type="info" 
-                variant="tonal" 
-                density="compact"
-                class="mb-4"
-              >
-                <div class="text-body-2">
-                  <v-icon size="small" class="ml-1">mdi-information</v-icon>
-                  می‌توانید حداکثر ۱۰ ویژگی کلیدی برای محصول خود اضافه کنید.
-                </div>
-              </v-alert>
-
-              <div v-for="(feature, index) in productFeatures" :key="index" class="mb-3">
-                <v-row>
-                  <v-col cols="12" sm="5">
-                    <v-text-field
-                      v-model="feature.name"
-                      :label="`نام ویژگی ${index + 1}`"
-                      placeholder="مثال: وزن، ابعاد، قدرت موتور، ظرفیت"
-                      hint="نام ویژگی محصول را وارد کنید"
-                      persistent-hint
-                      variant="outlined"
-                      density="compact"
-                      :rules="[v => !!v || 'نام ویژگی الزامی است']"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="6">
-                    <v-text-field
-                      v-model="feature.value"
-                      :label="`مقدار ${index + 1}`"
-                      placeholder="مثال: 100 کیلوگرم، 50x30x20 سانتی‌متر، 5 اسب بخار"
-                      hint="مقدار یا اندازه ویژگی را وارد کنید"
-                      persistent-hint
-                      variant="outlined"
-                      density="compact"
-                      :rules="[v => !!v || 'مقدار الزامی است']"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="1" class="d-flex align-center">
-                    <v-btn
-                      icon="mdi-delete"
-                      variant="text"
-                      color="error"
-                      size="small"
-                      @click="removeFeature(index)"
-                      :disabled="productFeatures.length <= 1"
-                    ></v-btn>
-                  </v-col>
-                </v-row>
-              </div>
-
-              <v-btn
-                v-if="productFeatures.length < 10"
-                color="primary"
-                variant="outlined"
-                prepend-icon="mdi-plus"
-                @click="addFeature"
-                block
-                class="mt-2"
-              >
-                افزودن ویژگی
-              </v-btn>
-            </v-card-text>
-          </v-card>
-
           <!-- Category Selection -->
           <v-card elevation="2" rounded="lg" class="mb-4">
             <v-card-title class="text-h6 font-weight-bold bg-secondary pa-4">
@@ -386,6 +314,102 @@
                   ></v-text-field>
                 </v-col>
               </v-row>
+            </v-card-text>
+          </v-card>
+
+          <!-- Key Features -->
+          <v-card elevation="2" rounded="lg" class="mb-4">
+            <v-card-title class="text-h6 font-weight-bold bg-info pa-4">
+              <v-icon class="ml-2">mdi-feature-search</v-icon>
+              ویژگی‌های کلیدی
+            </v-card-title>
+            <v-card-text class="pa-4">
+              <v-alert 
+                v-if="hasFeatureTemplates"
+                type="info" 
+                variant="tonal" 
+                density="compact"
+                class="mb-4"
+              >
+                <div class="text-body-2">
+                  <v-icon size="small" class="ml-1">mdi-information</v-icon>
+                  ویژگی‌های این دسته‌بندی از قبل تعریف شده‌اند. لطفاً مقادیر را وارد کنید.
+                </div>
+              </v-alert>
+              <v-alert 
+                v-else
+                type="info" 
+                variant="tonal" 
+                density="compact"
+                class="mb-4"
+              >
+                <div class="text-body-2">
+                  <v-icon size="small" class="ml-1">mdi-information</v-icon>
+                  می‌توانید حداکثر ۱۰ ویژگی کلیدی برای محصول خود اضافه کنید.
+                </div>
+              </v-alert>
+
+              <div v-for="(feature, index) in productFeatures" :key="index" class="mb-3">
+                <v-row>
+                  <v-col cols="12" sm="5">
+                    <v-text-field
+                      v-model="feature.name"
+                      :label="`نام ویژگی ${index + 1}`"
+                      placeholder="مثال: وزن، ابعاد، قدرت موتور، ظرفیت"
+                      hint="نام ویژگی محصول را وارد کنید"
+                      persistent-hint
+                      variant="outlined"
+                      density="compact"
+                      :rules="[v => !!v || 'نام ویژگی الزامی است']"
+                      :readonly="hasFeatureTemplates"
+                      :disabled="hasFeatureTemplates"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="feature.value"
+                      :label="`مقدار ${index + 1}`"
+                      placeholder="مثال: 100 کیلوگرم، 50x30x20 سانتی‌متر، 5 اسب بخار"
+                      hint="مقدار یا اندازه ویژگی را وارد کنید"
+                      persistent-hint
+                      variant="outlined"
+                      density="compact"
+                      :rules="[
+                        v => !!v || 'مقدار الزامی است',
+                        v => {
+                          if (hasFeatureTemplates && featureTemplates[index]?.is_required) {
+                            return !!v || 'این ویژگی الزامی است'
+                          }
+                          return true
+                        }
+                      ]"
+                      :required="hasFeatureTemplates && featureTemplates[index]?.is_required"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col v-if="!hasFeatureTemplates" cols="12" sm="1" class="d-flex align-center">
+                    <v-btn
+                      icon="mdi-delete"
+                      variant="text"
+                      color="error"
+                      size="small"
+                      @click="removeFeature(index)"
+                      :disabled="productFeatures.length <= 1"
+                    ></v-btn>
+                  </v-col>
+                </v-row>
+              </div>
+
+              <v-btn
+                v-if="!hasFeatureTemplates && productFeatures.length < 10"
+                color="primary"
+                variant="outlined"
+                prepend-icon="mdi-plus"
+                @click="addFeature"
+                block
+                class="mt-2"
+              >
+                افزودن ویژگی
+              </v-btn>
             </v-card-text>
           </v-card>
 
@@ -670,6 +694,8 @@ const product = ref<{
 })
 
 const productFeatures = ref<Array<{ name: string; value: string }>>([{ name: '', value: '' }])
+const featureTemplates = ref<Array<{ id: number; feature_name: string; is_required: boolean; sort_order: number }>>([])
+const hasFeatureTemplates = computed(() => featureTemplates.value.length > 0)
 
 const availabilityStatusOptions = [
   { label: 'موجود در انبار', value: 'in_stock' },
@@ -1088,10 +1114,12 @@ const onSubcategorySearch = (value: string) => {
   }
 }
 
-const onSubcategorySelect = (subcategoryId: number | null) => {
+const onSubcategorySelect = async (subcategoryId: number | null) => {
   if (!subcategoryId) {
     selectedDepartment.value = null
     selectedCategory.value = null
+    featureTemplates.value = []
+    productFeatures.value = [{ name: '', value: '' }]
     return
   }
   
@@ -1110,6 +1138,28 @@ const onSubcategorySelect = (subcategoryId: number | null) => {
     })
   } else {
     console.warn('Subcategory not found in searchable list:', subcategoryId)
+  }
+  
+  // Fetch feature templates for this subcategory
+  try {
+    const response = await productApi.getSubcategoryFeatureTemplates(subcategoryId)
+    if (response && (response as any).results && (response as any).results.length > 0) {
+      featureTemplates.value = (response as any).results
+      // Initialize productFeatures with template structure
+      productFeatures.value = featureTemplates.value.map(template => ({
+        name: template.feature_name,
+        value: ''
+      }))
+    } else {
+      featureTemplates.value = []
+      // Reset to free-form if no templates
+      if (productFeatures.value.length === 0 || (productFeatures.value.length === 1 && productFeatures.value[0].name !== '')) {
+        productFeatures.value = [{ name: '', value: '' }]
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching feature templates:', error)
+    featureTemplates.value = []
   }
 }
 

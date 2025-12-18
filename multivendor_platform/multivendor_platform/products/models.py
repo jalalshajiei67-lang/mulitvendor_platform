@@ -350,6 +350,24 @@ class ProductFeature(models.Model):
     def __str__(self):
         return f"{self.product.name} - {self.name}: {self.value}"
 
+class SubcategoryFeatureTemplate(models.Model):
+    """Predefined feature templates for subcategories"""
+    subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE, related_name='feature_templates')
+    feature_name = models.CharField(max_length=200, help_text="نام ویژگی")
+    is_required = models.BooleanField(default=False, help_text="آیا این ویژگی الزامی است؟")
+    sort_order = models.PositiveIntegerField(default=0, help_text="ترتیب نمایش")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['sort_order', 'created_at']
+        verbose_name = 'Subcategory Feature Template'
+        verbose_name_plural = 'Subcategory Feature Templates'
+        unique_together = [['subcategory', 'feature_name']]  # Prevent duplicate feature names per subcategory
+    
+    def __str__(self):
+        return f"{self.subcategory.name} - {self.feature_name}"
+
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='product_images/')

@@ -12,6 +12,11 @@ interface ExtendedFetchOptions<T> extends FetchOptions<T> {
 }
 
 export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOptions<T> = {}) => {
+  // Validate endpoint parameter
+  if (!endpoint || typeof endpoint !== 'string') {
+    throw new Error(`useApiFetch: endpoint must be a non-empty string, got: ${typeof endpoint}`)
+  }
+
   // Try to get Nuxt app - if not available during SSR, handle gracefully
   let config: any
   let authToken: string | null = null

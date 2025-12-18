@@ -105,6 +105,14 @@
         @click="handleNavigate('rfqs')"
       ></v-list-item>
 
+      <v-list-item
+        prepend-icon="mdi-gavel"
+        title="مناقصه"
+        value="auctions"
+        :active="activeView === 'auctions'"
+        @click="handleNavigate('auctions')"
+      ></v-list-item>
+
       <v-list-group value="blog">
         <template #activator="{ props }">
           <v-list-item

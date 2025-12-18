@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'gamification',
     'chat',  # Chat system
     'payments',  # Payment management
+    'auctions',  # Auction system
 ]
 
 MIDDLEWARE = [
@@ -375,3 +376,6 @@ if DEBUG and REDIS_HOST == 'localhost':
 ZIBAL_MERCHANT = os.environ.get('ZIBAL_MERCHANT', 'zibal')  # Use 'zibal' for test mode
 ZIBAL_API_BASE = 'https://gateway.zibal.ir'
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
+
+# Auction System Settings
+AUCTION_DEPOSIT_AMOUNT = 5000000  # 5,000,000 Toman

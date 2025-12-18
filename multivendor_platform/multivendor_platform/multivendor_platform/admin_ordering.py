@@ -16,6 +16,7 @@ from django.contrib.admin import AdminSite
 # Desired app order by app_label
 APP_ORDER: List[str] = [
     "products",
+    "auctions",
     "blog",
     "chat",
     "orders",
@@ -44,6 +45,16 @@ MODEL_ORDER: Dict[str, List[str]] = {
         "CategoryRequest",
         "ProductScrapeJob",
         "ScrapeJobBatch",
+    ],
+    # Auctions
+    "auctions": [
+        "AuctionRequest",
+        "Bid",
+        "AuctionDepositPayment",
+        "AuctionReport",
+        "AuctionNotification",
+        "AuctionPhoto",
+        "AuctionDocument",
     ],
     # Blog Management
     "blog": [

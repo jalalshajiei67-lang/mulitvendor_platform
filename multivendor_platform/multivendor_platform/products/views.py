@@ -28,6 +28,7 @@ from .models import (
     ProductImage,
     ProductComment,
     ProductFeature,
+    SubcategoryFeatureTemplate,
     Label,
     LabelGroup,
     LabelComboSeoPage,
@@ -43,6 +44,7 @@ from .serializers import (
     ProductCommentSerializer,
     ProductCommentCreateSerializer,
     ProductDetailSerializer,
+    SubcategoryFeatureTemplateSerializer,
     LabelSerializer,
     LabelGroupSerializer,
     LabelComboSeoPageSerializer,
@@ -354,6 +356,77 @@ class ProductViewSet(viewsets.ModelViewSet):
             except (json.JSONDecodeError, ValueError):
                 features_data = []
         
+        # Check if product has subcategories with feature templates
+        subcategories = product.subcategories.all()
+        templates = None
+        if subcategories.exists():
+            # Check if any subcategory has templates (use first subcategory for now)
+            # In the future, we might support multiple subcategories with templates
+            primary_subcategory = subcategories.first()
+            templates = SubcategoryFeatureTemplate.objects.filter(
+                subcategory=primary_subcategory
+            ).order_by('sort_order', 'created_at')
+            
+            if templates.exists():
+                # Validate against templates
+                template_names = {t.feature_name: t for t in templates}
+                provided_features = {}
+                
+                # Parse provided features
+                for feature_data in features_data:
+                    if isinstance(feature_data, dict):
+                        name = feature_data.get('name', '').strip()
+                        value = feature_data.get('value', '').strip()
+                        if name:
+                            provided_features[name] = value
+                
+                # Check for invalid feature names (not in templates)
+                invalid_features = set(provided_features.keys()) - set(template_names.keys())
+                if invalid_features:
+                    raise serializers.ValidationError({
+                        'features': f'ویژگی‌های زیر در قالب این دسته‌بندی تعریف نشده‌اند: {", ".join(invalid_features)}'
+                    })
+                
+                # Check for missing required features
+                missing_required = []
+                for template in templates:
+                    if template.is_required and template.feature_name not in provided_features:
+                        missing_required.append(template.feature_name)
+                    elif template.is_required and not provided_features.get(template.feature_name, '').strip():
+                        missing_required.append(template.feature_name)
+                
+                if missing_required:
+                    raise serializers.ValidationError({
+                        'features': f'ویژگی‌های الزامی زیر باید پر شوند: {", ".join(missing_required)}'
+                    })
+                
+                # Use template order and ensure all templates are included
+                features_to_create = []
+                for template in templates:
+                    feature_name = template.feature_name
+                    feature_value = provided_features.get(feature_name, '').strip()
+                    if feature_value:  # Only create if value is provided
+                        features_to_create.append({
+                            'name': feature_name,
+                            'value': feature_value,
+                            'sort_order': template.sort_order
+                        })
+                
+                # Delete existing features if updating
+                if self.request.method in ['PUT', 'PATCH']:
+                    ProductFeature.objects.filter(product=product).delete()
+                
+                # Create features in template order
+                for feature_data in features_to_create:
+                    ProductFeature.objects.create(
+                        product=product,
+                        name=feature_data['name'],
+                        value=feature_data['value'],
+                        sort_order=feature_data['sort_order']
+                    )
+                return  # Exit early if templates were used
+        
+        # No templates - use free-form feature system (backward compatibility)
         # Validate max 10 features
         if len(features_data) > 10:
             raise serializers.ValidationError({
@@ -532,6 +605,16 @@ class SubcategoryViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = [AllowAny]
         return [permission() for permission in permission_classes]
+    
+    @action(detail=True, methods=['get'], url_path='feature-templates')
+    def feature_templates(self, request, pk=None):
+        """
+        Get all feature templates for this subcategory
+        """
+        subcategory = self.get_object()
+        templates = SubcategoryFeatureTemplate.objects.filter(subcategory=subcategory).order_by('sort_order', 'created_at')
+        serializer = SubcategoryFeatureTemplateSerializer(templates, many=True, context={'request': request})
+        return Response(serializer.data)
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     """
@@ -886,3 +969,52 @@ class CategoryRequestViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(category_request)
         return Response(serializer.data)
+class SubcategoryFeatureTemplateViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing subcategory feature templates.
+    Admin can create/update/delete templates.
+    Sellers can view templates for their selected subcategory.
+    """
+    queryset = SubcategoryFeatureTemplate.objects.all().order_by('subcategory', 'sort_order', 'created_at')
+    serializer_class = SubcategoryFeatureTemplateSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['subcategory']
+    
+    def get_queryset(self):
+        """Filter by subcategory if provided"""
+        queryset = SubcategoryFeatureTemplate.objects.all().order_by('subcategory', 'sort_order', 'created_at')
+        subcategory_id = self.request.query_params.get('subcategory', None)
+        if subcategory_id:
+            queryset = queryset.filter(subcategory_id=subcategory_id)
+        return queryset
+    
+    def get_permissions(self):
+        """
+        Admin can create/update/delete, everyone can view
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [AllowAny]
+        return [permission() for permission in permission_classes]
+    
+    def perform_create(self, serializer):
+        """Only staff can create templates"""
+        if not self.request.user.is_staff:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only administrators can create feature templates")
+        serializer.save()
+    
+    def perform_update(self, serializer):
+        """Only staff can update templates"""
+        if not self.request.user.is_staff:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only administrators can update feature templates")
+        serializer.save()
+    
+    def perform_destroy(self, instance):
+        """Only staff can delete templates"""
+        if not self.request.user.is_staff:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only administrators can delete feature templates")
+        instance.delete()

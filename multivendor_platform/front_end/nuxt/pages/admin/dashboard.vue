@@ -465,6 +465,106 @@
         </v-card>
       </div>
 
+      <!-- Auctions View -->
+      <div v-if="activeView === 'auctions'" class="auctions-view">
+        <v-card elevation="0" variant="outlined">
+          <v-card-title class="pa-4 d-flex justify-space-between align-center">
+            <span>مناقصه‌ها</span>
+            <v-select
+              v-model="auctionStatusFilter"
+              :items="auctionStatusOptions"
+              label="فیلتر وضعیت"
+              density="compact"
+              variant="outlined"
+              hide-details
+              style="max-width: 200px;"
+              clearable
+            ></v-select>
+          </v-card-title>
+          <v-divider></v-divider>
+          <v-card-text>
+            <v-data-table
+              :headers="auctionHeaders"
+              :items="filteredAuctions"
+              :loading="loadingAuctions"
+              item-value="id"
+            >
+              <template v-slot:item.id="{ item }">
+                <v-btn
+                  variant="text"
+                  color="primary"
+                  @click="viewAuctionDetail(item)"
+                >
+                  #{{ item.id }}
+                </v-btn>
+              </template>
+              <template v-slot:item.buyer_name="{ item }">
+                <strong>{{ item.buyer_name || 'نامشخص' }}</strong>
+              </template>
+              <template v-slot:item.status="{ item }">
+                <v-chip
+                  size="small"
+                  :color="getAuctionStatusColor(item.status)"
+                >
+                  {{ getAuctionStatusLabel(item.status) }}
+                </v-chip>
+              </template>
+              <template v-slot:item.request_type="{ item }">
+                <v-chip
+                  size="small"
+                  :color="item.request_type === 'verified' ? 'success' : 'grey'"
+                >
+                  {{ item.request_type === 'verified' ? 'تایید شده' : 'رایگان' }}
+                </v-chip>
+              </template>
+              <template v-slot:item.deposit_status="{ item }">
+                <v-chip
+                  size="small"
+                  :color="item.deposit_status === 'held_in_escrow' ? 'success' : 'grey'"
+                >
+                  {{ item.deposit_status === 'held_in_escrow' ? 'پرداخت شده' : 'پرداخت نشده' }}
+                </v-chip>
+              </template>
+              <template v-slot:item.bid_count="{ item }">
+                <span class="font-weight-bold">{{ item.bid_count || 0 }}</span>
+              </template>
+              <template v-slot:item.created_at="{ item }">
+                {{ formatDate(item.created_at) }}
+              </template>
+              <template v-slot:item.actions="{ item }">
+                <v-menu location="bottom start">
+                  <template v-slot:activator="{ props }">
+                    <v-btn icon size="small" variant="text" v-bind="props">
+                      <v-icon>mdi-dots-vertical</v-icon>
+                    </v-btn>
+                  </template>
+                  <v-list>
+                    <v-list-item @click="approveAuction(item)" v-if="item.status === 'pending_review'">
+                      <v-list-item-title>تایید</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="rejectAuction(item)" v-if="item.status === 'pending_review'">
+                      <v-list-item-title>رد</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="activateAuction(item)" v-if="item.status === 'approved'">
+                      <v-list-item-title>فعال‌سازی</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="viewAuctionDetail(item)">
+                      <v-list-item-title>مشاهده جزئیات</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </template>
+              <template v-slot:no-data>
+                <div class="text-center py-8">
+                  <v-icon size="64" color="grey-lighten-1">mdi-gavel</v-icon>
+                  <p class="text-body-1 mt-4 text-grey">مناقصه‌ای یافت نشد</p>
+                </div>
+              </template>
+            </v-data-table>
+          </v-card-text>
+        </v-card>
+      </div>
+
       <!-- RFQs View -->
       <div v-if="activeView === 'rfqs'" class="rfqs-view">
         <v-card elevation="0" variant="outlined">
@@ -724,6 +824,282 @@
                 </v-list-item>
               </v-list>
             </v-menu>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Auction Detail Dialog -->
+      <v-dialog v-model="showAuctionDetailDialog" max-width="1000px" scrollable>
+        <v-card v-if="selectedAuction">
+          <v-card-title class="d-flex justify-space-between align-center pa-4" style="background: rgb(var(--v-theme-primary)); color: white;">
+            <div>
+              <div class="text-h6">جزئیات مناقصه</div>
+              <div class="text-caption">مناقصه #{{ selectedAuction.id }}</div>
+            </div>
+            <v-btn icon variant="text" color="white" @click="showAuctionDetailDialog = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+
+          <v-divider></v-divider>
+
+          <v-card-text class="pa-6">
+            <v-row>
+              <!-- Auction Information -->
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" class="pa-4 mb-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-information</v-icon>
+                    اطلاعات مناقصه
+                  </div>
+                  <v-list density="compact">
+                    <v-list-item>
+                      <v-list-item-title>وضعیت</v-list-item-title>
+                      <v-list-item-subtitle>
+                        <v-chip size="small" :color="getAuctionStatusColor(selectedAuction.status)">
+                          {{ getAuctionStatusLabel(selectedAuction.status) }}
+                        </v-chip>
+                      </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>نوع درخواست</v-list-item-title>
+                      <v-list-item-subtitle>
+                        <v-chip size="small" :color="selectedAuction.request_type === 'verified' ? 'success' : 'default'">
+                          {{ selectedAuction.request_type === 'verified' ? 'تایید شده (با واریز)' : 'رایگان' }}
+                        </v-chip>
+                      </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>سبک مناقصه</v-list-item-title>
+                      <v-list-item-subtitle>
+                        {{ selectedAuction.auction_style === 'sealed' ? 'محرمانه' : 'زنده معکوس' }}
+                      </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item v-if="selectedAuction.buyer_name">
+                      <v-list-item-title>خریدار</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedAuction.buyer_name }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item v-if="selectedAuction.subcategory_name">
+                      <v-list-item-title>زیردسته‌بندی</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedAuction.subcategory_name }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>تعداد پیشنهادات</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedAuction.bid_count || 0 }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item v-if="selectedAuction.start_time">
+                      <v-list-item-title>زمان شروع</v-list-item-title>
+                      <v-list-item-subtitle>{{ formatDate(selectedAuction.start_time) }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item v-if="selectedAuction.end_time">
+                      <v-list-item-title>زمان پایان</v-list-item-title>
+                      <v-list-item-subtitle>{{ formatDate(selectedAuction.end_time) }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>تاریخ ایجاد</v-list-item-title>
+                      <v-list-item-subtitle>{{ formatDate(selectedAuction.created_at) }}</v-list-item-subtitle>
+                    </v-list-item>
+                  </v-list>
+                </v-card>
+              </v-col>
+
+              <!-- Deposit Information -->
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" class="pa-4 mb-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-cash</v-icon>
+                    اطلاعات واریز
+                  </div>
+                  <v-list density="compact">
+                    <v-list-item>
+                      <v-list-item-title>وضعیت واریز</v-list-item-title>
+                      <v-list-item-subtitle>
+                        <v-chip size="small" :color="getDepositStatusColor(selectedAuction.deposit_status)">
+                          {{ getDepositStatusLabel(selectedAuction.deposit_status) }}
+                        </v-chip>
+                      </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <v-list-item-title>مبلغ واریز</v-list-item-title>
+                      <v-list-item-subtitle>{{ formatPrice(selectedAuction.deposit_amount || 0) }}</v-list-item-subtitle>
+                    </v-list-item>
+                  </v-list>
+                </v-card>
+              </v-col>
+
+              <!-- Description -->
+              <v-col cols="12">
+                <v-card variant="outlined" class="pa-4 mb-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-text-box</v-icon>
+                    توضیحات نیاز
+                  </div>
+                  <p class="text-body-1">{{ selectedAuction.description || 'توضیحی ارائه نشده است' }}</p>
+                </v-card>
+              </v-col>
+
+              <!-- Bids -->
+              <v-col cols="12" v-if="selectedAuction.bids && selectedAuction.bids.length > 0">
+                <v-card variant="outlined" class="pa-4 mb-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-format-list-bulleted</v-icon>
+                    پیشنهادات ({{ selectedAuction.bids.length }})
+                  </div>
+                  <v-list>
+                    <v-list-item
+                      v-for="(bid, idx) in selectedAuction.bids"
+                      :key="bid.id"
+                      :class="{ 'bg-success-lighten-5': bid.is_winner }"
+                    >
+                      <template v-slot:prepend>
+                        <v-avatar color="primary" size="32">
+                          {{ idx + 1 }}
+                        </v-avatar>
+                      </template>
+                      <v-list-item-title>
+                        {{ bid.seller_name || `فروشنده #${bid.seller_id}` }}
+                        <v-chip v-if="bid.is_winner" size="small" color="success" class="ms-2">
+                          برنده
+                        </v-chip>
+                      </v-list-item-title>
+                      <v-list-item-subtitle>
+                        قیمت: {{ formatPrice(bid.price) }}
+                        <span v-if="bid.rank" class="ms-2">رتبه: {{ bid.rank }}</span>
+                      </v-list-item-subtitle>
+                    </v-list-item>
+                  </v-list>
+                </v-card>
+              </v-col>
+
+              <!-- Report Section -->
+              <v-col cols="12">
+                <v-card variant="outlined" class="pa-4">
+                  <div class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-2">
+                    <v-icon color="primary">mdi-file-document-edit</v-icon>
+                    گزارش مناقصه
+                  </div>
+                  
+                  <!-- Existing Report -->
+                  <div v-if="auctionReport" class="mb-4">
+                    <v-alert type="info" variant="tonal" class="mb-3">
+                      گزارش قبلاً نوشته شده است
+                    </v-alert>
+                    <v-card variant="outlined" class="pa-3 mb-3">
+                      <div class="text-body-1" style="white-space: pre-wrap;">{{ auctionReport.report_text }}</div>
+                      <div class="text-caption text-grey mt-2">
+                        نوشته شده توسط: {{ auctionReport.admin_name || 'مدیر' }} در {{ formatDate(auctionReport.created_at) }}
+                      </div>
+                    </v-card>
+                    <v-btn
+                      color="primary"
+                      variant="outlined"
+                      @click="showReportDialog = true"
+                      prepend-icon="mdi-pencil"
+                    >
+                      ویرایش گزارش
+                    </v-btn>
+                  </div>
+
+                  <!-- Write/Edit Report -->
+                  <div v-else-if="selectedAuction.status === 'closed' || selectedAuction.status === 'abandoned'">
+                    <v-btn
+                      color="primary"
+                      @click="showReportDialog = true"
+                      prepend-icon="mdi-file-document-edit"
+                    >
+                      نوشتن گزارش
+                    </v-btn>
+                  </div>
+
+                  <!-- Not Closed Yet -->
+                  <v-alert v-else type="info" variant="tonal">
+                    گزارش را می‌توانید پس از بسته شدن مناقصه بنویسید
+                  </v-alert>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-card-text>
+
+          <v-divider></v-divider>
+
+          <v-card-actions class="pa-4">
+            <v-spacer></v-spacer>
+            <v-btn variant="text" @click="showAuctionDetailDialog = false">
+              بستن
+            </v-btn>
+            <v-menu v-if="selectedAuction.status === 'pending_review'">
+              <template v-slot:activator="{ props }">
+                <v-btn color="primary" v-bind="props">
+                  تغییر وضعیت
+                  <v-icon class="ms-2">mdi-menu-down</v-icon>
+                </v-btn>
+              </template>
+              <v-list>
+                <v-list-item @click="approveAuction(selectedAuction)">
+                  <v-list-item-title>تأیید</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="rejectAuction(selectedAuction)">
+                  <v-list-item-title>رد</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+            <v-btn
+              v-if="selectedAuction.status === 'approved'"
+              color="success"
+              @click="activateAuction(selectedAuction)"
+            >
+              فعال‌سازی
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Report Writing Dialog -->
+      <v-dialog v-model="showReportDialog" max-width="800px" scrollable>
+        <v-card>
+          <v-card-title class="d-flex justify-space-between align-center pa-4" style="background: rgb(var(--v-theme-primary)); color: white;">
+            <div>
+              <div class="text-h6">نوشتن گزارش مناقصه</div>
+              <div class="text-caption">مناقصه #{{ selectedAuction?.id }}</div>
+            </div>
+            <v-btn icon variant="text" color="white" @click="showReportDialog = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+
+          <v-divider></v-divider>
+
+          <v-card-text class="pa-6">
+            <v-textarea
+              v-model="reportText"
+              label="متن گزارش"
+              placeholder="گزارش خود را در مورد این مناقصه بنویسید..."
+              rows="15"
+              variant="outlined"
+              auto-grow
+              required
+            ></v-textarea>
+            <v-alert type="info" variant="tonal" class="mt-4">
+              این گزارش برای تمام شرکت‌کنندگان در مناقصه قابل مشاهده خواهد بود.
+            </v-alert>
+          </v-card-text>
+
+          <v-divider></v-divider>
+
+          <v-card-actions class="pa-4">
+            <v-spacer></v-spacer>
+            <v-btn variant="text" @click="showReportDialog = false">
+              انصراف
+            </v-btn>
+            <v-btn
+              color="primary"
+              :loading="submittingReport"
+              :disabled="!reportText || reportText.trim().length === 0"
+              @click="submitReport"
+              prepend-icon="mdi-check"
+            >
+              {{ auctionReport ? 'به‌روزرسانی گزارش' : 'ثبت گزارش' }}
+            </v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -1160,6 +1536,7 @@ const adminApi = useAdminApi()
 const categoryApi = useCategoryApi()
 const productApi = useProductApi()
 const supplierApi = useSupplierApi()
+const auctionApi = useAuctionApi()
 
 const activeView = ref((route.query.view as string) || 'dashboard')
 const dashboardData = ref<any>({})
@@ -1167,6 +1544,7 @@ const users = ref<any[]>([])
 const activities = ref<any[]>([])
 const blogPosts = ref<any[]>([])
 const rfqs = ref<any[]>([])
+const auctions = ref<any[]>([])
 const products = ref<any[]>([])
 const flaggedSupplierComments = ref<any[]>([])
 const flaggedProductReviews = ref<any[]>([])
@@ -1181,8 +1559,16 @@ const loadingUsers = ref(false)
 const loadingActivities = ref(false)
 const loadingBlog = ref(false)
 const loadingRFQs = ref(false)
+const loadingAuctions = ref(false)
 const loadingProducts = ref(false)
 const showRFQDetailDialog = ref(false)
+const showAuctionDetailDialog = ref(false)
+const selectedAuction = ref<any>(null)
+const auctionStatusFilter = ref<string | null>(null)
+const showReportDialog = ref(false)
+const reportText = ref('')
+const submittingReport = ref(false)
+const auctionReport = ref<any>(null)
 const selectedRFQ = ref<any>(null)
 const loadingRFQDetail = ref(false)
 const showProductDetailDialog = ref(false)
@@ -1395,6 +1781,158 @@ const loadRFQs = async () => {
   } finally {
     loadingRFQs.value = false
   }
+}
+
+const loadAuctions = async () => {
+  loadingAuctions.value = true
+  try {
+    const data = await auctionApi.getAuctionRequests()
+    auctions.value = Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('Failed to load auctions:', error)
+  } finally {
+    loadingAuctions.value = false
+  }
+}
+
+const approveAuction = async (auction: any) => {
+  try {
+    await auctionApi.updateAuctionRequest(auction.id, { status: 'approved' })
+    await loadAuctions()
+    alert('مناقصه تایید شد')
+  } catch (error) {
+    console.error('Failed to approve auction:', error)
+    alert('خطا در تایید مناقصه')
+  }
+}
+
+const rejectAuction = async (auction: any) => {
+  try {
+    await auctionApi.updateAuctionRequest(auction.id, { status: 'rejected' })
+    await loadAuctions()
+    alert('مناقصه رد شد')
+  } catch (error) {
+    console.error('Failed to reject auction:', error)
+    alert('خطا در رد مناقصه')
+  }
+}
+
+const activateAuction = async (auction: any) => {
+  try {
+    await auctionApi.updateAuctionRequest(auction.id, { status: 'active' })
+    await loadAuctions()
+    alert('مناقصه فعال شد')
+  } catch (error) {
+    console.error('Failed to activate auction:', error)
+    alert('خطا در فعال‌سازی مناقصه')
+  }
+}
+
+const viewAuctionDetail = async (auction: any) => {
+  try {
+    const detail = await auctionApi.getAuctionRequest(auction.id)
+    selectedAuction.value = detail
+    // Load report if exists
+    await loadAuctionReport(auction.id)
+    showAuctionDetailDialog.value = true
+  } catch (error) {
+    console.error('Failed to load auction detail:', error)
+    selectedAuction.value = auction
+    await loadAuctionReport(auction.id)
+    showAuctionDetailDialog.value = true
+  }
+}
+
+const loadAuctionReport = async (auctionId: number) => {
+  try {
+    const report = await auctionApi.getReport(auctionId)
+    auctionReport.value = report
+    if (report) {
+      reportText.value = report.report_text || ''
+    } else {
+      reportText.value = ''
+    }
+  } catch (error) {
+    console.error('Failed to load report:', error)
+    auctionReport.value = null
+    reportText.value = ''
+  }
+}
+
+const submitReport = async () => {
+  if (!selectedAuction.value || !reportText.value.trim()) {
+    return
+  }
+
+  submittingReport.value = true
+  try {
+    if (auctionReport.value) {
+      // Update existing report
+      await auctionApi.updateReport(auctionReport.value.id, reportText.value)
+      alert('گزارش با موفقیت به‌روزرسانی شد')
+    } else {
+      // Create new report
+      await auctionApi.createReport(selectedAuction.value.id, reportText.value)
+      alert('گزارش با موفقیت ثبت شد')
+    }
+    
+    // Reload report
+    await loadAuctionReport(selectedAuction.value.id)
+    showReportDialog.value = false
+  } catch (error: any) {
+    console.error('Failed to submit report:', error)
+    alert('خطا در ثبت گزارش: ' + (error.message || 'لطفاً دوباره تلاش کنید'))
+  } finally {
+    submittingReport.value = false
+  }
+}
+
+const getDepositStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    unpaid: 'grey',
+    paid: 'info',
+    held_in_escrow: 'success',
+    forfeited: 'error',
+    refunded: 'warning'
+  }
+  return colors[status] || 'grey'
+}
+
+const getDepositStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    unpaid: 'پرداخت نشده',
+    paid: 'پرداخت شده',
+    held_in_escrow: 'در امانت',
+    forfeited: 'ضبط شده',
+    refunded: 'بازگردانده شده'
+  }
+  return labels[status] || status
+}
+
+const getAuctionStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    draft: 'grey',
+    pending_review: 'warning',
+    approved: 'info',
+    rejected: 'error',
+    active: 'success',
+    closed: 'primary',
+    abandoned: 'error'
+  }
+  return colors[status] || 'grey'
+}
+
+const getAuctionStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    draft: 'پیش‌نویس',
+    pending_review: 'در انتظار بررسی',
+    approved: 'تایید شده',
+    rejected: 'رد شده',
+    active: 'فعال',
+    closed: 'بسته شده',
+    abandoned: 'لغو شده'
+  }
+  return labels[status] || status
 }
 
 const loadProducts = async () => {
@@ -1634,6 +2172,8 @@ watch(activeView, (newView) => {
     loadBlogPosts()
   } else if (newView === 'rfqs') {
     loadRFQs()
+  } else if (newView === 'auctions') {
+    loadAuctions()
   } else if (newView === 'products') {
     loadFilterData()
     loadProducts()
@@ -1645,6 +2185,13 @@ watch(activeView, (newView) => {
 watch(() => route.query.view, (newView) => {
   if (typeof newView === 'string') {
     activeView.value = newView
+  }
+})
+
+watch(showReportDialog, async (isOpen) => {
+  if (isOpen && selectedAuction.value) {
+    // Ensure report is loaded when dialog opens
+    await loadAuctionReport(selectedAuction.value.id)
   }
 })
 
@@ -1846,6 +2393,8 @@ onMounted(() => {
     loadBlogPosts()
   } else if (activeView.value === 'rfqs') {
     loadRFQs()
+  } else if (activeView.value === 'auctions') {
+    loadAuctions()
   } else if (activeView.value === 'products') {
     loadFilterData()
     loadProducts()

@@ -265,6 +265,15 @@
               نظرات
             </v-btn>
             <v-btn
+              to="/seller/dashboard?tab=auctions"
+              variant="text"
+              size="small"
+              class="text-white nav-btn"
+              prepend-icon="mdi-gavel"
+            >
+              مناقصه
+            </v-btn>
+            <v-btn
               to="/seller/dashboard?tab=payments"
               variant="text"
               size="small"

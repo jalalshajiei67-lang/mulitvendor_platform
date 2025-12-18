@@ -28,11 +28,15 @@ export const useTypingAnimation = (
   const isDeleting = ref(false)
   const isPaused = ref(false)
 
-  let timeoutId: NodeJS.Timeout | null = null
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
 
-  const clearTimeout = () => {
-    if (timeoutId) {
-      clearTimeout(timeoutId)
+  const clearAnimationTimeout = () => {
+    if (timeoutId !== null) {
+      try {
+        clearTimeout(timeoutId)
+      } catch (e) {
+        // Ignore errors when clearing timeout
+      }
       timeoutId = null
     }
   }
@@ -49,11 +53,11 @@ export const useTypingAnimation = (
       if (charIndex < text.length) {
         currentText.value = text.substring(0, charIndex + 1)
         charIndex++
-        timeoutId = setTimeout(typeChar, typingSpeed)
+        timeoutId = setTimeout(typeChar, typingSpeed) as ReturnType<typeof setTimeout>
       } else {
         isTyping.value = false
         isPaused.value = true
-        timeoutId = setTimeout(deleteText, pauseAfterTyping)
+        timeoutId = setTimeout(deleteText, pauseAfterTyping) as ReturnType<typeof setTimeout>
       }
     }
 
@@ -72,12 +76,12 @@ export const useTypingAnimation = (
       if (charIndex > 0) {
         currentText.value = text.substring(0, charIndex - 1)
         charIndex--
-        timeoutId = setTimeout(deleteChar, deletingSpeed)
+        timeoutId = setTimeout(deleteChar, deletingSpeed) as ReturnType<typeof setTimeout>
       } else {
         isDeleting.value = false
         isPaused.value = true
         currentIndex.value = (currentIndex.value + 1) % texts.length
-        timeoutId = setTimeout(type, pauseAfterDeleting)
+        timeoutId = setTimeout(type, pauseAfterDeleting) as ReturnType<typeof setTimeout>
       }
     }
 
@@ -85,17 +89,17 @@ export const useTypingAnimation = (
   }
 
   const start = () => {
-    clearTimeout()
+    clearAnimationTimeout()
     currentText.value = ''
     currentIndex.value = 0
     isTyping.value = false
     isDeleting.value = false
     isPaused.value = false
-    timeoutId = setTimeout(type, startDelay)
+    timeoutId = setTimeout(type, startDelay) as ReturnType<typeof setTimeout>
   }
 
   const stop = () => {
-    clearTimeout()
+    clearAnimationTimeout()
     currentText.value = ''
     isTyping.value = false
     isDeleting.value = false
@@ -103,7 +107,7 @@ export const useTypingAnimation = (
   }
 
   const pause = () => {
-    clearTimeout()
+    clearAnimationTimeout()
     isPaused.value = true
   }
 
@@ -128,7 +132,7 @@ export const useTypingAnimation = (
   }
 
   onUnmounted(() => {
-    clearTimeout()
+    clearAnimationTimeout()
   })
 
   return {

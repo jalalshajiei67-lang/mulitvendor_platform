@@ -5,7 +5,7 @@ from .views import (
     ProductViewSet, CategoryViewSet, SubcategoryViewSet, DepartmentViewSet,
     MyProductsView, ProductCommentViewSet, global_search,
     LabelGroupViewSet, LabelViewSet, LabelComboSeoPageViewSet,
-    CategoryRequestViewSet
+    CategoryRequestViewSet, SubcategoryFeatureTemplateViewSet
 )
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -25,6 +25,7 @@ router.register(r'label-groups', LabelGroupViewSet, basename='label-group')
 router.register(r'labels', LabelViewSet, basename='label')
 router.register(r'label-combos', LabelComboSeoPageViewSet, basename='label-combo')
 router.register(r'category-requests', CategoryRequestViewSet, basename='category-request')
+router.register(r'subcategory-feature-templates', SubcategoryFeatureTemplateViewSet, basename='subcategory-feature-template')
 
 # Custom view function for label SEO content by slug
 @api_view(['GET'])

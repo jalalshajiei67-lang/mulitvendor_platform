@@ -27,6 +27,7 @@ from .models import (
     LabelGroup,
     LabelComboSeoPage,
     CategoryRequest,
+    SubcategoryFeatureTemplate,
 )
 from .scraper import WordPressScraper
 from .universal_scraper import UniversalProductScraper, create_product_from_scraped_data
@@ -738,6 +739,15 @@ class SubcategoryAdminForm(forms.ModelForm):
         model = Subcategory
         fields = '__all__'
 
+class SubcategoryFeatureTemplateInline(admin.TabularInline):
+    """Inline admin for managing feature templates within subcategory admin"""
+    model = SubcategoryFeatureTemplate
+    extra = 1
+    fields = ('feature_name', 'is_required', 'sort_order')
+    ordering = ('sort_order', 'created_at')
+    verbose_name = 'Feature Template'
+    verbose_name_plural = 'Feature Templates'
+
 @admin.register(Subcategory)
 class SubcategoryAdmin(admin.ModelAdmin):
     form = SubcategoryAdminForm
@@ -747,6 +757,7 @@ class SubcategoryAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
     filter_horizontal = ['categories']
     actions = ['delete_selected']  # Explicitly include delete action
+    inlines = [SubcategoryFeatureTemplateInline]
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'slug', 'description', 'image', 'image_alt_text')

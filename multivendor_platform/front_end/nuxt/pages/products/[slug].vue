@@ -100,6 +100,17 @@
               {{ t('requestQuote') }}
             </v-btn>
             
+            <v-btn 
+              block 
+              color="secondary" 
+              size="large" 
+              @click="handleAuctionRequest" 
+              class="mb-3"
+              prepend-icon="mdi-gavel"
+            >
+              درخواست مناقصه
+            </v-btn>
+            
             <!-- Debug: Show vendor info -->
             <div v-if="product" class="text-caption mb-2">
               Vendor ID: {{ product.vendor }} | Product ID: {{ product.id }}
@@ -290,11 +301,21 @@
   >
     {{ errorMessage }}
   </v-snackbar>
+
+  <!-- Auction Request Dialog -->
+  <AuctionRequestDialog
+    v-model="showAuctionDialog"
+    :product-id="product?.id"
+    @success="handleAuctionSuccess"
+    @error="handleAuctionError"
+  />
 </template>
 
 <script setup lang="ts">
 import { generateProductSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
 import BadgeIcon from '~/components/gamification/BadgeIcon.vue'
+import AuctionRequestDialog from '~/components/auction/AuctionRequestDialog.vue'
+import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({
   layout: 'default'
@@ -314,9 +335,11 @@ const vendorBadges = computed(() => {
 })
 
 const showRFQDialog = ref(false)
+const showAuctionDialog = ref(false)
 const showSuccess = ref(false)
 const showError = ref(false)
 const errorMessage = ref('')
+const authStore = useAuthStore()
 
 const handleRFQSubmitted = () => {
   showSuccess.value = true
@@ -326,6 +349,39 @@ const handleRFQSubmitted = () => {
 
 const handleRFQError = (message: string) => {
   errorMessage.value = message || 'خطا در ارسال درخواست. لطفاً دوباره تلاش کنید.'
+  showError.value = true
+}
+
+const handleAuctionRequest = () => {
+  // Check if user is authenticated
+  if (!authStore.isAuthenticated) {
+    // Redirect to signup with return URL
+    const returnUrl = encodeURIComponent(route.fullPath)
+    navigateTo(`/register?returnUrl=${returnUrl}`)
+    return
+  }
+  
+  // Check if user is a buyer
+  if (!authStore.isBuyer) {
+    showError.value = true
+    errorMessage.value = 'فقط خریداران می‌توانند درخواست مناقصه ثبت کنند'
+    return
+  }
+  
+  // Open auction request dialog
+  showAuctionDialog.value = true
+}
+
+const handleAuctionSuccess = () => {
+  showSuccess.value = true
+  showAuctionDialog.value = false
+  showError.value = false
+  // Redirect to buyer dashboard auctions tab
+  navigateTo('/buyer/dashboard?tab=auctions')
+}
+
+const handleAuctionError = (message: string) => {
+  errorMessage.value = message || 'خطا در ثبت درخواست مناقصه'
   showError.value = true
 }
 

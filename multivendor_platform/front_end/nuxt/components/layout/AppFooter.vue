@@ -4,9 +4,23 @@
       <v-row class="py-8">
         <v-col cols="12" md="4">
           <div class="text-h6 font-weight-bold mb-2">ایندکسو</div>
-          <p class="text-body-2 text-medium-emphasis">
+          <p class="text-body-2 text-medium-emphasis mb-3">
             ایندکسو: خرید و فروش آسان ماشین‌آلات و تجهیزات از بهترین تولیدکنندگان کشور. بدون واسطه و با اطمینان کامل.
           </p>
+          <a
+            referrerpolicy="origin"
+            target="_blank"
+            href="https://trustseal.enamad.ir/?id=5253797&Code=R7usHeRiqM3YjUBokO1eeblqzcmBLDjf"
+            class="trust-logo"
+          >
+            <img
+              referrerpolicy="origin"
+              src="https://trustseal.enamad.ir/logo.aspx?id=5253797&Code=R7usHeRiqM3YjUBokO1eeblqzcmBLDjf"
+              alt="نماد اعتماد الکترونیک"
+              style="cursor: pointer"
+              code="R7usHeRiqM3YjUBokO1eeblqzcmBLDjf"
+            />
+          </a>
         </v-col>
 
         <v-col cols="12" sm="6" md="4">
@@ -112,6 +126,17 @@ const submitNewsletter = async () => {
 
 .footer-links a:hover {
   color: rgb(var(--v-theme-primary));
+}
+
+.trust-logo {
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+.trust-logo img {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 </style>
 
