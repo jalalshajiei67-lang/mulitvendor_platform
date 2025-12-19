@@ -289,7 +289,7 @@
               class="text-white nav-btn"
               prepend-icon="mdi-chat-processing-outline"
             >
-              گفتگوها
+              چت‌ها
             </v-btn>
             <v-btn
               to="/seller/dashboard?tab=insights"
@@ -381,7 +381,7 @@
                 to="/seller/dashboard?tab=chats"
                 prepend-icon="mdi-chat-processing-outline"
               >
-                <v-list-item-title>گفتگوها</v-list-item-title>
+                <v-list-item-title>چت‌ها</v-list-item-title>
               </v-list-item>
               <v-list-item
                 to="/seller/dashboard?tab=insights"

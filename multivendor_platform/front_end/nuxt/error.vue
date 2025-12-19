@@ -51,6 +51,39 @@ const props = defineProps<{
 }>()
 
 const display = useDisplay()
+const route = useRoute()
+
+// Handle 404 and 500 errors - redirect to appropriate error pages
+// Use onMounted to ensure this only runs on client-side
+onMounted(() => {
+  // Handle 404 errors
+  if (props.error.statusCode === 404 && route.path !== '/404') {
+    // Redirect to the 404 page
+    navigateTo('/404', { replace: true }).catch(() => {
+      // If navigation fails, try clearing error and redirecting
+      try {
+        clearError({ redirect: '/404' })
+      } catch (e) {
+        // Fallback: just navigate
+        window.location.href = '/404'
+      }
+    })
+  }
+  
+  // Handle 500 errors
+  if (props.error.statusCode === 500 && route.path !== '/500') {
+    // Redirect to the 500 page
+    navigateTo('/500', { replace: true }).catch(() => {
+      // If navigation fails, try clearing error and redirecting
+      try {
+        clearError({ redirect: '/500' })
+      } catch (e) {
+        // Fallback: just navigate
+        window.location.href = '/500'
+      }
+    })
+  }
+})
 
 useHead({
   title: `خطا ${props.error.statusCode || ''}`,

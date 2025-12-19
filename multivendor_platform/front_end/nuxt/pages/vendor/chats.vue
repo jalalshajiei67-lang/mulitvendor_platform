@@ -5,7 +5,7 @@
       <v-col cols="12">
         <div class="d-flex align-center justify-space-between mb-4">
           <div>
-            <h1 class="text-h4 mb-2">گفتگوهای من</h1>
+            <h1 class="text-h4 mb-2">چت‌های من</h1>
             <p class="text-grey">مدیریت پیام‌های مشتریان</p>
           </div>
           <v-btn
@@ -30,7 +30,7 @@
               <div class="d-flex align-center justify-space-between mb-3">
                 <span class="text-white font-weight-bold">
                   <v-icon class="ml-2">mdi-chat-processing</v-icon>
-                  صف گفتگوها
+                  صف چت‌ها
                 </span>
                 <v-chip
                   v-if="unreadCount > 0"
@@ -143,10 +143,10 @@
             <div v-else class="empty-state">
               <v-icon size="80" color="grey-lighten-2">mdi-chat-outline</v-icon>
               <p class="text-h6 text-grey mt-4">
-                {{ searchQuery ? 'گفتگویی یافت نشد' : 'هنوز گفتگویی ندارید' }}
+                {{ searchQuery ? 'چتی یافت نشد' : 'هنوز چتی ندارید' }}
               </p>
               <p class="text-caption text-grey">
-                مشتریان می‌توانند از صفحه محصول با شما گفتگو کنند
+                مشتریان می‌توانند از صفحه محصول با شما چت کنند
               </p>
             </div>
           </v-card-text>
@@ -191,9 +191,9 @@
         <v-card v-else height="700" elevation="3" class="empty-chat-card">
           <div class="empty-state">
             <v-icon size="120" color="primary" class="empty-icon">mdi-chat-processing-outline</v-icon>
-            <p class="text-h5 text-grey mt-6 mb-2">یک گفتگو را انتخاب کنید</p>
+            <p class="text-h5 text-grey mt-6 mb-2">یک چت را انتخاب کنید</p>
             <p class="text-body-2 text-grey">
-              مشتریان شما می‌توانند از صفحه محصول با شما گفتگو کنند
+              مشتریان شما می‌توانند از صفحه محصول با شما چت کنند
             </p>
             <v-btn
               color="primary"
@@ -219,7 +219,7 @@
               <v-icon size="40" color="primary" class="ml-3">mdi-chat</v-icon>
               <div>
                 <div class="text-h5">{{ rooms.length }}</div>
-                <div class="text-caption text-grey">کل گفتگوها</div>
+                <div class="text-caption text-grey">کل چت‌ها</div>
               </div>
             </div>
           </v-card-text>

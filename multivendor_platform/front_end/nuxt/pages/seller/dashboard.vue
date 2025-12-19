@@ -913,7 +913,7 @@
                       <v-card v-else-if="!loadingChats && chatRooms.length === 0" elevation="0" class="flex-grow-1 d-flex align-center justify-center">
                         <div class="text-center text-medium-emphasis">
                           <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-chat-outline</v-icon>
-                          <div class="text-body-1">هیچ گفتگویی وجود ندارد</div>
+                          <div class="text-body-1">هیچ چتی وجود ندارد</div>
                         </div>
                       </v-card>
                     </v-card>
@@ -955,7 +955,7 @@
                     <v-card v-else elevation="2" rounded="xl" height="650" class="d-flex align-center justify-center bg-grey-lighten-5">
                       <div class="text-center text-medium-emphasis">
                         <v-icon size="80" color="grey-lighten-1" class="mb-4">mdi-chat-processing-outline</v-icon>
-                        <div class="text-h6">یک گفتگو را انتخاب کنید</div>
+                        <div class="text-h6">یک چت را انتخاب کنید</div>
                       </div>
                     </v-card>
                   </v-col>

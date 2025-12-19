@@ -11,7 +11,7 @@
       elevation="2"
     >
       <v-icon class="ml-2">mdi-message-text</v-icon>
-      <span class="button-text">گفتگو با فروشنده</span>
+      <span class="button-text">چت با فروشنده</span>
       <v-icon class="mr-2" size="x-small">mdi-chevron-left</v-icon>
     </v-btn>
 
@@ -25,7 +25,7 @@
       <div class="d-flex align-center">
         <v-icon class="ml-2">mdi-check-circle</v-icon>
         <div>
-          <div class="font-weight-bold">گفتگو شروع شد!</div>
+          <div class="font-weight-bold">چت شروع شد!</div>
           <div class="text-caption">پنجره چت را در پایین صفحه ببینید</div>
         </div>
       </div>
@@ -41,7 +41,7 @@
       <div class="d-flex align-center">
         <v-icon class="ml-2">mdi-alert-circle</v-icon>
         <div>
-          <div class="font-weight-bold">خطا در شروع گفتگو</div>
+          <div class="font-weight-bold">خطا در شروع چت</div>
           <div class="text-caption">لطفا دوباره تلاش کنید</div>
         </div>
       </div>

@@ -32,4 +32,15 @@ import ToastContainer from '~/components/common/ToastContainer.vue'
 ::view-transition-new(root) {
   animation-duration: 0.3s;
 }
+
+/* Ensure chat widget appears above Vuetify app-bar */
+.chat-widget,
+.chat-panel {
+  z-index: 2000 !important;
+}
+
+/* Ensure Vuetify app-bar z-index is lower than chat widget */
+.v-app-bar {
+  z-index: 1000 !important;
+}
 </style>

@@ -62,7 +62,7 @@
         <v-card-title class="chat-header">
           <div class="d-flex align-center w-100">
             <v-icon class="ml-2" color="white">mdi-chat-processing</v-icon>
-            <span class="text-white flex-grow-1">گفتگوها</span>
+            <span class="text-white flex-grow-1">چت‌ها</span>
             
             <!-- Connection Status -->
             <v-tooltip location="bottom">
@@ -281,7 +281,7 @@ onUnmounted(() => {
   position: fixed;
   bottom: 80px;
   right: 20px;
-  z-index: 1000;
+  z-index: 2000 !important;
   direction: rtl;
 }
 
@@ -432,7 +432,7 @@ onUnmounted(() => {
     box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
   }
   50% {
-    transform: scale(1.1);
+    transform: scale(1.4);
     box-shadow: 0 0 0 4px rgba(76, 175, 80, 0);
   }
 }
@@ -444,7 +444,7 @@ onUnmounted(() => {
     box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
   }
   50% {
-    transform: scale(1.1);
+    transform: scale(1.4);
     opacity: 0.7;
     box-shadow: 0 0 0 4px rgba(244, 67, 54, 0);
   }
@@ -463,6 +463,7 @@ onUnmounted(() => {
   border-radius: 16px !important;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+  z-index: 2000 !important;
 }
 
 .chat-header {
@@ -500,7 +501,7 @@ onUnmounted(() => {
   right: 20px;
   width: 420px;
   max-width: 90vw;
-  z-index: 1001;
+  z-index: 2001 !important;
 }
 
 @media (max-width: 600px) {
@@ -528,6 +529,7 @@ onUnmounted(() => {
   }
   
   .chat-panel {
+    top: 0 !important;
     bottom: 0;
     right: 0;
     left: 0;
@@ -536,6 +538,7 @@ onUnmounted(() => {
     height: 100vh;
     max-height: 100vh;
     border-radius: 0 !important;
+    z-index: 2000 !important;
   }
 
   .chat-content {
@@ -548,6 +551,7 @@ onUnmounted(() => {
     right: 10px;
     left: 10px;
     width: auto;
+    z-index: 2001 !important;
   }
 }
 

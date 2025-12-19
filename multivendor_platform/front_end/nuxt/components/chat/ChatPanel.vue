@@ -4,7 +4,7 @@
     <div class="search-bar">
       <v-text-field
         v-model="searchQuery"
-        placeholder="جستجوی گفتگو..."
+        placeholder="جستجوی چت..."
         variant="outlined"
         density="compact"
         hide-details
@@ -54,7 +54,7 @@
     <div v-if="loading" class="d-flex justify-center align-center pa-8">
       <div class="text-center">
         <v-progress-circular indeterminate color="primary" size="48" />
-        <p class="text-grey mt-4">در حال بارگذاری گفتگوها...</p>
+        <p class="text-grey mt-4">در حال بارگذاری چت‌ها...</p>
       </div>
     </div>
 
@@ -64,10 +64,10 @@
         {{ searchQuery ? 'mdi-chat-search' : 'mdi-chat-outline' }}
       </v-icon>
       <p class="text-h6 text-grey mt-4 mb-2">
-        {{ searchQuery ? 'گفتگویی یافت نشد' : 'هنوز گفتگویی ندارید' }}
+        {{ searchQuery ? 'چتی یافت نشد' : 'هنوز چتی ندارید' }}
       </p>
       <p class="text-caption text-grey">
-        {{ searchQuery ? 'عبارت دیگری جستجو کنید' : 'برای شروع گفتگو، به صفحه محصول بروید' }}
+        {{ searchQuery ? 'عبارت دیگری جستجو کنید' : 'برای شروع چت، به صفحه محصول بروید' }}
       </p>
     </div>
 

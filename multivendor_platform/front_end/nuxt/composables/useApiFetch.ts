@@ -9,6 +9,10 @@ interface ExtendedFetchOptions<T> extends FetchOptions<T> {
    * If true, 404 errors will not redirect to 404 page (default: false)
    */
   skip404Redirect?: boolean
+  /**
+   * If true, 500 errors will not redirect to 500 page (default: false)
+   */
+  skip500Redirect?: boolean
 }
 
 export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOptions<T> = {}) => {
@@ -92,7 +96,7 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
     }
   }
 
-  const { params, skip404Redirect, ...restOptions } = options
+  const { params, skip404Redirect, skip500Redirect, ...restOptions } = options
 
   try {
     return await $fetch<T>(url, {
@@ -102,34 +106,41 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
       credentials: restOptions.credentials ?? 'include'
     })
   } catch (error: any) {
-    // Handle 404 errors - redirect to 404 page
+    // Handle 404 and 500 errors - redirect to appropriate error pages
     const statusCode = error?.statusCode || error?.status || error?.response?.status
     
-    if (statusCode === 404 && !skip404Redirect) {
-      // Only redirect for GET requests (page resources like products, blogs, etc.)
-      const isGetRequest = !options.method || options.method === 'GET' || options.method === 'get'
-      
-      // Don't redirect for API endpoints (auth, dashboard, etc.) - let the calling code handle the error
-      const isApiEndpoint = endpointPath.startsWith('auth/') || 
-                           endpointPath.startsWith('api/') ||
-                           endpointPath.includes('/dashboard/') ||
-                           endpointPath.includes('/orders/') ||
-                           endpointPath.includes('/reviews/')
-      
-      if (isGetRequest && process.client && !isApiEndpoint) {
-        try {
-          const route = useRoute()
-          // Check if we're already on the 404 page to avoid redirect loops
-          if (route.path !== '/404') {
-            // Navigate to 404 page - this will handle the user experience
-            navigateTo('/404').catch(() => {
-              // If navigation fails silently, continue with error handling
-            })
-          }
-        } catch (navError) {
-          // If navigation fails, continue with normal error handling
-          console.warn('Failed to navigate to 404 page:', navError)
+    // Only redirect for GET requests (page resources like products, blogs, etc.)
+    const isGetRequest = !options.method || options.method === 'GET' || options.method === 'get'
+    
+    // Don't redirect for API endpoints (auth, dashboard, etc.) - let the calling code handle the error
+    const isApiEndpoint = endpointPath.startsWith('auth/') || 
+                         endpointPath.startsWith('api/') ||
+                         endpointPath.includes('/dashboard/') ||
+                         endpointPath.includes('/orders/') ||
+                         endpointPath.includes('/reviews/')
+    
+    if (isGetRequest && process.client && !isApiEndpoint) {
+      try {
+        const route = useRoute()
+        
+        // Handle 404 errors - redirect to 404 page
+        if (statusCode === 404 && !skip404Redirect && route.path !== '/404') {
+          // Navigate to 404 page - this will handle the user experience
+          navigateTo('/404').catch(() => {
+            // If navigation fails silently, continue with error handling
+          })
         }
+        
+        // Handle 500 errors - redirect to 500 page
+        if (statusCode === 500 && !skip500Redirect && route.path !== '/500') {
+          // Navigate to 500 page - this will handle the user experience
+          navigateTo('/500').catch(() => {
+            // If navigation fails silently, continue with error handling
+          })
+        }
+      } catch (navError) {
+        // If navigation fails, continue with normal error handling
+        console.warn('Failed to navigate to error page:', navError)
       }
     }
     

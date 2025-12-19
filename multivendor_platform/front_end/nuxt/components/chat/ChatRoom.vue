@@ -81,6 +81,18 @@
         <p class="text-grey mt-2">در حال بارگذاری پیام‌ها...</p>
       </div>
 
+      <div v-else-if="!chatStore.isConnected" class="empty-messages">
+        <v-icon size="64" color="warning">mdi-wifi-off</v-icon>
+        <p class="text-grey mt-4">ارتباط با سرور برقرار نیست</p>
+        <p class="text-caption text-grey">لطفاً منتظر بمانید تا ارتباط برقرار شود...</p>
+        <v-progress-circular 
+          indeterminate 
+          color="warning" 
+          size="24" 
+          class="mt-4"
+        />
+      </div>
+
       <div v-else-if="messages.length === 0" class="empty-messages">
         <v-icon size="64" color="grey-lighten-2">mdi-chat-processing-outline</v-icon>
         <p class="text-grey mt-4">هنوز پیامی ارسال نشده است</p>
@@ -195,7 +207,7 @@
 
       <!-- Typing Indicator -->
       <v-fade-transition>
-        <div v-if="typingUsers.length > 0" class="message message-other">
+        <div v-if="chatStore.isConnected && typingUsers.length > 0" class="message message-other">
           <div class="message-bubble typing-indicator">
             <div class="typing-animation">
               <span></span>
@@ -249,9 +261,9 @@
     <!-- Input -->
     <div class="chat-input">
       <v-btn
-        :disabled="!messageText.trim()"
+        :disabled="!chatStore.isConnected || !messageText.trim()"
         @click="sendMessage"
-        :color="messageText.trim() ? 'primary' : 'grey'"
+        :color="(chatStore.isConnected && messageText.trim()) ? 'primary' : 'grey'"
         class="send-btn"
         size="large"
         icon
@@ -262,7 +274,8 @@
 
       <v-textarea
         v-model="messageText"
-        placeholder="پیام خود را بنویسید..."
+        :placeholder="chatStore.isConnected ? 'پیام خود را بنویسید...' : 'در حال اتصال به سرور...'"
+        :disabled="!chatStore.isConnected"
         variant="outlined"
         density="comfortable"
         hide-details
@@ -448,6 +461,11 @@ const formatMessageTime = (timestamp: string) => {
 }
 
 const sendMessage = () => {
+  // Prevent sending if not connected
+  if (!chatStore.isConnected) {
+    return
+  }
+  
   // Prevent empty messages
   if (!messageText.value.trim()) return
 
@@ -475,6 +493,11 @@ const handleShiftEnter = (event: KeyboardEvent) => {
 }
 
 const handleTyping = () => {
+  // Don't send typing indicator if not connected
+  if (!chatStore.isConnected) {
+    return
+  }
+  
   // Send typing indicator
   chatStore.setTyping(props.roomId, true)
 
