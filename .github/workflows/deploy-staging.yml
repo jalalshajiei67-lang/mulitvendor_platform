@@ -5,12 +5,19 @@ on:
       - staging
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Wait for images to be built first (if build workflow exists)
+    # This ensures images are available before deployment
+    needs: []
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Copy files to VPS
         uses: appleboy/scp-action@master
@@ -58,9 +65,28 @@ jobs:
             EOF
             fi
             
+            # Set Docker registry variables for image pulling
+            # These will be used by docker-compose.staging.yml
+            echo "DOCKER_REGISTRY=${{ env.REGISTRY }}" >> .env.staging
+            echo "DOCKER_REPO=${{ env.IMAGE_PREFIX }}" >> .env.staging
+            echo "IMAGE_TAG=staging" >> .env.staging
+            
             # Copy .env.staging to .env for Docker Compose variable substitution
-            # Docker Compose automatically reads .env file for ${VARIABLE} substitution
             cp .env.staging .env
+            
+            # Authenticate with GitHub Container Registry
+            echo "🔐 Authenticating with GitHub Container Registry..."
+            # Try using Personal Access Token first (recommended for private repos)
+            if [ -n "${{ secrets.GHCR_TOKEN }}" ]; then
+              echo "${{ secrets.GHCR_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+            elif [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
+              # Fallback to GITHUB_TOKEN (works for public repos)
+              echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin || {
+                echo "⚠️  GITHUB_TOKEN authentication failed. Trying public pull..."
+              }
+            else
+              echo "⚠️  No authentication token found. Trying public pull (may fail for private repos)..."
+            fi
             
             # Stop and remove old containers using docker compose (more reliable)
             docker compose -f docker-compose.staging.yml down || true
@@ -71,6 +97,14 @@ jobs:
             
             # Ensure network exists (will be created by docker compose if not exists)
             docker network create multivendor_network --driver bridge || true
+            
+            # Pull latest images from registry (no build needed!)
+            echo "📥 Pulling latest images from registry..."
+            docker compose -f docker-compose.staging.yml pull backend frontend || {
+              echo "⚠️  Failed to pull images. This might be the first build."
+              echo "💡 Images will be built by GitHub Actions workflow first."
+              echo "💡 Make sure 'Build and Push Docker Images' workflow runs before this."
+            }
             
             # Start database first to fix password if needed (stateless solution)
             echo "Starting database container..."
@@ -149,9 +183,9 @@ jobs:
               echo "Database password is correct"
             fi
             
-            # Deploy all services (Docker Compose will use .env for variable substitution)
-            echo "Starting all services..."
-            docker compose -f docker-compose.staging.yml up -d --build
+            # Deploy all services (pulls images, no build needed!)
+            echo "🚀 Starting all services with pre-built images..."
+            docker compose -f docker-compose.staging.yml up -d
             
             # Clean up unused images
             docker image prune -f

@@ -63,9 +63,9 @@ services:
 
   # Django Backend
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
+    # Use pre-built image from GitHub Container Registry
+    # Image is built by GitHub Actions and pushed to ghcr.io
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_REPO:-damirco}-backend:${IMAGE_TAG:-staging}
     container_name: multivendor_backend_staging
     environment:
       - DB_ENGINE=django.db.backends.postgresql
@@ -113,12 +113,9 @@ services:
 
   # Nuxt.js Frontend
   frontend:
-    build:
-      context: ./multivendor_platform/front_end/nuxt
-      dockerfile: Dockerfile.frontend
-      args:
-        NUXT_PUBLIC_API_BASE: https://${API_DOMAIN}/api
-        NUXT_PUBLIC_SITE_URL: https://${MAIN_DOMAIN}
+    # Use pre-built image from GitHub Container Registry
+    # Image is built by GitHub Actions and pushed to ghcr.io
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_REPO:-damirco}-frontend:${IMAGE_TAG:-staging}
     container_name: multivendor_frontend_staging
     env_file:
       - .env.staging
