@@ -6,7 +6,8 @@ const projectRoot = fileURLToPath(new URL('./', import.meta.url))
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-11-14',
-  devtools: { enabled: true },
+  // Disable devtools in production to reduce memory usage
+  devtools: { enabled: process.env.NODE_ENV !== 'production' },
   ssr: true,
   css: [
     'vuetify/styles',
@@ -160,6 +161,7 @@ export default defineNuxtConfig({
   },
   build: {
     transpile: ['vuetify']
+    // Source maps disabled in vite.build section below
   },
   vite: {
     define: {
@@ -171,6 +173,10 @@ export default defineNuxtConfig({
     build: {
       // Optimize build for low-memory environments
       chunkSizeWarningLimit: 1000,
+      // Disable source maps to reduce memory usage
+      sourcemap: false,
+      // Use esbuild for minification (more memory efficient than terser)
+      minify: 'esbuild',
       rollupOptions: {
         output: {
           manualChunks: undefined // Let Vite handle chunking automatically

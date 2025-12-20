@@ -5,8 +5,10 @@ FROM node:20-slim AS build-stage
 WORKDIR /app
 
 # Set Node.js memory limit optimized for 2GB RAM VPS
-# Using 1536MB to leave room for Docker and system processes
-ENV NODE_OPTIONS=--max-old-space-size=1536
+# Using 1024MB - if this fails, you MUST add swap space on your VPS
+# Docker build process needs memory, but 1024MB should work with swap
+ENV NODE_OPTIONS=--max-old-space-size=1024
+ENV NODE_ENV=production
 
 # Accept build arguments
 ARG NUXT_PUBLIC_API_BASE=""
@@ -17,17 +19,20 @@ ENV NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with memory optimizations
-# Clear npm cache and use production flag to reduce memory usage
-RUN npm ci --legacy-peer-deps --force --prefer-offline --no-audit && \
-    npm rebuild && \
+# Install dependencies with aggressive memory optimizations
+# Split into separate steps to free memory between operations
+RUN npm ci --legacy-peer-deps --force --prefer-offline --no-audit --no-fund && \
     npm cache clean --force
+
+# Rebuild native modules separately to reduce peak memory
+RUN npm rebuild || true
 
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application with production optimizations
+# The build script already includes memory limit, but we set it here too for safety
+RUN NODE_ENV=production npm run build:low-memory
 
 # Stage 2: Production stage
 FROM node:20-slim AS production-stage
