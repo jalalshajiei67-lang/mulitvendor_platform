@@ -5,11 +5,17 @@ set -e
 
 echo "🚀 Starting Deployment Script..."
 
-# 1. Build Images
+# 1. Ensure docker-compose.yml exists
+if [ ! -f docker-compose.yml ] && [ -f docker-compose.production.yml ]; then
+  echo "📋 Copying docker-compose.production.yml to docker-compose.yml..."
+  cp docker-compose.production.yml docker-compose.yml
+fi
+
+# 2. Build Images
 echo "🔨 Building Docker images..."
 docker compose build
 
-# 2. Start Services
+# 3. Start Services
 echo "🚀 Updating services..."
 docker compose up -d --remove-orphans
 

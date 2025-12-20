@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Production Deployment
 
 on:
   push:
@@ -9,24 +9,53 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to VPS
+      - name: Validate Secrets
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ]; then
+            echo "❌ Error: VPS_HOST secret is not set"
+            echo "   Expected: 91.107.172.234 (your production VPS IP)"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VPS_USER }}" ]; then
+            echo "❌ Error: VPS_USER secret is not set"
+            echo "   Add this secret with your SSH username (e.g., 'root' or 'deploy')"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "❌ Error: VPS_SSH_KEY secret is not set"
+            exit 1
+          fi
+          
+          echo "✅ All required production secrets are configured"
+      
+      - name: Deploy to Production VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          timeout: 30s
           script_stop: true # This stops the script if any command fails
           debug: true # Enable debug output to troubleshoot SSH issues
           script: |
-            cd /home/${{ secrets.VPS_USER }}/docker-deploy
+            cd /home/deploy/docker-deploy
+            
+            # 0. Fix Git ownership issue (if repository is owned by different user)
+            git config --global --add safe.directory /home/deploy/docker-deploy || true
             
             # 1. FORCE reset changes (Fixes the git abort error)
             git fetch --all
             git reset --hard origin/main
             
-            # 2. Fix line endings just in case
+            # 2. Ensure docker-compose.yml exists (copy from production if needed)
+            if [ ! -f docker-compose.yml ] && [ -f docker-compose.production.yml ]; then
+              cp docker-compose.production.yml docker-compose.yml
+            fi
+            
+            # 3. Fix line endings just in case
             sed -i 's/\r$//' deploy.sh
             chmod +x deploy.sh
             
-            # 3. Run deploy
+            # 4. Run deploy
             ./deploy.sh

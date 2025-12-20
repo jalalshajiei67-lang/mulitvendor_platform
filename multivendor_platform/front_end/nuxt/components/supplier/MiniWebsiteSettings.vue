@@ -5,7 +5,7 @@
       <v-card-title class="text-h4 font-weight-bold d-flex align-center gap-3 pa-6 bg-green-lighten-5">
         <v-icon size="40" color="primary">mdi-palette</v-icon>
         <div>
-          <div>تنظیمات صفحه شرکت شما</div>
+          <div>تنظیمات صفحه فروشگاه شما</div>
           <div class="text-caption text-medium-emphasis mt-2">اطلاعات کسب‌وکار و ظاهر صفحه را تنظیم کنید</div>
         </div>
       </v-card-title>
@@ -26,52 +26,47 @@
           <v-card class="mb-8" elevation="1" rounded="lg" outlined>
             <v-card-title class="text-h6 font-weight-bold pa-5 bg-green-lighten-5">
               <v-icon size="28" class="me-3">mdi-store</v-icon>
-              مشخصات شرکت
+              مشخصات فروشگاه
             </v-card-title>
             <v-card-text class="pa-6">
               <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
-                اطلاعات پایه‌ای شرکت خود را وارد کنید. این اطلاعات را مشتریان می‌بینند.
+                اطلاعات پایه‌ای فروشگاه خود را وارد کنید. این اطلاعات را مشتریان می‌بینند.
               </div>
 
               <!-- Store Name - Most Important -->
               <div class="mb-6">
                 <v-text-field
                   v-model="formData.store_name"
-                  label="نام شرکت"
+                  label="نام فروشگاه یا شرکت"
+                  prepend-icon="mdi-label"
                   variant="outlined"
                   density="comfortable"
                   size="large"
                   class="text-input-large"
-                  hint="مثال: شرکت آرتا برای صنایع"
-                  :rules="[v => !!v || 'لطفاً نام شرکت را وارد کنید']"
+                  hint="مثال: فروشگاه آرتا برای صنایع"
+                  :rules="[v => !!v || 'لطفاً نام فروشگاه را وارد کنید']"
                   data-tour="store-name-input"
-                >
-                  <template #prepend>
-                    <v-icon color="primary" size="24">mdi-store</v-icon>
-                  </template>
-                </v-text-field>
+                ></v-text-field>
               </div>
 
               <!-- Description - Important -->
               <div class="mb-6">
-                <div class="text-body-2 font-weight-bold mb-2">توضیحات درباره شرکت</div>
+                <div class="text-body-2 font-weight-bold mb-2">توضیحات درباره فروشگاه</div>
                 <div class="text-caption text-medium-emphasis mb-3">
                   چند جمله درباره کسب‌وکار، تجربه و محصولات خود بنویسید
                 </div>
                 <v-textarea
                   v-model="formData.description"
+                  placeholder="مثال: ما برای بیش از ۲۰ سال تولید ماشین‌آلات صنعتی می‌کنیم..."
+                  prepend-icon="mdi-text"
                   rows="5"
                   variant="outlined"
                   density="comfortable"
-                  hint="مثال: ما برای بیش از ۲۰ سال تولید ماشین‌آلات صنعتی می‌کنیم... (حداقل ۲۰۰ حرف)"
+                  hint="حداقل ۲۰۰ حرف بنویسید"
                   counter="500"
                   :rules="descriptionRules"
                   data-tour="store-description-input"
-                >
-                  <template #prepend>
-                    <v-icon color="primary" size="24">mdi-text</v-icon>
-                  </template>
-                </v-textarea>
+                ></v-textarea>
               </div>
 
               <!-- Slogan - Brand Statement -->
@@ -79,16 +74,13 @@
                 <v-text-field
                   v-model="formData.slogan"
                   label="شعار یا جمله‌ی معرفی شرکت"
+                  prepend-icon="mdi-star"
                   variant="outlined"
                   density="comfortable"
                   hint="مثال: بهترین کیفیت، بهترین قیمت"
                   counter="100"
                   :rules="[v => !v || v.length <= 100 || 'حداکثر 100 حرف']"
-                >
-                  <template #prepend>
-                    <v-icon color="primary" size="24">mdi-star</v-icon>
-                  </template>
-                </v-text-field>
+                ></v-text-field>
               </div>
             </v-card-text>
           </v-card>
@@ -97,7 +89,7 @@
           <v-card class="mb-8" elevation="1" rounded="lg" outlined>
             <v-card-title class="text-h6 font-weight-bold pa-5 bg-green-lighten-5">
               <v-icon size="28" class="me-3">mdi-palette</v-icon>
-              رنگ و ظاهر صفحه شرکت
+              رنگ و ظاهر صفحه فروشگاه
             </v-card-title>
             <v-card-text class="pa-6">
               <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
@@ -137,17 +129,14 @@
                 <v-file-input
                   v-model="bannerFile"
                   label="انتخاب تصویر از کامپیوتر"
+                  prepend-icon="mdi-image"
                   accept="image/*"
                   @change="onBannerChange"
                   variant="outlined"
                   density="comfortable"
                   class="file-input-large"
                   hint="تصاویر JPG یا PNG"
-                >
-                  <template #prepend>
-                    <v-icon color="primary" size="24">mdi-image</v-icon>
-                  </template>
-                </v-file-input>
+                ></v-file-input>
               </div>
 
               <!-- Colors Section -->
@@ -216,49 +205,28 @@
                 <v-col cols="12" md="6">
                   <v-text-field
                     v-model="formData.contact_phone"
-                    label="موبایل"
+                    label="شماره تلفن"
+                    prepend-icon="mdi-phone"
                     variant="outlined"
                     density="comfortable"
                     hint="مثال: 09123456789"
                     :rules="phoneRules"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-cellphone</v-icon>
-                    </template>
-                  </v-text-field>
+                  ></v-text-field>
                 </v-col>
 
                 <v-col cols="12" md="6">
                   <v-text-field
-                    v-model="formData.contact_phone_landline"
-                    label="شماره تلفن"
-                    variant="outlined"
-                    density="comfortable"
-                    hint="مثال: 02112345678"
-                    :rules="phoneRules"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-phone</v-icon>
-                    </template>
-                  </v-text-field>
-                </v-col>
-
-                <!-- Email field hidden from dashboard but kept in backend -->
-                <!-- <v-col cols="12" md="6">
-                  <v-text-field
                     v-model="formData.contact_email"
                     label="ایمیل تماس"
+                    prepend-icon="mdi-email"
                     type="email"
                     variant="outlined"
                     density="comfortable"
                     hint="مثال: info@example.com"
                     :rules="emailRules"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-email</v-icon>
-                    </template>
-                  </v-text-field>
-                </v-col> -->
+                    class="ltr-input-field"
+                  ></v-text-field>
+                </v-col>
               </v-row>
             </v-card-text>
           </v-card>
@@ -280,49 +248,41 @@
                     v-model="formData.year_established"
                     :items="persianYears"
                     label="سال تاسیس"
+                    prepend-icon="mdi-calendar"
                     variant="outlined"
                     density="comfortable"
                     hint="سال شروع کسب‌وکار"
                     clearable
                     item-title="label"
                     item-value="value"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-calendar</v-icon>
-                    </template>
-                  </v-select>
+                  ></v-select>
                 </v-col>
 
                 <v-col cols="12" md="6">
                   <v-text-field
                     v-model.number="formData.employee_count"
                     label="تعداد کارمندان"
+                    prepend-icon="mdi-account-group"
                     type="number"
                     variant="outlined"
                     density="comfortable"
                     hint="مثال: 50"
                     :min="1"
                     :rules="employeeCountRules"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-account-group</v-icon>
-                    </template>
-                  </v-text-field>
+                  ></v-text-field>
                 </v-col>
 
                 <v-col cols="12">
                   <v-text-field
                     v-model="formData.website"
                     label="آدرس وب‌سایت (اختیاری)"
+                    prepend-icon="mdi-web"
                     variant="outlined"
                     density="comfortable"
                     hint="مثال: example.com"
                     :rules="urlRules"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-web</v-icon>
-                    </template>
-                  </v-text-field>
+                    class="ltr-input-field"
+                  ></v-text-field>
                 </v-col>
               </v-row>
             </v-card-text>
@@ -336,7 +296,7 @@
             </v-card-title>
             <v-card-text class="pa-6">
               <div class="text-body-1 text-medium-emphasis mb-6 line-height-lg">
-                داشتن هر مدرکی که نشان دهنده تائید یا قدردانی از شما توسط دیگران است را در این بخش قرار دهید.
+                گواهینامه‌ها و جوایز خود را معرفی کنید تا مشتریان اعتماد بیشتری پیدا کنند
               </div>
 
               <!-- Certifications -->
@@ -369,7 +329,7 @@
                           density="compact"
                           variant="outlined"
                           hint="مثال: ISO 9001"
-                          persistent-hint
+                          hide-details
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="4">
@@ -379,7 +339,7 @@
                           density="compact"
                           variant="outlined"
                           hint="مثال: سازمان استاندارد"
-                          persistent-hint
+                          hide-details
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="2">
@@ -389,7 +349,7 @@
                           density="compact"
                           variant="outlined"
                           hint="مثال: 1400"
-                          persistent-hint
+                          hide-details
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="1" class="d-flex align-center justify-center">
@@ -436,7 +396,7 @@
                           density="compact"
                           variant="outlined"
                           hint="مثال: برترین تولیدکننده"
-                          persistent-hint
+                          hide-details
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="3">
@@ -446,7 +406,7 @@
                           density="compact"
                           variant="outlined"
                           hint="مثال: اتاق بازرگانی"
-                          persistent-hint
+                          hide-details
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="2">
@@ -456,7 +416,7 @@
                           density="compact"
                           variant="outlined"
                           hint="مثال: 1400"
-                          persistent-hint
+                          hide-details
                         ></v-text-field>
                       </v-col>
                       <v-col cols="12" md="2">
@@ -500,61 +460,52 @@
                   <v-text-field
                     v-model="socialMedia.instagram"
                     label="اینستاگرام"
+                    prepend-icon="mdi-instagram"
                     variant="outlined"
                     density="comfortable"
-                    hint="مثال: https://instagram.com/store"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-instagram</v-icon>
-                    </template>
-                  </v-text-field>
+                    hint="https://instagram.com/yourpage"
+                    class="ltr-input-field social-media-field"
+                  ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
                   <v-text-field
                     v-model="socialMedia.telegram"
                     label="تلگرام"
+                    prepend-icon="mdi-telegram"
                     variant="outlined"
                     density="comfortable"
-                    hint="مثال: https://t.me/store"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-telegram</v-icon>
-                    </template>
-                  </v-text-field>
+                    hint="https://t.me/yourchannel"
+                    class="ltr-input-field social-media-field"
+                  ></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
                   <v-text-field
                     v-model="socialMedia.whatsapp"
                     label="واتساپ"
+                    prepend-icon="mdi-whatsapp"
                     variant="outlined"
                     density="comfortable"
-                    hint="مثال: https://wa.me/989123456789"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-whatsapp</v-icon>
-                    </template>
-                  </v-text-field>
+                    hint="https://wa.me/989123456789"
+                    class="ltr-input-field social-media-field"
+                  ></v-text-field>
                 </v-col>
-                <!-- LinkedIn field hidden from dashboard but kept in backend -->
-                <!-- <v-col cols="12" md="6">
+                <v-col cols="12" md="6">
                   <v-text-field
                     v-model="socialMedia.linkedin"
                     label="لینکدین"
+                    prepend-icon="mdi-linkedin"
                     variant="outlined"
                     density="comfortable"
-                    hint="مثال: https://linkedin.com/company/store"
-                  >
-                    <template #prepend>
-                      <v-icon color="primary" size="24">mdi-linkedin</v-icon>
-                    </template>
-                  </v-text-field>
-                </v-col> -->
+                    hint="https://linkedin.com/company/yourcompany"
+                    class="ltr-input-field social-media-field"
+                  ></v-text-field>
+                </v-col>
               </v-row>
             </v-card-text>
           </v-card>
 
-          <!-- SECTION 7: SEO (Optional - Collapsed) - Hidden from dashboard but kept in backend -->
-          <!-- <v-expansion-panels>
+          <!-- SECTION 7: SEO (Optional - Collapsed) -->
+          <v-expansion-panels>
             <v-expansion-panel rounded="lg" elevation="1">
               <template #title>
                 <v-icon size="24" class="me-3" color="primary">mdi-search-web</v-icon>
@@ -574,7 +525,7 @@
                       variant="outlined"
                       density="comfortable"
                       counter="60"
-                      hint="مثال: شرکت آنلاین ماشین‌آلات"
+                      hint="مثال: فروشگاه آنلاین ماشین‌آلات"
                       :rules="[v => !v || v.length <= 60 || 'حداکثر 60 حرف']"
                     ></v-text-field>
                   </v-col>
@@ -585,14 +536,14 @@
                       variant="outlined"
                       rows="3"
                       counter="160"
-                      hint="مثال: شرکت آنلاین انواع ماشین‌آلات با بهترین کیفیت و قیمت"
+                      hint="مثال: فروشگاه آنلاین انواع ماشین‌آلات..."
                       :rules="[v => !v || v.length <= 160 || 'حداکثر 160 حرف']"
                     ></v-textarea>
                   </v-col>
                 </v-row>
               </v-card-text>
             </v-expansion-panel>
-          </v-expansion-panels> -->
+          </v-expansion-panels>
         </v-form>
       </v-card-text>
 
@@ -617,14 +568,13 @@
           size="x-large"
           variant="outlined"
           prepend-icon="mdi-eye"
-          :disabled="!supplierId"
           :loading="loadingSettings"
           @click="previewWebsite"
           class="flex-grow-1"
           min-width="200"
           data-tour="preview-website"
         >
-          دیدن صفحه شرکت
+          دیدن صفحه فروشگاه
         </v-btn>
 
         <v-btn
@@ -645,7 +595,7 @@
       <v-card-text class="pa-6 d-flex align-center gap-4">
         <v-icon size="32" color="primary">mdi-link</v-icon>
         <div class="flex-grow-1">
-          <div class="text-body-2 text-medium-emphasis mb-2">آدرس صفحه شرکت شما:</div>
+          <div class="text-body-2 text-medium-emphasis mb-2">آدرس صفحه فروشگاه شما:</div>
           <div class="text-body-1 font-weight-bold text-primary">{{ fullPreviewUrl }}</div>
         </div>
         <v-btn
@@ -700,7 +650,6 @@ const formData = ref({
   description: '',
   contact_email: '',
   contact_phone: '',
-  contact_phone_landline: '',
   website: '',
   brand_color_primary: '#4CAF50',
   brand_color_secondary: '#388E3C',
@@ -722,15 +671,9 @@ const socialMedia = ref({
 })
 
 // Computed properties
-// Count only visible social media (exclude LinkedIn which is hidden)
-const socialLinksCount = computed(() => {
-  const visibleSocialMedia = {
-    instagram: socialMedia.value.instagram,
-    telegram: socialMedia.value.telegram,
-    whatsapp: socialMedia.value.whatsapp
-  }
-  return Object.values(visibleSocialMedia).filter(Boolean).length
-})
+const socialLinksCount = computed(() => 
+  Object.values(socialMedia.value).filter(Boolean).length
+)
 
 const persianYears = computed(() => {
   const years: Array<{ label: string; value: number }> = []
@@ -795,14 +738,14 @@ const employeeCountRules = [
 const miniSiteMetrics = computed(() => [
   {
     key: 'name',
-    label: 'نام شرکت',
-    tip: 'نام شرکت را وارد کنید',
+    label: 'نام فروشگاه',
+    tip: 'نام فروشگاه را وارد کنید',
     weight: 0.15,
     passed: Boolean(formData.value.store_name)
   },
   {
     key: 'about',
-    label: 'توضیحات شرکت',
+    label: 'توضیحات فروشگاه',
     tip: 'درباره شرکت خود بنویسید',
     weight: 0.15,
     passed: Boolean(formData.value.description && formData.value.description.length >= 50)
@@ -824,9 +767,9 @@ const miniSiteMetrics = computed(() => [
   {
     key: 'contact',
     label: 'راه‌های تماس',
-    tip: 'شماره موبایل یا تلفن را وارد کنید',
+    tip: 'تلفن یا ایمیل بگذارید',
     weight: 0.15,
-    passed: Boolean(formData.value.contact_phone || formData.value.contact_phone_landline)
+    passed: Boolean(formData.value.contact_phone || formData.value.contact_email)
   },
   {
     key: 'company',
@@ -929,13 +872,12 @@ const loadCurrentSettings = async () => {
   
   loadingSettings.value = true
   try {
-    // Use single source of truth from store
-    let vendorProfile = authStore.vendorProfile
+    let vendorProfile = authStore.user?.vendor_profile || authStore.vendorProfile
 
     if (!vendorProfile?.id) {
       try {
-        await authStore.fetchCurrentUser()
-        vendorProfile = authStore.vendorProfile
+        const fetchedUser = await authStore.fetchCurrentUser()
+        vendorProfile = fetchedUser?.vendor_profile
       } catch (err) {
         console.error('Error fetching user:', err)
       }
@@ -950,7 +892,6 @@ const loadCurrentSettings = async () => {
         description: vendorProfile.description || '',
         contact_email: vendorProfile.contact_email || '',
         contact_phone: vendorProfile.contact_phone || '',
-        contact_phone_landline: vendorProfile.contact_phone_landline || '',
         website: vendorProfile.website || '',
         brand_color_primary: vendorProfile.brand_color_primary || '#4CAF50',
         brand_color_secondary: vendorProfile.brand_color_secondary || '#388E3C',
@@ -1016,15 +957,6 @@ const saveSettings = async () => {
     }
 
     await supplierApi.updateSupplierProfile(updateData)
-    const awarded = await awardMiniWebsite()
-    if (awarded > 0) {
-      snackbarMessage.value = `تغییرات ذخیره شد (+${awarded} امتیاز)`
-      try {
-        await gamificationStore.hydrate()
-      } catch (e) {
-        console.warn('Failed to hydrate gamification after mini site update', e)
-      }
-    }
     
     try {
       await authStore.fetchCurrentUser()
@@ -1058,6 +990,10 @@ const previewWebsite = async () => {
   if (previewUrl.value) {
     const fullUrl = window.location.origin + previewUrl.value
     window.open(fullUrl, '_blank', 'noopener,noreferrer')
+  } else {
+    snackbarMessage.value = 'لطفاً ابتدا اطلاعات را ذخیره کنید تا صفحه فروشگاه شما ایجاد شود'
+    snackbarColor.value = 'warning'
+    snackbar.value = true
   }
 }
 
@@ -1073,21 +1009,6 @@ const copyPreviewUrl = async () => {
       snackbarColor.value = 'error'
       snackbar.value = true
     }
-  }
-}
-
-const awardMiniWebsite = async (): Promise<number> => {
-  try {
-    const { useApiFetch } = await import('~/composables/useApiFetch')
-    const resp = await useApiFetch<{ points?: number }>('gamification/award-section/', {
-      method: 'POST',
-      body: { section: 'miniWebsite' }
-    })
-    await gamificationStore.fetchScores()
-    return resp?.points || 0
-  } catch (e) {
-    console.warn('Failed to award miniWebsite section', e)
-    return 0
   }
 }
 
@@ -1150,5 +1071,17 @@ onMounted(async () => {
 
 :deep(.v-card:hover) {
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
+}
+
+/* Social media hints - LTR direction */
+.social-media-field :deep(.v-messages__message) {
+  direction: ltr;
+  text-align: left;
+}
+
+/* LTR input fields - only input text, not labels or icons */
+.ltr-input-field :deep(.v-field__input) {
+  direction: ltr;
+  text-align: left;
 }
 </style>

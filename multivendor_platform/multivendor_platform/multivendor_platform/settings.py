@@ -20,7 +20,6 @@ else:
     ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
 # Application definition
 INSTALLED_APPS = [
-    'daphne',  # ASGI server for Channels (must be at top)
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,14 +44,10 @@ INSTALLED_APPS = [
     'pages',
     'gamification',
     'chat',  # Chat system
-    'payments',  # Payment management
-    'auctions',  # Auction system
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Add this at the top
-    'pages.middleware.RedirectMiddleware',  # Handle manual redirects from admin
-    'multivendor_platform.robots_middleware.BackendRobotsNoIndexMiddleware',  # Block indexing on backend domains
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',  # Required for admin
@@ -141,9 +136,8 @@ STATICFILES_DIRS = [
 ]
 
 # WhiteNoise configuration for serving static files in production
-# Using custom storage class that ignores missing source map files
-# This prevents collectstatic from failing on missing .map files
-STATICFILES_STORAGE = 'multivendor_platform.storage.IgnoreMissingSourceMapsStorage'
+# Using ManifestStaticFilesStorage - WhiteNoise will handle compression on-the-fly
+STATICFILES_STORAGE = 'whitenoise.storage.ManifestStaticFilesStorage'
 
 # Media files (user uploaded content)
 # Use an absolute URL in production if the PUBLIC_MEDIA_URL env var is set,
@@ -170,9 +164,6 @@ if not CORS_ALLOW_ALL_ORIGINS:
     cors_origins_str = os.environ.get('CORS_ALLOWED_ORIGINS', '')
     if cors_origins_str:
         CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',') if origin.strip()]
-        # Debug: Log CORS origins in development
-        if DEBUG:
-            print(f"[CORS] Allowed origins: {CORS_ALLOWED_ORIGINS}")
     else:
         CORS_ALLOWED_ORIGINS = [
             "http://localhost:8080",
@@ -182,6 +173,10 @@ if not CORS_ALLOW_ALL_ORIGINS:
             "http://localhost:3000",  # Nuxt dev server
             "http://127.0.0.1:3000",  # Nuxt dev server
         ]
+        if DEBUG:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning("CORS_ALLOW_ALL_ORIGINS is False but CORS_ALLOWED_ORIGINS is not set. Using default localhost origins.")
 else:
     CORS_ALLOWED_ORIGINS = []
     if DEBUG:
@@ -210,6 +205,14 @@ CORS_ALLOW_METHODS = [
     'POST',
     'PUT',
 ]
+# Expose headers that frontend might need
+CORS_EXPOSE_HEADERS = [
+    'content-type',
+    'x-total-count',
+    'x-page-count',
+]
+# Cache preflight requests for 1 hour
+CORS_PREFLIGHT_MAX_AGE = 3600
 
 # CORS Expose Headers - Headers that can be accessed by the frontend
 CORS_EXPOSE_HEADERS = [
@@ -275,9 +278,23 @@ TINYMCE_DEFAULT_CONFIG = {
     'custom_undo_redo_levels': 20,
     'selector': 'textarea',
     'theme': 'silver',
-    'plugins': 'save link image media preview codesample contextmenu table code lists fullscreen insertdatetime nonbreaking directionality searchreplace wordcount visualblocks visualchars autolink charmap print hr anchor pagebreak imagetools',
-    'toolbar1': 'fullscreen preview bold italic underline | h1 h2 h3 h4 | fontselect fontsizeselect | forecolor backcolor | alignleft alignright aligncenter alignjustify | indent outdent | bullist numlist table | link image media | codesample',
-    'toolbar2': 'visualblocks visualchars | charmap hr pagebreak nonbreaking anchor | code | ltr rtl',
+    'plugins': '''
+            save link image media preview codesample contextmenu
+            table code lists fullscreen insertdatetime nonbreaking
+            directionality searchreplace wordcount visualblocks
+            visualchars autolink charmap print hr
+            anchor pagebreak
+            ''',
+    'toolbar1': '''
+            fullscreen preview bold italic underline | h1 h2 h3 h4 |
+            fontselect, fontsizeselect | forecolor backcolor | alignleft alignright |
+            aligncenter alignjustify | indent outdent | bullist numlist table |
+            | link image media | codesample |
+            ''',
+    'toolbar2': '''
+            visualblocks visualchars |
+            charmap hr pagebreak nonbreaking anchor | code | ltr rtl
+            ''',
     'contextmenu': 'formats | link image',
     'menubar': True,
     'statusbar': True,
@@ -294,36 +311,9 @@ TINYMCE_DEFAULT_CONFIG = {
     'table_default_attributes': {
         'border': '1'
     },
-    # Image upload configuration - Direct file picker (no dialog)
-    'file_picker_callback': 'tinymceImageFilePicker',  # Custom file picker function
-    'file_picker_types': 'image',  # Only show for images
-    'images_upload_url': '/tinymce/upload-image/',  # Image upload endpoint
-    'images_upload_base_path': '/media/',  # Base path for images
-    'images_upload_credentials': True,  # Include credentials in upload request
-    'images_reuse_filename': False,  # Generate unique filenames
-    'images_file_types': 'jpg,jpeg,png,gif,webp',  # Allowed image types
-    'paste_data_images': True,  # Allow pasting images from clipboard
-    'image_advtab': False,  # Disable advanced tab (we use direct upload)
-    'image_caption': True,  # Enable image captions
-    'image_list': False,  # Disable image list
-    'image_title': True,  # Enable image title attribute
-    'image_dimensions': True,  # Show image dimensions
-    'image_class_list': [
-        {'title': 'None', 'value': ''},
-        {'title': 'Responsive', 'value': 'img-responsive'},
-        {'title': 'Rounded', 'value': 'img-rounded'},
-        {'title': 'Circle', 'value': 'img-circle'},
-        {'title': 'Thumbnail', 'value': 'img-thumbnail'},
-    ],
-    'image_uploadtab': False,  # Disable upload tab (we use file picker)
-    'extended_valid_elements': 'table[*],tr[*],td[*],th[*],img[*]',
+    'paste_data_images': True,
+    'extended_valid_elements': 'table[*],tr[*],td[*],th[*]',
     'block_formats': 'Paragraph=p; Header 1=h1; Header 2=h2; Header 3=h3; Header 4=h4; Header 5=h5; Header 6=h6; Preformatted=pre',
-    'relative_urls': False,
-    'remove_script_host': False,
-    'convert_urls': True,
-    'browser_spellcheck': True,
-    'resize': True,
-    'branding': False,
 }
 
 # OTP Configuration
@@ -371,11 +361,3 @@ if DEBUG and REDIS_HOST == 'localhost':
                 'BACKEND': 'channels.layers.InMemoryChannelLayer'
             }
         }
-
-# Zibal Payment Gateway Settings
-ZIBAL_MERCHANT = os.environ.get('ZIBAL_MERCHANT', 'zibal')  # Use 'zibal' for test mode
-ZIBAL_API_BASE = 'https://gateway.zibal.ir'
-SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
-
-# Auction System Settings
-AUCTION_DEPOSIT_AMOUNT = 5000000  # 5,000,000 Toman

@@ -17,7 +17,7 @@ class ProductSitemap(Sitemap):
     
     def items(self):
         # Auto-updates: queries database each time sitemap is accessed
-        return Product.objects.filter(is_active=True, is_marketplace_hidden=False).order_by('-updated_at')
+        return Product.objects.filter(is_active=True).order_by('-updated_at')
     
     def lastmod(self, obj):
         # Auto-updates: returns latest modification time

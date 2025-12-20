@@ -370,9 +370,43 @@ const saveMember = async () => {
     snackbar.value = true
     closeForm()
     await loadMembers()
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving team member:', error)
-    snackbarMessage.value = 'خطا در ذخیره عضو تیم'
+    console.error('Error data:', error?.data)
+    // Extract error message from response
+    let errorMessage = 'خطا در ذخیره عضو تیم'
+    
+    if (error?.data) {
+      // Check for field-specific errors (Django REST Framework format)
+      const fieldErrors: string[] = []
+      Object.keys(error.data).forEach(key => {
+        if (key !== 'error' && key !== 'detail' && key !== 'non_field_errors') {
+          const fieldMessages = Array.isArray(error.data[key]) 
+            ? error.data[key] 
+            : [error.data[key]]
+          fieldErrors.push(`${key}: ${fieldMessages.join(', ')}`)
+        }
+      })
+      
+      if (fieldErrors.length > 0) {
+        errorMessage = fieldErrors.join(' | ')
+      } else if (error.data.error) {
+        errorMessage = error.data.error
+      } else if (error.data.detail) {
+        errorMessage = error.data.detail
+      } else if (error.data.non_field_errors) {
+        errorMessage = Array.isArray(error.data.non_field_errors) 
+          ? error.data.non_field_errors.join(', ')
+          : error.data.non_field_errors
+      } else {
+        // Fallback: show the entire error object as string
+        errorMessage = JSON.stringify(error.data)
+      }
+    } else if (error?.message) {
+      errorMessage = error.message
+    }
+    
+    snackbarMessage.value = errorMessage
     snackbarColor.value = 'error'
     snackbar.value = true
   } finally {

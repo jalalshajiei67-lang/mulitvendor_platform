@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 from django.db.models import Avg, Count, Q
 from django.utils import timezone
@@ -21,7 +21,7 @@ class Metric:
     passed: bool
 
 
-def _get_vendor_profile(user) -> VendorProfile | None:
+def _get_vendor_profile(user) -> Optional[VendorProfile]:
     if not user or not user.is_authenticated:
         return None
     return getattr(user, 'vendor_profile', None)
@@ -34,7 +34,7 @@ class GamificationService:
         'success': (70, 100),
     }
 
-    def __init__(self, vendor_profile: VendorProfile | None):
+    def __init__(self, vendor_profile: Optional[VendorProfile]):
         self.vendor_profile = vendor_profile
 
     @classmethod
@@ -44,7 +44,7 @@ class GamificationService:
     # ------------------------------------------------------------------
     # Engagement helpers
     # ------------------------------------------------------------------
-    def get_or_create_engagement(self) -> SupplierEngagement | None:
+    def get_or_create_engagement(self) -> Optional[SupplierEngagement]:
         if not self.vendor_profile:
             return None
         engagement, created = SupplierEngagement.objects.get_or_create(
@@ -62,7 +62,7 @@ class GamificationService:
             engagement.save(update_fields=['total_points'])
         return engagement
 
-    def add_points(self, reason: str, points: int, metadata: dict | None = None):
+    def add_points(self, reason: str, points: int, metadata: Optional[dict] = None):
         engagement = self.get_or_create_engagement()
         if not engagement or points == 0:
             return
@@ -118,7 +118,7 @@ class GamificationService:
         if not self.vendor_profile:
             return self._empty_response('product', ['برای مشاهده امتیاز باید به عنوان فروشنده وارد شوید.'])
 
-        latest_product: Product | None = (
+        latest_product: Optional[Product] = (
             Product.objects.filter(vendor=self.vendor_profile.user)
             .order_by('-updated_at')
             .first()
@@ -410,7 +410,7 @@ class GamificationService:
         order.response_points_awarded = self._maybe_award_response_points(order, duration)
         order.save(update_fields=['first_responded_at', 'response_points_awarded', 'response_speed_bucket'])
 
-    def _maybe_award_response_points(self, order: Order, duration_minutes: float | None) -> bool:
+    def _maybe_award_response_points(self, order: Order, duration_minutes: Optional[float]) -> bool:
         if duration_minutes is None:
             return False
         points = 0
