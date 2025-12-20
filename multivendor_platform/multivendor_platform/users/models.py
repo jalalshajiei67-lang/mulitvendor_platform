@@ -349,3 +349,387 @@ class OTP(models.Model):
         """Check if OTP has expired"""
         from django.utils import timezone
         return timezone.now() > self.expires_at
+
+
+class PricingTier(models.Model):
+    """Pricing tier for vendor subscriptions"""
+    PRICING_TYPE_CHOICES = (
+        ('subscription', 'Subscription-based'),
+        ('commission', 'Commission-based'),
+    )
+    
+    LEAD_EXCLUSIVITY_CHOICES = (
+        ('shared', 'Shared lead (non-exclusive)'),
+        ('exclusive', 'Exclusive after claim'),
+    )
+    
+    slug = models.SlugField(max_length=50, unique=True, help_text='Unique machine-readable identifier')
+    name = models.CharField(max_length=100, help_text='Display name for the tier')
+    pricing_type = models.CharField(
+        max_length=20,
+        choices=PRICING_TYPE_CHOICES,
+        default='subscription',
+        help_text='Type of pricing model'
+    )
+    is_commission_based = models.BooleanField(
+        default=False,
+        help_text='True if this tier uses commission-based pricing'
+    )
+    daily_customer_unlock_limit = models.PositiveIntegerField(
+        default=1,
+        help_text='How many new customers can be unlocked in a rolling 24h window (0 for unlimited).'
+    )
+    allow_marketplace_visibility = models.BooleanField(
+        default=True,
+        help_text='If false, products stay hidden from marketplace regardless of other flags.'
+    )
+    lead_exclusivity = models.CharField(
+        max_length=20,
+        choices=LEAD_EXCLUSIVITY_CHOICES,
+        default='shared',
+        help_text='Defines whether leads become exclusive when revealed at this tier.'
+    )
+    monthly_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text='Monthly subscription price (if applicable)'
+    )
+    commission_rate_low = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text='Commission rate (%) for orders under threshold (e.g., 5.00 for 5%)'
+    )
+    commission_rate_high = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text='Commission rate (%) for orders above threshold (e.g., 3.00 for 3%)'
+    )
+    commission_threshold = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text='Threshold amount for commission rate change (e.g., 1000000000 for 1 billion Toman)'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Pricing Tier'
+        verbose_name_plural = 'Pricing Tiers'
+        ordering = ['slug']
+    
+    def __str__(self):
+        return self.name
+
+
+class VendorSubscription(models.Model):
+    """Vendor subscription to a pricing tier"""
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='vendor_subscription'
+    )
+    tier = models.ForeignKey(
+        PricingTier,
+        on_delete=models.PROTECT,
+        related_name='subscriptions'
+    )
+    started_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text='Optional expiration for paid plans'
+    )
+    last_customer_unlock_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text='Last time a new customer was unlocked'
+    )
+    total_customer_unlocks = models.PositiveIntegerField(
+        default=0,
+        help_text='Total unlocks ever made by this vendor'
+    )
+    is_active = models.BooleanField(default=True)
+    
+    # Commission plan fields
+    contract_signed = models.BooleanField(
+        default=False,
+        help_text='Whether vendor has signed the commission contract'
+    )
+    contract_signed_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text='When contract was signed'
+    )
+    contract_document = models.FileField(
+        upload_to='vendor_contracts/',
+        blank=True,
+        null=True,
+        help_text='Signed contract document'
+    )
+    bank_guarantee_submitted = models.BooleanField(
+        default=False,
+        help_text='Whether bank guarantee has been submitted'
+    )
+    bank_guarantee_document = models.FileField(
+        upload_to='bank_guarantees/',
+        blank=True,
+        null=True,
+        help_text='Bank guarantee document'
+    )
+    bank_guarantee_amount = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text='Amount of bank guarantee'
+    )
+    bank_guarantee_expiry = models.DateField(
+        blank=True,
+        null=True,
+        help_text='Bank guarantee expiry date'
+    )
+    terms_accepted = models.BooleanField(
+        default=False,
+        help_text='Whether vendor accepted terms and conditions'
+    )
+    terms_accepted_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text='When terms were accepted'
+    )
+    admin_approved = models.BooleanField(
+        default=False,
+        help_text='Whether admin has approved commission plan activation'
+    )
+    admin_approved_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text='When admin approved'
+    )
+    admin_approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='approved_subscriptions',
+        help_text='Admin who approved'
+    )
+    rejection_reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Reason for rejection if not approved'
+    )
+    total_commission_charged = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        help_text='Total commission charged to vendor'
+    )
+    total_sales_volume = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        help_text='Total sales volume for commission calculation'
+    )
+    
+    class Meta:
+        verbose_name = 'Vendor Subscription'
+        verbose_name_plural = 'Vendor Subscriptions'
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.tier.name}"
+    
+    @classmethod
+    def for_user(cls, user):
+        """Get or create a subscription for a user, defaulting to free tier"""
+        from django.utils import timezone
+        
+        subscription, created = cls.objects.get_or_create(
+            user=user,
+            defaults={
+                'tier': PricingTier.objects.get_or_create(
+                    slug='free',
+                    defaults={
+                        'name': 'Free',
+                        'daily_customer_unlock_limit': 1,
+                        'lead_exclusivity': 'shared',
+                        'allow_marketplace_visibility': True,
+                    }
+                )[0],
+                'is_active': True,
+            }
+        )
+        return subscription
+    
+    def can_unlock_customer(self):
+        """
+        Check if vendor can unlock a new customer based on daily limit.
+        Returns (can_unlock: bool, next_unlock_at: datetime or None)
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Unlimited tier
+        if self.tier.daily_customer_unlock_limit == 0:
+            return True, None
+        
+        # No previous unlock - can unlock now
+        if not self.last_customer_unlock_at:
+            return True, None
+        
+        # Check if 24 hours have passed since last unlock
+        time_since_last = timezone.now() - self.last_customer_unlock_at
+        if time_since_last >= timedelta(hours=24):
+            return True, None
+        
+        # Calculate when next unlock will be available
+        next_unlock_at = self.last_customer_unlock_at + timedelta(hours=24)
+        return False, next_unlock_at
+    
+    def register_customer_unlock(self):
+        """Register that a customer was unlocked (updates timestamp and counter)"""
+        from django.utils import timezone
+        
+        self.last_customer_unlock_at = timezone.now()
+        self.total_customer_unlocks += 1
+        self.save(update_fields=['last_customer_unlock_at', 'total_customer_unlocks'])
+
+
+class SellerContact(models.Model):
+    """CRM contact for sellers to manage their customer contacts"""
+    seller = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='crm_contacts'
+    )
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    company_name = models.CharField(max_length=200, blank=True, null=True)
+    phone = models.CharField(max_length=20)
+    email = models.EmailField(blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text='General notes about the contact'
+    )
+    source_order = models.ForeignKey(
+        'orders.Order',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='created_contacts',
+        help_text='Order/RFQ that created this contact'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Seller Contact'
+        verbose_name_plural = 'Seller Contacts'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['seller', '-created_at']),
+            models.Index(fields=['phone']),
+            models.Index(fields=['email']),
+        ]
+    
+    def __str__(self):
+        name = f"{self.first_name} {self.last_name}".strip()
+        if self.company_name:
+            return f"{name} ({self.company_name})"
+        return name or self.phone
+
+
+class ContactNote(models.Model):
+    """Notes attached to CRM contacts"""
+    contact = models.ForeignKey(
+        SellerContact,
+        on_delete=models.CASCADE,
+        related_name='contact_notes'
+    )
+    seller = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='crm_notes'
+    )
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Contact Note'
+        verbose_name_plural = 'Contact Notes'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['contact', '-created_at']),
+            models.Index(fields=['seller', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Note for {self.contact} - {self.created_at.strftime('%Y-%m-%d')}"
+
+
+class ContactTask(models.Model):
+    """Tasks/reminders for CRM contacts"""
+    PRIORITY_CHOICES = (
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    )
+    
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    )
+    
+    contact = models.ForeignKey(
+        SellerContact,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name='tasks',
+        help_text='Optional: link task to a contact'
+    )
+    seller = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='crm_tasks'
+    )
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    due_date = models.DateTimeField()
+    priority = models.CharField(
+        max_length=10,
+        choices=PRIORITY_CHOICES,
+        default='medium'
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Contact Task'
+        verbose_name_plural = 'Contact Tasks'
+        ordering = ['due_date', '-priority']
+        indexes = [
+            models.Index(fields=['seller', 'status', 'due_date']),
+            models.Index(fields=['contact', 'status']),
+            models.Index(fields=['due_date']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.get_status_display()}"
