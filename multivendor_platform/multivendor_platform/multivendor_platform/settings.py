@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'pages',
     'gamification',
     'chat',  # Chat system
+    'payments',  # Payment processing
 ]
 
 MIDDLEWARE = [
