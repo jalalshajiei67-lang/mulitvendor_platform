@@ -26,7 +26,7 @@ jobs:
             context: .
             tag: staging
           - name: frontend
-            dockerfile: Dockerfile.frontend
+            dockerfile: ./multivendor_platform/front_end/nuxt/Dockerfile.frontend
             context: ./multivendor_platform/front_end/nuxt
             tag: staging
 
