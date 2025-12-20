@@ -22,6 +22,7 @@
     "patch-package": "^8.0.1",
     "pinia": "^2.1.7",
     "sass": "^1.81.0",
+    "sharp": "^0.33.0",
     "vue": "^3.5.22",
     "vue-router": "^4.6.3",
     "vue3-lottie": "^3.3.1",
@@ -29,8 +30,7 @@
     "vuetify-nuxt-module": "^0.18.8"
   },
   "devDependencies": {
-    "@types/jalaali-js": "^1.2.0",
-    "sharp": "^0.33.0"
+    "@types/jalaali-js": "^1.2.0"
   },
   "scripts": {
     "build": "nuxt build",
