@@ -31,8 +31,9 @@ RUN npm rebuild || true
 COPY . .
 
 # Build the application with production optimizations
-# The build script already includes memory limit, but we set it here too for safety
-RUN NODE_ENV=production npm run build:low-memory
+# NODE_OPTIONS is set via ENV above (1024MB)
+# If this still fails, you MUST add swap space to your VPS
+RUN NODE_ENV=production npm run build
 
 # Stage 2: Production stage
 FROM node:20-slim AS production-stage

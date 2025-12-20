@@ -18,9 +18,25 @@ The Nuxt.js build process is failing with "JavaScript heap out of memory" errors
 - Configured Vite to use esbuild instead of terser
 - Disabled source maps to reduce memory usage
 
-## Required: Add Swap Space on VPS
+## ⚠️ REQUIRED: Add Swap Space on VPS
 
-Even with these optimizations, a 2GB RAM VPS may still struggle. **You MUST add swap space** to your VPS.
+**CRITICAL:** Even with all optimizations, a 2GB RAM VPS **WILL FAIL** without swap space. **You MUST add swap space** to your VPS before building.
+
+### Quick Method (Automated Script)
+
+1. **Copy the script to your VPS:**
+   ```bash
+   # From your local machine, copy the script
+   scp scripts/add-swap.sh root@185.208.172.76:/tmp/
+   ```
+
+2. **SSH into your VPS and run:**
+   ```bash
+   ssh root@185.208.172.76
+   bash /tmp/add-swap.sh
+   ```
+
+### Manual Method
 
 ### Steps to Add 2GB Swap Space
 

@@ -33,8 +33,7 @@
     "sharp": "^0.33.0"
   },
   "scripts": {
-    "build": "NODE_OPTIONS='--max-old-space-size=512' nuxt build",
-    "build:low-memory": "NODE_OPTIONS='--max-old-space-size=512' nuxt build",
+    "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",

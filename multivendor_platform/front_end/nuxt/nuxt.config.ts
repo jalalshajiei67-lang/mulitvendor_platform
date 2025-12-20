@@ -172,20 +172,39 @@ export default defineNuxtConfig({
     },
     build: {
       // Optimize build for low-memory environments
-      chunkSizeWarningLimit: 1000,
+      // Reduce memory usage by limiting chunk size
+      chunkSizeWarningLimit: 500,
       // Disable source maps to reduce memory usage
       sourcemap: false,
       // Use esbuild for minification (more memory efficient than terser)
       minify: 'esbuild',
       rollupOptions: {
         output: {
-          manualChunks: undefined // Let Vite handle chunking automatically
+          manualChunks: undefined, // Let Vite handle chunking automatically
+          // Limit chunk sizes to reduce memory usage
+          chunkFileNames: 'chunks/[name]-[hash].js',
+          entryFileNames: 'entry-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]'
+        },
+        // Reduce memory usage during tree-shaking
+        treeshake: {
+          preset: 'smallest'
         }
       }
     },
     optimizeDeps: {
       // Reduce memory usage during dependency optimization
-      include: ['vuetify', 'vue', 'pinia']
+      include: ['vuetify', 'vue', 'pinia'],
+      // Disable esbuild optimization to save memory (slower but uses less RAM)
+      esbuildOptions: {
+        target: 'es2020'
+      }
+    },
+    // Reduce memory usage during dev server (also affects build)
+    server: {
+      fs: {
+        strict: true
+      }
     }
   },
   experimental: {
@@ -206,6 +225,10 @@ export default defineNuxtConfig({
   nitro: {
     compressPublicAssets: true,
     minify: true,
+    // Reduce memory usage during Nitro build
+    experimental: {
+      wasm: false // Disable WASM to reduce memory usage
+    },
     // Allow self-signed certificates for staging API calls
     // This is safe for staging environments with self-signed certs
     devServer: {
