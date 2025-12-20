@@ -4,8 +4,11 @@ FROM node:20-slim AS build-stage
 
 WORKDIR /app
 
-# Increase Node.js memory limit for SSR build
-ENV NODE_OPTIONS=--max-old-space-size=2048
+# Set Node.js memory limit optimized for 2GB RAM VPS
+# Using 1024MB - if this fails, you MUST add swap space on your VPS
+# Docker build process needs memory, but 1024MB should work with swap
+ENV NODE_OPTIONS=--max-old-space-size=1024
+ENV NODE_ENV=production
 
 # Accept build arguments
 ARG NUXT_PUBLIC_API_BASE=""
@@ -16,15 +19,28 @@ ENV NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
 # Copy package files
 COPY package*.json ./
 
+<<<<<<< HEAD
 # Install dependencies
 RUN npm ci --legacy-peer-deps --force && \
     npm rebuild
 
+=======
+# Install dependencies with aggressive memory optimizations
+# Split into separate steps to free memory between operations
+RUN npm ci --legacy-peer-deps --force --prefer-offline --no-audit --no-fund && \
+    npm cache clean --force
+
+# Rebuild native modules separately to reduce peak memory
+RUN npm rebuild || true
+
+>>>>>>> parent of 87aa79a (Merge main into staging)
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application with production optimizations
+# NODE_OPTIONS is set via ENV above (1024MB)
+# If this still fails, you MUST add swap space to your VPS
+RUN NODE_ENV=production npm run build
 
 # Stage 2: Production stage
 FROM node:20-slim AS production-stage
@@ -36,8 +52,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Keep same Node options at runtime
-ENV NODE_OPTIONS=--max-old-space-size=2048
+# Runtime memory limit (lower since we're just running, not building)
+ENV NODE_OPTIONS=--max-old-space-size=1024
 ENV NODE_ENV=production
 ENV NUXT_HOST=0.0.0.0
 ENV NUXT_PORT=3000

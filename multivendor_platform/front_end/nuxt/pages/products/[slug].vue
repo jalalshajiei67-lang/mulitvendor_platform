@@ -416,8 +416,10 @@ const setPrimary = (imageUrl: string) => {
 const fetchPage = async () => {
   try {
     await productStore.fetchProductBySlug(slug.value)
+    return true
   } catch (error) {
     console.error('Error loading product detail:', error)
+    return false
   }
 }
 
