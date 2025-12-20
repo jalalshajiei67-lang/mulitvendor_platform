@@ -31,6 +31,9 @@
         </div>
 
         <div class="d-flex align-center gap-2">
+          <!-- Theme Toggle -->
+          <ThemeToggle />
+          
           <template v-if="isAuthenticated">
             <!-- Notification Bell -->
             <v-menu
@@ -114,6 +117,11 @@
 
     <v-navigation-drawer v-model="drawer" temporary location="right">
       <v-list nav>
+        <v-list-item class="d-flex align-center justify-space-between px-4 py-2">
+          <span class="text-body-2">حالت نمایش</span>
+          <ThemeToggle />
+        </v-list-item>
+        <v-divider></v-divider>
         <v-list-item
           v-for="item in drawerItems"
           :key="item.to"
@@ -136,6 +144,7 @@
 
 <script setup lang="ts">
 import { onUnmounted } from 'vue'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
 const drawer = ref(false)
 const authStore = useAuthStore()
