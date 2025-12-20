@@ -1,4 +1,5 @@
-# Multi-stage build for Nuxt.js frontend
+# syntax=docker/dockerfile:1.4
+# Multi-stage build for Nuxt.js frontend with BuildKit optimizations
 # Stage 1: Build stage
 FROM node:20-slim AS build-stage
 
@@ -7,20 +8,23 @@ WORKDIR /app
 # Increase Node.js memory limit for SSR build (6GB for large Nuxt builds)
 ENV NODE_OPTIONS=--max-old-space-size=6144
 
-# Accept build arguments
+# Accept build arguments with defaults
 ARG NUXT_PUBLIC_API_BASE=""
 ARG NUXT_PUBLIC_SITE_URL=""
-ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
-ENV NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
+ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE \
+    NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
 
-# Copy package files
+# Copy package files first for better layer caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --legacy-peer-deps --force && \
+# Install dependencies with BuildKit cache mounts
+# Cache npm package registry and node_modules for faster rebuilds
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    --mount=type=cache,target=/app/.npm,sharing=locked \
+    npm ci --legacy-peer-deps --force && \
     npm rebuild
 
-# Copy source code
+# Copy source code (this layer will be invalidated when source changes)
 COPY . .
 
 # Build the application
@@ -31,25 +35,29 @@ FROM node:20-slim AS production-stage
 
 WORKDIR /app
 
-# Install curl for health checks
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install curl for health checks with BuildKit cache mount
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Keep same Node options at runtime (can be lower for runtime)
-ENV NODE_OPTIONS=--max-old-space-size=4096
-ENV NODE_ENV=production
-ENV NUXT_HOST=0.0.0.0
-ENV NUXT_PORT=3000
+ENV NODE_OPTIONS=--max-old-space-size=4096 \
+    NODE_ENV=production \
+    NUXT_HOST=0.0.0.0 \
+    NUXT_PORT=3000
 
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --omit=dev --legacy-peer-deps --force
+# Install production dependencies only with BuildKit cache mount
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    --mount=type=cache,target=/app/.npm,sharing=locked \
+    npm ci --omit=dev --legacy-peer-deps --force
 
-# Copy built application from build stage
-COPY --from=build-stage /app/.output /app/.output
+# Copy built application from build stage with proper ownership
+COPY --from=build-stage --chown=appuser:appuser /app/.output /app/.output
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser && \
@@ -67,4 +75,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Start the application
 CMD ["node", ".output/server/index.mjs"]
-
