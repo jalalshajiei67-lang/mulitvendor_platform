@@ -167,6 +167,19 @@ export default defineNuxtConfig({
     },
     ssr: {
       noExternal: ['vuetify']
+    },
+    build: {
+      // Optimize build for low-memory environments
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: undefined // Let Vite handle chunking automatically
+        }
+      }
+    },
+    optimizeDeps: {
+      // Reduce memory usage during dependency optimization
+      include: ['vuetify', 'vue', 'pinia']
     }
   },
   experimental: {
