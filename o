@@ -1,0 +1,188 @@
+[33m87aa79a[m[33m ([m[1;36mHEAD -> [m[1;32mstaging[m[33m, [m[1;31morigin/staging[m[33m)[m HEAD@{31 minutes ago}: commit (merge): Merge main into staging
+[33mf972e40[m HEAD@{33 minutes ago}: checkout: moving from main to staging
+[33mec15b62[m[33m ([m[1;32mmain[m[33m)[m HEAD@{39 minutes ago}: commit: Update products and users modules
+[33m319070d[m[33m ([m[1;31morigin/main[m[33m)[m HEAD@{40 minutes ago}: checkout: moving from 455af29ffb62d29bb4321b55c54d4a973817fc52 to main
+[33m455af29[m HEAD@{52 minutes ago}: checkout: moving from staging to 455af29ffb62d29bb4321b55c54d4a973817fc52
+[33mf972e40[m HEAD@{58 minutes ago}: commit: changes in package.json
+[33mb763f44[m HEAD@{68 minutes ago}: commit: add sharp to dependency
+[33m5654ff0[m HEAD@{74 minutes ago}: commit: build on github
+[33ma16a51b[m HEAD@{76 minutes ago}: commit: build on github
+[33mf49a96b[m HEAD@{80 minutes ago}: commit: build on github
+[33mc30a2ae[m HEAD@{81 minutes ago}: checkout: moving from staging to staging
+[33mc30a2ae[m HEAD@{2 hours ago}: commit: solution for mem, node.js failure
+[33mba1947f[m HEAD@{2 hours ago}: commit: reduce front-end docker file build heap for node.js
+[33m79f0cc4[m HEAD@{2 hours ago}: commit: reduce front-end docker file build heap for node.js
+[33m455af29[m HEAD@{3 hours ago}: pull: Fast-forward
+[33m541dfb3[m HEAD@{4 days ago}: commit: Update payment integration, documentation, and various components
+[33mc138711[m HEAD@{4 days ago}: commit: payment section setup and tiny mce debugging
+[33m17ab341[m HEAD@{4 days ago}: commit: payment section setup and tiny mce debugging
+[33mdec5220[m HEAD@{4 days ago}: pull: Fast-forward
+[33mcdc2f9f[m HEAD@{6 days ago}: commit: pagination and supplier page dashboard
+[33m515f046[m HEAD@{6 days ago}: commit: seller dashboard update from office
+[33m5ecf7c3[m HEAD@{7 days ago}: pull: Fast-forward
+[33m4a84b39[m HEAD@{10 days ago}: commit: pricing plan
+[33m2029e01[m HEAD@{10 days ago}: pull origin staging: Fast-forward
+[33m1bdc9f6[m HEAD@{10 days ago}: checkout: moving from main to staging
+[33m319070d[m[33m ([m[1;31morigin/main[m[33m)[m HEAD@{11 days ago}: commit (merge): Fix machinery page hydration and URL generation issues
+[33m308ce94[m HEAD@{11 days ago}: pull origin main: Fast-forward
+[33m17da086[m HEAD@{11 days ago}: checkout: moving from staging to main
+[33m1bdc9f6[m HEAD@{11 days ago}: commit: label combo issue, backend link to front end link
+[33ma178ce0[m HEAD@{11 days ago}: commit: combo lable seo error
+[33m7808a66[m HEAD@{11 days ago}: commit: fix-migratin sequence
+[33m5745850[m HEAD@{11 days ago}: commit: fix label-combo hydration bug
+[33m0415939[m HEAD@{11 days ago}: commit: Fix: Remove duplicate MEDIA_URL/MEDIA_ROOT settings and resolve merge conflict
+[33m6af414b[m HEAD@{11 days ago}: pull origin staging: Merge made by the 'ort' strategy.
+[33mbd05b86[m HEAD@{11 days ago}: checkout: moving from main to staging
+[33m17da086[m HEAD@{11 days ago}: commit (merge): Merge remote changes
+[33mffb0fe0[m HEAD@{11 days ago}: commit: CORS error resolved
+[33mabdbf06[m HEAD@{13 days ago}: commit: Fix frontend build: copy nuxt.config before install and remove package-lock.json to fix native bindings issue
+[33md515daf[m HEAD@{13 days ago}: commit: Fix frontend production build: copy node_modules from build stage instead of reinstalling
+[33mff9355e[m HEAD@{13 days ago}: commit: Fix frontend production build: copy node_modules from build stage instead of reinstalling
+[33m52cb718[m HEAD@{13 days ago}: commit: Fix frontend build: replace npm ci with npm install to resolve optional dependencies issue
+[33m7c13f91[m HEAD@{13 days ago}: commit: test
+[33ma3ba252[m HEAD@{13 days ago}: commit: Configure production deployment: update docker-compose, fix SSH key handling, and add deployment documentation
+[33m37767ff[m HEAD@{13 days ago}: commit: fix: use docker-compose (hyphen) for server compatibility
+[33mbc46a45[m HEAD@{13 days ago}: commit: fix: update deployment workflow to match server configuration
+[33m4785606[m HEAD@{13 days ago}: commit: fix: use docker-compose.production.yml in deploy script
+[33mbd05b86[m HEAD@{13 days ago}: merge staging: Fast-forward
+[33m13ed135[m HEAD@{13 days ago}: checkout: moving from staging to main
+[33mbd05b86[m HEAD@{13 days ago}: commit (merge): main bug resulving
+[33m1ab7f22[m HEAD@{13 days ago}: commit: push changes to production
+[33meeee0a7[m HEAD@{2 weeks ago}: commit: Fix environment variable loading: use .env for Docker Compose variable substitution, ensure .env files are gitignored, remove obsolete version field
+[33m25dc1fa[m HEAD@{2 weeks ago}: commit: Fix Docker deployment issues: container names, Traefik/nginx conflict, and database password
+[33meabb3dd[m HEAD@{2 weeks ago}: commit: change rm setting from docker compose
+[33m1f722f1[m HEAD@{2 weeks ago}: commit: fresh dockerization + docker compose
+[33m5b4b805[m HEAD@{2 weeks ago}: commit: add django secret key
+[33mbb446cf[m HEAD@{2 weeks ago}: commit: Fix backend build context in docker-compose.staging.yml
+[33m30a97bd[m HEAD@{2 weeks ago}: pull: Fast-forward
+[33m7ea736d[m HEAD@{2 weeks ago}: reset: moving to staging
+[33m7ea736d[m HEAD@{3 weeks ago}: commit: Fix frontend path to use Nuxt folder
+[33m721a1e9[m HEAD@{3 weeks ago}: commit: Fix frontend port 80 and healthcheck ipv6 issue
+[33ma845453[m HEAD@{3 weeks ago}: commit: Fix working directory to /app/multivendor_platform
+[33m111345c[m HEAD@{3 weeks ago}: commit: docker compose staging file changes
+[33m399a594[m HEAD@{3 weeks ago}: commit: chore: tweak staging deploy workflow
+[33m08d8980[m HEAD@{3 weeks ago}: commit: stagind deploy file changes
+[33m13ed135[m HEAD@{3 weeks ago}: merge main: Fast-forward
+[33m662f7c1[m HEAD@{3 weeks ago}: pull --rebase origin staging: Fast-forward
+[33mc9012ba[m HEAD@{3 weeks ago}: checkout: moving from main to staging
+[33m13ed135[m HEAD@{3 weeks ago}: commit (merge): chore: staging config and docs
+[33m070a8a3[m HEAD@{3 weeks ago}: commit: chore: update deploy workflow
+[33m3fa21a0[m HEAD@{3 weeks ago}: pull --rebase origin main (finish): returning to refs/heads/main
+[33m3fa21a0[m HEAD@{3 weeks ago}: pull --rebase origin main (pick): chore: local changes on main
+[33m6aec213[m HEAD@{3 weeks ago}: pull --rebase origin main (start): checkout 6aec213e4351fb5b382c5cc8be782a8795069e1b
+[33maa490b9[m HEAD@{3 weeks ago}: commit: chore: local changes on main
+[33m262f35b[m HEAD@{3 weeks ago}: checkout: moving from staging to main
+[33mc9012ba[m HEAD@{3 weeks ago}: commit: Fix staging frontend Dockerfile: use correct backend URL (multivendor-backend-staging.indexo.ir)
+[33m4188126[m HEAD@{3 weeks ago}: pull origin staging --no-edit: Merge made by the 'ort' strategy.
+[33m262f35b[m HEAD@{3 weeks ago}: checkout: moving from main to staging
+[33m262f35b[m HEAD@{3 weeks ago}: commit: Trigger staging rebuild
+[33m3aabdef[m HEAD@{3 weeks ago}: pull: Fast-forward
+[33m1b9a097[m HEAD@{5 weeks ago}: pull --no-verify: Fast-forward
+[33medfa2aa[m HEAD@{5 weeks ago}: reset: moving to HEAD
+[33medfa2aa[m HEAD@{6 weeks ago}: commit: Change: Update price field to PositiveBigIntegerField for 12+ digit support - Changed from PositiveIntegerField to PositiveBigIntegerField - Supports at least 12 digits (up to 19 digits max) - Compatible with PostgreSQL (BIGINT) and SQLite (INTEGER)
+[33mfac77f3[m HEAD@{6 weeks ago}: commit: Feature: Remove 8-digit restriction and add thousand separator to price field - Changed price field from DecimalField to PositiveIntegerField (no decimals) - Added JavaScript formatter for thousand separators (123,456,789) - Formatting appears while typing, commas removed on save - Updated ProductAdminForm with custom widget and clean_price method - Created migration to convert existing decimal prices to integers
+[33m22db941[m HEAD@{6 weeks ago}: commit: Style: Set text input fields to 90% width in Django admin - Text input types now use 90% width for better usability - Applies to input[type='text'], .vTextField, and .vSlugField - Includes dark mode and Unfold theme support
+[33m53f69ec[m HEAD@{6 weeks ago}: commit: Style: Make all admin input fields full width - Set width: 100% for all text inputs, textareas, and selects - Ensures inputs span full page width for better UX - Applies to light mode, dark mode, and Unfold theme
+[33m07a5763[m HEAD@{6 weeks ago}: commit: Fix: Add visible borders to Django admin input fields - Fixes invisible input fields in admin dashboard by adding explicit 2px borders to all input types - Includes dark mode support and focus/hover states - Creates base_site.html template to load custom CSS
+[33m78b810c[m HEAD@{6 weeks ago}: commit: Fix: Remove TinyMCE textcolor plugin and handle broken image 404s
+[33mfd9ea45[m HEAD@{6 weeks ago}: commit: Update header: logo positioning, sizing, and mobile search spacing
+[33m75a1e65[m HEAD@{6 weeks ago}: commit: Fix logo visibility in header - replace v-img with img tag
+[33m5bf58e8[m[33m ([m[1;31morigin/2025-11-05-20yp-18068[m[33m, [m[1;32m2025-11-05-20yp-18068[m[33m)[m HEAD@{6 weeks ago}: merge 2025-11-05-20yp-18068: Fast-forward
+[33m5b4caf6[m HEAD@{6 weeks ago}: checkout: moving from 2025-11-05-20yp-18068 to main
+[33m5bf58e8[m[33m ([m[1;31morigin/2025-11-05-20yp-18068[m[33m, [m[1;32m2025-11-05-20yp-18068[m[33m)[m HEAD@{6 weeks ago}: commit: Refactor frontend components for improved RTL support and mobile responsiveness; update API proxy settings in Dockerfile; remove obsolete documentation files related to media file errors.
+[33m5b4caf6[m HEAD@{6 weeks ago}: checkout: moving from main to 2025-11-05-20yp-18068
+[33m5b4caf6[m HEAD@{6 weeks ago}: pull: Fast-forward
+[33m0303c9d[m HEAD@{7 weeks ago}: commit: Handle missing media files gracefully - add fix_missing_images management command - guard image_url serializers against missing files
+[33m2c4d13c[m HEAD@{7 weeks ago}: commit: Fix lint error: remove unused protocol variable
+[33mc00791a[m HEAD@{7 weeks ago}: commit: Fix 404 errors for category/subcategory/department images - Add image_url fields to serializers returning absolute HTTPS URLs - Update frontend to use HTTPS for production backend - Fix formatImageUrl to prefer image_url field - Add SECURE_PROXY_SSL_HEADER for proper HTTPS URL building behind proxy
+[33mae7c0e6[m HEAD@{7 weeks ago}: commit: Add dedicated h1 h2 h3 h4 heading buttons to TinyMCE toolbar
+[33m18533f0[m HEAD@{7 weeks ago}: commit: Add formatselect button to TinyMCE toolbar for easy heading access (h1-h4)
+[33m3f0f054[m HEAD@{7 weeks ago}: pull: Fast-forward
+[33m9180435[m HEAD@{7 weeks ago}: commit: Move department description below category lists
+[33md78bcc8[m HEAD@{7 weeks ago}: commit: Merge conflicts resolved
+[33me87d920[m HEAD@{7 weeks ago}: pull origin main: Fast-forward
+[33m244343d[m HEAD@{7 weeks ago}: commit: Fix: Action button visibility for Unfold admin theme with Alpine.js
+[33m53be21e[m HEAD@{7 weeks ago}: commit: Fix: CI workflow requirements.txt path
+[33m4227b2b[m HEAD@{7 weeks ago}: commit: Fix: Add WhiteNoise to serve static files in production
+[33mb07d692[m HEAD@{7 weeks ago}: commit: Fix: Django admin delete functionality for products, categories, subcategories, and posts
+[33m7c1be6c[m[33m ([m[1;32mchore-add-newline-VVOxP[m[33m, [m[1;32m2025-11-01-8o5o-w72Fo[m[33m)[m HEAD@{7 weeks ago}: commit: Add cursor rules configuration
+[33m845f873[m HEAD@{7 weeks ago}: commit: Test CI/CD pipeline with fresh CapRover
+[33m6674269[m HEAD@{7 weeks ago}: commit: Restore classic Django admin - remove django-unfold theme
+[33m2ec2cd1[m HEAD@{7 weeks ago}: commit: Fix: Include collectstatic in Dockerfile to serve CSS files + deployment scripts
+[33m31e5677[m HEAD@{7 weeks ago}: commit: Fix: Include collectstatic in Dockerfile
+[33mf5d1433[m HEAD@{7 weeks ago}: commit: Add CapRover static collection script and documentation updates
+[33mfb07130[m HEAD@{7 weeks ago}: commit: Force rebuild
+[33mb9570ea[m HEAD@{7 weeks ago}: commit: SIMPLE FIX: Enable/disable button instead of show/hide - bypasses Alpine.js completely
+[33m239f1d6[m HEAD@{7 weeks ago}: commit: ULTRA FIX: Remove x-show attribute and force button visibility with aggressive CSS and JS polling
+[33md0bc2ae[m HEAD@{7 weeks ago}: commit: Fix: Alpine.js-specific solution for action button visibility
+[33m891aa83[m HEAD@{7 weeks ago}: commit: Fix: Alpine.js-specific solution for action button visibility
+[33mbc03d71[m HEAD@{7 weeks ago}: commit: Enhanced fix: Force action button visibility with aggressive strategies
+[33m82f6807[m HEAD@{7 weeks ago}: commit: Fix: Enable delete functionality across all Django admin pages
+[33m2578ef1[m HEAD@{7 weeks ago}: commit: Fix: Add filtering support for category hierarchy navigation
+[33m85284d2[m HEAD@{7 weeks ago}: commit: Update changes
+[33mdb7b753[m HEAD@{8 weeks ago}: commit: Fix: Add visible Go button for bulk actions in admin
+[33m3c907e3[m HEAD@{8 weeks ago}: commit: Improve admin UI with inline scraping results
+[33mc478e54[m HEAD@{8 weeks ago}: commit: Improve admin UI with grouped navigation and icons
+[33m9fe6c19[m HEAD@{8 weeks ago}: commit: Fix: Remove WhiteNoise middleware causing 502 error
+[33mf125af0[m HEAD@{8 weeks ago}: commit: Emergency: Use minimal Dockerfile
+[33me276121[m HEAD@{8 weeks ago}: commit: Fix startup
+[33ma1f4bee[m HEAD@{8 weeks ago}: commit: Fix: Make app startup resilient to collectstatic failures
+[33m8d3700a[m HEAD@{8 weeks ago}: commit: Fix: Configure static files serving without WhiteNoise
+[33m386867b[m HEAD@{8 weeks ago}: commit: Remove WhiteNoise completely - causing 502 crashes
+[33md065317[m HEAD@{8 weeks ago}: commit: Re-enable WhiteNoise with basic static storage (no compression)
+[33m36ac13a[m HEAD@{8 weeks ago}: commit: Fix 502: Use basic static files storage with WhiteNoise
+[33m2c7060e[m HEAD@{8 weeks ago}: commit: Fix WhiteNoise: use simpler STATICFILES_STORAGE config
+[33m9592921[m HEAD@{8 weeks ago}: commit: Add WhiteNoise to serve static files in production
+[33m63e182a[m HEAD@{8 weeks ago}: commit: Fix CSRF error: add CSRF_TRUSTED_ORIGINS and cookie security settings
+[33m2754f74[m HEAD@{8 weeks ago}: commit: Fix npm install: install devDependencies before setting production mode
+[33md8fe1b6[m HEAD@{8 weeks ago}: commit: Fix ESLint error in vite.config.js - use Vite mode parameter
+[33m9a39a94[m HEAD@{8 weeks ago}: commit: Fix frontend build: replace missing fonts with system fonts
+[33me0631eb[m HEAD@{8 weeks ago}: commit: Fix deployment issues: port mismatch, API URL, and CORS config
+[33m2747e7d[m HEAD@{8 weeks ago}: commit: Fix nginx config: remove invalid must-revalidate
+[33m451ab01[m HEAD@{8 weeks ago}: commit: Update DB_NAME to postgres in all environment files
+[33md628573[m HEAD@{8 weeks ago}: commit: Fix frontend API URL: set VITE_API_BASE_URL to backend domain
+[33ma338c4f[m HEAD@{8 weeks ago}: commit: Fix frontend Dockerfile: upgrade Node.js from 18 to 20 to match package requirements
+[33mca57c45[m HEAD@{8 weeks ago}: commit: Remove redundant post-deployment commands - migrations run in Dockerfile
+[33mdd0d016[m HEAD@{8 weeks ago}: commit: Fix captain-definition file naming for CapRover deployment
+[33m7b0a1b8[m HEAD@{8 weeks ago}: commit: Relax ESLint rules for existing Vue codebase
+[33mc83c63c[m HEAD@{8 weeks ago}: commit: Fix linting errors and adjust coverage threshold to 50%
+[33m4d483cd[m HEAD@{8 weeks ago}: commit: Fix tests to match Product model structure - use primary_category instead of category
+[33m4e8bd8f[m HEAD@{8 weeks ago}: commit: Fix CI/CD workflows: correct tar exclude order and use npm install
+[33m7380d36[m HEAD@{8 weeks ago}: commit: Add CI/CD pipeline with GitHub Actions and CapRover
+[33mbb916ac[m HEAD@{8 weeks ago}: commit: آخرین ورن قبل از دیپلوی که همه چیز کار می کنه
+[33m27391f6[m HEAD@{8 weeks ago}: reset: moving to 27391f63d4b99254a20aa5343d789670ac4cde07
+[33m4b6ce4e[m HEAD@{8 weeks ago}: reset: moving to 4b6ce4ee08feaf25e69c0c346a98f3f2179b4712
+[33m86648e9[m[33m ([m[1;32mbackup-before-revert[m[33m)[m HEAD@{8 weeks ago}: reset: moving to 86648e98bcc7ead56f4df5a16a22715d9990fee4
+[33m86648e9[m[33m ([m[1;32mbackup-before-revert[m[33m)[m HEAD@{8 weeks ago}: reset: moving to 86648e98bcc7ead56f4df5a16a22715d9990fee4
+[33m86648e9[m[33m ([m[1;32mbackup-before-revert[m[33m)[m HEAD@{8 weeks ago}: reset: moving to 86648e98bcc7ead56f4df5a16a22715d9990fee4
+[33m86648e9[m[33m ([m[1;32mbackup-before-revert[m[33m)[m HEAD@{8 weeks ago}: reset: moving to 86648e98bcc7ead56f4df5a16a22715d9990fee4
+[33m86648e9[m[33m ([m[1;32mbackup-before-revert[m[33m)[m HEAD@{8 weeks ago}: reset: moving to 86648e98bcc7ead56f4df5a16a22715d9990fee4
+[33m89543f6[m HEAD@{9 weeks ago}: commit: Completely remove devtools plugin and improve Dockerfile for production
+[33m13a7a39[m HEAD@{9 weeks ago}: commit: Fix frontend build: disable devtools in production and increase memory
+[33m01ad757[m HEAD@{9 weeks ago}: checkout: moving from deploy-django to main
+[33md087a23[m[33m ([m[1;31morigin/deploy-django[m[33m, [m[1;32mdeploy-django[m[33m)[m HEAD@{9 weeks ago}: commit: Fix Dockerfile paths and port for deploy-django branch
+[33m425606b[m HEAD@{9 weeks ago}: checkout: moving from main to deploy-django
+[33m01ad757[m HEAD@{9 weeks ago}: commit: Add deployment verification documentation and fixed Django Dockerfile
+[33ma675c1c[m HEAD@{9 weeks ago}: checkout: moving from main to main
+[33ma675c1c[m HEAD@{9 weeks ago}: checkout: moving from deploy-django to main
+[33m425606b[m HEAD@{9 weeks ago}: commit: Add requirements.txt to deploy-django branch
+[33m31e7f90[m HEAD@{9 weeks ago}: checkout: moving from main to deploy-django
+[33ma675c1c[m HEAD@{9 weeks ago}: checkout: moving from deploy-vue to main
+[33m901d8e7[m HEAD@{9 weeks ago}: commit: Add package-lock.json to deploy-vue branch
+[33m3bf71bc[m HEAD@{9 weeks ago}: checkout: moving from main to deploy-vue
+[33ma675c1c[m HEAD@{9 weeks ago}: checkout: moving from deploy-vue to main
+[33m3bf71bc[m HEAD@{9 weeks ago}: checkout: moving from deploy-django to deploy-vue
+[33m31e7f90[m HEAD@{9 weeks ago}: checkout: moving from main to deploy-django
+[33ma675c1c[m HEAD@{9 weeks ago}: commit: Add package-lock.json for frontend deployment
+[33m86648e9[m[33m ([m[1;32mbackup-before-revert[m[33m)[m HEAD@{9 weeks ago}: checkout: moving from deploy-vue to main
+[33m3bf71bc[m HEAD@{9 weeks ago}: checkout: moving from deploy-django to deploy-vue
+[33m31e7f90[m HEAD@{9 weeks ago}: checkout: moving from main to deploy-django
+[33m86648e9[m[33m ([m[1;32mbackup-before-revert[m[33m)[m HEAD@{9 weeks ago}: reset: moving to HEAD
+[33m86648e9[m[33m ([m[1;32mbackup-before-revert[m[33m)[m HEAD@{9 weeks ago}: reset: moving to HEAD
+[33m86648e9[m[33m ([m[1;32mbackup-before-revert[m[33m)[m HEAD@{9 weeks ago}: commit: Update Dockerfile to use Python 3.11 for Django 5.2.7 compatibility
+[33md59a4aa[m HEAD@{9 weeks ago}: commit: Fix Dockerfile paths for root-level deployment
+[33m4b6ce4e[m HEAD@{9 weeks ago}: commit: Add root-level captain-definition for backend deployment
+[33mf32fc29[m HEAD@{9 weeks ago}: commit: Update Dockerfile and documentation files
+[33mbb5f0ee[m HEAD@{9 weeks ago}: commit: Add CapRover deployment configuration for Django backend and Vue.js frontend
+[33m27391f6[m HEAD@{9 weeks ago}: commit: Update API configuration for production and add requirements.txt - Updated API base URL to use dynamic environment-based configuration - Added psycopg2-binary for PostgreSQL support - Generated requirements.txt with all dependencies
+[33mec2a333[m HEAD@{9 weeks ago}: commit (initial): Initial commit: Multivendor platform with Django backend and Vue.js frontend

@@ -803,6 +803,7 @@ await useAsyncData('homepage-products', async () => {
   
   // Always fetch products on page load (show all products by default)
   await fetchPage()
+  return true
 })
 
 const onPageChange = async (value: number) => {
