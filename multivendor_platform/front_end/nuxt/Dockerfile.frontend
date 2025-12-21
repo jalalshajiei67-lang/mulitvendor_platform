@@ -5,16 +5,11 @@ FROM node:20-slim AS build-stage
 
 WORKDIR /app
 
-<<<<<<< HEAD
 # Set Node.js memory limit optimized for 2GB RAM VPS
-# Using 1024MB - if this fails, you MUST add swap space on your VPS
-# Docker build process needs memory, but 1024MB should work with swap
-ENV NODE_OPTIONS=--max-old-space-size=1024
+# Using 2048MB - balanced for build performance while working with limited RAM
+# If this fails, you MUST add swap space on your VPS
+ENV NODE_OPTIONS=--max-old-space-size=2048
 ENV NODE_ENV=production
-=======
-# Increase Node.js memory limit for SSR build (6GB for large Nuxt builds)
-ENV NODE_OPTIONS=--max-old-space-size=6144
->>>>>>> 5d5507929b82f1a320bd90aa5a77a77296098051
 
 # Accept build arguments with defaults
 ARG NUXT_PUBLIC_API_BASE=""
@@ -22,39 +17,24 @@ ARG NUXT_PUBLIC_SITE_URL=""
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE \
     NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
 
-<<<<<<< HEAD
-# Copy package files and nuxt config (needed for nuxt prepare during install)
-=======
 # Copy package files first for better layer caching
->>>>>>> 5d5507929b82f1a320bd90aa5a77a77296098051
+# nuxt.config.ts is needed for nuxt prepare during install
 COPY package*.json ./
 COPY nuxt.config.ts* ./
 
-<<<<<<< HEAD
-# Install dependencies
-# Remove package-lock.json to avoid optional dependencies bug (as suggested by npm error)
-# See: https://github.com/npm/cli/issues/4828
-# Install normally to get native bindings (oxc-parser needs them)
-# nuxt prepare will run during install and needs at least nuxt.config.ts
-RUN rm -f package-lock.json && \
-    npm install --legacy-peer-deps || \
-    (rm -rf node_modules && npm install --legacy-peer-deps)
-
-# Copy remaining source code
-=======
 # Install dependencies with BuildKit cache mounts
 # Cache npm package registry and node_modules for faster rebuilds
+# nuxt prepare will run during install and needs at least nuxt.config.ts
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     --mount=type=cache,target=/app/.npm,sharing=locked \
     npm ci --legacy-peer-deps --force && \
     npm rebuild
 
 # Copy source code (this layer will be invalidated when source changes)
->>>>>>> 5d5507929b82f1a320bd90aa5a77a77296098051
 COPY . .
 
 # Build the application with production optimizations
-# NODE_OPTIONS is set via ENV above (1024MB)
+# NODE_OPTIONS is set via ENV above (2048MB for build)
 # If this still fails, you MUST add swap space to your VPS
 RUN NODE_ENV=production npm run build
 
@@ -70,21 +50,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-<<<<<<< HEAD
 # Runtime memory limit (lower since we're just running, not building)
-ENV NODE_OPTIONS=--max-old-space-size=1024
-ENV NODE_ENV=production
-ENV NUXT_HOST=0.0.0.0
-ENV NUXT_PORT=3000
-
-# Copy built application and production node_modules from build stage
-# Nuxt's .output contains the built app, but we may need runtime dependencies
-COPY --from=build-stage /app/.output /app/.output
-COPY --from=build-stage /app/node_modules /app/node_modules
-COPY --from=build-stage /app/package*.json /app/
-=======
-# Keep same Node options at runtime (can be lower for runtime)
-ENV NODE_OPTIONS=--max-old-space-size=4096 \
+ENV NODE_OPTIONS=--max-old-space-size=1024 \
     NODE_ENV=production \
     NUXT_HOST=0.0.0.0 \
     NUXT_PORT=3000
@@ -97,13 +64,14 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     --mount=type=cache,target=/app/.npm,sharing=locked \
     npm ci --omit=dev --legacy-peer-deps --force
 
+# Create non-root user for security
+RUN adduser --disabled-password --gecos '' appuser
+
 # Copy built application from build stage with proper ownership
 COPY --from=build-stage --chown=appuser:appuser /app/.output /app/.output
->>>>>>> 5d5507929b82f1a320bd90aa5a77a77296098051
 
-# Create non-root user for security
-RUN adduser --disabled-password --gecos '' appuser && \
-    chown -R appuser:appuser /app
+# Set ownership for all app files
+RUN chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
