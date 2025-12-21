@@ -9,6 +9,8 @@ from django.db.models import Case, When, Value, IntegerField, FloatField, Boolea
 from django.db.models.functions import Coalesce
 from django.conf import settings
 from django.utils import timezone
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 
 # REST Framework imports
 from rest_framework import viewsets, status, filters
@@ -126,7 +128,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         """
         queryset = (
             Product.objects.all()
-            .select_related('vendor__profile', 'vendor__vendor_profile__engagement', 'primary_category')
+            .select_related('vendor__profile', 'vendor__vendor_profile__engagement', 'primary_category', 'supplier')
+            .prefetch_related('images', 'subcategories', 'labels', 'features')
             .annotate(
                 vendor_total_points=Coalesce(
                     F('vendor__vendor_profile__engagement__total_points'),
@@ -525,7 +528,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         Get all approved comments for a product
         """
         product = self.get_object()
-        comments = product.comments.filter(is_approved=True, parent=None).order_by('-created_at')
+        comments = product.comments.filter(is_approved=True, parent=None).select_related('author', 'author__profile').prefetch_related('replies').order_by('-created_at')
         serializer = ProductCommentSerializer(comments, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -539,11 +542,19 @@ class CategoryViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', 'description']
     
+    @cache_page(60 * 15)  # Cache for 15 minutes
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @cache_page(60 * 30)  # Cache for 30 minutes
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
     def get_queryset(self):
         """
         Optionally filter categories by department
         """
-        queryset = Category.objects.all().order_by('sort_order', 'name')
+        queryset = Category.objects.all().select_related('linked_product_category').prefetch_related('departments', 'subcategories').order_by('sort_order', 'name')
         
         # Filter by department
         department_id = self.request.query_params.get('department', None)
@@ -578,11 +589,19 @@ class SubcategoryViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     pagination_class = None  # Disable pagination to return all subcategories
     
+    @cache_page(60 * 15)  # Cache for 15 minutes
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @cache_page(60 * 30)  # Cache for 30 minutes
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
     def get_queryset(self):
         """
         Optionally filter subcategories by category
         """
-        queryset = Subcategory.objects.all().order_by('sort_order', 'name')
+        queryset = Subcategory.objects.all().prefetch_related('categories', 'products').order_by('sort_order', 'name')
         
         # Filter by category
         category_id = self.request.query_params.get('category', None)
@@ -626,6 +645,14 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', 'description']
     
+    @cache_page(60 * 15)  # Cache for 15 minutes
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @cache_page(60 * 30)  # Cache for 30 minutes
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
     def get_queryset(self):
         """
         Optionally filter departments by slug
@@ -657,7 +684,7 @@ class MyProductsView(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Product.objects.filter(vendor=self.request.user).order_by('-created_at')
+        return Product.objects.filter(vendor=self.request.user).select_related('primary_category', 'supplier').prefetch_related('images', 'subcategories').order_by('-created_at')
 
 class ProductCommentViewSet(viewsets.ModelViewSet):
     """
@@ -671,7 +698,7 @@ class ProductCommentViewSet(viewsets.ModelViewSet):
         """
         Filter comments based on approval status
         """
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().select_related('product', 'author', 'author__profile').prefetch_related('replies')
         
         # Only show approved comments to non-staff users
         if not self.request.user.is_staff:
@@ -691,10 +718,18 @@ class LabelGroupViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = LabelGroupSerializer
     permission_classes = [AllowAny]
+    
+    @cache_page(60 * 15)  # Cache for 15 minutes
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @cache_page(60 * 30)  # Cache for 30 minutes
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     def get_queryset(self):
         subcategory_id = self.request.query_params.get('subcategory')
-        queryset = LabelGroup.objects.filter(is_active=True).order_by('display_order', 'name')
+        queryset = LabelGroup.objects.filter(is_active=True).prefetch_related('subcategories', 'labels').order_by('display_order', 'name')
         if subcategory_id:
             queryset = queryset.filter(
                 models.Q(subcategories__id=subcategory_id) | models.Q(subcategories__isnull=True)
@@ -726,7 +761,7 @@ class LabelViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         subcategory_id = self.request.query_params.get('subcategory')
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().select_related('label_group').prefetch_related('subcategories', 'products')
         if subcategory_id:
             queryset = queryset.filter(
                 models.Q(subcategories__id=subcategory_id) | models.Q(subcategories__isnull=True)
@@ -767,6 +802,7 @@ class LabelComboSeoPageViewSet(viewsets.ReadOnlyModelViewSet):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@cache_page(60 * 5)  # Cache search results for 5 minutes
 def global_search(request):
     """
     Global search endpoint that searches across products and blog posts
@@ -885,7 +921,7 @@ class CategoryRequestViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Filter queryset based on user role"""
-        queryset = CategoryRequest.objects.all().order_by('-created_at')
+        queryset = CategoryRequest.objects.all().select_related('supplier', 'supplier__vendor', 'product', 'reviewed_by').order_by('-created_at')
         
         # Only filter if request and user are available (not during URL registration)
         if hasattr(self, 'request') and hasattr(self.request, 'user') and self.request.user.is_authenticated:
@@ -982,7 +1018,7 @@ class SubcategoryFeatureTemplateViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Filter by subcategory if provided"""
-        queryset = SubcategoryFeatureTemplate.objects.all().order_by('subcategory', 'sort_order', 'created_at')
+        queryset = SubcategoryFeatureTemplate.objects.all().select_related('subcategory').order_by('subcategory', 'sort_order', 'created_at')
         subcategory_id = self.request.query_params.get('subcategory', None)
         if subcategory_id:
             queryset = queryset.filter(subcategory_id=subcategory_id)

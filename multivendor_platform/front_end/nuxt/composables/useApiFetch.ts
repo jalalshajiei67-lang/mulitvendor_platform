@@ -3,6 +3,10 @@ import type { FetchOptions } from 'ofetch'
 const isFormData = (value: unknown): value is FormData =>
   typeof FormData !== 'undefined' && value instanceof FormData
 
+// Simple in-memory cache for GET requests
+const cache = new Map<string, { data: any; timestamp: number; ttl: number }>()
+const pendingRequests = new Map<string, Promise<any>>()
+
 interface ExtendedFetchOptions<T> extends FetchOptions<T> {
   params?: FetchOptions<T>['query']
   /**
@@ -13,6 +17,14 @@ interface ExtendedFetchOptions<T> extends FetchOptions<T> {
    * If true, 500 errors will not redirect to 500 page (default: false)
    */
   skip500Redirect?: boolean
+  /**
+   * Cache TTL in seconds (default: 0, no cache)
+   */
+  cache?: number
+  /**
+   * AbortSignal for request cancellation
+   */
+  signal?: AbortSignal
 }
 
 export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOptions<T> = {}) => {
@@ -90,15 +102,66 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
     }
   }
 
-  const { params, skip404Redirect, skip500Redirect, ...restOptions } = options
+  const { params, skip404Redirect, skip500Redirect, cache: cacheTTL, signal, ...restOptions } = options
+
+  // Check cache for GET requests
+  const isGetRequest = !options.method || options.method === 'GET' || options.method === 'get'
+  const cacheKey = isGetRequest ? `${url}?${new URLSearchParams(restOptions.query ?? params as any).toString()}` : null
+  
+  if (cacheKey && cacheTTL && cacheTTL > 0) {
+    const cached = cache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < cached.ttl * 1000) {
+      return cached.data as T
+    }
+  }
+
+  // Check if there's a pending request for the same URL
+  if (cacheKey && pendingRequests.has(cacheKey)) {
+    return pendingRequests.get(cacheKey) as Promise<T>
+  }
+
+  // Create abort controller if signal not provided
+  const abortController = signal ? null : new AbortController()
+  const requestSignal = signal || abortController?.signal
 
   try {
-    return await $fetch<T>(url, {
+    const requestPromise = $fetch<T>(url, {
       ...restOptions,
       query: restOptions.query ?? params,
       headers,
-      credentials: restOptions.credentials ?? 'include'
+      credentials: restOptions.credentials ?? 'include',
+      signal: requestSignal
+    }).then((data) => {
+      // Cache successful GET responses
+      if (cacheKey && cacheTTL && cacheTTL > 0 && isGetRequest) {
+        cache.set(cacheKey, {
+          data,
+          timestamp: Date.now(),
+          ttl: cacheTTL
+        })
+        // Clean up old cache entries periodically
+        if (cache.size > 100) {
+          const now = Date.now()
+          for (const [key, value] of cache.entries()) {
+            if (now - value.timestamp > value.ttl * 1000) {
+              cache.delete(key)
+            }
+          }
+        }
+      }
+      pendingRequests.delete(cacheKey || '')
+      return data
+    }).catch((error) => {
+      pendingRequests.delete(cacheKey || '')
+      throw error
     })
+
+    // Store pending request
+    if (cacheKey) {
+      pendingRequests.set(cacheKey, requestPromise)
+    }
+
+    return await requestPromise
   } catch (error: any) {
     // Handle 404 and 500 errors - redirect to appropriate error pages
     const statusCode = error?.statusCode || error?.status || error?.response?.status

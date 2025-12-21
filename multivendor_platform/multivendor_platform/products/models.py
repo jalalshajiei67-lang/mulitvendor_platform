@@ -223,6 +223,15 @@ class Product(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['vendor', '-created_at']),
+            models.Index(fields=['approval_status', 'is_active', '-created_at']),
+            models.Index(fields=['is_active', 'approval_status', 'is_marketplace_hidden']),
+            models.Index(fields=['primary_category', 'approval_status', 'is_active']),
+            models.Index(fields=['price']),
+            models.Index(fields=['slug']),
+            models.Index(fields=['created_at']),
+        ]
     
     def save(self, *args, **kwargs):
         if not self.slug:

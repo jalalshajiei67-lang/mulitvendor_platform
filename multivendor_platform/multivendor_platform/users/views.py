@@ -716,7 +716,7 @@ def buyer_dashboard_view(request):
     )[:5]
     
     # Get reviews
-    reviews = ProductComment.objects.filter(author=user)
+    reviews = ProductComment.objects.filter(author=user).select_related('product')
     
     dashboard_data = {
         'total_orders': total_orders,
@@ -746,7 +746,7 @@ def buyer_orders_view(request):
 @permission_classes([IsAuthenticated])
 def buyer_reviews_view(request):
     """Get all buyer reviews"""
-    reviews = ProductComment.objects.filter(author=request.user)
+    reviews = ProductComment.objects.filter(author=request.user).select_related('product', 'author').prefetch_related('replies')
     serializer = ProductCommentSerializer(reviews, many=True)
     return Response(serializer.data)
 

@@ -372,3 +372,48 @@ if DEBUG and REDIS_HOST == 'localhost':
                 'BACKEND': 'channels.layers.InMemoryChannelLayer'
             }
         }
+
+# Django Cache Configuration using Redis
+# Use Redis database 1 for caching (database 0 is used by Channels)
+if REDIS_PASSWORD:
+    CACHE_REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/1"
+else:
+    CACHE_REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/1"
+
+# Check if Redis is available for caching
+REDIS_AVAILABLE = False
+if not (DEBUG and REDIS_HOST == 'localhost'):
+    # In production/staging, assume Redis is available
+    REDIS_AVAILABLE = True
+else:
+    # In development, check if Redis is available
+    try:
+        import redis
+        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+        r.ping()
+        REDIS_AVAILABLE = True
+    except:
+        REDIS_AVAILABLE = False
+
+if REDIS_AVAILABLE:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': CACHE_REDIS_URL,
+            'KEY_PREFIX': 'multivendor',
+            'TIMEOUT': 300,  # Default timeout: 5 minutes
+        }
+    }
+    
+    # Use Redis for session storage
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+    SESSION_COOKIE_AGE = 86400  # 24 hours
+else:
+    # Fallback to local memory cache if Redis is not available
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }

@@ -51,6 +51,37 @@ services:
       retries: 5
     restart: always
 
+  # pgBouncer - Connection Pooling for PostgreSQL
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: multivendor_pgbouncer_staging
+    env_file:
+      - .env.staging
+    environment:
+      - DATABASES_HOST=db
+      - DATABASES_PORT=5432
+      - DATABASES_USER=${DB_USER}
+      - DATABASES_PASSWORD=${DB_PASSWORD}
+      - DATABASES_DBNAME=${DB_NAME}
+      - PGBOUNCER_POOL_MODE=transaction
+      - PGBOUNCER_MAX_CLIENT_CONN=1000
+      - PGBOUNCER_DEFAULT_POOL_SIZE=25
+      - PGBOUNCER_MIN_POOL_SIZE=5
+      - PGBOUNCER_RESERVE_POOL_SIZE=5
+      - PGBOUNCER_RESERVE_POOL_TIMEOUT=3
+      - PGBOUNCER_MAX_DB_CONNECTIONS=100
+    networks:
+      - multivendor_network
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "psql -h localhost -U pgbouncer -d pgbouncer -c 'SHOW POOLS;' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
+
   # Redis Cache
   redis:
     image: redis:7-alpine
@@ -67,24 +98,18 @@ services:
 
   # Django Backend
   backend:
-<<<<<<< HEAD
-    # Use pre-built image from GitHub Container Registry
-    # Image is built by GitHub Actions and pushed to ghcr.io
-    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_REPO:-damirco}-backend:${IMAGE_TAG:-staging}
-=======
     build:
       context: .
       dockerfile: Dockerfile.backend
       # Enable BuildKit for cache mounts and optimizations
       # BuildKit is enabled via DOCKER_BUILDKIT=1 environment variable
->>>>>>> 5d5507929b82f1a320bd90aa5a77a77296098051
     container_name: multivendor_backend_staging
     environment:
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=db
+      - DB_HOST=pgbouncer
       - DB_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -94,17 +119,10 @@ services:
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS}
-<<<<<<< HEAD
       - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS:-True}
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-             python manage.py collectstatic --noinput &&
-             daphne -b 0.0.0.0 -p 8000 --application-close-timeout 60 multivendor_platform.asgi:application"
-=======
     # Use entrypoint script which handles migrations, static files, and starts server
     # The entrypoint script will fix migration sequence automatically
     command: []
->>>>>>> f1b1477436056dc3bbbd51c392b3313a488027b9
     volumes:
       - static_files_staging:/app/static
       - media_files_staging:/app/media
@@ -114,6 +132,8 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/"]
@@ -133,11 +153,6 @@ services:
 
   # Nuxt.js Frontend
   frontend:
-<<<<<<< HEAD
-    # Use pre-built image from GitHub Container Registry
-    # Image is built by GitHub Actions and pushed to ghcr.io
-    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_REPO:-damirco}-frontend:${IMAGE_TAG:-staging}
-=======
     build:
       context: ./multivendor_platform/front_end/nuxt
       dockerfile: Dockerfile.frontend
@@ -145,7 +160,6 @@ services:
       args:
         NUXT_PUBLIC_API_BASE: https://${API_DOMAIN}/api
         NUXT_PUBLIC_SITE_URL: https://${MAIN_DOMAIN}
->>>>>>> 5d5507929b82f1a320bd90aa5a77a77296098051
     container_name: multivendor_frontend_staging
     env_file:
       - .env.staging

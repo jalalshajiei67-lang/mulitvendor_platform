@@ -456,13 +456,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { debounce } from '@/composables/useDebounce'
 import { useTypingAnimation } from '@/composables/useTypingAnimation'
 import { useDisplay } from 'vuetify'
-import LabelFilters from '~/components/product/LabelFilters.vue'
-import ListSkeleton from '~/components/skeletons/ListSkeleton.vue'
-import ProductCard from '~/components/product/ProductCard.vue'
+// Lazy load heavy components
+const LabelFilters = defineAsyncComponent(() => import('~/components/product/LabelFilters.vue'))
+const ListSkeleton = defineAsyncComponent(() => import('~/components/skeletons/ListSkeleton.vue'))
+const ProductCard = defineAsyncComponent(() => import('~/components/product/ProductCard.vue'))
 import type { LocationQueryValue } from 'vue-router'
 import { useLabelStore } from '~/stores/label'
 

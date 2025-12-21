@@ -238,7 +238,7 @@ class BidViewSet(viewsets.ModelViewSet):
         else:
             queryset = Bid.objects.none()
         
-        return queryset.select_related('auction', 'seller')
+        return queryset.select_related('auction', 'auction__buyer', 'auction__subcategory', 'seller', 'seller__profile')
     
     def get_serializer_class(self):
         if self.action == 'create':

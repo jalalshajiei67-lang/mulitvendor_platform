@@ -61,6 +61,16 @@ class Order(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['buyer', '-created_at']),
+            models.Index(fields=['status', '-created_at']),
+            models.Index(fields=['is_rfq', 'status', '-created_at']),
+            models.Index(fields=['is_rfq', 'is_free', '-created_at']),
+            models.Index(fields=['category', 'is_rfq', 'status']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['first_viewed_at']),
+            models.Index(fields=['first_responded_at']),
+        ]
     
     def __str__(self):
         if self.is_rfq:

@@ -180,7 +180,29 @@ export default defineNuxtConfig({
       minify: 'esbuild',
       rollupOptions: {
         output: {
-          manualChunks: undefined, // Let Vite handle chunking automatically
+          manualChunks: (id) => {
+            // Split vendor libraries into separate chunks
+            if (id.includes('node_modules')) {
+              // Vuetify and related UI libraries
+              if (id.includes('vuetify') || id.includes('@mdi/font')) {
+                return 'vendor-vuetify'
+              }
+              // TipTap editor
+              if (id.includes('@tiptap')) {
+                return 'vendor-tiptap'
+              }
+              // Pinia state management
+              if (id.includes('pinia')) {
+                return 'vendor-pinia'
+              }
+              // Other large dependencies
+              if (id.includes('vue-router') || id.includes('vue')) {
+                return 'vendor-vue'
+              }
+              // Everything else from node_modules
+              return 'vendor'
+            }
+          },
           // Limit chunk sizes to reduce memory usage
           chunkFileNames: 'chunks/[name]-[hash].js',
           entryFileNames: 'entry-[hash].js',
@@ -225,6 +247,24 @@ export default defineNuxtConfig({
   nitro: {
     compressPublicAssets: true,
     minify: true,
+    // Image optimization
+    image: {
+      // Enable image optimization
+      provider: 'ipx',
+      // Quality settings
+      quality: 80,
+      // Formats
+      formats: ['webp', 'avif', 'jpeg', 'png'],
+      // Responsive sizes
+      sizes: {
+        xs: 320,
+        sm: 640,
+        md: 768,
+        lg: 1024,
+        xl: 1280,
+        xxl: 1536,
+      },
+    },
     // Reduce memory usage during Nitro build
     experimental: {
       wasm: false // Disable WASM to reduce memory usage

@@ -93,6 +93,9 @@ class BlogPost(models.Model):
             models.Index(fields=['status', 'created_at']),
             models.Index(fields=['category', 'status']),
             models.Index(fields=['is_featured', 'status']),
+            models.Index(fields=['author', 'status', '-created_at']),
+            models.Index(fields=['published_at', 'status']),
+            models.Index(fields=['slug']),
         ]
     
     def __str__(self):

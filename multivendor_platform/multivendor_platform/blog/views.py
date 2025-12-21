@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
+from django.views.decorators.cache import cache_page
 
 # Local imports
 from .models import BlogPost, BlogCategory, BlogComment
@@ -36,6 +37,14 @@ class BlogCategoryViewSet(viewsets.ModelViewSet):
     queryset = BlogCategory.objects.filter(is_active=True).order_by('name')
     serializer_class = BlogCategorySerializer
     lookup_field = 'slug'
+    
+    @cache_page(60 * 15)  # Cache for 15 minutes
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @cache_page(60 * 30)  # Cache for 30 minutes
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
     
     def get_queryset(self):
         """Get queryset with safe select_related to avoid errors"""
@@ -61,7 +70,7 @@ class BlogCategoryViewSet(viewsets.ModelViewSet):
         Get all published posts in this category
         """
         category = self.get_object()
-        posts = category.blog_posts.filter(status='published').order_by('-created_at')
+        posts = category.blog_posts.filter(status='published').select_related('author', 'category').order_by('-created_at')
         
         # Apply pagination
         paginator = BlogPagination()
@@ -112,7 +121,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         """
         Filter queryset based on user permissions and status
         """
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().select_related('author', 'author__profile', 'category').prefetch_related('linked_subcategories', 'comments')
         
         # If user is not authenticated or not the author, only show published posts
         if not self.request.user.is_authenticated:
@@ -147,6 +156,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
+    @cache_page(60 * 10)  # Cache featured posts for 10 minutes
     def featured(self, request):
         """
         Get featured blog posts
@@ -154,27 +164,29 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         featured_posts = self.get_queryset().filter(
             status='published', 
             is_featured=True
-        ).order_by('-created_at')[:6]
+        ).select_related('author', 'category').order_by('-created_at')[:6]
         
         serializer = BlogPostListSerializer(featured_posts, many=True, context={'request': request})
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
+    @cache_page(60 * 5)  # Cache recent posts for 5 minutes
     def recent(self, request):
         """
         Get recent blog posts
         """
-        recent_posts = self.get_queryset().filter(status='published').order_by('-created_at')[:10]
+        recent_posts = self.get_queryset().filter(status='published').select_related('author', 'category').order_by('-created_at')[:10]
         
         serializer = BlogPostListSerializer(recent_posts, many=True, context={'request': request})
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
+    @cache_page(60 * 15)  # Cache popular posts for 15 minutes
     def popular(self, request):
         """
         Get popular blog posts (by view count)
         """
-        popular_posts = self.get_queryset().filter(status='published').order_by('-view_count')[:10]
+        popular_posts = self.get_queryset().filter(status='published').select_related('author', 'category').order_by('-view_count')[:10]
         
         serializer = BlogPostListSerializer(popular_posts, many=True, context={'request': request})
         return Response(serializer.data)
@@ -188,7 +200,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         related_posts = self.get_queryset().filter(
             category=post.category,
             status='published'
-        ).exclude(id=post.id).order_by('-created_at')[:5]
+        ).select_related('author', 'category').exclude(id=post.id).order_by('-created_at')[:5]
         
         serializer = BlogPostListSerializer(related_posts, many=True, context={'request': request})
         return Response(serializer.data)
@@ -199,7 +211,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         Retrieve approved comments for a blog post.
         """
         post = self.get_object()
-        comments_qs = post.comments.all().order_by('-created_at')
+        comments_qs = post.comments.all().select_related('author', 'author__profile', 'post').prefetch_related('replies').order_by('-created_at')
         
         if not request.user.is_staff:
             comments_qs = comments_qs.filter(is_approved=True)
@@ -232,7 +244,7 @@ class BlogCommentViewSet(viewsets.ModelViewSet):
         """
         Filter comments based on approval status
         """
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().select_related('post', 'author', 'author__profile').prefetch_related('replies')
         
         # Only show approved comments to non-staff users
         if not self.request.user.is_staff:
@@ -258,7 +270,7 @@ class MyBlogPostsView(viewsets.ReadOnlyModelViewSet):
         """
         Return only the current user's blog posts
         """
-        return BlogPost.objects.filter(author=self.request.user).order_by('-created_at')
+        return BlogPost.objects.filter(author=self.request.user).select_related('category').prefetch_related('linked_subcategories').order_by('-created_at')
 
 # Django Template Views for Dashboard
 class BlogDashboardView(LoginRequiredMixin, TemplateView):
