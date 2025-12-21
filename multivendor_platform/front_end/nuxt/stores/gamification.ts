@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useGamificationApi } from '~/composables/useGamification'
 import { useGamificationDashboard, type DashboardData } from '~/composables/useGamificationDashboard'
@@ -100,7 +100,9 @@ export const useGamificationStore = defineStore('gamification', () => {
 
   const fetchEngagement = async () => {
     const data = await legacyApi.fetchEngagement()
-    engagement.value = data.engagement
+    if (data.data.value?.engagement) {
+      engagement.value = data.data.value.engagement
+    }
     return engagement.value
   }
 
@@ -141,6 +143,36 @@ export const useGamificationStore = defineStore('gamification', () => {
     }
   }
 
+  // Computed properties for tier progression
+  const nextTier = computed(() => {
+    const tier = userTier.value?.toLowerCase()
+    const tierOrder = ['inactive', 'bronze', 'silver', 'gold', 'diamond']
+    const currentIndex = tierOrder.indexOf(tier || 'inactive')
+    if (currentIndex < tierOrder.length - 1) {
+      return tierOrder[currentIndex + 1]
+    }
+    return null
+  })
+
+  const nextTierPointsNeeded = computed(() => {
+    if (!nextTier.value) return 0
+    const thresholds: Record<string, number> = {
+      bronze: 50,
+      silver: 200,
+      gold: 500,
+      diamond: 1000,
+    }
+    const currentPoints = engagement.value?.total_points || 0
+    const nextThreshold = thresholds[nextTier.value] || 0
+    return Math.max(0, nextThreshold - currentPoints)
+  })
+
+  const ranksToNextTier = computed(() => {
+    // This would need to be calculated from leaderboard data
+    // For now, return null and let the component handle it
+    return null
+  })
+
   return {
     // NEW: Primary state
     dashboardData,
@@ -159,6 +191,9 @@ export const useGamificationStore = defineStore('gamification', () => {
     leaderboard,
     userRank,
     userTier,
+    nextTier,
+    nextTierPointsNeeded,
+    ranksToNextTier,
     fetchScores,
     fetchEngagement,
     fetchBadges,

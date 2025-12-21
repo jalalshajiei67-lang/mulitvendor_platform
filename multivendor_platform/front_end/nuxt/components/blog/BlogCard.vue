@@ -4,7 +4,7 @@
       <v-img
         v-if="post.featured_image"
         :src="post.featured_image"
-        :alt="post.title"
+        :alt="post.featured_image_alt || post.title"
         height="200"
         cover
         loading="lazy"

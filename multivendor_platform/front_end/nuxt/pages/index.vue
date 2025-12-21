@@ -109,7 +109,7 @@
                               <img
                                 v-if="blog.featured_image"
                                 :src="blog.featured_image"
-                                :alt="blog.title"
+                                :alt="blog.featured_image_alt || blog.title"
                               />
                               <div v-else class="placeholder-image">
                                 <v-icon size="small">mdi-file-document</v-icon>

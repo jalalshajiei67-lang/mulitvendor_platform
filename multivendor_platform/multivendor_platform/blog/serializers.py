@@ -123,7 +123,7 @@ class BlogPostListSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlogPost
         fields = [
-            'id', 'title', 'slug', 'excerpt', 'featured_image',
+            'id', 'title', 'slug', 'excerpt', 'featured_image', 'featured_image_alt',
             'author', 'author_name', 'category', 'category_name', 'category_color',
             'status', 'is_featured', 'view_count', 'comment_count',
             'reading_time', 'created_at', 'updated_at', 'published_at'
@@ -160,7 +160,7 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlogPost
         fields = [
-            'id', 'title', 'slug', 'excerpt', 'content', 'featured_image',
+            'id', 'title', 'slug', 'excerpt', 'content', 'featured_image', 'featured_image_alt',
             'author', 'author_name', 'author_email', 'category', 'category_id',
             'linked_subcategories', 'linked_subcategory_ids',
             'status', 'is_featured', 'view_count', 'comment_count',
@@ -226,7 +226,7 @@ class BlogPostCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlogPost
         fields = [
-            'title', 'excerpt', 'content', 'featured_image',
+            'title', 'excerpt', 'content', 'featured_image', 'featured_image_alt',
             'category', 'linked_subcategory_ids', 'status', 'is_featured',
             'meta_title', 'meta_description'
         ]

@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'gamification',
     'chat',  # Chat system
     'payments',  # Payment processing
+    'auctions',  # Auction system
+    'sms_newsletter',  # SMS Newsletter for suppliers
 ]
 
 MIDDLEWARE = [
@@ -315,6 +317,14 @@ TINYMCE_DEFAULT_CONFIG = {
     'paste_data_images': True,
     'extended_valid_elements': 'table[*],tr[*],td[*],th[*]',
     'block_formats': 'Paragraph=p; Header 1=h1; Header 2=h2; Header 3=h3; Header 4=h4; Header 5=h5; Header 6=h6; Preformatted=pre',
+    # Image upload configuration
+    'file_picker_callback': 'tinymceImageFilePicker',
+    'file_picker_types': 'image',
+    # Image dialog settings - ensure ALT field is shown
+    'image_advtab': True,
+    'image_description': True,
+    'image_title': True,
+    'image_caption': False,
 }
 
 # OTP Configuration

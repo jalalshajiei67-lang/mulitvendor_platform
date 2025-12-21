@@ -14,7 +14,7 @@ from datetime import timedelta
 from decimal import Decimal
 import logging
 
-from .models import PremiumSubscriptionPayment, PaymentInvoice
+from .models import PremiumSubscriptionPayment, PaymentInvoice, DiscountCampaign, DiscountUsage
 from .serializers import (
     PremiumSubscriptionPaymentSerializer,
     PaymentInvoiceSerializer,
@@ -51,18 +51,77 @@ def request_premium_payment(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     billing_period = serializer.validated_data['billing_period']
+    discount_code = serializer.validated_data.get('discount_code', '').strip().upper()
     
-    # Get amount in Toman
-    amount_toman = PRICING_CONFIG.get(billing_period, PRICING_CONFIG['monthly'])
-    amount_rial = amount_toman * 10  # Convert to Rial
+    # Get base amount in Toman
+    base_amount_toman = Decimal(str(PRICING_CONFIG.get(billing_period, PRICING_CONFIG['monthly'])))
+    discount_amount_toman = Decimal('0')
+    discount_campaign = None
+    final_amount_toman = base_amount_toman
+    
+    # Validate and apply discount code if provided
+    if discount_code:
+        try:
+            # Normalize and lookup
+            normalized_code = discount_code.strip().upper()
+            discount_campaign = DiscountCampaign.objects.filter(code__iexact=normalized_code).first()
+            if not discount_campaign:
+                # Debug logging
+                all_codes = list(DiscountCampaign.objects.values_list('code', flat=True))
+                logger.warning(
+                    f"Payment: Discount code '{normalized_code}' (from '{discount_code}') not found. "
+                    f"Available: {all_codes}"
+                )
+                return Response({
+                    'success': False,
+                    'error': f'کد تخفیف "{normalized_code}" یافت نشد',
+                }, status=status.HTTP_400_BAD_REQUEST)
+            is_valid, error_message = discount_campaign.is_valid(
+                user=request.user,
+                billing_period=billing_period,
+                amount_toman=float(base_amount_toman)
+            )
+            
+            if not is_valid:
+                return Response({
+                    'success': False,
+                    'error': error_message or 'کد تخفیف معتبر نیست',
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Calculate discount (returns floats)
+            discount_amount_toman, final_amount_toman = discount_campaign.calculate_discount(float(base_amount_toman))
+            # Convert to Decimal for payment calculations
+            discount_amount_toman = Decimal(str(discount_amount_toman))
+            final_amount_toman = Decimal(str(final_amount_toman))
+            
+        except DiscountCampaign.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'کد تخفیف یافت نشد',
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error validating discount code: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'خطا در بررسی کد تخفیف',
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Convert to Rial for payment
+    final_amount_rial = int(final_amount_toman * 10)
     
     # Create payment record
     try:
+        description = f"Premium Subscription - {billing_period}"
+        if discount_campaign:
+            description += f" (Discount: {discount_campaign.code})"
+        
         payment = PremiumSubscriptionPayment.objects.create(
             user=request.user,
             billing_period=billing_period,
-            amount=amount_rial,
-            description=f"Premium Subscription - {billing_period}",
+            amount=final_amount_rial,
+            description=description,
+            discount_campaign=discount_campaign,
+            discount_amount_toman=int(discount_amount_toman),
         )
         
         # Request payment from Zibal
@@ -70,7 +129,7 @@ def request_premium_payment(request):
         callback_url = f"{settings.SITE_URL}/api/payments/premium/callback/"
         
         success, response_data = zibal.request_payment(
-            amount=int(amount_rial),
+            amount=int(final_amount_rial),
             callback_url=callback_url,
             description=payment.description,
             order_id=str(payment.order_id),
@@ -89,14 +148,26 @@ def request_premium_payment(request):
             
             logger.info(f"Payment requested successfully for user {request.user.id}, track_id: {track_id}")
             
-            return Response({
+            response_data = {
                 'success': True,
                 'track_id': track_id,
                 'payment_url': payment_url,
-                'amount': amount_rial,
-                'amount_toman': amount_toman,
+                'amount': final_amount_rial,
+                'amount_toman': float(final_amount_toman),
+                'base_amount_toman': float(base_amount_toman),
                 'order_id': str(payment.order_id),
-            }, status=status.HTTP_200_OK)
+            }
+            
+            # Include discount info if applied
+            if discount_campaign:
+                response_data['discount'] = {
+                    'code': discount_campaign.code,
+                    'discount_amount_toman': float(discount_amount_toman),
+                    'discount_type': discount_campaign.discount_type,
+                    'discount_value': float(discount_campaign.discount_value),
+                }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
         else:
             # Payment request failed
             payment.status = 'failed'
@@ -116,6 +187,85 @@ def request_premium_payment(request):
         return Response({
             'success': False,
             'error': 'خطای سیستمی در ایجاد درخواست پرداخت'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def validate_discount_code(request):
+    """
+    Validate discount code before payment
+    
+    POST /api/payments/premium/validate-discount/
+    Body: {"discount_code": "SUMMER2024", "billing_period": "monthly"}
+    """
+    discount_code = request.data.get('discount_code', '').strip().upper()
+    billing_period = request.data.get('billing_period', 'monthly')
+    
+    if not discount_code:
+        return Response({
+            'valid': False,
+            'error': 'کد تخفیف را وارد کنید'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Normalize input code
+        normalized_code = discount_code.strip().upper()
+        
+        # Case-insensitive lookup
+        discount_campaign = DiscountCampaign.objects.filter(code__iexact=normalized_code).first()
+        if not discount_campaign:
+            # Debug: log available codes
+            all_codes = list(DiscountCampaign.objects.values_list('code', flat=True))
+            logger.warning(
+                f"Discount code '{normalized_code}' (from input '{discount_code}') not found. "
+                f"Available codes: {all_codes}"
+            )
+            return Response({
+                'valid': False,
+                'error': f'کد تخفیف "{normalized_code}" یافت نشد'
+            }, status=status.HTTP_200_OK)
+        base_amount_toman = Decimal(str(PRICING_CONFIG.get(billing_period, PRICING_CONFIG['monthly'])))
+        
+        is_valid, error_message = discount_campaign.is_valid(
+            user=request.user,
+            billing_period=billing_period,
+            amount_toman=float(base_amount_toman)
+        )
+        
+        if not is_valid:
+            logger.info(f"Discount code '{discount_code}' validation failed for user {request.user.id}: {error_message}")
+            return Response({
+                'valid': False,
+                'error': error_message or 'کد تخفیف معتبر نیست'
+            }, status=status.HTTP_200_OK)
+        
+        # Calculate discount
+        discount_amount_toman, final_amount_toman = discount_campaign.calculate_discount(float(base_amount_toman))
+        
+        logger.info(f"Discount code '{discount_code}' validated successfully for user {request.user.id}")
+        
+        return Response({
+            'valid': True,
+            'code': discount_campaign.code,
+            'name': discount_campaign.name,
+            'discount_type': discount_campaign.discount_type,
+            'discount_value': float(discount_campaign.discount_value),
+            'discount_amount_toman': float(discount_amount_toman),
+            'base_amount_toman': float(base_amount_toman),
+            'final_amount_toman': float(final_amount_toman),
+        }, status=status.HTTP_200_OK)
+        
+    except DiscountCampaign.DoesNotExist:
+        return Response({
+            'valid': False,
+            'error': 'کد تخفیف یافت نشد'
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error(f"Error validating discount code: {str(e)}")
+        return Response({
+            'valid': False,
+            'error': 'خطا در بررسی کد تخفیف'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -154,6 +304,19 @@ def payment_callback(request):
                 payment.mark_as_verified()
                 payment.zibal_response = verify_data
                 payment.save()
+                
+                # Record discount usage if applicable
+                if payment.discount_campaign:
+                    try:
+                        DiscountUsage.objects.create(
+                            campaign=payment.discount_campaign,
+                            user=payment.user,
+                            payment=payment,
+                            discount_amount_toman=payment.discount_amount_toman
+                        )
+                        payment.discount_campaign.record_usage(payment.user, payment)
+                    except Exception as e:
+                        logger.error(f"Error recording discount usage: {str(e)}")
                 
                 # Activate premium subscription
                 activate_premium_subscription(payment.user, payment)
@@ -230,6 +393,19 @@ def verify_payment_manual(request, track_id):
             payment.mark_as_verified()
             payment.zibal_response = verify_data
             payment.save()
+            
+            # Record discount usage if applicable
+            if payment.discount_campaign:
+                try:
+                    DiscountUsage.objects.create(
+                        campaign=payment.discount_campaign,
+                        user=payment.user,
+                        payment=payment,
+                        discount_amount_toman=payment.discount_amount_toman
+                    )
+                    payment.discount_campaign.record_usage(payment.user, payment)
+                except Exception as e:
+                    logger.error(f"Error recording discount usage: {str(e)}")
             
             # Activate premium subscription
             activate_premium_subscription(payment.user, payment)

@@ -75,6 +75,7 @@ class BlogPost(models.Model):
     excerpt = models.TextField(max_length=500, help_text='Short description for blog listing')
     content = models.TextField()
     featured_image = models.ImageField(upload_to='blog_images/', blank=True, null=True)
+    featured_image_alt = models.CharField(max_length=200, blank=True, null=True, help_text='Alt text for the featured image (for accessibility and SEO)')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     is_featured = models.BooleanField(default=False, help_text='Show this post as featured')
     view_count = models.PositiveIntegerField(default=0)

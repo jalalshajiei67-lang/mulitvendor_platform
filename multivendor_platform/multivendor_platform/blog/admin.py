@@ -89,7 +89,7 @@ class BlogPostAdmin(admin.ModelAdmin):
             'description': 'Select multiple subcategories to link this blog post to product subcategories'
         }),
         ('Content', {
-            'fields': ('excerpt', 'content', 'featured_image')
+            'fields': ('excerpt', 'content', 'featured_image', 'featured_image_alt')
         }),
         ('Settings', {
             'fields': ('is_featured', 'meta_title', 'meta_description')

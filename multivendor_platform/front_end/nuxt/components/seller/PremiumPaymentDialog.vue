@@ -97,11 +97,63 @@
           </v-card-text>
         </v-card>
 
+        <!-- Discount Code Input -->
+        <v-card color="grey-lighten-5" variant="flat" class="mb-4">
+          <v-card-text class="pa-4">
+            <div class="d-flex align-center gap-2 flex-wrap">
+              <v-text-field
+                v-model="localDiscountCode"
+                label="کد تخفیف"
+                placeholder="کد تخفیف خود را وارد کنید"
+                variant="outlined"
+                density="compact"
+                hide-details
+                class="flex-grow-1"
+                prepend-inner-icon="mdi-tag-outline"
+                @keyup.enter="applyDiscountCode"
+              >
+                <template v-slot:append-inner>
+                  <v-btn
+                    color="primary"
+                    variant="text"
+                    size="small"
+                    @click="applyDiscountCode"
+                    :loading="validatingDiscount"
+                    :disabled="!localDiscountCode || validatingDiscount"
+                  >
+                    اعمال
+                  </v-btn>
+                </template>
+              </v-text-field>
+            </div>
+            <div v-if="discountError" class="text-caption text-error mt-2">
+              {{ discountError }}
+            </div>
+            <div v-if="appliedDiscount" class="text-caption text-success mt-2 d-flex align-center gap-1">
+              <v-icon size="16">mdi-check-circle</v-icon>
+              کد تخفیف اعمال شد: {{ appliedDiscount.code }} ({{ discountAmountDisplay }})
+            </div>
+          </v-card-text>
+        </v-card>
+
         <!-- Price Display -->
         <v-card color="amber" variant="flat" class="mb-4">
-          <v-card-text class="d-flex align-center justify-space-between pa-4">
-            <span class="text-subtitle-1 font-weight-medium text-white">مبلغ قابل پرداخت:</span>
-            <span class="text-h5 font-weight-bold text-white">{{ priceDisplay }}</span>
+          <v-card-text class="pa-4">
+            <div v-if="appliedDiscount" class="mb-2">
+              <div class="d-flex align-center justify-space-between text-white mb-1">
+                <span class="text-body-2">مبلغ اصلی:</span>
+                <span class="text-body-2 text-decoration-line-through">{{ basePriceDisplay }}</span>
+              </div>
+              <div class="d-flex align-center justify-space-between text-white mb-1">
+                <span class="text-body-2">تخفیف:</span>
+                <span class="text-body-2 font-weight-bold">-{{ discountAmountDisplay }}</span>
+              </div>
+              <v-divider color="white" class="my-2"></v-divider>
+            </div>
+            <div class="d-flex align-center justify-space-between">
+              <span class="text-subtitle-1 font-weight-medium text-white">مبلغ قابل پرداخت:</span>
+              <span class="text-h5 font-weight-bold text-white">{{ finalPriceDisplay }}</span>
+            </div>
           </v-card-text>
         </v-card>
 
@@ -155,9 +207,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { usePaymentApi } from '~/composables/usePaymentApi'
+import { useConfetti } from '~/composables/useConfetti'
 
 const props = defineProps<{
   modelValue: boolean
+  discountCode?: string
 }>()
 
 const emit = defineEmits<{
@@ -166,6 +220,7 @@ const emit = defineEmits<{
 }>()
 
 const paymentApi = usePaymentApi()
+const { triggerConfetti } = useConfetti()
 
 const localDialog = computed({
   get: () => props.modelValue,
@@ -175,6 +230,10 @@ const localDialog = computed({
 const billingPeriod = ref<'monthly' | 'quarterly' | 'semiannual' | 'yearly'>('monthly')
 const loading = ref(false)
 const error = ref<string | null>(null)
+const localDiscountCode = ref(props.discountCode || '')
+const validatingDiscount = ref(false)
+const discountError = ref('')
+const appliedDiscount = ref<any>(null)
 
 const premiumFeatures = [
   'مشتریان نامحدود',
@@ -185,22 +244,103 @@ const premiumFeatures = [
   'اولویت در پشتیبانی',
 ]
 
-const priceDisplay = computed(() => {
-  const prices = {
-    monthly: '۱٫۵ میلیون تومان',
-    quarterly: '۴٫۵ میلیون تومان',
-    semiannual: '۹ میلیون تومان',
-    yearly: '۱۴٫۴ میلیون تومان',
-  }
-  return prices[billingPeriod.value]
+const basePrices = {
+  monthly: 1_500_000,
+  quarterly: 4_500_000,
+  semiannual: 9_000_000,
+  yearly: 14_400_000,
+}
+
+const basePriceDisplay = computed(() => {
+  const price = basePrices[billingPeriod.value]
+  return `${(price / 1_000_000).toFixed(1).replace(/\.0$/, '')} میلیون تومان`
 })
+
+const discountAmountDisplay = computed(() => {
+  if (!appliedDiscount.value) return ''
+  const discount = appliedDiscount.value.discount_amount_toman || 0
+  if (appliedDiscount.value.discount_type === 'percentage') {
+    return `${appliedDiscount.value.discount_value}%`
+  }
+  return `${(discount / 1_000_000).toFixed(1).replace(/\.0$/, '')} میلیون تومان`
+})
+
+const finalPriceDisplay = computed(() => {
+  const basePrice = basePrices[billingPeriod.value]
+  let finalPrice = basePrice
+  
+  if (appliedDiscount.value) {
+    // Use nullish coalescing to handle 0 correctly (0 is valid, only null/undefined should fallback)
+    finalPrice = appliedDiscount.value.final_amount_toman ?? basePrice
+  }
+  
+  // Handle zero price display
+  if (finalPrice === 0) {
+    return 'رایگان'
+  }
+  
+  return `${(finalPrice / 1_000_000).toFixed(1).replace(/\.0$/, '')} میلیون تومان`
+})
+
+const priceDisplay = computed(() => finalPriceDisplay.value)
+
+async function applyDiscountCode() {
+  if (!localDiscountCode.value.trim()) {
+    discountError.value = 'لطفاً کد تخفیف را وارد کنید'
+    return
+  }
+
+  validatingDiscount.value = true
+  discountError.value = ''
+  appliedDiscount.value = null
+
+  try {
+    const { usePaymentApi } = await import('~/composables/usePaymentApi')
+    const paymentApi = usePaymentApi()
+    const response = await paymentApi.validateDiscountCode(
+      localDiscountCode.value.trim().toUpperCase(),
+      billingPeriod.value
+    )
+
+    if (response.valid) {
+      appliedDiscount.value = response
+      discountError.value = ''
+      // Trigger confetti animation
+      triggerConfetti()
+    } else {
+      discountError.value = response.error || 'کد تخفیف معتبر نیست'
+      appliedDiscount.value = null
+    }
+  } catch (error: any) {
+    discountError.value = error?.data?.error || 'خطا در بررسی کد تخفیف'
+    appliedDiscount.value = null
+  } finally {
+    validatingDiscount.value = false
+  }
+}
+
+// Watch billing period changes to re-validate discount
+watch(billingPeriod, () => {
+  if (appliedDiscount.value && localDiscountCode.value) {
+    applyDiscountCode()
+  }
+})
+
+// Initialize discount code from props
+watch(() => props.discountCode, (newCode) => {
+  if (newCode) {
+    localDiscountCode.value = newCode
+    applyDiscountCode()
+  }
+}, { immediate: true })
 
 async function handlePayment() {
   loading.value = true
   error.value = null
 
   try {
-    const response = await paymentApi.requestPremiumPayment(billingPeriod.value)
+    const discountCodeToSend = appliedDiscount.value ? localDiscountCode.value.trim().toUpperCase() : undefined
+    const response = await paymentApi.requestPremiumPayment(billingPeriod.value, discountCodeToSend)
 
     if (response.success && response.payment_url) {
       // Redirect to Zibal payment gateway

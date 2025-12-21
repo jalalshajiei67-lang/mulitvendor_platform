@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from .models import PremiumSubscriptionPayment, PaymentInvoice
+from .models import PremiumSubscriptionPayment, PaymentInvoice, DiscountCampaign, DiscountUsage
 
 
 @admin.register(PremiumSubscriptionPayment)
@@ -236,4 +236,216 @@ class PaymentInvoiceAdmin(admin.ModelAdmin):
             count += 1
         self.message_user(request, f'Regenerated {count} PDF(s).')
     regenerate_pdf.short_description = 'Regenerate PDF'
+
+
+@admin.register(DiscountCampaign)
+class DiscountCampaignAdmin(admin.ModelAdmin):
+    """Admin interface for Discount Campaigns"""
+    
+    list_display = [
+        'code',
+        'name',
+        'discount_display',
+        'billing_period',
+        'valid_from',
+        'valid_until',
+        'usage_stats',
+        'is_active',
+        'created_at',
+    ]
+    
+    list_filter = [
+        'is_active',
+        'discount_type',
+        'billing_period',
+        'valid_from',
+        'valid_until',
+        'created_at',
+    ]
+    
+    search_fields = [
+        'code',
+        'name',
+        'description',
+    ]
+    
+    readonly_fields = [
+        'used_count',
+        'created_at',
+        'updated_at',
+        'usage_stats_display',
+    ]
+    
+    fieldsets = (
+        ('Campaign Information', {
+            'fields': ('code', 'name', 'description', 'is_active', 'created_by')
+        }),
+        ('Discount Settings', {
+            'fields': (
+                'discount_type',
+                'discount_value',
+                'max_discount_toman',
+            )
+        }),
+        ('Applicability', {
+            'fields': (
+                'billing_period',
+                'min_amount_toman',
+            )
+        }),
+        ('Usage Limits', {
+            'fields': (
+                'max_uses',
+                'max_uses_per_user',
+                'used_count',
+            )
+        }),
+        ('Validity Period', {
+            'fields': ('valid_from', 'valid_until')
+        }),
+        ('Statistics', {
+            'fields': ('usage_stats_display',),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )
+    
+    actions = ['activate_campaigns', 'deactivate_campaigns']
+    
+    def discount_display(self, obj):
+        """Display discount in readable format"""
+        if obj.discount_type == 'percentage':
+            return f"{obj.discount_value}%"
+        else:
+            return f"{int(obj.discount_value):,} تومان"
+    discount_display.short_description = 'Discount'
+    
+    def usage_stats(self, obj):
+        """Display usage statistics"""
+        if obj.max_uses:
+            percentage = (obj.used_count / obj.max_uses) * 100
+            color = 'green' if percentage < 80 else 'orange' if percentage < 95 else 'red'
+            percentage_str = f"{int(percentage)}%"
+            return format_html(
+                '<span style="color: {};">{}/{} ({})</span>',
+                color,
+                obj.used_count,
+                obj.max_uses,
+                percentage_str
+            )
+        return format_html('{} استفاده', obj.used_count)
+    usage_stats.short_description = 'Usage'
+    
+    def usage_stats_display(self, obj):
+        """Detailed usage statistics"""
+        from django.utils import timezone
+        from django.db.models import Count
+        
+        usages = DiscountUsage.objects.filter(campaign=obj)
+        total_usages = usages.count()
+        unique_users = usages.values('user').distinct().count()
+        
+        # Recent usages (last 7 days)
+        recent_usages = usages.filter(
+            used_at__gte=timezone.now() - timezone.timedelta(days=7)
+        ).count()
+        
+        return format_html(
+            '<div style="padding: 10px;">'
+            '<strong>آمار استفاده:</strong><br>'
+            '• کل استفاده‌ها: {}<br>'
+            '• کاربران منحصر به فرد: {}<br>'
+            '• استفاده‌های ۷ روز اخیر: {}<br>'
+            '</div>',
+            total_usages,
+            unique_users,
+            recent_usages
+        )
+    usage_stats_display.short_description = 'Usage Statistics'
+    
+    def activate_campaigns(self, request, queryset):
+        """Activate selected campaigns"""
+        count = queryset.update(is_active=True)
+        self.message_user(request, f'{count} campaign(s) activated.')
+    activate_campaigns.short_description = 'Activate selected campaigns'
+    
+    def deactivate_campaigns(self, request, queryset):
+        """Deactivate selected campaigns"""
+        count = queryset.update(is_active=False)
+        self.message_user(request, f'{count} campaign(s) deactivated.')
+    deactivate_campaigns.short_description = 'Deactivate selected campaigns'
+    
+    def save_model(self, request, obj, form, change):
+        """Set created_by when creating new campaign"""
+        if not change:  # Creating new object
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(DiscountUsage)
+class DiscountUsageAdmin(admin.ModelAdmin):
+    """Admin interface for Discount Usage tracking"""
+    
+    list_display = [
+        'id',
+        'campaign_code',
+        'user_link',
+        'discount_amount_display',
+        'used_at',
+        'payment_link',
+    ]
+    
+    list_filter = [
+        'campaign',
+        'used_at',
+    ]
+    
+    search_fields = [
+        'campaign__code',
+        'user__username',
+        'user__email',
+        'payment__track_id',
+    ]
+    
+    readonly_fields = [
+        'campaign',
+        'user',
+        'payment',
+        'discount_amount_toman',
+        'used_at',
+    ]
+    
+    fieldsets = (
+        ('Usage Information', {
+            'fields': ('campaign', 'user', 'payment', 'discount_amount_toman', 'used_at')
+        }),
+    )
+    
+    def campaign_code(self, obj):
+        """Display campaign code"""
+        return obj.campaign.code
+    campaign_code.short_description = 'Campaign Code'
+    
+    def user_link(self, obj):
+        """Link to user in admin"""
+        from django.urls import reverse
+        url = reverse('admin:auth_user_change', args=[obj.user.id])
+        return format_html('<a href="{}">{}</a>', url, obj.user.username)
+    user_link.short_description = 'User'
+    
+    def discount_amount_display(self, obj):
+        """Display discount amount"""
+        return f"{int(obj.discount_amount_toman):,} تومان"
+    discount_amount_display.short_description = 'Discount Amount'
+    
+    def payment_link(self, obj):
+        """Link to payment in admin"""
+        if obj.payment:
+            from django.urls import reverse
+            url = reverse('admin:payments_premiumsubscriptionpayment_change', args=[obj.payment.id])
+            return format_html('<a href="{}">Payment #{}</a>', url, obj.payment.id)
+        return '-'
+    payment_link.short_description = 'Payment'
 

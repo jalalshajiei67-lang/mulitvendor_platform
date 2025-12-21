@@ -70,6 +70,25 @@ SITE_URL=https://indexo.ir
 
 **SITE_URL:**
 - آدرس اصلی سایت که برای callback زیبال استفاده می‌شود
+
+### Kavenegar SMS Gateway
+```env
+KAVENEGAR_API_KEY=your-kavenegar-api-key-here
+KAVENEGAR_SENDER=10004346
+KAVENEGAR_PATTERN_ID=your-pattern-id-here
+```
+
+**KAVENEGAR_API_KEY:**
+- API Key خود را از پنل کاوه نگار دریافت کنید
+- در آدرس: https://panel.kavenegar.com/client/membership/apis
+
+**KAVENEGAR_SENDER:**
+- شماره فرستنده پیامک (معمولاً 10004346 یا شماره اختصاصی شما)
+- می‌توانید از پنل کاوه نگار دریافت کنید
+
+**KAVENEGAR_PATTERN_ID:**
+- شناسه الگوی پیامک که در پنل کاوه نگار تعریف کرده‌اید
+- الگو باید شامل متغیرهای name، company و category باشد
 - در development: `http://localhost:8000`
 - در production: `https://indexo.ir`
 

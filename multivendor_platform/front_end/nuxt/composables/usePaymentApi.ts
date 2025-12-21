@@ -65,12 +65,17 @@ export const usePaymentApi = () => {
      * Request premium payment
      */
     async requestPremiumPayment(
-      billingPeriod: 'monthly' | 'quarterly' | 'semiannual' | 'yearly' = 'monthly'
+      billingPeriod: 'monthly' | 'quarterly' | 'semiannual' | 'yearly' = 'monthly',
+      discountCode?: string
     ): Promise<PaymentResponse> {
       try {
+        const body: any = { billing_period: billingPeriod }
+        if (discountCode) {
+          body.discount_code = discountCode
+        }
         const response = await useApiFetch<PaymentResponse>('payments/premium/request/', {
           method: 'POST',
-          body: { billing_period: billingPeriod }
+          body
         })
         return response
       } catch (error: any) {
@@ -78,6 +83,30 @@ export const usePaymentApi = () => {
         return {
           success: false,
           error: error?.data?.error || 'خطا در درخواست پرداخت'
+        }
+      }
+    },
+
+    /**
+     * Validate discount code
+     */
+    async validateDiscountCode(
+      discountCode: string,
+      billingPeriod: 'monthly' | 'quarterly' | 'semiannual' | 'yearly' = 'monthly'
+    ) {
+      try {
+        return await useApiFetch('payments/premium/validate-discount/', {
+          method: 'POST',
+          body: {
+            discount_code: discountCode,
+            billing_period: billingPeriod
+          }
+        })
+      } catch (error: any) {
+        console.error('Discount validation error:', error)
+        return {
+          valid: false,
+          error: error?.data?.error || 'خطا در بررسی کد تخفیف'
         }
       }
     },

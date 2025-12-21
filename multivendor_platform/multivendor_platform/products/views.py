@@ -789,7 +789,7 @@ def global_search(request):
     products = Product.objects.filter(
         models.Q(name__icontains=query) | models.Q(description__icontains=query),
         is_active=True
-    ).select_related('subcategory', 'vendor__profile', 'vendor__vendor_profile__engagement')
+    ).select_related('vendor__profile', 'vendor__vendor_profile__engagement', 'primary_category').prefetch_related('subcategories')
 
     # Annotate gamification fields for ranking
     products = products.annotate(

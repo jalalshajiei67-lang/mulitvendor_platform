@@ -484,15 +484,15 @@ onUnmounted(() => {
 .chat-content {
   height: calc(600px - 130px);
   overflow: hidden;
-  background-color: #f5f5f5;
+  background-color: rgb(var(--v-theme-background));
 }
 
 .chat-footer {
   display: flex;
   align-items: center;
   padding: 8px 12px;
-  background-color: white;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  background-color: rgb(var(--v-theme-surface));
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.12);
 }
 
 .connection-alert {
@@ -555,20 +555,6 @@ onUnmounted(() => {
   }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .chat-panel {
-    background-color: #1e1e1e;
-  }
-  
-  .chat-content {
-    background-color: #121212;
-  }
-  
-  .chat-footer {
-    background-color: #1e1e1e;
-    border-top-color: rgba(255, 255, 255, 0.12);
-  }
-}
+/* Dark mode support - handled by Vuetify theme variables */
 </style>
 

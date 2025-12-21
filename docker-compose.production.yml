@@ -66,6 +66,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
+      # Enable BuildKit for cache mounts and optimizations
+      # BuildKit is enabled via DOCKER_BUILDKIT=1 environment variable
     container_name: multivendor_backend
     environment:
       - DB_ENGINE=django.db.backends.postgresql
@@ -116,6 +118,7 @@ services:
     build:
       context: ./multivendor_platform/front_end/nuxt
       dockerfile: Dockerfile.frontend
+      # Enable BuildKit for cache mounts and optimizations
       args:
         NUXT_PUBLIC_API_BASE: https://${API_DOMAIN}/api
         NUXT_PUBLIC_SITE_URL: https://${MAIN_DOMAIN}

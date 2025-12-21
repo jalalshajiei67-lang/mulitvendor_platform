@@ -1,36 +1,48 @@
-# Multi-stage build for Django backend
+# syntax=docker/dockerfile:1.4
+# Multi-stage build for Django backend with BuildKit optimizations
 # Stage 1: Build dependencies
 FROM python:3.11-slim as builder
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=0 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
 # Install system dependencies for building Python packages
-RUN apt-get update && \
+# Use BuildKit cache mount for apt to speed up subsequent builds
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Copy requirements first for better layer caching
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Install Python dependencies with BuildKit cache mount
+# This caches pip packages between builds
+RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
+    pip install --user -r requirements.txt
 
 # Stage 2: Production image
 FROM python:3.11-slim
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PATH=/home/appuser/.local/bin:$PATH
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH=/home/appuser/.local/bin:$PATH
 
 WORKDIR /app
 
-# Install runtime system dependencies
-RUN apt-get update && \
+# Install runtime system dependencies with BuildKit cache mount
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
     postgresql-client \
     curl \
@@ -40,13 +52,13 @@ RUN apt-get update && \
 RUN adduser --disabled-password --gecos '' appuser
 
 # Copy Python dependencies from builder stage
-COPY --from=builder /root/.local /home/appuser/.local
+COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 
-# Copy Django project
-COPY multivendor_platform/multivendor_platform/ /app/
+# Copy Django project with proper ownership
+COPY --chown=appuser:appuser multivendor_platform/multivendor_platform/ /app/
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /app/
+# Copy entrypoint script with proper ownership
+COPY --chown=appuser:appuser docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Create necessary directories and set permissions
@@ -65,4 +77,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Use entrypoint script (which handles migrations and then starts the server)
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-

@@ -433,8 +433,8 @@ onUnmounted(() => {
 }
 
 .filter-section {
-  background-color: #fafafa;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: rgb(var(--v-theme-surface));
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .pulse-chip {
@@ -456,7 +456,7 @@ onUnmounted(() => {
 }
 
 .chat-list-item {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   cursor: pointer;
   transition: all 0.2s;
   padding: 12px 16px !important;
@@ -482,12 +482,12 @@ onUnmounted(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #666;
+  color: rgba(var(--v-theme-on-surface), 0.6);
 }
 
 .chat-room-header {
-  background-color: #f5f5f5;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: rgb(var(--v-theme-surface));
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   padding: 16px !important;
 }
 
@@ -525,12 +525,12 @@ onUnmounted(() => {
 }
 
 .chat-list-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(var(--v-theme-on-surface), 0.2);
   border-radius: 3px;
 }
 
 .chat-list-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(var(--v-theme-on-surface), 0.3);
 }
 
 @media (max-width: 960px) {

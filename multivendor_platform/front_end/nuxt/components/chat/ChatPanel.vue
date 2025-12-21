@@ -305,13 +305,13 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   direction: rtl;
-  background-color: #fafafa;
+  background-color: rgb(var(--v-theme-background));
 }
 
 .search-bar {
   padding: 12px;
-  background-color: white;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: rgb(var(--v-theme-surface));
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .search-field {
@@ -342,10 +342,10 @@ onMounted(async () => {
 }
 
 .room-list-item {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   cursor: pointer;
   transition: all 0.2s;
-  background-color: white;
+  background-color: rgb(var(--v-theme-surface));
   margin-bottom: 1px;
   padding: 12px 16px !important;
 }
@@ -366,7 +366,7 @@ onMounted(async () => {
 .last-message {
   display: flex;
   align-items: center;
-  color: #666;
+  color: rgba(var(--v-theme-on-surface), 0.6);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -383,12 +383,12 @@ onMounted(async () => {
 }
 
 .room-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(var(--v-theme-on-surface), 0.2);
   border-radius: 3px;
 }
 
 .room-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(var(--v-theme-on-surface), 0.3);
 }
 
 @media (max-width: 600px) {

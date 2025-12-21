@@ -10,6 +10,9 @@ urlpatterns = [
     # Payment request
     path('premium/request/', views.request_premium_payment, name='request_premium_payment'),
     
+    # Discount validation
+    path('premium/validate-discount/', views.validate_discount_code, name='validate_discount_code'),
+    
     # Callback from Zibal
     path('premium/callback/', views.payment_callback, name='payment_callback'),
     

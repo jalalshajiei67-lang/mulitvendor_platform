@@ -67,7 +67,7 @@
               <v-card-text class="pa-4 pa-sm-5 pa-md-6">
                 <div v-if="imagePreview" class="image-preview-wrapper">
                   <v-img :src="imagePreview" max-height="300" contain class="mb-4"></v-img>
-                  <v-btn color="error" variant="outlined" @click="removeImage">
+                  <v-btn color="error" variant="outlined" @click="removeImage" class="mb-4">
                     <v-icon class="mr-2">mdi-delete</v-icon>
                     حذف تصویر
                   </v-btn>
@@ -81,9 +81,19 @@
                     rounded="lg"
                     accept="image/*"
                     @change="handleImageUpload"
+                    class="mb-4"
                   ></v-file-input>
                   <small class="text-caption text-medium-emphasis">{{ t('recommendedSize') }}: 1200x630px</small>
                 </div>
+                <v-text-field
+                  v-model="form.featured_image_alt"
+                  label="متن جایگزین تصویر (Alt Text)"
+                  prepend-inner-icon="mdi-text"
+                  variant="outlined"
+                  rounded="lg"
+                  hint="این متن برای دسترسی‌پذیری و سئو استفاده می‌شود"
+                  persistent-hint
+                ></v-text-field>
               </v-card-text>
             </v-card>
           </v-col>
@@ -263,7 +273,8 @@ const form = ref({
   is_featured: false,
   meta_title: '',
   meta_description: '',
-  featured_image: null as File | null
+  featured_image: null as File | null,
+  featured_image_alt: ''
 })
 
 const loading = computed(() => blogStore.loading)
@@ -344,7 +355,8 @@ const loadPost = async () => {
         is_featured: post.is_featured || false,
         meta_title: post.meta_title || '',
         meta_description: post.meta_description || '',
-        featured_image: null
+        featured_image: null,
+        featured_image_alt: post.featured_image_alt || ''
       }
 
       if (post.featured_image) {

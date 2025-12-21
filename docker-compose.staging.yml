@@ -67,9 +67,17 @@ services:
 
   # Django Backend
   backend:
+<<<<<<< HEAD
     # Use pre-built image from GitHub Container Registry
     # Image is built by GitHub Actions and pushed to ghcr.io
     image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_REPO:-damirco}-backend:${IMAGE_TAG:-staging}
+=======
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      # Enable BuildKit for cache mounts and optimizations
+      # BuildKit is enabled via DOCKER_BUILDKIT=1 environment variable
+>>>>>>> 5d5507929b82f1a320bd90aa5a77a77296098051
     container_name: multivendor_backend_staging
     environment:
       - DB_ENGINE=django.db.backends.postgresql
@@ -125,9 +133,19 @@ services:
 
   # Nuxt.js Frontend
   frontend:
+<<<<<<< HEAD
     # Use pre-built image from GitHub Container Registry
     # Image is built by GitHub Actions and pushed to ghcr.io
     image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_REPO:-damirco}-frontend:${IMAGE_TAG:-staging}
+=======
+    build:
+      context: ./multivendor_platform/front_end/nuxt
+      dockerfile: Dockerfile.frontend
+      # Enable BuildKit for cache mounts and optimizations
+      args:
+        NUXT_PUBLIC_API_BASE: https://${API_DOMAIN}/api
+        NUXT_PUBLIC_SITE_URL: https://${MAIN_DOMAIN}
+>>>>>>> 5d5507929b82f1a320bd90aa5a77a77296098051
     container_name: multivendor_frontend_staging
     env_file:
       - .env.staging

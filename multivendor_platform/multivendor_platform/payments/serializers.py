@@ -94,6 +94,13 @@ class PaymentRequestSerializer(serializers.Serializer):
         choices=['monthly', 'quarterly', 'semiannual', 'yearly'],
         default='monthly'
     )
+    discount_code = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=50,
+        help_text="Optional discount code"
+    )
 
 
 class PaymentCallbackSerializer(serializers.Serializer):
