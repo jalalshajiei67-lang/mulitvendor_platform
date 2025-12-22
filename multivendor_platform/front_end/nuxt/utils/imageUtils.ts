@@ -38,7 +38,7 @@ const getBackendBaseUrl = (): string => {
     if (!apiBase || apiBase === '') {
       const hostname = window.location.hostname
       if (hostname.includes('indexo.ir')) {
-        return 'https://multivendor-backend.indexo.ir'
+        return 'https://api.indexo.ir'
       }
       return 'http://127.0.0.1:8000'
     }
