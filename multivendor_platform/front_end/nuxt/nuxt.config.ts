@@ -178,6 +178,8 @@ export default defineNuxtConfig({
       sourcemap: false,
       // Use esbuild for minification (more memory efficient than terser)
       minify: 'esbuild',
+      // Ensure CSS is extracted (not inlined)
+      cssCodeSplit: true,
       rollupOptions: {
         output: {
           manualChunks: (id) => {
@@ -204,6 +206,7 @@ export default defineNuxtConfig({
             }
           },
           // Limit chunk sizes to reduce memory usage
+          // Note: These paths are relative to Nuxt's output directory
           chunkFileNames: 'chunks/[name]-[hash].js',
           entryFileNames: 'entry-[hash].js',
           assetFileNames: 'assets/[name]-[hash].[ext]'
@@ -247,6 +250,14 @@ export default defineNuxtConfig({
   nitro: {
     compressPublicAssets: true,
     minify: true,
+    // Ensure public assets are properly served
+    publicAssets: [
+      {
+        baseURL: '/_nuxt/',
+        dir: 'public/_nuxt',
+        maxAge: 31536000
+      }
+    ],
     // Image optimization
     image: {
       // Enable image optimization
