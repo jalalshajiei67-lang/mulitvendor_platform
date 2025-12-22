@@ -15,9 +15,15 @@ DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 allowed_hosts_str = os.environ.get("ALLOWED_HOSTS", "")
 if allowed_hosts_str:
     ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(",")]
+    # Add internal Docker service names for container-to-container communication
+    # These are used when frontend makes SSR requests via Docker network
+    if 'backend' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append('backend')
+    if 'multivendor_backend' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append('multivendor_backend')  # Container name (for compatibility)
 else:
     # Default for development
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'backend', 'multivendor_backend', '*']
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',

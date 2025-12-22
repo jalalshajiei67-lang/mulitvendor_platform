@@ -86,7 +86,8 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
     } else if (apiBase.includes('api.indexo.ir') || apiBase.includes('https://')) {
       // Fallback: use internal Docker service name if external URL is configured
       // This works because all containers are on the same Docker network
-      apiBase = 'http://multivendor_backend:8000/api'
+      // Use service name 'backend' instead of container name to avoid underscore issues
+      apiBase = 'http://backend:8000/api'
     }
   }
   
