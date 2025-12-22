@@ -11,6 +11,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
+from django.utils.decorators import method_decorator
 
 # REST Framework imports
 from rest_framework import viewsets, status, filters
@@ -542,11 +543,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', 'description']
     
-    @cache_page(60 * 15)  # Cache for 15 minutes
+    @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     
-    @cache_page(60 * 30)  # Cache for 30 minutes
+    @method_decorator(cache_page(60 * 30))  # Cache for 30 minutes
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
     
@@ -554,7 +555,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         """
         Optionally filter categories by department
         """
-        queryset = Category.objects.all().select_related('linked_product_category').prefetch_related('departments', 'subcategories').order_by('sort_order', 'name')
+        queryset = Category.objects.all().prefetch_related('departments', 'subcategories').order_by('sort_order', 'name')
         
         # Filter by department
         department_id = self.request.query_params.get('department', None)
@@ -589,11 +590,11 @@ class SubcategoryViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     pagination_class = None  # Disable pagination to return all subcategories
     
-    @cache_page(60 * 15)  # Cache for 15 minutes
+    @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     
-    @cache_page(60 * 30)  # Cache for 30 minutes
+    @method_decorator(cache_page(60 * 30))  # Cache for 30 minutes
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
     
@@ -645,11 +646,11 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', 'description']
     
-    @cache_page(60 * 15)  # Cache for 15 minutes
+    @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     
-    @cache_page(60 * 30)  # Cache for 30 minutes
+    @method_decorator(cache_page(60 * 30))  # Cache for 30 minutes
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
     
@@ -719,11 +720,11 @@ class LabelGroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = LabelGroupSerializer
     permission_classes = [AllowAny]
     
-    @cache_page(60 * 15)  # Cache for 15 minutes
+    @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     
-    @cache_page(60 * 30)  # Cache for 30 minutes
+    @method_decorator(cache_page(60 * 30))  # Cache for 30 minutes
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
