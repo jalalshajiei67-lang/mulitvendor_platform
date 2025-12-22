@@ -73,10 +73,11 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "psql -h localhost -U pgbouncer -d pgbouncer -c 'SHOW POOLS;' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: always
 
   # Redis Cache
@@ -106,19 +107,21 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=pgbouncer
+      - DB_HOST=db
       - DB_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - SECRET_KEY=${SECRET_KEY}
       - DEBUG=${DEBUG}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS}
       - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS:-True}
       - SITE_URL=${SITE_URL:-https://${MAIN_DOMAIN}}
-      - PUBLIC_MEDIA_URL=${PUBLIC_MEDIA_URL:-https://${API_DOMAIN}/media}
+      - PUBLIC_MEDIA_URL=${PUBLIC_MEDIA_URL:-https://${API_DOMAIN}/media/}
+      - MEDIA_URL=/media/
+      - MEDIA_ROOT=/app/media
     # Use entrypoint script which handles migrations, static files, and starts server
     # The entrypoint script will fix migration sequence automatically
     command: []
@@ -132,8 +135,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      pgbouncer:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || curl -f http://localhost:8000/ || exit 1"]
       interval: 30s
@@ -144,7 +145,7 @@ services:
       - multivendor_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`${API_DOMAIN}`) && !PathPrefix(`/_nuxt/`)"
+      - "traefik.http.routers.backend.rule=Host(`${API_DOMAIN}`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=myresolver"
       - "traefik.http.routers.backend.priority=5"
@@ -171,9 +172,6 @@ services:
       - DOCKER_SERVICE_NAME=backend
     networks:
       - multivendor_network
-    depends_on:
-      backend:
-        condition: service_healthy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`${MAIN_DOMAIN}`) || Host(`www.${MAIN_DOMAIN}`)"
@@ -181,12 +179,6 @@ services:
       - "traefik.http.routers.frontend.tls.certresolver=myresolver"
       - "traefik.http.routers.frontend.priority=10"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
-      # Specific router for Nuxt static assets with higher priority
-      - "traefik.http.routers.frontend-nuxt.rule=Host(`${MAIN_DOMAIN}`) && PathPrefix(`/_nuxt/`)"
-      - "traefik.http.routers.frontend-nuxt.entrypoints=websecure"
-      - "traefik.http.routers.frontend-nuxt.tls.certresolver=myresolver"
-      - "traefik.http.routers.frontend-nuxt.priority=20"
-      - "traefik.http.routers.frontend-nuxt.service=frontend"
     restart: always
 
   # Nginx - Serves Static and Media Files

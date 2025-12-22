@@ -76,10 +76,11 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "psql -h localhost -U pgbouncer -d pgbouncer -c 'SHOW POOLS;' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: always
 
   # Redis Cache
@@ -120,11 +121,15 @@ services:
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS}
       - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS:-True}
+      - SITE_URL=${SITE_URL:-https://${MAIN_DOMAIN}}
+      - PUBLIC_MEDIA_URL=${PUBLIC_MEDIA_URL:-https://${API_DOMAIN}/media/}
+      - MEDIA_URL=/media/
+      - MEDIA_ROOT=/app/media
     # Use entrypoint script which handles migrations, static files, and starts server
     # The entrypoint script will fix migration sequence automatically
     command: []
     volumes:
-      - static_files_staging:/app/static
+      - static_files_staging:/app/staticfiles
       - media_files_staging:/app/media
     env_file:
       - .env.staging
@@ -136,11 +141,11 @@ services:
       pgbouncer:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || curl -f http://localhost:8000/ || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 120s
     networks:
       - multivendor_network
     labels:
@@ -167,6 +172,8 @@ services:
       - NUXT_PUBLIC_API_BASE=https://${API_DOMAIN}/api
       - NUXT_PUBLIC_SITE_URL=https://${MAIN_DOMAIN}
       - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - NUXT_API_BASE=http://backend:8000/api
+      - DOCKER_SERVICE_NAME=backend
     networks:
       - multivendor_network
     labels:
@@ -184,7 +191,7 @@ services:
     env_file:
       - .env.staging
     volumes:
-      - static_files_staging:/usr/share/nginx/html/static:ro
+      - static_files_staging:/usr/share/nginx/html/staticfiles:ro
       - media_files_staging:/usr/share/nginx/html/media:ro
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:

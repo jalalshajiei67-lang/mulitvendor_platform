@@ -181,7 +181,7 @@ export default defineNuxtConfig({
       // Use esbuild for minification (more memory efficient than terser)
       minify: 'esbuild',
       // Ensure CSS is extracted (not inlined)
-      cssCodeSplit: true,
+      cssCodeSplit: false,
       rollupOptions: {
         output: {
           manualChunks: (id) => {
@@ -289,7 +289,7 @@ export default defineNuxtConfig({
     }
   },
   features: {
-    inlineStyles: false
+    inlineStyles: true
   },
   pwa: {
     registerType: 'autoUpdate',
