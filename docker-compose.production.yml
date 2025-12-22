@@ -13,7 +13,8 @@ services:
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
       - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.myresolver.acme.email=jalal.shajiei67@gmail.com"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     ports:
@@ -47,6 +48,37 @@ services:
       retries: 5
     restart: always
 
+  # pgBouncer - Connection Pooling for PostgreSQL
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: multivendor_pgbouncer
+    env_file:
+      - .env
+    environment:
+      - DATABASES_HOST=db
+      - DATABASES_PORT=5432
+      - DATABASES_USER=${DB_USER}
+      - DATABASES_PASSWORD=${DB_PASSWORD}
+      - DATABASES_DBNAME=${DB_NAME}
+      - PGBOUNCER_POOL_MODE=transaction
+      - PGBOUNCER_MAX_CLIENT_CONN=1000
+      - PGBOUNCER_DEFAULT_POOL_SIZE=25
+      - PGBOUNCER_MIN_POOL_SIZE=5
+      - PGBOUNCER_RESERVE_POOL_SIZE=5
+      - PGBOUNCER_RESERVE_POOL_TIMEOUT=3
+      - PGBOUNCER_MAX_DB_CONNECTIONS=100
+    networks:
+      - multivendor_network
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "psql -h localhost -U pgbouncer -d pgbouncer -c 'SHOW POOLS;' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
+
   # Redis Cache
   redis:
     image: redis:7-alpine
@@ -74,7 +106,7 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=db
+      - DB_HOST=pgbouncer
       - DB_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -84,6 +116,7 @@ services:
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS}
+      - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS:-True}
     # Use entrypoint script which handles migrations, static files, and starts server
     # The entrypoint script will fix migration sequence automatically
     command: []
@@ -96,6 +129,8 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/"]
@@ -127,7 +162,6 @@ services:
       - .env
     environment:
       - NUXT_PUBLIC_API_BASE=https://${API_DOMAIN}/api
-      - NUXT_API_BASE=http://multivendor_backend:8000/api
       - NUXT_PUBLIC_SITE_URL=https://${MAIN_DOMAIN}
       - NODE_TLS_REJECT_UNAUTHORIZED=0
     networks:
@@ -170,4 +204,3 @@ volumes:
   redis_data:
   static_files:
   media_files:
-
