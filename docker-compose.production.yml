@@ -117,11 +117,13 @@ services:
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS}
       - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS:-True}
+      - SITE_URL=${SITE_URL:-https://${MAIN_DOMAIN}}
+      - PUBLIC_MEDIA_URL=${PUBLIC_MEDIA_URL:-https://${API_DOMAIN}/media}
     # Use entrypoint script which handles migrations, static files, and starts server
     # The entrypoint script will fix migration sequence automatically
     command: []
     volumes:
-      - static_files:/app/static
+      - static_files:/app/staticfiles
       - media_files:/app/media
     env_file:
       - .env
@@ -133,7 +135,7 @@ services:
       pgbouncer:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || curl -f http://localhost:8000/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -189,7 +191,7 @@ services:
     env_file:
       - .env
     volumes:
-      - static_files:/usr/share/nginx/html/static:ro
+      - static_files:/usr/share/nginx/html/staticfiles:ro
       - media_files:/usr/share/nginx/html/media:ro
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
@@ -197,7 +199,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.nginx.loadbalancer.server.port=80"
-      - "traefik.http.routers.nginx.rule=Host(`${API_DOMAIN}`) && (PathPrefix(`/static`) || PathPrefix(`/media`))"
+      - "traefik.http.routers.nginx.rule=Host(`${API_DOMAIN}`) && (PathPrefix(`/static`) || PathPrefix(`/staticfiles`) || PathPrefix(`/media`))"
       - "traefik.http.routers.nginx.entrypoints=websecure"
       - "traefik.http.routers.nginx.tls.certresolver=myresolver"
       - "traefik.http.routers.nginx.service=nginx"

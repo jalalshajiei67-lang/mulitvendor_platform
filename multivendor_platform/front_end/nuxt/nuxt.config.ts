@@ -127,6 +127,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
+      // API base URL - can be overridden via environment variable
+      // In Docker, this is set via build args in docker-compose.production.yml
       apiBase: process.env.NUXT_PUBLIC_API_BASE ?? (process.env.NODE_ENV === 'production' ? 'https://api.indexo.ir/api' : 'http://localhost:8000/api'),
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? 'https://indexo.ir'
     }

@@ -13,16 +13,47 @@ wait_for_db() {
     max_retries=30
     retry_count=0
     
-    while [ $retry_count -lt $max_retries ]; do
-        if pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" > /dev/null 2>&1; then
-            echo "✅ Database is ready!"
-            return 0
-        fi
-        
-        retry_count=$((retry_count + 1))
-        echo "⏳ Waiting for database... (attempt $retry_count/$max_retries)"
-        sleep 2
-    done
+    # Check if we're using pgbouncer (connection pooling)
+    if [ "$DB_HOST" = "pgbouncer" ] || [ "$DB_HOST" = "multivendor_pgbouncer" ]; then
+        echo "   Using pgbouncer connection pooling..."
+        # For pgbouncer, we can't use pg_isready, so we'll test with Django's check command
+        while [ $retry_count -lt $max_retries ]; do
+            # Try to connect using Python/Django (which will work with pgbouncer)
+            if python -c "
+import os
+import sys
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'multivendor_platform.settings')
+import django
+django.setup()
+from django.db import connection
+try:
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT 1')
+    sys.exit(0)
+except Exception:
+    sys.exit(1)
+" > /dev/null 2>&1; then
+                echo "✅ Database (via pgbouncer) is ready!"
+                return 0
+            fi
+            
+            retry_count=$((retry_count + 1))
+            echo "⏳ Waiting for database (via pgbouncer)... (attempt $retry_count/$max_retries)"
+            sleep 2
+        done
+    else
+        # Direct PostgreSQL connection - use pg_isready
+        while [ $retry_count -lt $max_retries ]; do
+            if pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" > /dev/null 2>&1; then
+                echo "✅ Database is ready!"
+                return 0
+            fi
+            
+            retry_count=$((retry_count + 1))
+            echo "⏳ Waiting for database... (attempt $retry_count/$max_retries)"
+            sleep 2
+        done
+    fi
     
     echo "❌ Database is not ready after $max_retries attempts!"
     echo "   Please check database connection settings:"
