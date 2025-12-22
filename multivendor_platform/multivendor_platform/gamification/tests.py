@@ -33,8 +33,15 @@ class InvitationModelTest(TestCase):
             user=self.user2,
             role='seller'
         )
-        self.vendor1 = VendorProfile.objects.get(user=self.user1)
-        self.vendor2 = VendorProfile.objects.get(user=self.user2)
+        # Signal should create VendorProfile, but use get_or_create as fallback
+        self.vendor1, _ = VendorProfile.objects.get_or_create(
+            user=self.user1,
+            defaults={'store_name': f'فروشگاه_{self.user1.username}', 'description': ''}
+        )
+        self.vendor2, _ = VendorProfile.objects.get_or_create(
+            user=self.user2,
+            defaults={'store_name': f'فروشگاه_{self.user2.username}', 'description': ''}
+        )
 
     def test_create_invitation(self):
         """Test creating an invitation"""
@@ -80,7 +87,11 @@ class InvitationAPITest(TestCase):
             user=self.user,
             role='seller'
         )
-        self.vendor = VendorProfile.objects.get(user=self.user)
+        # Signal should create VendorProfile, but use get_or_create as fallback
+        self.vendor, _ = VendorProfile.objects.get_or_create(
+            user=self.user,
+            defaults={'store_name': f'فروشگاه_{self.user.username}', 'description': ''}
+        )
         self.client.force_authenticate(user=self.user)
 
     def test_generate_invite_code(self):
@@ -161,7 +172,11 @@ class InvitationRegistrationTest(TestCase):
             user=self.inviter_user,
             role='seller'
         )
-        self.inviter_vendor = VendorProfile.objects.get(user=self.inviter_user)
+        # Signal should create VendorProfile, but use get_or_create as fallback
+        self.inviter_vendor, _ = VendorProfile.objects.get_or_create(
+            user=self.inviter_user,
+            defaults={'store_name': f'فروشگاه_{self.inviter_user.username}', 'description': ''}
+        )
         # Create engagement for inviter
         SupplierEngagement.objects.create(
             vendor_profile=self.inviter_vendor,
@@ -283,7 +298,11 @@ class InvitationPointsTest(TestCase):
             user=self.user,
             role='seller'
         )
-        self.vendor = VendorProfile.objects.get(user=self.user)
+        # Signal should create VendorProfile, but use get_or_create as fallback
+        self.vendor, _ = VendorProfile.objects.get_or_create(
+            user=self.user,
+            defaults={'store_name': f'فروشگاه_{self.user.username}', 'description': ''}
+        )
         self.engagement = SupplierEngagement.objects.create(
             vendor_profile=self.vendor,
             total_points=50

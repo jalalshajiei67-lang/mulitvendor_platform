@@ -381,8 +381,15 @@ else:
     CACHE_REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/1"
 
 # Check if Redis is available for caching
+# In test environment, always use LocMemCache
+import sys
+TESTING = 'test' in sys.argv or 'pytest' in sys.modules or 'unittest' in sys.modules
+
 REDIS_AVAILABLE = False
-if not (DEBUG and REDIS_HOST == 'localhost'):
+if TESTING:
+    # Force LocMemCache for tests
+    REDIS_AVAILABLE = False
+elif not (DEBUG and REDIS_HOST == 'localhost'):
     # In production/staging, assume Redis is available
     REDIS_AVAILABLE = True
 else:
@@ -417,3 +424,12 @@ else:
             'LOCATION': 'unique-snowflake',
         }
     }
+    # Use database sessions when Redis is not available (including tests)
+    # For tests, use database sessions to avoid cache-related issues
+    if TESTING:
+        SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+    else:
+        # In development without Redis, still use cache backend with LocMemCache
+        SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+        SESSION_CACHE_ALIAS = 'default'
+        SESSION_COOKIE_AGE = 86400  # 24 hours

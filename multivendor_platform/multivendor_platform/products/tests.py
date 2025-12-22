@@ -110,7 +110,8 @@ class ProductModelTest(TestCase):
             price=Decimal('999.99'),
             vendor=self.user,
             primary_category=self.category,
-            stock=10
+            stock=10,
+            approval_status=Product.APPROVAL_STATUS_APPROVED  # Set approved so is_active=True
         )
         product.subcategories.add(self.subcategory)
         self.assertEqual(product.name, 'iPhone 14 Pro')
