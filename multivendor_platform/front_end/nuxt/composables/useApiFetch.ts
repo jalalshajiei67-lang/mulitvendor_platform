@@ -74,7 +74,21 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
     }
   }
 
-  const apiBase = config.public.apiBase.replace(/\/$/, '')
+  // For SSR (server-side), use internal Docker network hostname if available
+  // This avoids SSL/network issues when frontend container tries to reach external domain
+  let apiBase = config.public.apiBase.replace(/\/$/, '')
+  
+  if (!process.client) {
+    // Server-side rendering: prefer internal Docker network hostname
+    const internalApiBase = process.env.NUXT_API_BASE || process.env.NUXT_INTERNAL_API_BASE
+    if (internalApiBase) {
+      apiBase = internalApiBase.replace(/\/$/, '')
+    } else if (apiBase.includes('api.indexo.ir') || apiBase.includes('https://')) {
+      // Fallback: use internal Docker service name if external URL is configured
+      // This works because all containers are on the same Docker network
+      apiBase = 'http://multivendor_backend:8000/api'
+    }
+  }
   
   // Normalize endpoint path
   const endpointPath = endpoint.replace(/^\//, '')
