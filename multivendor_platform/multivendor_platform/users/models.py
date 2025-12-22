@@ -539,6 +539,15 @@ class VendorSubscription(models.Model):
         default=0,
         help_text='Total sales volume for commission calculation'
     )
+    auto_renew = models.BooleanField(
+        default=False,
+        help_text='Auto-renew subscription on expiry'
+    )
+    expiry_reminder_sent = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text='When expiry reminder was sent'
+    )
     
     class Meta:
         verbose_name = 'Vendor Subscription'
@@ -565,6 +574,7 @@ class VendorSubscription(models.Model):
                     }
                 )[0],
                 'is_active': True,
+                'auto_renew': False,
             }
         )
         return subscription

@@ -333,6 +333,10 @@ OTP_EXPIRATION_MINUTES = int(os.environ.get('OTP_EXPIRATION_MINUTES', '5'))
 OTP_RATE_LIMIT_REQUESTS = int(os.environ.get('OTP_RATE_LIMIT_REQUESTS', '3'))
 OTP_RATE_LIMIT_WINDOW_MINUTES = int(os.environ.get('OTP_RATE_LIMIT_WINDOW_MINUTES', '15'))
 
+# Zibal Payment Gateway Configuration
+ZIBAL_MERCHANT = os.environ.get('ZIBAL_MERCHANT', 'zibal')
+ZIBAL_API_BASE = os.environ.get('ZIBAL_API_BASE', 'https://gateway.zibal.ir')
+
 # Channels Configuration
 REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
