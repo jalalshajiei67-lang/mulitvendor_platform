@@ -62,7 +62,9 @@ COPY --chown=appuser:appuser docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Create necessary directories and set permissions
-RUN mkdir -p /app/static /app/media && \
+RUN mkdir -p /app/staticfiles /app/media /app/logs && \
+    mkdir -p /app/media/category_images /app/media/subcategory_images /app/media/product_images && \
+    mkdir -p /app/media/department_images /app/media/blog_images /app/media/user_images && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user
@@ -73,7 +75,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/api/ || exit 1
+    CMD curl -f http://localhost:8000/health/ || curl -f http://localhost:8000/ || exit 1
 
 # Use entrypoint script (which handles migrations and then starts the server)
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

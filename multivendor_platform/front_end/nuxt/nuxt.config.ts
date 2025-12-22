@@ -127,7 +127,9 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE ?? 'http://localhost:8000/api',
+      // API base URL - can be overridden via environment variable
+      // In Docker, this is set via build args in docker-compose.production.yml
+      apiBase: process.env.NUXT_PUBLIC_API_BASE ?? (process.env.NODE_ENV === 'production' ? 'https://api.indexo.ir/api' : 'http://localhost:8000/api'),
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? 'https://indexo.ir'
     }
   },
@@ -178,6 +180,8 @@ export default defineNuxtConfig({
       sourcemap: false,
       // Use esbuild for minification (more memory efficient than terser)
       minify: 'esbuild',
+      // Ensure CSS is extracted (not inlined)
+      cssCodeSplit: false,
       rollupOptions: {
         output: {
           manualChunks: (id) => {
@@ -204,6 +208,7 @@ export default defineNuxtConfig({
             }
           },
           // Limit chunk sizes to reduce memory usage
+          // Note: These paths are relative to Nuxt's output directory
           chunkFileNames: 'chunks/[name]-[hash].js',
           entryFileNames: 'entry-[hash].js',
           assetFileNames: 'assets/[name]-[hash].[ext]'
@@ -247,6 +252,14 @@ export default defineNuxtConfig({
   nitro: {
     compressPublicAssets: true,
     minify: true,
+    // Ensure public assets are properly served
+    publicAssets: [
+      {
+        baseURL: '/_nuxt/',
+        dir: 'public/_nuxt',
+        maxAge: 31536000
+      }
+    ],
     // Image optimization
     image: {
       // Enable image optimization
@@ -276,7 +289,7 @@ export default defineNuxtConfig({
     }
   },
   features: {
-    inlineStyles: false
+    inlineStyles: true
   },
   pwa: {
     registerType: 'autoUpdate',

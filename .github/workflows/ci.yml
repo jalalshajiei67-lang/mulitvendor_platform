@@ -59,6 +59,9 @@ jobs:
           SECRET_KEY: test-secret-key-for-ci-pipeline-only
           DEBUG: True
           ALLOWED_HOSTS: localhost,127.0.0.1
+          ZIBAL_MERCHANT: zibal
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
         run: |
           cd multivendor_platform/multivendor_platform
           coverage run --source='.' manage.py test --verbosity=2
@@ -84,6 +87,9 @@ jobs:
           DEBUG: True
         run: |
           cd multivendor_platform/multivendor_platform
+          # Apply migrations first to ensure database is in sync
+          python manage.py migrate --run-syncdb
+          # Then check if any new migrations are needed
           python manage.py makemigrations --check --dry-run
 
   frontend-lint:

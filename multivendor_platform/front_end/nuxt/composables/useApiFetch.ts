@@ -74,7 +74,23 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
     }
   }
 
-  const apiBase = config.public.apiBase.replace(/\/$/, '')
+  // For SSR (server-side), use internal Docker network hostname if available
+  // This avoids SSL/network issues when frontend container tries to reach external domain
+  let apiBase = config.public.apiBase.replace(/\/$/, '')
+  
+  if (!process.client) {
+    // Server-side rendering: prefer internal Docker network hostname
+    const internalApiBase = process.env.NUXT_API_BASE || process.env.NUXT_INTERNAL_API_BASE
+    if (internalApiBase) {
+      apiBase = internalApiBase.replace(/\/$/, '')
+    } else if (apiBase.includes('api.indexo.ir') || apiBase.includes('https://')) {
+      // Fallback: use internal Docker service name if external URL is configured
+      // Docker DNS should resolve service names within the same network
+      // Use service name 'backend' (defined in docker-compose.production.yml)
+      // This is set via NUXT_API_BASE environment variable in docker-compose
+      apiBase = process.env.NUXT_API_BASE || 'http://backend:8000/api'
+    }
+  }
   
   // Normalize endpoint path
   const endpointPath = endpoint.replace(/^\//, '')
@@ -124,14 +140,20 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
   const abortController = signal ? null : new AbortController()
   const requestSignal = signal || abortController?.signal
 
-  try {
-    const requestPromise = $fetch<T>(url, {
-      ...restOptions,
-      query: restOptions.query ?? params,
-      headers,
-      credentials: restOptions.credentials ?? 'include',
-      signal: requestSignal
-    }).then((data) => {
+  // Retry logic for connection errors (especially during SSR)
+  const maxRetries = !process.client ? 3 : 1 // Retry more on server-side
+  let lastError: any = null
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const requestPromise = $fetch<T>(url, {
+        ...restOptions,
+        query: restOptions.query ?? params,
+        headers,
+        credentials: restOptions.credentials ?? 'include',
+        signal: requestSignal,
+        timeout: 10000 // 10 second timeout
+      }).then((data) => {
       // Cache successful GET responses
       if (cacheKey && cacheTTL && cacheTTL > 0 && isGetRequest) {
         cache.set(cacheKey, {
@@ -162,6 +184,33 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
     }
 
     return await requestPromise
+    } catch (error: any) {
+      lastError = error
+      
+      // Retry on connection errors (ECONNREFUSED, ETIMEDOUT, etc.)
+      const isConnectionError = error?.code === 'ECONNREFUSED' || 
+                                error?.code === 'ETIMEDOUT' ||
+                                error?.code === 'ECONNRESET' ||
+                                error?.message?.includes('fetch failed') ||
+                                error?.message?.includes('ECONNREFUSED') ||
+                                error?.message?.includes('ETIMEDOUT')
+      
+      if (isConnectionError && attempt < maxRetries && !process.client) {
+        // Exponential backoff: wait 1s, 2s, 4s
+        const waitTime = Math.pow(2, attempt) * 1000
+        console.warn(`[useApiFetch] Connection error (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${waitTime}ms...`, error?.code || error?.message)
+        await new Promise(resolve => setTimeout(resolve, waitTime))
+        continue // Retry
+      }
+      
+      // If not a connection error or max retries reached, break and handle error
+      break
+    }
+  }
+  
+  // If we get here, all retries failed
+  try {
+    throw lastError
   } catch (error: any) {
     // Handle 404 and 500 errors - redirect to appropriate error pages
     const statusCode = error?.statusCode || error?.status || error?.response?.status

@@ -15,9 +15,15 @@ DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 allowed_hosts_str = os.environ.get("ALLOWED_HOSTS", "")
 if allowed_hosts_str:
     ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(",")]
+    # Add internal Docker service names for container-to-container communication
+    # These are used when frontend makes SSR requests via Docker network
+    if 'backend' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append('backend')
+    if 'multivendor_backend' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append('multivendor_backend')  # Container name (for compatibility)
 else:
     # Default for development
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'backend', 'multivendor_backend', '*']
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -333,6 +339,10 @@ OTP_EXPIRATION_MINUTES = int(os.environ.get('OTP_EXPIRATION_MINUTES', '5'))
 OTP_RATE_LIMIT_REQUESTS = int(os.environ.get('OTP_RATE_LIMIT_REQUESTS', '3'))
 OTP_RATE_LIMIT_WINDOW_MINUTES = int(os.environ.get('OTP_RATE_LIMIT_WINDOW_MINUTES', '15'))
 
+# Zibal Payment Gateway Configuration
+ZIBAL_MERCHANT = os.environ.get('ZIBAL_MERCHANT', 'zibal')
+ZIBAL_API_BASE = os.environ.get('ZIBAL_API_BASE', 'https://gateway.zibal.ir')
+
 # Channels Configuration
 REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
@@ -381,8 +391,15 @@ else:
     CACHE_REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/1"
 
 # Check if Redis is available for caching
+# In test environment, always use LocMemCache
+import sys
+TESTING = 'test' in sys.argv or 'pytest' in sys.modules or 'unittest' in sys.modules
+
 REDIS_AVAILABLE = False
-if not (DEBUG and REDIS_HOST == 'localhost'):
+if TESTING:
+    # Force LocMemCache for tests
+    REDIS_AVAILABLE = False
+elif not (DEBUG and REDIS_HOST == 'localhost'):
     # In production/staging, assume Redis is available
     REDIS_AVAILABLE = True
 else:
@@ -417,3 +434,12 @@ else:
             'LOCATION': 'unique-snowflake',
         }
     }
+    # Use database sessions when Redis is not available (including tests)
+    # For tests, use database sessions to avoid cache-related issues
+    if TESTING:
+        SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+    else:
+        # In development without Redis, still use cache backend with LocMemCache
+        SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+        SESSION_CACHE_ALIAS = 'default'
+        SESSION_COOKIE_AGE = 86400  # 24 hours
