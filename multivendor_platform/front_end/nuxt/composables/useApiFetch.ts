@@ -85,9 +85,10 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
       apiBase = internalApiBase.replace(/\/$/, '')
     } else if (apiBase.includes('api.indexo.ir') || apiBase.includes('https://')) {
       // Fallback: use internal Docker service name if external URL is configured
-      // This works because all containers are on the same Docker network
-      // Use service name 'backend' instead of container name to avoid underscore issues
-      apiBase = 'http://backend:8000/api'
+      // Docker DNS should resolve service names within the same network
+      // Use service name 'backend' (defined in docker-compose.production.yml)
+      // This is set via NUXT_API_BASE environment variable in docker-compose
+      apiBase = process.env.NUXT_API_BASE || 'http://backend:8000/api'
     }
   }
   

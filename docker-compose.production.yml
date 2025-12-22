@@ -167,8 +167,13 @@ services:
       - NUXT_PUBLIC_API_BASE=https://${API_DOMAIN}/api
       - NUXT_PUBLIC_SITE_URL=https://${MAIN_DOMAIN}
       - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - NUXT_API_BASE=http://backend:8000/api
+      - DOCKER_SERVICE_NAME=backend
     networks:
       - multivendor_network
+    depends_on:
+      backend:
+        condition: service_healthy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`${MAIN_DOMAIN}`) || Host(`www.${MAIN_DOMAIN}`)"
