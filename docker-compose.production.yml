@@ -142,9 +142,10 @@ services:
       - multivendor_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`${API_DOMAIN}`)"
+      - "traefik.http.routers.backend.rule=Host(`${API_DOMAIN}`) && !PathPrefix(`/_nuxt/`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=myresolver"
+      - "traefik.http.routers.backend.priority=5"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
     restart: always
 
@@ -171,7 +172,14 @@ services:
       - "traefik.http.routers.frontend.rule=Host(`${MAIN_DOMAIN}`) || Host(`www.${MAIN_DOMAIN}`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+      - "traefik.http.routers.frontend.priority=10"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+      # Specific router for Nuxt static assets with higher priority
+      - "traefik.http.routers.frontend-nuxt.rule=Host(`${MAIN_DOMAIN}`) && PathPrefix(`/_nuxt/`)"
+      - "traefik.http.routers.frontend-nuxt.entrypoints=websecure"
+      - "traefik.http.routers.frontend-nuxt.tls.certresolver=myresolver"
+      - "traefik.http.routers.frontend-nuxt.priority=20"
+      - "traefik.http.routers.frontend-nuxt.service=frontend"
     restart: always
 
   # Nginx - Serves Static and Media Files
