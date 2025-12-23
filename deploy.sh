@@ -7,11 +7,11 @@ echo "🚀 Starting Deployment Script..."
 
 # 1. Build Images
 echo "🔨 Building Docker images..."
-docker compose build
+docker compose -f docker-compose.production.yml build
 
 # 2. Start Services
 echo "🚀 Updating services..."
-docker compose up -d --remove-orphans
+docker compose -f docker-compose.production.yml up -d --remove-orphans
 
 # 3. Wait for services and run migrations
 echo "⏳ Waiting for Database to be healthy..."
