@@ -18,15 +18,34 @@ jobs:
           script_stop: true # This stops the script if any command fails
           debug: true # Enable debug output to troubleshoot SSH issues
           script: |
+            # Create directory if it doesn't exist
+            mkdir -p /home/multivendor_platform
             cd /home/multivendor_platform
+            
+            # Check if this is a git repository
+            if [ ! -d .git ]; then
+              echo "⚠️  Directory exists but is not a git repository."
+              echo "Please manually clone the repository first:"
+              echo "  cd /home"
+              echo "  git clone https://github.com/jalalshajiei67-lang/mulitvendor_platform.git multivendor_platform"
+              echo "  cd multivendor_platform"
+              exit 1
+            fi
             
             # 1. FORCE reset changes (Fixes the git abort error)
             git fetch --all
             git reset --hard origin/main
             
             # 2. Fix line endings just in case
-            sed -i 's/\r$//' deploy.sh
-            chmod +x deploy.sh
+            if [ -f deploy.sh ]; then
+              sed -i 's/\r$//' deploy.sh
+              chmod +x deploy.sh
+            fi
             
             # 3. Run deploy
-            ./deploy.sh
+            if [ -f deploy.sh ]; then
+              ./deploy.sh
+            else
+              echo "❌ Error: deploy.sh not found!"
+              exit 1
+            fi
