@@ -22,15 +22,18 @@ jobs:
             mkdir -p /home/multivendor_platform
             cd /home/multivendor_platform
             
-            # Check if this is a git repository
+            # Check if this is a git repository, if not, clone it
             if [ ! -d .git ]; then
-              echo "⚠️  Directory exists but is not a git repository."
-              echo "Please manually clone the repository first:"
-              echo "  cd /home"
-              echo "  git clone https://github.com/jalalshajiei67-lang/mulitvendor_platform.git multivendor_platform"
-              echo "  cd multivendor_platform"
-              exit 1
+              echo "📦 Directory exists but is not a git repository. Cloning..."
+              cd /home
+              # Remove directory if it exists but is not a git repo
+              rm -rf multivendor_platform
+              git clone https://github.com/jalalshajiei67-lang/mulitvendor_platform.git multivendor_platform
+              echo "✅ Repository cloned successfully"
             fi
+            
+            # Ensure we're in the project directory
+            cd /home/multivendor_platform
             
             # 1. FORCE reset changes (Fixes the git abort error)
             git fetch --all
