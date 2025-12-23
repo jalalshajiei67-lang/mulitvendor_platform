@@ -19,7 +19,7 @@ jobs:
           username: ${{ secrets.STAGING_USERNAME }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           source: "."
-          target: "/root/indexo-staging"
+          target: "/home/multivendor_platform"
           rm: true
 
       - name: Deploy via SSH
@@ -30,7 +30,7 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
             # Navigate to project directory
-            cd /root/indexo-staging
+            cd /home/multivendor_platform
             
             # Generate SECRET_KEY if .env.staging doesn't exist or SECRET_KEY is invalid
             if [ ! -f .env.staging ] || ! grep -q "SECRET_KEY=django-insecure-" .env.staging; then

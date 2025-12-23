@@ -7,10 +7,10 @@ echo ========================================
 echo.
 
 REM Configuration
-set VPS_IP=158.255.74.123
+set VPS_IP=46.249.101.84
 set VPS_USER=root
 set PROJECT_NAME=multivendor_platform
-set REMOTE_DIR=/opt/%PROJECT_NAME%
+set REMOTE_DIR=/home/multivendor_platform
 
 REM Check if .env exists
 if not exist ".env" (
