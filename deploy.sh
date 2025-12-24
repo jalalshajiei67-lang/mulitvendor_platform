@@ -5,6 +5,20 @@ set -e
 
 echo "🚀 Starting Deployment Script..."
 
+# Check if .env file exists, create it from template if not
+if [ ! -f .env ]; then
+    echo "⚠️  .env file not found. Creating from template..."
+    if [ -f env.template ]; then
+        cp env.template .env
+        echo "✅ Created .env from env.template"
+        echo "⚠️  Please review and update .env with your production values!"
+    else
+        echo "❌ Error: env.template not found. Cannot create .env file."
+        echo "Please create .env file manually with required environment variables."
+        exit 1
+    fi
+fi
+
 # 1. Build Images
 echo "🔨 Building Docker images..."
 docker compose -f docker-compose.production.yml build
