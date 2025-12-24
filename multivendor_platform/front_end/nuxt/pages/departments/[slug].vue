@@ -98,6 +98,8 @@
 </template>
 
 <script setup lang="ts">
+import ProductDetailSkeleton from '~/components/skeletons/ProductDetailSkeleton.vue'
+
 definePageMeta({
   layout: 'default'
 })

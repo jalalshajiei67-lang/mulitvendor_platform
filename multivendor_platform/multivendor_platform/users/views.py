@@ -572,8 +572,21 @@ def register_view(request):
 @permission_classes([IsAuthenticated])
 def current_user_view(request):
     """Get current logged-in user details"""
-    serializer = UserDetailSerializer(request.user)
-    return Response(serializer.data)
+    user = request.user
+    serializer = UserDetailSerializer(user)
+    user_data = serializer.data
+    
+    # Extract role and is_verified from profile for backward compatibility
+    try:
+        profile = user.profile
+        user_data['role'] = profile.role
+        user_data['is_verified'] = profile.is_verified
+    except UserProfile.DoesNotExist:
+        # If profile doesn't exist, default to buyer role
+        user_data['role'] = 'buyer'
+        user_data['is_verified'] = False
+    
+    return Response(user_data)
 
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
@@ -2154,10 +2167,23 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['get'])
     def comments(self, request, pk=None):
         """Get all comments for a specific supplier"""
-        supplier = self.get_object()
-        comments = supplier.comments.filter(is_approved=True)
-        serializer = SupplierCommentSerializer(comments, many=True)
-        return Response(serializer.data)
+        try:
+            supplier = self.get_object()
+            # Defer is_flagged and flag_reason fields in case they don't exist in database
+            # These are handled by SerializerMethodField in the serializer
+            comments = supplier.comments.filter(is_approved=True).select_related('user', 'supplier').defer('is_flagged', 'flag_reason')
+            serializer = SupplierCommentSerializer(comments, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            import traceback
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error fetching supplier comments: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': 'Failed to fetch comments', 'detail': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=True, methods=['get'])
     def portfolio(self, request, pk=None):

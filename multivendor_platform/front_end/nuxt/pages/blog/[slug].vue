@@ -177,6 +177,7 @@
 <script setup lang="ts">
 import { decodeHtmlForDisplay } from '~/utils/htmlUtils'
 import { generateArticleSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
+import BlogDetailSkeleton from '~/components/skeletons/BlogDetailSkeleton.vue'
 
 definePageMeta({
   layout: 'default'
@@ -217,20 +218,32 @@ const heroStyle = computed(() => {
   return {}
 })
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat('fa-IR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  }).format(new Date(value))
+const formatDate = (value: string | null | undefined) => {
+  if (!value) return ''
+  
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return ''
+  
+  try {
+    return new Intl.DateTimeFormat('fa-IR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(date)
+  } catch (error) {
+    console.error('Error formatting date:', error, value)
+    return ''
+  }
+}
 
 const fetchPage = async () => {
-  await blogStore.fetchPost(slug.value)
+  const post = await blogStore.fetchPost(slug.value)
   await Promise.all([
     blogStore.fetchRecentPosts(),
     blogStore.fetchRelatedPosts(slug.value),
     blogStore.fetchComments(slug.value)
   ])
+  return { post, slug: slug.value }
 }
 
 await useAsyncData(`blog-detail-${slug.value}`, fetchPage)

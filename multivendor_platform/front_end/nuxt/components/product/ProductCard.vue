@@ -3,15 +3,21 @@
     <div class="image-wrapper">
       <v-img
         v-if="hasGallery && currentImage"
-        :src="currentImage"
+        :src="formattedCurrentImage"
         :alt="product.name"
         height="220"
         cover
         loading="lazy"
+        @error="handleImageError"
       >
         <template v-slot:placeholder>
           <div class="d-flex align-center justify-center fill-height">
             <v-skeleton-loader type="image" width="100%" height="100%" />
+          </div>
+        </template>
+        <template v-slot:error>
+          <div class="d-flex align-center justify-center fill-height no-image">
+            <v-icon size="48" color="grey-lighten-1">mdi-cube-outline</v-icon>
           </div>
         </template>
       </v-img>
@@ -152,6 +158,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import BadgeIcon from '~/components/gamification/BadgeIcon.vue'
+import { formatImageUrl } from '~/utils/imageUtils'
 
 const props = defineProps<{
   product: Record<string, any>
@@ -208,17 +215,40 @@ const galleryImages = computed(() => {
   const gallery = Array.isArray(props.product.images) ? props.product.images : []
   gallery.forEach((image) => {
     const url = image?.image_url ?? image?.image
-    if (url && !images.includes(url)) {
+    if (url && !images.includes(url) && !imageErrors.value.has(url)) {
       images.push(url)
     }
   })
 
-  return images
+  // Filter out images that have errored
+  return images.filter(img => !imageErrors.value.has(img))
 })
 
 const currentImageIndex = ref(0)
+const imageErrors = ref<Set<string>>(new Set())
 
 const currentImage = computed(() => galleryImages.value[currentImageIndex.value] ?? galleryImages.value[0] ?? null)
+
+const formattedCurrentImage = computed(() => {
+  if (!currentImage.value) return null
+  return formatImageUrl(currentImage.value)
+})
+
+const handleImageError = (event: Event) => {
+  // Silently handle image errors - don't log NS_BINDING_ABORTED errors
+  const target = event.target as HTMLImageElement
+  if (target && currentImage.value) {
+    imageErrors.value.add(currentImage.value)
+    // Try to move to next image if available
+    if (hasMultipleImages.value && galleryImages.value.length > 1) {
+      const currentIndex = galleryImages.value.findIndex(img => img === currentImage.value)
+      if (currentIndex !== -1 && currentIndex < galleryImages.value.length - 1) {
+        // Move to next image
+        currentImageIndex.value = currentIndex + 1
+      }
+    }
+  }
+}
 
 const hasGallery = computed(() => galleryImages.value.length > 0)
 const hasMultipleImages = computed(() => galleryImages.value.length > 1)

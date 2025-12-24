@@ -7,14 +7,51 @@ type LoginResponse = { token: string; user: AuthUser }
 const AUTH_TOKEN_COOKIE = 'authToken'
 const AUTH_USER_COOKIE = 'authUser'
 
-const parseUser = (raw: string | null | undefined): AuthUser | null => {
+// Helper to safely check if we're in production
+const isProduction = () => {
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.NODE_ENV === 'production'
+  }
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env.PROD === true
+  }
+  return false
+}
+
+const parseUser = (raw: string | null | undefined | any): AuthUser | null => {
   if (!raw) {
     return null
   }
+  
+  // If it's already an object, return it
+  if (typeof raw === 'object' && !Array.isArray(raw) && raw !== null) {
+    return raw as AuthUser
+  }
+  
+  // If it's not a string, try to convert it
+  if (typeof raw !== 'string') {
+    console.warn('parseUser received non-string value:', typeof raw, raw)
+    return null
+  }
+  
   try {
-    return JSON.parse(raw)
+    // Trim whitespace and check if it's valid JSON
+    const trimmed = raw.trim()
+    if (!trimmed || trimmed === 'null' || trimmed === 'undefined') {
+      return null
+    }
+    return JSON.parse(trimmed)
   } catch (error) {
     console.warn('Unable to parse stored auth user payload', error)
+    // Clear invalid data from localStorage if on client
+    if (process.client) {
+      try {
+        localStorage.removeItem('user')
+        localStorage.removeItem('authToken')
+      } catch (e) {
+        // Ignore localStorage errors
+      }
+    }
     return null
   }
 }
@@ -43,7 +80,9 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         tokenCookie = useCookie<string | null>(AUTH_TOKEN_COOKIE, {
           sameSite: 'lax',
-          secure: process.env.NODE_ENV === 'production'
+          secure: isProduction(),
+          maxAge: 60 * 60 * 24 * 30, // 30 days
+          httpOnly: false // Must be false for client-side access
         })
       } catch (error) {
         // Nuxt context not available yet
@@ -59,7 +98,9 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         userCookie = useCookie<string | null>(AUTH_USER_COOKIE, {
           sameSite: 'lax',
-          secure: process.env.NODE_ENV === 'production'
+          secure: isProduction(),
+          maxAge: 60 * 60 * 24 * 30, // 30 days
+          httpOnly: false // Must be false for client-side access
         })
       } catch (error) {
         // Nuxt context not available yet
@@ -70,24 +111,79 @@ export const useAuthStore = defineStore('auth', () => {
     return userCookie
   }
 
-  // Initialize from localStorage first (client-side only)
-  // Cookies will be accessed lazily when needed (not during initialization)
+  // Initialize from cookies (works on both server and client)
+  // Then sync to localStorage on client
   let initialToken: string | null = null
   let initialUser: AuthUser | null = null
 
-  if (process.client) {
-    initialToken = localStorage.getItem('authToken')
-    initialUser = parseUser(localStorage.getItem('user'))
+  try {
+    const tokenCookie = useCookie<string | null>(AUTH_TOKEN_COOKIE, {
+      sameSite: 'lax',
+      secure: isProduction(),
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      httpOnly: false
+    })
+    const userCookie = useCookie<string | null>(AUTH_USER_COOKIE, {
+      sameSite: 'lax',
+      secure: isProduction(),
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      httpOnly: false
+    })
+    
+    if (tokenCookie.value) {
+      // Ensure token is a string
+      const tokenValue = tokenCookie.value
+      initialToken = typeof tokenValue === 'string' ? tokenValue : String(tokenValue || '')
+      if (!initialToken) {
+        initialToken = null
+      }
+    }
+    
+    if (userCookie.value) {
+      const parsed = parseUser(userCookie.value)
+      if (parsed) {
+        initialUser = parsed
+      } else {
+        // Clear invalid cookie
+        (userCookie as any).value = null
+        // Also clear token if user is invalid
+        if (tokenCookie.value) {
+          (tokenCookie as any).value = null
+          initialToken = null
+        }
+      }
+    }
+    
+    // On client, sync cookies to localStorage for consistency
+    if (process.client && initialToken) {
+      try {
+        localStorage.setItem('authToken', initialToken)
+        if (initialUser) {
+          localStorage.setItem('user', JSON.stringify(initialUser))
+        }
+      } catch (e) {
+        // Ignore localStorage errors
+      }
+    }
+  } catch (error) {
+    // Cookie access might fail, try localStorage as fallback (client only)
+    if (process.client) {
+      try {
+        initialToken = localStorage.getItem('authToken')
+        initialUser = parseUser(localStorage.getItem('user'))
+      } catch (e) {
+        // Ignore localStorage errors
+      }
+    }
+    console.warn('Unable to access cookies during initialization:', error)
   }
-  
-  // Note: We don't access cookies during initialization to avoid context issues
-  // Cookies will be accessed lazily when persistSession is called or when needed
 
   const token = ref<string | null>(initialToken)
   const user = ref<AuthUser | null>(initialUser)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const authError = ref<AuthError | null>(null)
+  const hydrated = ref(false)
 
   const isAuthenticated = computed(() => Boolean(token.value && user.value))
   const userRole = computed(() => user.value?.role ?? null)
@@ -104,10 +200,10 @@ export const useAuthStore = defineStore('auth', () => {
     const tokenCookie = getTokenCookie()
     const userCookie = getUserCookie()
     if (tokenCookie) {
-      tokenCookie.value = nextToken
+      (tokenCookie as any).value = nextToken
     }
     if (userCookie) {
-      userCookie.value = nextUser ? JSON.stringify(nextUser) : null
+      (userCookie as any).value = nextUser ? JSON.stringify(nextUser) : null
     }
     setClientStorage(nextToken, nextUser)
   }
@@ -208,10 +304,81 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const initializeAuth = async () => {
+    // Mark as hydrated on client
+    if (process.client) {
+      hydrated.value = true
+    }
+    
+    // If we have a token but no user, fetch the user
     if (token.value && !user.value) {
       await fetchCurrentUser().catch(() => {
         /* handled in fetchCurrentUser */
       })
+      return
+    }
+    
+    // If we don't have a token, try to restore from cookies (client-side only)
+    if (!token.value && process.client) {
+      try {
+        const tokenCookie = useCookie<string | null>(AUTH_TOKEN_COOKIE, {
+          sameSite: 'lax',
+          secure: isProduction(),
+          maxAge: 60 * 60 * 24 * 30, // 30 days
+          httpOnly: false
+        })
+        const userCookie = useCookie<string | null>(AUTH_USER_COOKIE, {
+          sameSite: 'lax',
+          secure: isProduction(),
+          maxAge: 60 * 60 * 24 * 30, // 30 days
+          httpOnly: false
+        })
+        
+        if (tokenCookie.value) {
+          // Ensure token is a string
+          const tokenValue = tokenCookie.value
+          const restoredToken = typeof tokenValue === 'string' ? tokenValue : String(tokenValue || '')
+          const restoredUser = parseUser(userCookie.value)
+          
+          // If user cookie is invalid, clear both cookies
+          if (userCookie && userCookie.value && !restoredUser) {
+            (userCookie as any).value = null
+            if (tokenCookie) {
+              (tokenCookie as any).value = null
+            }
+            // Clear localStorage as well
+            try {
+              localStorage.removeItem('authToken')
+              localStorage.removeItem('user')
+            } catch (e) {
+              // Ignore localStorage errors
+            }
+            return
+          }
+          
+          // Restore to localStorage for consistency
+          if (restoredToken) {
+            try {
+              localStorage.setItem('authToken', restoredToken)
+              if (restoredUser) {
+                localStorage.setItem('user', JSON.stringify(restoredUser))
+              }
+            } catch (e) {
+              // Ignore localStorage errors
+            }
+          }
+          
+          // Update store state
+          persistSession(restoredToken, restoredUser)
+          
+          // Optionally verify the token is still valid by fetching current user
+          // This will update user data if it has changed
+          await fetchCurrentUser().catch(() => {
+            /* If token is invalid, fetchCurrentUser will handle logout */
+          })
+        }
+      } catch (error) {
+        console.warn('Unable to restore auth from cookies:', error)
+      }
     }
   }
 
@@ -299,12 +466,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Set hydrated immediately on client if we have initial values
+  if (process.client && (initialToken || initialUser)) {
+    hydrated.value = true
+  }
+
   return {
     token,
     user,
     loading,
     error,
     authError,
+    hydrated,
     isAuthenticated,
     userRole,
     isBuyer,

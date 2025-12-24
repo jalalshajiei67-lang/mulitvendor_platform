@@ -162,6 +162,7 @@
 <script setup lang="ts">
 import { formatImageUrl } from '~/utils/imageUtils'
 import { generateCollectionPageSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
+import ProductDetailSkeleton from '~/components/skeletons/ProductDetailSkeleton.vue'
 
 definePageMeta({
   layout: 'default'

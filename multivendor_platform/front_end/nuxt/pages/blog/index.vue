@@ -144,6 +144,8 @@
 </template>
 
 <script setup lang="ts">
+import ListSkeleton from '~/components/skeletons/ListSkeleton.vue'
+
 definePageMeta({
   layout: 'default',
   middleware: []
@@ -197,6 +199,11 @@ const fetchInitial = async () => {
   await blogStore.fetchCategories()
   await applyRouteCategory()
   await blogStore.fetchFeaturedPosts()
+  return {
+    categories: categories.value,
+    posts: posts.value,
+    featuredPosts: featuredPosts.value
+  }
 }
 
 await useAsyncData('blog-list-page', fetchInitial)

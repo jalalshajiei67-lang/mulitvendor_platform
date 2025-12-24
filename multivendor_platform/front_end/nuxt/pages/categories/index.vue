@@ -107,6 +107,7 @@
 
 <script setup lang="ts">
 import { formatImageUrl } from '~/utils/imageUtils'
+import ListSkeleton from '~/components/skeletons/ListSkeleton.vue'
 
 definePageMeta({
   layout: 'default'

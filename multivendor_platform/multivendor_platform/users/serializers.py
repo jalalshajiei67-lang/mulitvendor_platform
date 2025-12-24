@@ -95,20 +95,67 @@ class ProductReviewSerializer(serializers.ModelSerializer):
 
 class SupplierCommentSerializer(serializers.ModelSerializer):
     user_display_name = serializers.SerializerMethodField()
-    supplier_name = serializers.CharField(source='supplier.store_name', read_only=True)
-    rating_display = serializers.CharField(source='get_rating_display', read_only=True)
+    user_username = serializers.SerializerMethodField()
+    supplier_name = serializers.SerializerMethodField()
+    rating_display = serializers.SerializerMethodField()
+    is_flagged = serializers.SerializerMethodField()
+    flag_reason = serializers.SerializerMethodField()
     
     class Meta:
         model = SupplierComment
-        fields = ['id', 'supplier', 'supplier_name', 'user', 'user_display_name', 'rating', 'rating_display', 
+        fields = ['id', 'supplier', 'supplier_name', 'user', 'user_username', 'user_display_name', 'rating', 'rating_display', 
                   'title', 'comment', 'is_approved', 'is_flagged', 'flag_reason', 'supplier_reply', 'supplier_replied_at', 
                   'created_at', 'updated_at']
-        read_only_fields = ['user', 'is_approved', 'is_flagged', 'flag_reason', 'supplier_replied_at', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'is_approved', 'supplier_replied_at', 'created_at', 'updated_at']
+    
+    def get_user_username(self, obj):
+        """Get username, handling deleted users"""
+        try:
+            if not obj.user:
+                return 'Deleted User'
+            return obj.user.username
+        except (AttributeError, Exception):
+            return 'Deleted User'
     
     def get_user_display_name(self, obj):
         """Get display name: first_name last_name"""
-        name_parts = [obj.user.first_name, obj.user.last_name]
-        return ' '.join(filter(None, name_parts)) or obj.user.username
+        try:
+            if not obj.user:
+                return 'Deleted User'
+            name_parts = [obj.user.first_name, obj.user.last_name]
+            return ' '.join(filter(None, name_parts)) or obj.user.username
+        except (AttributeError, Exception):
+            return 'Deleted User'
+    
+    def get_supplier_name(self, obj):
+        """Get supplier store name, handling deleted suppliers"""
+        try:
+            if not obj.supplier:
+                return 'Deleted Supplier'
+            return obj.supplier.store_name
+        except (AttributeError, Exception):
+            return 'Deleted Supplier'
+    
+    def get_rating_display(self, obj):
+        """Get rating display value"""
+        try:
+            return obj.get_rating_display()
+        except (AttributeError, Exception):
+            return str(obj.rating) if hasattr(obj, 'rating') and obj.rating else ''
+    
+    def get_is_flagged(self, obj):
+        """Get is_flagged value, handling missing database column"""
+        try:
+            return getattr(obj, 'is_flagged', False)
+        except (AttributeError, Exception):
+            return False
+    
+    def get_flag_reason(self, obj):
+        """Get flag_reason value, handling missing database column"""
+        try:
+            return getattr(obj, 'flag_reason', None)
+        except (AttributeError, Exception):
+            return None
 
 class UserActivitySerializer(serializers.ModelSerializer):
     user_username = serializers.SerializerMethodField()

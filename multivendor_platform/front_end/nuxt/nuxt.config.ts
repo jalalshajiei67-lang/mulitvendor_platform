@@ -167,6 +167,19 @@ export default defineNuxtConfig({
     },
     ssr: {
       noExternal: ['vuetify']
+    },
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: ''
+        }
+      }
+    },
+    optimizeDeps: {
+      include: ['vuetify']
+    },
+    build: {
+      cssCodeSplit: false
     }
   },
   experimental: {

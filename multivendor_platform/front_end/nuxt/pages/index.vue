@@ -137,35 +137,40 @@
                 <!-- Filters Row - Category Only -->
                 <v-row class="mb-4 filters-row" align="center">
                   <v-col cols="12">
-                    <v-select
-                      v-model="selectedCategory"
-                      :items="categoryOptions"
-                      item-title="name"
-                      item-value="id"
-                      variant="outlined"
-                      density="comfortable"
-                      :label="t('selectCategory')"
-                      clearable
-                      class="filter-select"
-                      @update:model-value="applyFilters"
-                    >
-                      <template #prepend-inner>
-                        <v-icon color="primary" size="20">mdi-shape</v-icon>
+                    <ClientOnly>
+                      <v-select
+                        v-model="selectedCategory"
+                        :items="categoryOptions"
+                        item-title="name"
+                        item-value="id"
+                        variant="outlined"
+                        density="comfortable"
+                        :label="t('selectCategory')"
+                        clearable
+                        class="filter-select"
+                        @update:model-value="applyFilters"
+                      >
+                        <template #prepend-inner>
+                          <v-icon color="primary" size="20">mdi-shape</v-icon>
+                        </template>
+                        <template #selection="{ item }">
+                          <div class="d-flex align-center">
+                            <v-icon size="16" color="success" class="ml-2">mdi-check-circle</v-icon>
+                            <span class="font-weight-medium">{{ item.title }}</span>
+                          </div>
+                        </template>
+                        <template #item="{ props, item }">
+                          <v-list-item v-bind="props" class="filter-menu-item">
+                            <template #prepend>
+                              <v-icon color="primary" size="18">mdi-shape</v-icon>
+                            </template>
+                          </v-list-item>
+                        </template>
+                      </v-select>
+                      <template #fallback>
+                        <v-skeleton-loader type="text" height="56" />
                       </template>
-                      <template #selection="{ item }">
-                        <div class="d-flex align-center">
-                          <v-icon size="16" color="success" class="ml-2">mdi-check-circle</v-icon>
-                          <span class="font-weight-medium">{{ item.title }}</span>
-                        </div>
-                      </template>
-                      <template #item="{ props, item }">
-                        <v-list-item v-bind="props" class="filter-menu-item">
-                          <template #prepend>
-                            <v-icon color="primary" size="18">mdi-shape</v-icon>
-                          </template>
-                        </v-list-item>
-                      </template>
-                    </v-select>
+                    </ClientOnly>
                   </v-col>
                 </v-row>
 
@@ -203,28 +208,33 @@
                   
                   <v-row v-if="selectedCategory" class="mb-4" align="center">
                     <v-col cols="12" md="6">
-                      <v-select
-                        v-model="selectedSubcategory"
-                        :items="subcategoryOptions"
-                        item-title="name"
-                        item-value="id"
-                        variant="outlined"
-                        density="comfortable"
-                        label="انتخاب زیرشاخه"
-                        prepend-inner-icon="mdi-file-tree"
-                        clearable
-                        :disabled="!subcategoryOptions.length"
-                        @update:model-value="onSubcategorySelect"
-                        :hint="!subcategoryOptions.length ? 'زیرشاخه‌ای برای این دسته وجود ندارد' : ''"
-                        persistent-hint
-                      >
-                        <template #selection="{ item }">
-                          <div class="d-flex align-center">
-                            <v-icon size="16" class="ml-2">mdi-check-circle</v-icon>
-                            <span>{{ item.title }}</span>
-                          </div>
+                      <ClientOnly>
+                        <v-select
+                          v-model="selectedSubcategory"
+                          :items="subcategoryOptions"
+                          item-title="name"
+                          item-value="id"
+                          variant="outlined"
+                          density="comfortable"
+                          label="انتخاب زیرشاخه"
+                          prepend-inner-icon="mdi-file-tree"
+                          clearable
+                          :disabled="!subcategoryOptions.length"
+                          @update:model-value="onSubcategorySelect"
+                          :hint="!subcategoryOptions.length ? 'زیرشاخه‌ای برای این دسته وجود ندارد' : ''"
+                          persistent-hint
+                        >
+                          <template #selection="{ item }">
+                            <div class="d-flex align-center">
+                              <v-icon size="16" class="ml-2">mdi-check-circle</v-icon>
+                              <span>{{ item.title }}</span>
+                            </div>
+                          </template>
+                        </v-select>
+                        <template #fallback>
+                          <v-skeleton-loader type="text" height="56" />
                         </template>
-                      </v-select>
+                      </ClientOnly>
                     </v-col>
                   </v-row>
 
@@ -322,21 +332,26 @@
                       <v-expansion-panel-text>
                         <v-row class="mb-3" align="center">
                           <v-col v-if="selectedCategory" cols="12">
-                            <v-select
-                              v-model="selectedSubcategory"
-                              :items="subcategoryOptions"
-                              item-title="name"
-                              item-value="id"
-                              variant="outlined"
-                              density="comfortable"
-                              label="انتخاب زیرشاخه"
-                              prepend-inner-icon="mdi-file-tree"
-                              clearable
-                              :disabled="!subcategoryOptions.length"
-                              @update:model-value="onSubcategorySelect"
-                              :hint="!subcategoryOptions.length ? 'زیرشاخه‌ای برای این دسته وجود ندارد' : ''"
-                              persistent-hint
-                            />
+                            <ClientOnly>
+                              <v-select
+                                v-model="selectedSubcategory"
+                                :items="subcategoryOptions"
+                                item-title="name"
+                                item-value="id"
+                                variant="outlined"
+                                density="comfortable"
+                                label="انتخاب زیرشاخه"
+                                prepend-inner-icon="mdi-file-tree"
+                                clearable
+                                :disabled="!subcategoryOptions.length"
+                                @update:model-value="onSubcategorySelect"
+                                :hint="!subcategoryOptions.length ? 'زیرشاخه‌ای برای این دسته وجود ندارد' : ''"
+                                persistent-hint
+                              />
+                              <template #fallback>
+                                <v-skeleton-loader type="text" height="56" />
+                              </template>
+                            </ClientOnly>
                           </v-col>
                         </v-row>
 

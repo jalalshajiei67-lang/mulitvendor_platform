@@ -216,7 +216,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         serializer = BlogCommentCreateSerializer(data=request.data, context={'request': request})
         
         if serializer.is_valid():
-            serializer.save(post=post)
+            serializer.save(post=post, author=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

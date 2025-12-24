@@ -71,8 +71,10 @@
               <div class="result-image">
                 <img 
                   v-if="product.primary_image" 
-                  :src="product.primary_image" 
+                  :src="formatImageUrl(product.primary_image)" 
                   :alt="product.name"
+                  loading="lazy"
+                  @error="handleImageError"
                 />
                 <div v-else class="placeholder-image">
                   <span>تصویر</span>
@@ -134,6 +136,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useSearchApi, type SearchResults } from '~/composables/useSearchApi'
 import { debounce } from '~/composables/useDebounce'
+import { formatImageUrl } from '~/utils/imageUtils'
 
 const searchApi = useSearchApi()
 const searchQuery = ref('')
@@ -255,6 +258,19 @@ const clearSearch = () => {
 const closeResults = () => {
   isFocused.value = false
   highlightedIndex.value = -1
+}
+
+const handleImageError = (event: Event) => {
+  // Silently handle image errors - hide broken images
+  const target = event.target as HTMLImageElement
+  if (target) {
+    target.style.display = 'none'
+    // Show placeholder instead
+    const placeholder = target.nextElementSibling as HTMLElement
+    if (placeholder && placeholder.classList.contains('placeholder-image')) {
+      placeholder.style.display = 'flex'
+    }
+  }
 }
 
 const formatPrice = (price: number) => {

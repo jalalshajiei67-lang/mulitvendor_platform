@@ -195,6 +195,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useDisplay } from 'vuetify'
 import { useSupplierApi, type Supplier } from '~/composables/useSupplierApi'
 import { formatImageUrl } from '~/utils/imageUtils'
+import ListSkeleton from '~/components/skeletons/ListSkeleton.vue'
 
 useHead({
   title: 'تامین‌کنندگان',

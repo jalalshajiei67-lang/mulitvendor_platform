@@ -295,6 +295,7 @@
 <script setup lang="ts">
 import { generateProductSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
 import BadgeIcon from '~/components/gamification/BadgeIcon.vue'
+import ProductDetailSkeleton from '~/components/skeletons/ProductDetailSkeleton.vue'
 
 definePageMeta({
   layout: 'default'
@@ -359,9 +360,11 @@ const setPrimary = (imageUrl: string) => {
 
 const fetchPage = async () => {
   try {
-    await productStore.fetchProductBySlug(slug.value)
+    const product = await productStore.fetchProductBySlug(slug.value)
+    return product
   } catch (error) {
     console.error('Error loading product detail:', error)
+    throw error
   }
 }
 

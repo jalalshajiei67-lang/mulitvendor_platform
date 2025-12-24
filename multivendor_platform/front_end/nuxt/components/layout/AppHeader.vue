@@ -30,106 +30,157 @@
           </NuxtLink>
         </div>
 
-        <div class="d-flex align-center gap-2">
-          <template v-if="isAuthenticated">
-            <!-- Notification Bell -->
-            <v-menu
-              v-model="showNotificationsMenu"
-              location="bottom end"
-              offset="10"
-            >
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  icon
-                  v-bind="props"
-                  variant="text"
-                  size="small"
-                  class="notification-btn"
-                >
-                  <v-badge
-                    :content="notificationCount"
-                    :model-value="notificationCount > 0"
-                    color="error"
-                    overlap
-                  >
-                    <v-icon>mdi-bell</v-icon>
-                  </v-badge>
-                </v-btn>
-              </template>
-
-              <v-card min-width="300" max-width="400">
-                <v-card-title class="d-flex align-center justify-space-between">
-                  <span>اعلان‌ها</span>
+        <ClientOnly>
+          <div class="d-flex align-center gap-2">
+            <template v-if="isAuthenticated">
+              <!-- Notification Bell -->
+              <v-menu
+                v-model="showNotificationsMenu"
+                location="bottom end"
+                offset="10"
+              >
+                <template v-slot:activator="{ props }">
                   <v-btn
                     icon
-                    size="small"
+                    v-bind="props"
                     variant="text"
-                    @click="showNotificationsMenu = false"
+                    size="small"
+                    class="notification-btn"
                   >
-                    <v-icon>mdi-close</v-icon>
+                    <v-badge
+                      :content="notificationCount"
+                      :model-value="notificationCount > 0"
+                      color="error"
+                      overlap
+                    >
+                      <v-icon>mdi-bell</v-icon>
+                    </v-badge>
                   </v-btn>
-                </v-card-title>
-                <v-divider></v-divider>
-                <v-list>
-                  <v-list-item
-                    v-if="notifications.length === 0"
-                    class="text-center py-4"
-                  >
-                    <v-list-item-title class="text-grey">هیچ اعلانی وجود ندارد</v-list-item-title>
-                  </v-list-item>
-                  <v-list-item
-                    v-for="notification in notifications"
-                    :key="notification.id"
-                    @click="handleNotificationClick(notification)"
-                    class="notification-item"
-                  >
-                    <template v-slot:prepend>
-                      <v-icon :color="notification.color">{{ notification.icon }}</v-icon>
-                    </template>
-                    <v-list-item-title>{{ notification.title }}</v-list-item-title>
-                    <v-list-item-subtitle>{{ notification.subtitle }}</v-list-item-subtitle>
-                  </v-list-item>
-                </v-list>
-              </v-card>
-            </v-menu>
+                </template>
 
-            <v-btn color="primary" variant="flat" size="small" :to="dashboardLink">
-              پنل کاربری
-            </v-btn>
-            <v-btn color="secondary" variant="outlined" size="small" to="/logout">
-              خروج
-            </v-btn>
+                <v-card min-width="300" max-width="400">
+                  <v-card-title class="d-flex align-center justify-space-between">
+                    <span>اعلان‌ها</span>
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="text"
+                      @click="showNotificationsMenu = false"
+                    >
+                      <v-icon>mdi-close</v-icon>
+                    </v-btn>
+                  </v-card-title>
+                  <v-divider></v-divider>
+                  <v-list>
+                    <v-list-item
+                      v-if="notifications.length === 0"
+                      class="text-center py-4"
+                    >
+                      <v-list-item-title class="text-grey">هیچ اعلانی وجود ندارد</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item
+                      v-for="notification in notifications"
+                      :key="notification.id"
+                      @click="handleNotificationClick(notification)"
+                      class="notification-item"
+                    >
+                      <template v-slot:prepend>
+                        <v-icon :color="notification.color">{{ notification.icon }}</v-icon>
+                      </template>
+                      <v-list-item-title>{{ notification.title }}</v-list-item-title>
+                      <v-list-item-subtitle>{{ notification.subtitle }}</v-list-item-subtitle>
+                    </v-list-item>
+                  </v-list>
+                </v-card>
+              </v-menu>
+
+              <v-btn color="primary" variant="flat" size="small" :to="dashboardLink">
+                پنل کاربری
+              </v-btn>
+              <v-btn color="secondary" variant="outlined" size="small" to="/logout">
+                خروج
+              </v-btn>
+            </template>
+            <template v-else>
+              <v-btn color="primary" variant="flat" size="small" to="/login">
+                ورود
+              </v-btn>
+              <v-btn color="secondary" variant="outlined" size="small" to="/register">
+                ثبت‌نام
+              </v-btn>
+            </template>
+          </div>
+          <template #fallback>
+            <div class="d-flex align-center gap-2">
+              <v-btn color="primary" variant="flat" size="small" to="/login">
+                ورود
+              </v-btn>
+              <v-btn color="secondary" variant="outlined" size="small" to="/register">
+                ثبت‌نام
+              </v-btn>
+            </div>
           </template>
-          <template v-else>
-            <v-btn color="primary" variant="flat" size="small" to="/login">
-              ورود
-            </v-btn>
-            <v-btn color="secondary" variant="outlined" size="small" to="/register">
-              ثبت‌نام
-            </v-btn>
-          </template>
-        </div>
+        </ClientOnly>
       </v-container>
     </v-app-bar>
 
     <v-navigation-drawer v-model="drawer" temporary location="right">
-      <v-list nav>
-        <v-list-item
-          v-for="item in drawerItems"
-          :key="item.to"
-          :to="item.to"
-          rounded="lg"
-          @click="drawer = false"
-        >
-          <template #prepend>
-            <v-icon>{{ item.icon }}</v-icon>
-          </template>
-          <v-list-item-title>{{ item.title }}</v-list-item-title>
-          <template #append>
-            <v-icon>mdi-chevron-left</v-icon>
-          </template>
-        </v-list-item>
-      </v-list>
+      <ClientOnly>
+        <v-list nav>
+          <v-list-item
+            v-for="item in drawerItems"
+            :key="item.to"
+            :to="item.to"
+            rounded="lg"
+            @click="drawer = false"
+          >
+            <template #prepend>
+              <v-icon>{{ item.icon }}</v-icon>
+            </template>
+            <v-list-item-title>{{ item.title }}</v-list-item-title>
+            <template #append>
+              <v-icon>mdi-chevron-left</v-icon>
+            </template>
+          </v-list-item>
+        </v-list>
+        <template #fallback>
+          <v-list nav>
+            <v-list-item
+              v-for="item in navigationLinks"
+              :key="item.to"
+              :to="item.to"
+              rounded="lg"
+              @click="drawer = false"
+            >
+              <template #prepend>
+                <v-icon>{{ item.icon }}</v-icon>
+              </template>
+              <v-list-item-title>{{ item.label }}</v-list-item-title>
+              <template #append>
+                <v-icon>mdi-chevron-left</v-icon>
+              </template>
+            </v-list-item>
+            <v-list-item to="/login" rounded="lg" @click="drawer = false">
+              <template #prepend>
+                <v-icon>mdi-login</v-icon>
+              </template>
+              <v-list-item-title>ورود</v-list-item-title>
+              <template #append>
+                <v-icon>mdi-chevron-left</v-icon>
+              </template>
+            </v-list-item>
+            <v-list-item to="/register" rounded="lg" @click="drawer = false">
+              <template #prepend>
+                <v-icon>mdi-account-plus</v-icon>
+              </template>
+              <v-list-item-title>ثبت‌نام</v-list-item-title>
+              <template #append>
+                <v-icon>mdi-chevron-left</v-icon>
+              </template>
+            </v-list-item>
+          </v-list>
+        </template>
+      </ClientOnly>
     </v-navigation-drawer>
   </div>
 </template>

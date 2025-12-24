@@ -55,14 +55,8 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
 
   const apiBase = config.public.apiBase.replace(/\/$/, '')
   
-  // Prevent frontend routes from being sent to API server
-  // Frontend routes should never start with /machinery, /products, /blog, etc. when calling API
+  // Normalize endpoint path (remove leading slash if present)
   const endpointPath = endpoint.replace(/^\//, '')
-  
-  // If endpoint looks like a frontend route (not an API endpoint), log warning
-  if (process.dev && (endpointPath.startsWith('machinery/') || endpointPath.startsWith('products/') || endpointPath.startsWith('blog/'))) {
-    console.warn(`[useApiFetch] Warning: Endpoint "${endpoint}" looks like a frontend route, not an API endpoint. Did you mean to use navigateTo() instead?`)
-  }
   
   const url = `${apiBase}/${endpointPath}`
 
