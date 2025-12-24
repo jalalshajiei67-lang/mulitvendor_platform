@@ -117,6 +117,25 @@ fi
 
 echo "✅ Database is ready!"
 
+# Check if password matches (for diagnostics)
+echo "🔍 Verifying database password configuration..."
+if [ -n "$DB_PASSWORD" ]; then
+    if docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" > /dev/null 2>&1; then
+        echo "✅ Database password matches .env file"
+    else
+        echo "⚠️  WARNING: Database password mismatch detected!"
+        echo "   The password in .env may not match the database password."
+        echo "   This will cause authentication failures."
+        echo ""
+        echo "   To fix this on your VPS, run:"
+        echo "   ssh root@91.107.172.234"
+        echo "   cd /home/multivendor_platform"
+        echo "   ./fix-production-db-password.sh"
+        echo ""
+        echo "   The entrypoint script will retry when the password is fixed."
+    fi
+fi
+
 # Find the backend container name (handles both production and staging)
 BACKEND_CONTAINER=$(docker ps --filter "name=multivendor_backend" --format "{{.Names}}" | head -n 1)
 
@@ -147,22 +166,20 @@ while [ $BACKEND_RETRY_COUNT -lt $MAX_BACKEND_RETRIES ]; do
     sleep 2
 done
 
+# Note: We don't run migrations/static files here anymore because:
+# 1. The entrypoint script (docker-entrypoint.sh) already handles all of this
+# 2. Running commands via docker exec can have environment variable issues
+# 3. The entrypoint script runs when the container starts and has proper environment setup
+# 4. Redundant commands can cause race conditions and conflicts
+
 if [ "$BACKEND_READY" = false ]; then
-    echo "⚠️  Backend cannot connect to database yet, but continuing..."
-    echo "   The entrypoint script will handle migrations when the connection is ready"
+    echo "⚠️  Backend cannot connect to database yet"
+    echo "   The entrypoint script will automatically retry when the connection is ready"
+    echo "   If this persists, check the database password configuration (see warning above)"
 else
     echo "✅ Backend can connect to database!"
-    
-    # Note: The entrypoint script now handles migrations automatically, but we can run fix as backup
-    echo "🔧 Fixing migration sequence (if needed)..."
-    docker exec "$BACKEND_CONTAINER" python manage.py fix_migration_sequence 2>&1 || echo "⚠️  Sequence fix skipped (non-critical)"
-    
-    # Migrations are handled by entrypoint script, but run here as backup if needed
-    echo "🗄️ Running Migrations (backup - entrypoint handles this automatically)..."
-    docker exec "$BACKEND_CONTAINER" python manage.py migrate --noinput 2>&1 || echo "⚠️  Migrations may have already run via entrypoint"
-    
-    echo "📦 Collecting Static Files (backup - entrypoint handles this automatically)..."
-    docker exec "$BACKEND_CONTAINER" python manage.py collectstatic --noinput 2>&1 || echo "⚠️  Static files may have already been collected via entrypoint"
+    echo "   The entrypoint script will handle migrations and static files automatically"
+    echo "   No need to run redundant commands - entrypoint handles everything on container start"
 fi
 
 echo "🧹 Cleaning up..."
