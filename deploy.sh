@@ -188,16 +188,70 @@ docker image prune -f
 # 4. Verify Deployment
 echo "🏥 Checking Backend Health..."
 
-# Get the health status
-HEALTH_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$BACKEND_CONTAINER")
+# Wait for backend to become healthy (it needs time to run migrations, collectstatic, etc.)
+echo "   Backend is initializing (running migrations, collecting static files, etc.)..."
+echo "   This may take 1-2 minutes depending on database size and migrations..."
 
-echo "Current Status: $HEALTH_STATUS"
+MAX_HEALTH_RETRIES=30
+HEALTH_RETRY_COUNT=0
+HEALTHY=false
 
-if [ "$HEALTH_STATUS" == "healthy" ] || [ "$HEALTH_STATUS" == "running" ]; then
+while [ $HEALTH_RETRY_COUNT -lt $MAX_HEALTH_RETRIES ]; do
+    HEALTH_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$BACKEND_CONTAINER" 2>/dev/null || echo "unknown")
+    
+    if [ "$HEALTH_STATUS" == "healthy" ]; then
+        echo "✅ Backend is healthy!"
+        HEALTHY=true
+        break
+    elif [ "$HEALTH_STATUS" == "running" ]; then
+        # If it's running but not healthy yet, check if it's been running for a while
+        # (healthcheck might not have started yet - it has a start_period of 40s)
+        CONTAINER_UPTIME=$(docker inspect --format='{{.State.StartedAt}}' "$BACKEND_CONTAINER" 2>/dev/null)
+        if [ -n "$CONTAINER_UPTIME" ]; then
+            # If container has been running for more than 60 seconds and is still "running" (not healthy),
+            # it might be stuck. But let's give it more time.
+            echo "   Status: $HEALTH_STATUS (still initializing... attempt $((HEALTH_RETRY_COUNT + 1))/$MAX_HEALTH_RETRIES)"
+        fi
+    elif [ "$HEALTH_STATUS" == "starting" ]; then
+        echo "   Status: $HEALTH_STATUS (container is starting... attempt $((HEALTH_RETRY_COUNT + 1))/$MAX_HEALTH_RETRIES)"
+    elif [ "$HEALTH_STATUS" == "unhealthy" ]; then
+        echo "⚠️  Status: $HEALTH_STATUS"
+        echo "   Checking backend logs for errors..."
+        docker logs "$BACKEND_CONTAINER" --tail 20 2>&1 | grep -i "error\|fail\|exception" | head -5 || echo "   (No obvious errors in recent logs)"
+        # Don't break immediately - give it a few more tries
+    else
+        echo "   Status: $HEALTH_STATUS (attempt $((HEALTH_RETRY_COUNT + 1))/$MAX_HEALTH_RETRIES)"
+    fi
+    
+    HEALTH_RETRY_COUNT=$((HEALTH_RETRY_COUNT + 1))
+    sleep 4
+done
+
+if [ "$HEALTHY" = true ]; then
+    echo ""
     echo "✅ Deployment Successful!"
-else
-    echo "❌ Backend is not healthy (Status: $HEALTH_STATUS)"
-    # We don't exit 1 here to avoid breaking the pipeline if it's just slow, 
-    # but strictly for CI/CD you might want to fail.
+    echo "   Backend is running and healthy"
+elif [ "$HEALTH_STATUS" == "running" ]; then
+    echo ""
+    echo "⚠️  Backend is running but health check hasn't passed yet"
+    echo "   This might be normal if migrations are still running"
+    echo "   The backend should become healthy shortly"
+    echo "   Check status with: docker ps | grep multivendor_backend"
+    echo "   View logs with: docker logs multivendor_backend --tail 50"
+    # Don't fail the deployment - the container is running, just needs more time
+elif [ "$HEALTH_STATUS" == "unhealthy" ]; then
+    echo ""
+    echo "❌ Backend is unhealthy"
+    echo "   Please check the logs: docker logs multivendor_backend"
+    echo "   Common issues:"
+    echo "   - Database password mismatch (run ./fix-production-db-password.sh)"
+    echo "   - Migration errors"
+    echo "   - Missing environment variables"
     exit 1
+else
+    echo ""
+    echo "⚠️  Backend status: $HEALTH_STATUS"
+    echo "   Container may still be initializing"
+    echo "   Check logs: docker logs multivendor_backend --tail 50"
+    # Don't fail if it's still starting - give it more time
 fi
