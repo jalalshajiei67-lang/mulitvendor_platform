@@ -9,6 +9,8 @@ services:
       - "--api.insecure=false"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.watch=true"
+      - "--log.level=DEBUG"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
@@ -96,7 +98,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/"]
+      test: ["CMD", "curl", "-f", "-H", "Host: ${API_DOMAIN}", "http://localhost:8000/api/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -105,9 +107,26 @@ services:
       - multivendor_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`${API_DOMAIN}`)"
+      # Admin panel route (higher priority to match before API route)
+      - "traefik.http.routers.backend-admin.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/admin`)"
+      - "traefik.http.routers.backend-admin.entrypoints=websecure"
+      - "traefik.http.routers.backend-admin.tls.certresolver=myresolver"
+      - "traefik.http.routers.backend-admin.service=backend"
+      - "traefik.http.routers.backend-admin.priority=15"
+      - "traefik.http.routers.backend-admin-http.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/admin`)"
+      - "traefik.http.routers.backend-admin-http.entrypoints=web"
+      - "traefik.http.routers.backend-admin-http.service=backend"
+      - "traefik.http.routers.backend-admin-http.priority=15"
+      # API route
+      - "traefik.http.routers.backend.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=myresolver"
+      - "traefik.http.routers.backend.service=backend"
+      - "traefik.http.routers.backend.priority=10"
+      - "traefik.http.routers.backend-http.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend-http.entrypoints=web"
+      - "traefik.http.routers.backend-http.service=backend"
+      - "traefik.http.routers.backend-http.priority=10"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
     restart: always
 
@@ -154,6 +173,7 @@ services:
       - "traefik.http.routers.nginx.rule=Host(`${API_DOMAIN}`) && (PathPrefix(`/static`) || PathPrefix(`/media`))"
       - "traefik.http.routers.nginx.entrypoints=websecure"
       - "traefik.http.routers.nginx.tls.certresolver=myresolver"
+      - "traefik.http.routers.nginx.priority=20"
       - "traefik.http.routers.nginx.service=nginx"
     restart: always
 
