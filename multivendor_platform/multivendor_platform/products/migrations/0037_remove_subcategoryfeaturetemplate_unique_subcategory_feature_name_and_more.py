@@ -6,12 +6,13 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('products', '0035_product_marketplace_hide'),
+        ('products', '0036_subcategory_feature_template'),
     ]
 
     operations = [
-        # This migration was applied to the database but the file was lost
-        # Creating a dummy migration to satisfy Django's migration history
-        # No operations needed as the changes were already applied
+        migrations.RemoveConstraint(
+            model_name='subcategoryfeaturetemplate',
+            name='unique_subcategory_feature_name',
+        ),
     ]
 
