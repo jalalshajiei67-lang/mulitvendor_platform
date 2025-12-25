@@ -19,6 +19,7 @@ APP_ORDER: List[str] = [
     "blog",
     "chat",
     "orders",
+    "sms_newsletter",  # SMS newsletter for sellers
     "authtoken",  # rest_framework.authtoken
     "auth",
     "users",
@@ -62,6 +63,10 @@ MODEL_ORDER: Dict[str, List[str]] = {
     # Orders
     "orders": [
         "Order",
+    ],
+    # SMS Newsletter
+    "sms_newsletter": [
+        "Seller",
     ],
     # Auth Token
     "authtoken": [

@@ -305,6 +305,7 @@ urlpatterns = [
     path('api/pages/', include('pages.urls')),  # For static pages (About Us, Contact Us)
     path('api/chat/', include('chat.urls')),  # For chat functionality
     path('api/payments/', include('payments.urls')),  # For payment processing
+    path('api/sms-newsletter/', include('sms_newsletter.urls')),  # SMS newsletter for sellers
     
     # --- DASHBOARD URLS ---
     path('dashboard/', VendorDashboardView.as_view(), name='vendor-dashboard'),

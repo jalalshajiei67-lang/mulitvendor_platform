@@ -105,6 +105,15 @@
         @click="handleNavigate('rfqs')"
       ></v-list-item>
 
+      <NuxtLink to="/admin/sms-newsletter" style="text-decoration: none; color: inherit;">
+        <v-list-item
+          prepend-icon="mdi-message-text"
+          title="خبرنامه پیامکی"
+          value="sms-newsletter"
+          :active="$route.path === '/admin/sms-newsletter'"
+        ></v-list-item>
+      </NuxtLink>
+
       <v-list-group value="blog">
         <template #activator="{ props }">
           <v-list-item

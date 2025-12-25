@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'gamification',
     'chat',  # Chat system
     'payments',  # Payment management
+    'sms_newsletter',  # SMS newsletter for sellers
 ]
 
 MIDDLEWARE = [
@@ -374,3 +375,7 @@ if DEBUG and REDIS_HOST == 'localhost':
 ZIBAL_MERCHANT = os.environ.get('ZIBAL_MERCHANT', 'zibal')  # Use 'zibal' for test mode
 ZIBAL_API_BASE = 'https://gateway.zibal.ir'
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
+
+# Kavenegar SMS Settings
+KAVENEGAR_API_KEY = os.environ.get('KAVENEGAR_API_KEY', '')
+KAVENEGAR_TEMPLATE_NAME = os.environ.get('KAVENEGAR_TEMPLATE_NAME', '')
