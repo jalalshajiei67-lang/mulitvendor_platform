@@ -49,10 +49,6 @@ COPY multivendor_platform/multivendor_platform/ /app/
 COPY docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
 
-# Copy migration fix script
-COPY fix_migration_dependency.sh /app/
-RUN chmod +x /app/fix_migration_dependency.sh
-
 # Create necessary directories and set permissions
 RUN mkdir -p /app/static /app/media && \
     chown -R appuser:appuser /app

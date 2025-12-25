@@ -65,20 +65,6 @@ fix_migration_inconsistency() {
     python manage.py fix_migration_inconsistency || echo "   ⚠️  Migration inconsistency check failed (non-critical, continuing...)"
 }
 
-# Function to fix migration dependency issues
-fix_migration_dependency() {
-    echo ""
-    echo "[4.5/9] Fixing migration dependency issues..."
-    
-    # Fix sms_newsletter.0001_initial dependency on products.0038
-    # Use bash script with psql to bypass Django's migration consistency check
-    if [ -f "/app/fix_migration_dependency.sh" ]; then
-        bash /app/fix_migration_dependency.sh || echo "   ⚠️  Migration dependency fix failed (non-critical, continuing...)"
-    else
-        # Fallback to Django management command if script doesn't exist
-        python manage.py fix_migration_dependency_db 2>/dev/null || echo "   ⚠️  Migration dependency fix skipped (non-critical, continuing...)"
-    fi
-}
 
 # Function to run migrations
 run_migrations() {
@@ -161,7 +147,6 @@ wait_for_db
 test_db_connection
 fix_migration_sequence
 fix_migration_inconsistency
-fix_migration_dependency
 run_migrations
 setup_directories
 collect_static

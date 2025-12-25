@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('products', '0038_delete_subcategoryfeaturetemplate'),
+        ('products', '0035_product_marketplace_hide'),
     ]
 
     operations = [
