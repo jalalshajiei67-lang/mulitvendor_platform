@@ -84,7 +84,7 @@ class Command(BaseCommand):
                 SELECT app, name, applied 
                 FROM django_migrations 
                 WHERE app = 'products' 
-                AND name IN ('0036_subcategory_feature_template', '0037_remove_subcategoryfeaturetemplate_unique_subcategory_feature_name_and_more')
+                AND name IN ('0036_subcategory_feature_template', '0038_delete_subcategoryfeaturetemplate')
                 ORDER BY name;
             """)
             
@@ -104,10 +104,10 @@ class Command(BaseCommand):
             migration_dict = {name: applied for app, name, applied in migrations}
             
             m36_applied = migration_dict.get('0036_subcategory_feature_template', False)
-            m37_applied = migration_dict.get('0037_remove_subcategoryfeaturetemplate_unique_subcategory_feature_name_and_more', False)
+            m38_applied = migration_dict.get('0038_delete_subcategoryfeaturetemplate', False)
 
             self.stdout.write(f'Migration 0036 (subcategory_feature_template): {"✓ Applied" if m36_applied else "✗ Not Applied"}')
-            self.stdout.write(f'Migration 0037 (remove_subcategoryfeaturetemplate_...): {"✓ Applied" if m37_applied else "✗ Not Applied"}')
+            self.stdout.write(f'Migration 0038 (delete_subcategoryfeaturetemplate): {"✓ Applied" if m38_applied else "✗ Not Applied"}')
             self.stdout.write('')
 
             # #region agent log
@@ -119,18 +119,18 @@ class Command(BaseCommand):
                 "Migration state analyzed",
                 {
                     "m36_applied": m36_applied,
-                    "m37_applied": m37_applied,
-                    "inconsistent": m37_applied and not m36_applied
+                    "m38_applied": m38_applied,
+                    "inconsistent": m38_applied and not m36_applied
                 }
             )
             # #endregion
 
             # Check for inconsistency
-            if m37_applied and not m36_applied:
+            if m38_applied and not m36_applied:
                 self.stdout.write(
                     self.style.ERROR(
                         '❌ INCONSISTENCY DETECTED: '
-                        'Migration 0037 is applied but its dependency 0036 is not!'
+                        'Migration 0038 is applied but its dependency 0036 is not!'
                     )
                 )
                 self.stdout.write('')
@@ -153,7 +153,7 @@ class Command(BaseCommand):
                     # #endregion
                 else:
                     # Fix: Mark 0036 as applied (fake it)
-                    # Since 0037 depends on 0036 and 0037 is already applied,
+                    # Since 0038 depends on 0036 and 0038 is already applied,
                     # it means 0036's changes must have been applied somehow
                     # We'll fake 0036 to make the history consistent
                     
@@ -270,10 +270,10 @@ class Command(BaseCommand):
                     {}
                 )
                 # #endregion
-            elif m36_applied and not m37_applied:
+            elif m36_applied and not m38_applied:
                 self.stdout.write(
                     self.style.SUCCESS(
-                        '✓ Migration 0036 is applied. Migration 0037 will be applied when you run migrations.'
+                        '✓ Migration 0036 is applied. Migration 0038 will be applied when you run migrations.'
                     )
                 )
                 # #region agent log

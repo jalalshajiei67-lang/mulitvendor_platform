@@ -13,7 +13,6 @@ from rest_framework.response import Response
 from .models import Label
 from .serializers import LabelSerializer
 from django.shortcuts import get_object_or_404
-from .test_scraper_api import test_scraper_connection, test_network_access
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='category')
@@ -43,10 +42,6 @@ urlpatterns = [
     # Label SEO content by slug (custom route before router)
     # Using a more specific path to avoid router conflicts
     path('labels/seo-content/<slug>/', label_seo_content_view, name='label-seo-content'),
-    
-    # Scraper test endpoints (admin only)
-    path('test-scraper/', test_scraper_connection, name='test-scraper'),
-    path('test-network/', test_network_access, name='test-network'),
     
     # Then include router URLs (this will handle all ViewSet routes automatically)
     path('', include(router.urls)),

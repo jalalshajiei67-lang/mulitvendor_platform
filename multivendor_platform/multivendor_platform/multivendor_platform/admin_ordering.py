@@ -43,8 +43,6 @@ MODEL_ORDER: Dict[str, List[str]] = {
         "Label",
         "ProductComment",
         "CategoryRequest",
-        "ProductScrapeJob",
-        "ScrapeJobBatch",
     ],
     # Blog Management
     "blog": [

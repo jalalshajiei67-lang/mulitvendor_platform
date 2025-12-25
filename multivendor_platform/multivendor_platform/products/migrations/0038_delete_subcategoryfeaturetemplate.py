@@ -30,7 +30,7 @@ def drop_table_if_exists(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('products', '0037_remove_subcategoryfeaturetemplate_unique_subcategory_feature_name_and_more'),
+        ('products', '0036_subcategory_feature_template'),
     ]
 
     operations = [
