@@ -5,6 +5,15 @@ set -e
 
 echo "🚀 Starting Deployment Script..."
 
+# Run debug script first if it exists (to fix any database password issues)
+if [ -f "debug-and-fix-vps.sh" ]; then
+    echo "🔍 Running pre-deployment diagnostics..."
+    chmod +x debug-and-fix-vps.sh
+    # Run in background mode - don't fail deployment if debug script has issues
+    bash debug-and-fix-vps.sh || echo "⚠️  Debug script had issues, but continuing deployment..."
+    echo ""
+fi
+
 # Check if .env file exists, create it from template if not
 if [ ! -f .env ]; then
     echo "⚠️  .env file not found. Creating from template..."

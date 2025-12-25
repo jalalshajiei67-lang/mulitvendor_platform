@@ -974,17 +974,26 @@ class ProductAdmin(admin.ModelAdmin):
                 
                 for i, file in enumerate(files):
                     if file and file.size > 0:  # Make sure file exists and has content
-                        # Only set as primary if no existing images and this is the first new image
-                        is_primary = (existing_count == 0 and i == 0 and not has_primary)
-                        
-                        # Create ProductImage instance
-                        product_image = ProductImage(
-                            product=obj,
-                            image=file,
-                            is_primary=is_primary,
-                            sort_order=existing_count + i
-                        )
-                        product_image.save()
+                        try:
+                            # Only set as primary if no existing images and this is the first new image
+                            is_primary = (existing_count == 0 and i == 0 and not has_primary)
+                            
+                            # Create ProductImage instance
+                            product_image = ProductImage(
+                                product=obj,
+                                image=file,
+                                is_primary=is_primary,
+                                sort_order=existing_count + i
+                            )
+                            product_image.save()
+                        except (OSError, IOError, PermissionError) as e:
+                            error_msg = f"خطا در ذخیره تصویر: {str(e)}. لطفاً از وجود پوشه media و دسترسی‌های نوشتن اطمینان حاصل کنید."
+                            messages.error(request, error_msg)
+                            raise
+                        except Exception as e:
+                            error_msg = f"خطا در ذخیره تصویر: {str(e)}"
+                            messages.error(request, error_msg)
+                            raise
     
     class Media:
         js = ('admin/js/fix_action_button.js', 'admin/js/price_formatter.js', 'admin/js/tinymce_image_picker.js',)

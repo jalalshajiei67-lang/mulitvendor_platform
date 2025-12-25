@@ -1,9 +1,11 @@
 # products/models.py
+import os
 from typing import Optional
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.text import slugify
 from django.utils import timezone
+from django.conf import settings
 
 User = get_user_model()
 
@@ -363,6 +365,16 @@ class ProductImage(models.Model):
         ordering = ['-is_primary', 'sort_order', 'created_at']
     
     def save(self, *args, **kwargs):
+        # Ensure the upload directory exists with proper permissions
+        if self.image:
+            # Ensure MEDIA_ROOT exists
+            if not os.path.exists(settings.MEDIA_ROOT):
+                os.makedirs(settings.MEDIA_ROOT, mode=0o755, exist_ok=True)
+            
+            # Ensure product_images subdirectory exists
+            upload_path = os.path.join(settings.MEDIA_ROOT, 'product_images')
+            os.makedirs(upload_path, mode=0o755, exist_ok=True)
+        
         # If this image is being set as primary, unset all other primary images for this product
         if self.is_primary:
             ProductImage.objects.filter(product=self.product, is_primary=True).update(is_primary=False)

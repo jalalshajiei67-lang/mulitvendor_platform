@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 """
 Script to create Django superuser non-interactively for production
-Usage on CapRover:
-  caprover apps:exec multivendor-backend --command "python create_superuser_production.py"
+Usage with Docker Compose:
+  docker-compose exec backend python create_superuser_production.py
   
 Or with environment variables:
-  caprover apps:exec multivendor-backend --command "SUPERUSER_USERNAME=admin SUPERUSER_EMAIL=admin@indexo.ir SUPERUSER_PASSWORD=your_secure_password python create_superuser_production.py"
+  docker-compose exec backend bash -c "SUPERUSER_USERNAME=admin SUPERUSER_EMAIL=admin@indexo.ir SUPERUSER_PASSWORD=your_secure_password python create_superuser_production.py"
+
+Usage with Docker directly:
+  docker exec -it multivendor_backend python create_superuser_production.py
 """
 import os
 import sys
@@ -13,7 +16,8 @@ import django
 
 # Setup Django with production settings
 sys.path.insert(0, '/app')
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'multivendor_platform.settings_caprover')
+# Use default settings (multivendor_platform.settings) which reads from environment variables
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'multivendor_platform.settings')
 django.setup()
 
 from django.contrib.auth import get_user_model
@@ -49,6 +53,9 @@ print(f"  Username: {username}")
 print(f"  Email: {email}")
 print(f"  Password: {password}")
 print("="*50)
-print("\nAdmin URL: https://multivendor-backend.indexo.ir/admin/")
+
+# Get API domain from environment or use default
+api_domain = os.environ.get('API_DOMAIN', 'multivendor-backend.indexo.ir')
+print(f"\nAdmin URL: https://{api_domain}/admin/")
 print("="*50)
 
