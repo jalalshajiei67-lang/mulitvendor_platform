@@ -4,11 +4,13 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import CreateView, ListView, TemplateView
 from django.urls import reverse_lazy
-from django.db import models
-from django.db.models import Case, When, Value, IntegerField, FloatField, BooleanField, F
+from django.db import models, connection
+from django.db.models import Case, When, Value, IntegerField, FloatField, BooleanField, F, Prefetch
 from django.db.models.functions import Coalesce
 from django.conf import settings
 from django.utils import timezone
+import json
+import time
 
 # REST Framework imports
 from rest_framework import viewsets, status, filters
@@ -122,9 +124,39 @@ class ProductViewSet(viewsets.ModelViewSet):
         Optionally restricts the returned products to a given category or subcategory,
         by filtering against query parameters in the URL.
         """
+        # #region agent log
+        initial_query_count = len(connection.queries)
+        queryset_start = time.time()
+        # #endregion agent log
+        
+        # Prefetch vendor badges to avoid N+1 queries in serializer
+        vendor_badges_prefetch = Prefetch(
+            'vendor__vendor_profile__earned_badges',
+            queryset=EarnedBadge.objects.select_related('badge').order_by('-achieved_at')
+        )
+        
         queryset = (
             Product.objects.all()
-            .select_related('vendor__profile', 'vendor__vendor_profile__engagement', 'primary_category')
+            .select_related(
+                'vendor__profile', 
+                'vendor__vendor_profile__engagement', 
+                'primary_category',
+                'supplier',
+                'category_request'
+            )
+            .prefetch_related(
+                vendor_badges_prefetch,
+                'subcategories',
+                'subcategories__categories',
+                'subcategories__categories__departments',
+                'labels',
+                'images',
+                'features',
+                'comments',
+                'comments__author',
+                'comments__replies',
+                'comments__replies__author'
+            )
             .annotate(
                 vendor_total_points=Coalesce(
                     F('vendor__vendor_profile__engagement__total_points'),
@@ -142,6 +174,23 @@ class ProductViewSet(viewsets.ModelViewSet):
                 ),
             )
         )
+        
+        # #region agent log
+        queryset_build_time = time.time() - queryset_start
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'A',
+                'location': 'products/views.py:get_queryset:queryset_build',
+                'message': 'Queryset built',
+                'data': {
+                    'queries_so_far': len(connection.queries) - initial_query_count,
+                    'time_ms': round(queryset_build_time * 1000, 2)
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
 
         user = self.request.user
         if not getattr(user, 'is_staff', False):
@@ -218,7 +267,28 @@ class ProductViewSet(viewsets.ModelViewSet):
             '-created_at',
         )
 
-        return queryset.distinct()  # Use distinct to avoid duplicates from M2M
+        queryset = queryset.distinct()  # Use distinct to avoid duplicates from M2M
+        
+        # #region agent log
+        final_query_count = len(connection.queries) - initial_query_count
+        total_time = time.time() - queryset_start
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'A',
+                'location': 'products/views.py:get_queryset:final',
+                'message': 'Queryset finalized',
+                'data': {
+                    'total_queries': final_query_count,
+                    'total_time_ms': round(total_time * 1000, 2),
+                    'has_prefetch_related': False
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
+        
+        return queryset
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""
@@ -226,14 +296,116 @@ class ProductViewSet(viewsets.ModelViewSet):
             return ProductDetailSerializer
         return ProductSerializer
     
+    def list(self, request, *args, **kwargs):
+        """Override list to add instrumentation"""
+        # #region agent log
+        initial_queries = len(connection.queries)
+        start_time = time.time()
+        # #endregion agent log
+        
+        response = super().list(request, *args, **kwargs)
+        
+        # #region agent log
+        total_queries = len(connection.queries) - initial_queries
+        total_time = time.time() - start_time
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'F',
+                'location': 'products/views.py:list',
+                'message': 'Product list endpoint completed',
+                'data': {
+                    'total_queries': total_queries,
+                    'total_time_ms': round(total_time * 1000, 2),
+                    'results_count': len(response.data.get('results', [])) if hasattr(response, 'data') else 0
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
+        
+        return response
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Override retrieve to add instrumentation"""
+        # #region agent log
+        initial_queries = len(connection.queries)
+        start_time = time.time()
+        # #endregion agent log
+        
+        response = super().retrieve(request, *args, **kwargs)
+        
+        # #region agent log
+        total_queries = len(connection.queries) - initial_queries
+        total_time = time.time() - start_time
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'F',
+                'location': 'products/views.py:retrieve',
+                'message': 'Product retrieve endpoint completed',
+                'data': {
+                    'total_queries': total_queries,
+                    'total_time_ms': round(total_time * 1000, 2)
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
+        
+        return response
+    
     @action(detail=False, methods=['get'], url_path='slug/(?P<slug>[^/.]+)', permission_classes=[AllowAny])
     def retrieve_by_slug(self, request, slug=None):
         """
         Retrieve product detail using slug instead of numeric ID.
         """
+        # #region agent log
+        initial_queries = len(connection.queries)
+        start_time = time.time()
+        # #endregion agent log
+        
         queryset = self.get_queryset()
         product = get_object_or_404(queryset, slug=slug)
+        
+        # #region agent log
+        queries_after_get = len(connection.queries) - initial_queries
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'B',
+                'location': 'products/views.py:retrieve_by_slug:after_get',
+                'message': 'Product retrieved from DB',
+                'data': {
+                    'queries_count': queries_after_get,
+                    'time_ms': round((time.time() - start_time) * 1000, 2)
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
+        
         serializer = ProductDetailSerializer(product, context={'request': request})
+        
+        # #region agent log
+        queries_after_serialize = len(connection.queries) - initial_queries
+        serialize_time = time.time() - start_time
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'B',
+                'location': 'products/views.py:retrieve_by_slug:after_serialize',
+                'message': 'Product serialized',
+                'data': {
+                    'queries_count': queries_after_serialize,
+                    'queries_during_serialize': queries_after_serialize - queries_after_get,
+                    'total_time_ms': round(serialize_time * 1000, 2)
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
+        
         return Response(serializer.data)
     
     def perform_create(self, serializer):
@@ -411,12 +583,32 @@ class ProductViewSet(viewsets.ModelViewSet):
             product = self.get_object()
             image = product.images.get(id=image_id)
             
-            # Don't allow deleting the last image
-            if product.images.count() <= 1:
-                return Response(
-                    {'error': 'Cannot delete the last image'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Check if image file actually exists
+            image_file_exists = False
+            if image.image:
+                storage = image.image.storage
+                image_file_exists = storage.exists(image.image.name)
+            
+            # If image file doesn't exist, always allow deletion (orphaned record cleanup)
+            if not image_file_exists:
+                # Allow deletion of orphaned records
+                pass
+            else:
+                # Image file exists - check if there are other images with valid files
+                remaining_images_with_files = False
+                for img in product.images.exclude(id=image_id):
+                    if img.image:
+                        storage = img.image.storage
+                        if storage.exists(img.image.name):
+                            remaining_images_with_files = True
+                            break
+                
+                # Don't allow deleting the last image with a valid file
+                if not remaining_images_with_files:
+                    return Response(
+                        {'error': 'Cannot delete the last image with a valid file'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             
             # If deleting primary image, make the next one primary
             if image.is_primary:
@@ -425,6 +617,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                     next_image.is_primary = True
                     next_image.save()
             
+            # Delete the image record (this will also delete the file if it exists)
             image.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except ProductImage.DoesNotExist:
@@ -471,17 +664,22 @@ class CategoryViewSet(viewsets.ModelViewSet):
         Optionally filter categories by department
         """
         queryset = Category.objects.all().order_by('sort_order', 'name')
-        
+
+        # Filter out inactive categories for non-staff users
+        user = self.request.user
+        if not getattr(user, 'is_staff', False):
+            queryset = queryset.filter(is_active=True)
+
         # Filter by department
         department_id = self.request.query_params.get('department', None)
         if department_id:
             queryset = queryset.filter(departments__id=department_id)
-        
+
         # Filter by slug (for detail view)
         slug = self.request.query_params.get('slug', None)
         if slug:
             queryset = queryset.filter(slug=slug)
-        
+
         return queryset.distinct()  # Use distinct to avoid duplicates from M2M
     
     def get_permissions(self):
@@ -510,17 +708,22 @@ class SubcategoryViewSet(viewsets.ModelViewSet):
         Optionally filter subcategories by category
         """
         queryset = Subcategory.objects.all().order_by('sort_order', 'name')
-        
+
+        # Filter out inactive subcategories for non-staff users
+        user = self.request.user
+        if not getattr(user, 'is_staff', False):
+            queryset = queryset.filter(is_active=True)
+
         # Filter by category
         category_id = self.request.query_params.get('category', None)
         if category_id:
             queryset = queryset.filter(categories__id=category_id)
-        
+
         # Filter by slug (for detail view)
         slug = self.request.query_params.get('slug', None)
         if slug:
             queryset = queryset.filter(slug=slug)
-        
+
         return queryset.distinct()  # Use distinct to avoid duplicates from M2M
     
     def get_permissions(self):
@@ -548,12 +751,17 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         Optionally filter departments by slug
         """
         queryset = Department.objects.all().order_by('sort_order', 'name')
-        
+
+        # Filter out inactive departments for non-staff users
+        user = self.request.user
+        if not getattr(user, 'is_staff', False):
+            queryset = queryset.filter(is_active=True)
+
         # Filter by slug (for detail view)
         slug = self.request.query_params.get('slug', None)
         if slug:
             queryset = queryset.filter(slug=slug)
-        
+
         return queryset
     
     def get_permissions(self):

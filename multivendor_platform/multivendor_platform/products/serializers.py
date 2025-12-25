@@ -1,5 +1,6 @@
 # products/serializers.py
 from rest_framework import serializers
+from django.db import connection
 from .models import (
     Product,
     Category,
@@ -16,6 +17,8 @@ from .models import (
 from gamification.models import EarnedBadge
 from gamification.services import GamificationService
 from .utils import build_absolute_uri
+import json
+import time
 
 class SubcategoryField(serializers.Field):
     """
@@ -471,6 +474,11 @@ class ProductSerializer(serializers.ModelSerializer):
         return full_name or obj.vendor.username
 
     def get_vendor_badges(self, obj):
+        # #region agent log
+        initial_queries = len(connection.queries)
+        start_time = time.time()
+        # #endregion agent log
+        
         vendor = getattr(obj, 'vendor', None)
         if not vendor:
             return []
@@ -479,12 +487,17 @@ class ProductSerializer(serializers.ModelSerializer):
         if not vendor_profile:
             return []
 
-        badges = (
-            EarnedBadge.objects.select_related('badge')
-            .filter(vendor_profile=vendor_profile)
-            .order_by('-achieved_at')
-        )
-        return [
+        # Use prefetched badges if available, otherwise fallback to query
+        if hasattr(vendor_profile, 'earned_badges'):
+            badges = vendor_profile.earned_badges.all()
+        else:
+            badges = (
+                EarnedBadge.objects.select_related('badge')
+                .filter(vendor_profile=vendor_profile)
+                .order_by('-achieved_at')
+            )
+        
+        result = [
             {
                 'slug': eb.badge.slug,
                 'icon': eb.badge.icon,
@@ -493,6 +506,28 @@ class ProductSerializer(serializers.ModelSerializer):
             }
             for eb in badges
         ]
+        
+        # #region agent log
+        queries_used = len(connection.queries) - initial_queries
+        elapsed = time.time() - start_time
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'C',
+                'location': 'products/serializers.py:get_vendor_badges',
+                'message': 'Vendor badges queried',
+                'data': {
+                    'product_id': obj.id,
+                    'queries_count': queries_used,
+                    'time_ms': round(elapsed * 1000, 2),
+                    'used_prefetch': hasattr(vendor_profile, 'earned_badges')
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
+        
+        return result
 
     def get_vendor_name(self, obj):
         """Return supplier name or vendor fallback for safe serialization."""
@@ -500,54 +535,6 @@ class ProductSerializer(serializers.ModelSerializer):
             return obj.supplier.name
         full_name = obj.vendor.get_full_name()
         return full_name or obj.vendor.username
-
-    def get_vendor_badges(self, obj):
-        vendor = getattr(obj, 'vendor', None)
-        if not vendor:
-            return []
-
-        vendor_profile = getattr(vendor, 'vendor_profile', None)
-        if not vendor_profile:
-            return []
-
-        badges = (
-            EarnedBadge.objects.select_related('badge')
-            .filter(vendor_profile=vendor_profile)
-            .order_by('-achieved_at')
-        )
-        return [
-            {
-                'slug': eb.badge.slug,
-                'icon': eb.badge.icon,
-                'title': eb.badge.title,
-                'tier': eb.badge.tier,
-            }
-            for eb in badges
-        ]
-
-    def get_vendor_badges(self, obj):
-        vendor = getattr(obj, 'vendor', None)
-        if not vendor:
-            return []
-
-        vendor_profile = getattr(vendor, 'vendor_profile', None)
-        if not vendor_profile:
-            return []
-
-        badges = (
-            EarnedBadge.objects.select_related('badge')
-            .filter(vendor_profile=vendor_profile)
-            .order_by('-achieved_at')
-        )
-        return [
-            {
-                'slug': eb.badge.slug,
-                'icon': eb.badge.icon,
-                'title': eb.badge.title,
-                'tier': eb.badge.tier,
-            }
-            for eb in badges
-        ]
 
     def _get_engagement_payload(self, obj):
         vendor = getattr(obj, 'vendor', None)
@@ -625,11 +612,37 @@ class ProductSerializer(serializers.ModelSerializer):
         return build_absolute_uri(request, og_image_field.url)
 
     def get_promotional_labels(self, obj):
-        return LabelMinimalSerializer(
+        # #region agent log
+        initial_queries = len(connection.queries)
+        start_time = time.time()
+        # #endregion agent log
+        
+        result = LabelMinimalSerializer(
             obj.get_promotional_labels(),
             many=True,
             context=self.context
         ).data
+        
+        # #region agent log
+        queries_used = len(connection.queries) - initial_queries
+        elapsed = time.time() - start_time
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'D',
+                'location': 'products/serializers.py:get_promotional_labels',
+                'message': 'Promotional labels queried',
+                'data': {
+                    'product_id': obj.id,
+                    'queries_count': queries_used,
+                    'time_ms': round(elapsed * 1000, 2)
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
+        
+        return result
     
     def get_category_request(self, obj):
         """Return category request information if exists"""
@@ -912,6 +925,11 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return full_name or obj.vendor.username
 
     def get_vendor_badges(self, obj):
+        # #region agent log
+        initial_queries = len(connection.queries)
+        start_time = time.time()
+        # #endregion agent log
+        
         vendor = getattr(obj, 'vendor', None)
         if not vendor:
             return []
@@ -920,12 +938,17 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         if not vendor_profile:
             return []
 
-        badges = (
-            EarnedBadge.objects.select_related('badge')
-            .filter(vendor_profile=vendor_profile)
-            .order_by('-achieved_at')
-        )
-        return [
+        # Use prefetched badges if available, otherwise fallback to query
+        if hasattr(vendor_profile, 'earned_badges'):
+            badges = vendor_profile.earned_badges.all()
+        else:
+            badges = (
+                EarnedBadge.objects.select_related('badge')
+                .filter(vendor_profile=vendor_profile)
+                .order_by('-achieved_at')
+            )
+        
+        result = [
             {
                 'slug': eb.badge.slug,
                 'icon': eb.badge.icon,
@@ -934,6 +957,28 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             }
             for eb in badges
         ]
+        
+        # #region agent log
+        queries_used = len(connection.queries) - initial_queries
+        elapsed = time.time() - start_time
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'C',
+                'location': 'products/serializers.py:ProductDetailSerializer:get_vendor_badges',
+                'message': 'Vendor badges queried',
+                'data': {
+                    'product_id': obj.id,
+                    'queries_count': queries_used,
+                    'time_ms': round(elapsed * 1000, 2),
+                    'used_prefetch': hasattr(vendor_profile, 'earned_badges')
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
+        
+        return result
 
     def _get_engagement_payload(self, obj):
         vendor = getattr(obj, 'vendor', None)
@@ -999,7 +1044,33 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return build_absolute_uri(request, og_image_field.url)
 
     def get_promotional_labels(self, obj):
-        return LabelMinimalSerializer(obj.get_promotional_labels(), many=True, context=self.context).data
+        # #region agent log
+        initial_queries = len(connection.queries)
+        start_time = time.time()
+        # #endregion agent log
+        
+        result = LabelMinimalSerializer(obj.get_promotional_labels(), many=True, context=self.context).data
+        
+        # #region agent log
+        queries_used = len(connection.queries) - initial_queries
+        elapsed = time.time() - start_time
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'D',
+                'location': 'products/serializers.py:ProductDetailSerializer:get_promotional_labels',
+                'message': 'Promotional labels queried',
+                'data': {
+                    'product_id': obj.id,
+                    'queries_count': queries_used,
+                    'time_ms': round(elapsed * 1000, 2)
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
+        
+        return result
     
     def to_representation(self, instance):
         """
@@ -1016,12 +1087,81 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     
     def get_comment_count(self, obj):
         """Get count of approved comments"""
-        return obj.comments.filter(is_approved=True).count()
+        # #region agent log
+        initial_queries = len(connection.queries)
+        start_time = time.time()
+        # #endregion agent log
+        
+        # Use prefetched comments if available
+        if hasattr(obj, 'comments'):
+            approved_comments = [c for c in obj.comments.all() if c.is_approved]
+            result = len(approved_comments)
+        else:
+            result = obj.comments.filter(is_approved=True).count()
+        
+        # #region agent log
+        queries_used = len(connection.queries) - initial_queries
+        elapsed = time.time() - start_time
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'E',
+                'location': 'products/serializers.py:get_comment_count',
+                'message': 'Comment count queried',
+                'data': {
+                    'product_id': obj.id,
+                    'queries_count': queries_used,
+                    'time_ms': round(elapsed * 1000, 2),
+                    'used_prefetch': hasattr(obj, 'comments')
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
+        
+        return result
     
     def get_average_rating(self, obj):
         """Get average rating from approved comments"""
-        approved_comments = obj.comments.filter(is_approved=True)
-        if approved_comments.exists():
-            total = sum([comment.rating for comment in approved_comments])
-            return round(total / approved_comments.count(), 1)
-        return 0
+        # #region agent log
+        initial_queries = len(connection.queries)
+        start_time = time.time()
+        # #endregion agent log
+        
+        # Use prefetched comments if available
+        if hasattr(obj, 'comments'):
+            approved_comments = [c for c in obj.comments.all() if c.is_approved]
+            if approved_comments:
+                total = sum([comment.rating for comment in approved_comments])
+                result = round(total / len(approved_comments), 1)
+            else:
+                result = 0
+        else:
+            approved_comments = obj.comments.filter(is_approved=True)
+            if approved_comments.exists():
+                total = sum([comment.rating for comment in approved_comments])
+                result = round(total / approved_comments.count(), 1)
+            else:
+                result = 0
+        
+        # #region agent log
+        queries_used = len(connection.queries) - initial_queries
+        elapsed = time.time() - start_time
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'post-fix',
+                'hypothesisId': 'E',
+                'location': 'products/serializers.py:get_average_rating',
+                'message': 'Average rating queried',
+                'data': {
+                    'product_id': obj.id,
+                    'queries_count': queries_used,
+                    'time_ms': round(elapsed * 1000, 2),
+                    'used_prefetch': hasattr(obj, 'comments')
+                },
+                'timestamp': int(time.time() * 1000)
+            }) + '\n')
+        # #endregion agent log
+        
+        return result
