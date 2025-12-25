@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('products', '0035_product_marketplace_hide'),
+        ('products', '0036_subcategory_feature_template'),
     ]
 
     operations = [
