@@ -274,18 +274,17 @@ TINYMCE_DEFAULT_CONFIG = {
     'custom_undo_redo_levels': 20,
     'selector': 'textarea',
     'theme': 'silver',
-    'plugins': 'save link image media preview codesample contextmenu table code lists fullscreen insertdatetime nonbreaking directionality searchreplace wordcount visualblocks visualchars autolink charmap print hr anchor pagebreak imagetools',
-    'toolbar1': 'fullscreen preview bold italic underline | h1 h2 h3 h4 | fontselect fontsizeselect | forecolor backcolor | alignleft alignright aligncenter alignjustify | indent outdent | bullist numlist table | link image media | codesample',
-    'toolbar2': 'visualblocks visualchars | charmap hr pagebreak nonbreaking anchor | code | ltr rtl',
-    'contextmenu': 'formats | link image',
+    'plugins': 'advlist,autolink,lists,link,image,charmap,preview,anchor,searchreplace,visualblocks,code,fullscreen,insertdatetime,media,table,help,wordcount',
+    'toolbar1': 'fullscreen preview bold italic underline | h1 h2 h3 h4 | fontselect fontsizeselect | forecolor backcolor | alignleft alignright aligncenter alignjustify | indent outdent | bullist numlist table | link image media',
+    'toolbar2': 'visualblocks | charmap anchor | code | ltr rtl',
     'menubar': True,
     'statusbar': True,
     'directionality': 'rtl',  # Right-to-left for Persian/Farsi
     'language': 'fa',  # Persian language
     'content_css': [
-        '//fonts.googleapis.com/css?family=Vazir',  # Persian font
+        '/static/admin/css/custom_admin.css',  # Custom Persian font support
     ],
-    'font_formats': 'Vazir=vazir,sans-serif;Arial=arial,helvetica,sans-serif;Arial Black=arial black,avant garde;Book Antiqua=book antiqua,palatino;Comic Sans MS=comic sans ms,sans-serif;Courier New=courier new,courier;Georgia=georgia,palatino;Helvetica=helvetica;Impact=impact,chicago;Symbol=symbol;Tahoma=tahoma,arial,helvetica,sans-serif;Terminal=terminal,monaco;Times New Roman=times new roman,times;Trebuchet MS=trebuchet ms,geneva;Verdana=verdana,geneva;Webdings=webdings;Wingdings=wingdings,zapf dingbats',
+    'font_formats': 'Arial=arial,helvetica,sans-serif;Arial Black=arial black,avant garde;Book Antiqua=book antiqua,palatino;Comic Sans MS=comic sans ms,sans-serif;Courier New=courier new,courier;Georgia=georgia,palatino;Helvetica=helvetica;Impact=impact,chicago;Symbol=symbol;Tahoma=tahoma,arial,helvetica,sans-serif;Terminal=terminal,monaco;Times New Roman=times new roman,times;Trebuchet MS=trebuchet ms,geneva;Verdana=verdana,geneva;Webdings=webdings;Wingdings=wingdings,zapf dingbats',
     'table_default_styles': {
         'border': '1px solid #ccc',
         'borderCollapse': 'collapse'

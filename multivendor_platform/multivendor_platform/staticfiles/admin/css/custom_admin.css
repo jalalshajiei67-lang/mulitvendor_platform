@@ -1,5 +1,43 @@
 /* Custom Admin CSS - Fix Action Button Visibility */
 
+/* Persian/Farsi Font Support */
+/* Add Persian font fallbacks to TinyMCE and admin interface */
+body,
+.mce-content-body,
+.admin-interface,
+.django-admin {
+    font-family: 'Vazir', 'Tahoma', 'Arial', 'Helvetica Neue', 'Helvetica', sans-serif !important;
+}
+
+/* TinyMCE Persian font support */
+.mce-content-body {
+    font-family: 'Vazir', 'Tahoma', 'Arial', 'Helvetica Neue', 'Helvetica', sans-serif !important;
+    direction: rtl;
+    text-align: right;
+}
+
+/* Persian font stack for better compatibility */
+@font-face {
+    font-family: 'Vazir';
+    src: local('Vazir'), local('Vazir-Regular');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Vazir';
+    src: local('Vazir-Bold'), local('Vazir-Bold');
+    font-weight: bold;
+    font-style: normal;
+}
+
+/* Fallback fonts for Persian text */
+.persian-text,
+[dir="rtl"],
+.rtl {
+    font-family: 'Vazir', 'B Nazanin', 'B Mitra', 'B Yekan', 'Samim', 'Shabnam', 'Tahoma', 'Arial', 'Helvetica Neue', 'Helvetica', sans-serif !important;
+}
+
 /* Ensure bulk actions bar is always visible */
 .actions {
     display: flex !important;

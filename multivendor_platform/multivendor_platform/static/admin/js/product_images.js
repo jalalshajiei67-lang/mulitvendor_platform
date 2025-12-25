@@ -1,5 +1,30 @@
-// Admin JavaScript for multiple image uploads
+// Function to handle delete button click in image rows
+function deleteImageRow(button) {
+    // Find the row containing the button
+    const row = button.closest('tr');
+
+    // Find the delete checkbox in the same row
+    const deleteCheckbox = row.querySelector('input[type="checkbox"][name*="-DELETE"]');
+
+    if (deleteCheckbox) {
+        // Check the delete checkbox
+        deleteCheckbox.checked = true;
+
+        // Optional: Add visual feedback
+        row.style.opacity = '0.5';
+        row.style.backgroundColor = '#ffe6e6';
+    }
+}
+
+// Admin JavaScript for multiple image uploads and delete functionality
 document.addEventListener('DOMContentLoaded', function () {
+    // Use event delegation for delete buttons
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('delete-image-btn')) {
+            e.preventDefault();
+            deleteImageRow(e.target);
+        }
+    });
     const multipleImagesInput = document.querySelector('input[name="multiple_images"]');
 
     if (multipleImagesInput) {

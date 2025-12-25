@@ -803,19 +803,28 @@ class ProductImageInline(admin.TabularInline):
     max_num = 20
     fields = ['image_thumbnail', 'image', 'alt_text', 'is_primary', 'sort_order']
     readonly_fields = ['image_thumbnail', 'created_at', 'updated_at']
-    
+
     def image_thumbnail(self, obj):
         if obj.image:
+            delete_button = format_html(
+                '<button type="button" class="delete-image-btn" data-row-id="{}" '
+                'style="margin-left: 10px; background: #dc3545; color: white; border: none; '
+                'padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 11px;">🗑️ Delete</button>',
+                obj.pk
+            ) if obj.pk else ''
             return format_html(
-                '<img src="{}" style="max-width: 100px; max-height: 100px; border-radius: 4px;" />',
-                obj.image.url
+                '<div style="display: flex; align-items: center;">'
+                '<img src="{}" style="max-width: 100px; max-height: 100px; border-radius: 4px;" />'
+                '{}'
+                '</div>',
+                obj.image.url, delete_button
             )
         return "No image"
     image_thumbnail.short_description = 'Preview'
-    
+
     def get_queryset(self, request):
         return super().get_queryset(request).order_by('-is_primary', 'sort_order', 'created_at')
-    
+
     class Media:
         js = ('admin/js/product_images.js',)
         css = {
