@@ -293,6 +293,7 @@
 </template>
 
 <script setup lang="ts">
+import { createError } from 'h3'
 import { generateProductSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
 import BadgeIcon from '~/components/gamification/BadgeIcon.vue'
 import ProductDetailSkeleton from '~/components/skeletons/ProductDetailSkeleton.vue'
@@ -362,13 +363,27 @@ const fetchPage = async () => {
   try {
     const product = await productStore.fetchProductBySlug(slug.value)
     return product
-  } catch (error) {
+  } catch (error: any) {
+    // Check if it's a 404 error (product not found or inactive)
+    const statusCode = error?.statusCode || error?.status || error?.response?.status
+    if (statusCode === 404) {
+      // Create a proper 404 error that will be handled by Nuxt
+      // Inactive products are correctly filtered by the backend and should return 404
+      throw createError({
+        statusCode: 404,
+        message: 'محصول مورد نظر یافت نشد یا غیرفعال است.'
+      })
+    }
+    // For other errors, log and re-throw
     console.error('Error loading product detail:', error)
     throw error
   }
 }
 
-await useAsyncData(`product-detail-${slug.value}`, fetchPage)
+await useAsyncData(`product-detail-${slug.value}`, fetchPage, {
+  server: true,
+  default: () => null
+})
 
 watch(
   () => route.params.slug,

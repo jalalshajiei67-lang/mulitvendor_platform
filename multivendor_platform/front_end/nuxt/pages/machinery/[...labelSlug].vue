@@ -188,7 +188,7 @@ const loadSeoContent = async () => {
   if (!slugSegments.value.length) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'آدرس وارد شده معتبر نیست.'
+      message: 'آدرس وارد شده معتبر نیست.'
     })
   }
 
@@ -219,7 +219,7 @@ const loadSeoContent = async () => {
   if (!payload) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'محتوای مورد نظر یافت نشد.'
+      message: 'محتوای مورد نظر یافت نشد.'
     })
   }
 

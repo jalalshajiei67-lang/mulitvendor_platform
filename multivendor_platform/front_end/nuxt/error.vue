@@ -57,7 +57,7 @@ useHead({
   meta: [
     {
       name: 'description',
-      content: props.error.statusMessage || 'خطایی در سیستم رخ داده است'
+      content: props.error.message || props.error.statusMessage || 'خطایی در سیستم رخ داده است'
     },
     {
       name: 'robots',

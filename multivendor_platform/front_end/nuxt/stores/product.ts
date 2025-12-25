@@ -166,7 +166,13 @@ export const useProductStore = defineStore('products', () => {
       currentProduct.value = enhanced
       return enhanced
     } catch (err: any) {
-      error.value = t('failedToFetch')
+      // Don't set error for 404s - they're handled by the page component
+      // 404 means product not found or inactive (which is correct behavior)
+      const statusCode = err?.statusCode || err?.status || err?.response?.status
+      if (statusCode !== 404) {
+        error.value = t('failedToFetch')
+      }
+      // Always re-throw so the page component can handle it appropriately
       throw err
     } finally {
       loading.value = false

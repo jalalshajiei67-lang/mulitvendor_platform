@@ -832,13 +832,13 @@ class ProductCommentInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
-    list_display = ['name', 'slug', 'vendor', 'supplier', 'primary_category', 'get_subcategories', 'get_labels', 'price', 'stock', 'image_count', 'comment_count', 'is_active', 'created_at']
-    list_filter = ['is_active', 'primary_category', 'subcategories', 'labels', 'created_at']
+    list_display = ['name', 'slug', 'vendor', 'supplier', 'primary_category', 'get_subcategories', 'get_labels', 'price', 'stock', 'image_count', 'comment_count', 'approval_status', 'is_active', 'created_at']
+    list_filter = ['approval_status', 'is_active', 'primary_category', 'subcategories', 'labels', 'created_at']
     search_fields = ['name', 'description', 'vendor__username', 'vendor__email']
     prepopulated_fields = {'slug': ('name',)}
     filter_horizontal = ['subcategories', 'labels']
     inlines = [ProductImageInline, ProductCommentInline]
-    actions = ['make_active', 'make_inactive', 'delete_selected']  # Enable bulk actions with delete
+    actions = ['make_active', 'make_inactive', 'approve_products', 'reject_products', 'delete_selected']  # Enable bulk actions with delete
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'slug', 'description', 'image', 'image_alt_text')
@@ -863,7 +863,7 @@ class ProductAdmin(admin.ModelAdmin):
             'description': 'Search Engine Optimization fields'
         }),
         ('Settings', {
-            'fields': ('is_active',)
+            'fields': ('approval_status', 'is_active',)
         }),
     )
     
@@ -957,12 +957,34 @@ class ProductAdmin(admin.ModelAdmin):
         self.message_user(request, f'{updated} product(s) marked as inactive.')
     make_inactive.short_description = "❌ Mark as Inactive"
     
+    def approve_products(self, request, queryset):
+        """Approve selected products"""
+        updated = queryset.update(approval_status=Product.APPROVAL_STATUS_APPROVED)
+        # Trigger save() to update is_active based on approval_status and primary_category
+        for product in queryset:
+            product.save()
+        self.message_user(request, f'{updated} product(s) approved.')
+    approve_products.short_description = "✅ Approve Products"
+    
+    def reject_products(self, request, queryset):
+        """Reject selected products"""
+        updated = queryset.update(approval_status=Product.APPROVAL_STATUS_REJECTED)
+        # Trigger save() to update is_active based on approval_status
+        for product in queryset:
+            product.save()
+        self.message_user(request, f'{updated} product(s) rejected.')
+    reject_products.short_description = "❌ Reject Products"
+    
     def has_delete_permission(self, request, obj=None):
         """Explicitly allow delete permission"""
         return True
     
     def save_model(self, request, obj, form, change):
-        """Override save_model to handle multiple images"""
+        """Override save_model to handle multiple images and is_active/approval_status"""
+        # If admin explicitly sets is_active=True, automatically approve the product
+        if form.cleaned_data.get('is_active', False):
+            obj.approval_status = Product.APPROVAL_STATUS_APPROVED
+        
         super().save_model(request, obj, form, change)
         
         # Handle multiple images upload
