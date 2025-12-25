@@ -35,6 +35,7 @@ from .models import (
     LabelComboSeoPage,
     CategoryRequest,
 )
+from gamification.models import EarnedBadge
 from .forms import ProductForm
 from .serializers import (
     ProductSerializer,
