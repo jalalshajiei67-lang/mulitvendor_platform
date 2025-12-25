@@ -47,6 +47,7 @@ export const useChatStore = defineStore('chat', () => {
   const maxReconnectAttempts = 5
   const reconnectTimeout = ref<NodeJS.Timeout | null>(null)
   const widgetOpen = ref(false)  // Track if chat widget should be open
+  const pendingChatRequest = ref<{ vendorId: number; productId?: number; initialMessage?: string } | null>(null)
   
   // Computed
   const currentRoom = computed(() => {
@@ -600,8 +601,39 @@ export const useChatStore = defineStore('chat', () => {
     typingStatuses.value = {}
     currentRoomId.value = null
     widgetOpen.value = false
+    pendingChatRequest.value = null
     
     console.log('🧹 Chat state cleared')
+  }
+
+  const setPendingChatRequest = (vendorId: number, productId?: number, initialMessage?: string) => {
+    pendingChatRequest.value = { vendorId, productId, initialMessage }
+  }
+
+  const clearPendingChatRequest = () => {
+    pendingChatRequest.value = null
+  }
+
+  const startPendingChat = async () => {
+    if (!pendingChatRequest.value) return null
+    
+    const { vendorId, productId, initialMessage } = pendingChatRequest.value
+    
+    try {
+      const room = await startChat(vendorId, productId, initialMessage)
+      if (room) {
+        joinRoom(room.room_id)
+        openRoom(room.room_id)
+        clearPendingChatRequest()
+        return room
+      }
+    } catch (error) {
+      console.error('Failed to start pending chat:', error)
+      clearPendingChatRequest()
+      throw error
+    }
+    
+    return null
   }
   
   return {
@@ -613,6 +645,7 @@ export const useChatStore = defineStore('chat', () => {
     isConnected,
     guestSessionId,
     widgetOpen,
+    pendingChatRequest,
     
     // Computed
     currentRoom,
@@ -638,6 +671,9 @@ export const useChatStore = defineStore('chat', () => {
     closeWidget,
     toggleWidget,
     clearChatState,
+    setPendingChatRequest,
+    clearPendingChatRequest,
+    startPendingChat,
   }
 })
 

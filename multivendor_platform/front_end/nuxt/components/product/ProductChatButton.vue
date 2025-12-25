@@ -91,12 +91,22 @@ const startChat = async () => {
       return
     }
     
-    // If not authenticated, create guest session first
-    if (!authStore.isAuthenticated && !chatStore.guestSessionId) {
-      console.log('Creating guest session...')
-      await chatStore.createGuestSession()
+    // If not authenticated, open chat widget with pending chat request
+    if (!authStore.isAuthenticated) {
+      console.log('User not authenticated, opening chat widget for guest auth...')
+      // Store pending chat request
+      chatStore.setPendingChatRequest(
+        props.vendorId,
+        props.productId,
+        'سلام، درباره این محصول سوال دارم.'
+      )
+      // Open the chat widget (will show guest auth form)
+      chatStore.toggleWidget()
+      loading.value = false
+      return
     }
     
+    // User is authenticated, proceed with starting chat
     // Connect WebSocket if not connected
     if (!chatStore.isConnected) {
       console.log('Connecting WebSocket...')

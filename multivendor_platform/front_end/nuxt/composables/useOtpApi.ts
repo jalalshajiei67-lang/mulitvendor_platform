@@ -16,6 +16,8 @@ export interface OtpVerifyData {
   username?: string
   code: string
   purpose: OtpPurpose
+  first_name?: string
+  last_name?: string
 }
 
 export interface OtpRequestResponse {

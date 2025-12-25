@@ -412,7 +412,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const verifyOtpLogin = async (phone: string, code: string) => {
+  const verifyOtpLogin = async (phone: string, code: string, firstName?: string, lastName?: string) => {
     loading.value = true
     error.value = null
     authError.value = null
@@ -423,7 +423,9 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await otpApi.verifyOtp({
         phone,
         code,
-        purpose: 'login'
+        purpose: 'login',
+        first_name: firstName,
+        last_name: lastName
       })
       
       if (response.success && response.token && response.user) {

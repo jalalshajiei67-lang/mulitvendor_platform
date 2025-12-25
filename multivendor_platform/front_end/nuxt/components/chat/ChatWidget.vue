@@ -110,13 +110,20 @@
         <!-- Content -->
         <v-card-text class="pa-0 chat-content">
           <v-fade-transition mode="out-in">
+            <!-- Guest Authentication -->
+            <ChatGuestAuth 
+              v-if="!isAuthenticated && !currentRoomId"
+              :key="'guest-auth'"
+            />
+            <!-- Chat Panel for authenticated users -->
             <ChatPanel 
-              v-if="!currentRoomId" 
+              v-else-if="isAuthenticated && !currentRoomId" 
               @select-room="handleRoomSelect"
               :key="'panel'"
             />
+            <!-- Chat Room -->
             <ChatRoom 
-              v-else 
+              v-else-if="currentRoomId" 
               :room-id="currentRoomId" 
               @back="handleBack"
               :key="'room-' + currentRoomId"
@@ -124,9 +131,10 @@
           </v-fade-transition>
         </v-card-text>
 
-        <!-- Footer with Quick Actions -->
-        <v-divider />
-        <div class="chat-footer">
+        <!-- Footer with Quick Actions (only for authenticated users) -->
+        <template v-if="isAuthenticated">
+          <v-divider />
+          <div class="chat-footer">
           <v-btn
             variant="text"
             size="small"
@@ -168,6 +176,7 @@
             </v-list>
           </v-menu>
         </div>
+        </template>
       </v-card>
     </v-slide-y-reverse-transition>
   </div>
@@ -176,10 +185,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useChatStore } from '~/stores/chat'
+import { useAuthStore } from '~/stores/auth'
 import { storeToRefs } from 'pinia'
 
 const chatStore = useChatStore()
+const authStore = useAuthStore()
 const { widgetOpen, currentRoomId, totalUnreadCount, isConnected } = storeToRefs(chatStore)
+const { isAuthenticated } = storeToRefs(authStore)
 
 const panelOpen = widgetOpen
 const refreshing = ref(false)
@@ -248,6 +260,25 @@ watch(() => chatStore.currentRoomId, (newRoomId) => {
   }
 })
 
+// Watch for authentication changes - reinitialize chat when user logs in
+watch(() => authStore.isAuthenticated, async (isAuth) => {
+  if (isAuth && widgetOpen.value) {
+    // User just logged in, reinitialize chat
+    await chatStore.initializeChat()
+    
+    // If there's a pending chat request, start it
+    if (chatStore.pendingChatRequest) {
+      try {
+        await chatStore.startPendingChat()
+        // Show success message if chat started
+        console.log('Pending chat started successfully')
+      } catch (error) {
+        console.error('Failed to start pending chat:', error)
+      }
+    }
+  }
+})
+
 // Watch for new messages to play sound
 watch(() => chatStore.totalUnreadCount, (newCount, oldCount) => {
   if (newCount > oldCount && soundEnabled.value && process.client) {
@@ -281,7 +312,7 @@ onUnmounted(() => {
   position: fixed;
   bottom: 80px;
   right: 20px;
-  z-index: 1000;
+  z-index: 9999;
   direction: rtl;
 }
 
@@ -463,6 +494,7 @@ onUnmounted(() => {
   border-radius: 16px !important;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+  z-index: 9999;
 }
 
 .chat-header {
@@ -500,7 +532,7 @@ onUnmounted(() => {
   right: 20px;
   width: 420px;
   max-width: 90vw;
-  z-index: 1001;
+  z-index: 10000;
 }
 
 @media (max-width: 600px) {

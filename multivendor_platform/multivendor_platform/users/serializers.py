@@ -424,6 +424,8 @@ class OTPVerifySerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150, required=False, allow_blank=True)
     code = serializers.CharField(max_length=6, min_length=6)
     purpose = serializers.ChoiceField(choices=OTP.PURPOSE_CHOICES)
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
 
     def validate(self, data):
         phone = data.get('phone')

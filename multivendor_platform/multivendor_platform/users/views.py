@@ -291,6 +291,8 @@ def otp_verify_view(request):
     username = serializer.validated_data.get('username')
     code = serializer.validated_data['code']
     purpose = serializer.validated_data['purpose']
+    first_name = serializer.validated_data.get('first_name', '').strip()
+    last_name = serializer.validated_data.get('last_name', '').strip()
     
     # Get user if username provided
     user = None
@@ -304,13 +306,23 @@ def otp_verify_view(request):
                 except:
                     phone = user.username
         except User.DoesNotExist:
-            return Response(
-                {
-                    'error': 'شماره موبایل وارد شده در سیستم ثبت نشده است.',
-                    'hint': 'لطفاً شماره موبایل خود را بررسی کنید. اگر حساب کاربری ندارید، از صفحه ثبت‌نام استفاده کنید.'
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
+            # For login purpose, we'll create user if doesn't exist (after OTP verification)
+            if purpose != 'login':
+                return Response(
+                    {
+                        'error': 'شماره موبایل وارد شده در سیستم ثبت نشده است.',
+                        'hint': 'لطفاً شماره موبایل خود را بررسی کنید. اگر حساب کاربری ندارید، از صفحه ثبت‌نام استفاده کنید.'
+                    },
+                    status=status.HTTP_404_NOT_FOUND
+                )
+    
+    # For login purpose with phone, try to find user by phone
+    if purpose == 'login' and phone and not user:
+        try:
+            # Try to find user by phone in profile
+            user = User.objects.filter(profile__phone=phone).first()
+        except:
+            pass
     
     # Use phone or user for OTP verification
     user_or_phone = user if user else phone
@@ -331,47 +343,111 @@ def otp_verify_view(request):
             response_data['otp_code'] = code
         
         # If login purpose, return token and user data
-        if purpose == 'login' and 'user' in result:
-            verified_user = result['user']
+        if purpose == 'login':
+            verified_user = None
             
-            # Check if user is blocked
-            try:
-                if verified_user.profile.is_blocked:
-                    return Response(
-                        {'error': 'حساب کاربری شما مسدود شده است. برای رفع مشکل با پشتیبانی تماس بگیرید.'},
-                        status=status.HTTP_403_FORBIDDEN
+            # Check if user exists in result (from OTP record)
+            if 'user' in result:
+                verified_user = result['user']
+            elif phone:
+                # OTP verified by phone, but no user in result
+                # Try to find user by phone
+                try:
+                    verified_user = User.objects.filter(profile__phone=phone).first()
+                except:
+                    pass
+                
+                # If user doesn't exist, create new user
+                if not verified_user and phone:
+                    # Create new user
+                    # Use phone as username (will be unique)
+                    username = phone
+                    # Ensure username is unique
+                    base_username = username
+                    counter = 1
+                    while User.objects.filter(username=username).exists():
+                        username = f"{base_username}_{counter}"
+                        counter += 1
+                    
+                    # Use phone number as default name if name not provided
+                    display_name = first_name or last_name or phone
+                    if not first_name and not last_name:
+                        first_name = display_name
+                    
+                    # Create user
+                    verified_user = User.objects.create_user(
+                        username=username,
+                        email=f"{username}@temp.com",  # Temporary email
+                        first_name=first_name or '',
+                        last_name=last_name or '',
                     )
-            except:
-                pass
+                    
+                    # Create or update profile
+                    profile, created = UserProfile.objects.get_or_create(user=verified_user)
+                    profile.phone = phone
+                    profile.role = 'buyer'  # Default role
+                    profile.is_verified = True  # Verified via OTP
+                    profile.save()
+                    
+                    # Log user creation
+                    log_activity(verified_user, 'register', f'User {verified_user.username} registered via OTP chat', request)
             
-            # Create or get token
-            token, created = Token.objects.get_or_create(user=verified_user)
-            
-            # Log login activity
-            log_activity(verified_user, 'login', f'User {verified_user.username} logged in via OTP', request)
-            
-            # Get user profile info
-            try:
-                user_serializer = UserDetailSerializer(verified_user)
-                user_data = user_serializer.data
+            if verified_user:
+                # Check if user is blocked
+                try:
+                    if verified_user.profile.is_blocked:
+                        return Response(
+                            {'error': 'حساب کاربری شما مسدود شده است. برای رفع مشکل با پشتیبانی تماس بگیرید.'},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+                except:
+                    pass
                 
-                # Extract role and is_verified from profile
-                profile = verified_user.profile
-                user_data['role'] = profile.role
-                user_data['is_verified'] = profile.is_verified
+                # Update name if provided and different
+                if (first_name or last_name) and verified_user.profile:
+                    if first_name and verified_user.first_name != first_name:
+                        verified_user.first_name = first_name
+                    if last_name and verified_user.last_name != last_name:
+                        verified_user.last_name = last_name
+                    verified_user.save()
                 
-                response_data['token'] = token.key
-                response_data['user'] = user_data
-            except:
-                response_data['token'] = token.key
-                response_data['user'] = {
-                    'id': verified_user.id,
-                    'username': verified_user.username,
-                    'email': verified_user.email,
-                    'first_name': verified_user.first_name,
-                    'last_name': verified_user.last_name,
-                    'is_staff': verified_user.is_staff,
-                }
+                # Create or get token
+                token, created = Token.objects.get_or_create(user=verified_user)
+                
+                # Log login activity
+                log_activity(verified_user, 'login', f'User {verified_user.username} logged in via OTP', request)
+                
+                # Get user profile info
+                try:
+                    user_serializer = UserDetailSerializer(verified_user)
+                    user_data = user_serializer.data
+                    
+                    # Extract role and is_verified from profile
+                    profile = verified_user.profile
+                    user_data['role'] = profile.role
+                    user_data['is_verified'] = profile.is_verified
+                    
+                    response_data['token'] = token.key
+                    response_data['user'] = user_data
+                except:
+                    response_data['token'] = token.key
+                    response_data['user'] = {
+                        'id': verified_user.id,
+                        'username': verified_user.username,
+                        'email': verified_user.email,
+                        'first_name': verified_user.first_name,
+                        'last_name': verified_user.last_name,
+                        'is_staff': verified_user.is_staff,
+                    }
+            else:
+                # OTP verified but couldn't find or create user
+                return Response(
+                    {
+                        'error': 'خطا در ایجاد یا یافتن حساب کاربری',
+                        'helpful_message': 'لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.'
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
         
         return Response(response_data, status=status.HTTP_200_OK)
     
