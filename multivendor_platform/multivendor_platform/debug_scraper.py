@@ -32,7 +32,6 @@ def show_recent_jobs():
     
     for job in jobs:
         print(f"\nJob #{job.id}")
-        print(f"URL: {job.url}")
         print(f"Status: {job.status}")
         print(f"Vendor: {job.vendor.username}")
         if job.status == 'failed':
@@ -54,7 +53,7 @@ def test_url_scraping():
         return
     
     try:
-        print(f"\n📡 Fetching: {url}")
+        print(f"\n📡 Fetching page...")
         scraper = WordPressScraper(url)
         
         print("   Downloading page...")
@@ -89,8 +88,6 @@ def test_url_scraping():
         try:
             images = scraper.extract_images()
             print(f"   ✓ Images: {len(images)} found")
-            for i, img in enumerate(images[:3], 1):
-                print(f"      {i}. {img[:60]}...")
         except Exception as e:
             print(f"   ❌ Image extraction failed: {str(e)}")
             images = []
@@ -133,7 +130,6 @@ def check_failed_jobs():
     
     for job in failed_jobs:
         print(f"Job #{job.id}")
-        print(f"URL: {job.url}")
         print(f"Created: {job.created_at}")
         print(f"Error: {job.error_message}")
         print(f"\nScraped Data:")
@@ -158,7 +154,7 @@ def retry_failed_job():
     
     print(f"\nFailed jobs:")
     for job in failed_jobs:
-        print(f"  {job.id}. {job.url[:60]} - {job.error_message[:50]}")
+        print(f"  {job.id}. {job.error_message[:50]}")
     
     job_id = input("\nEnter job ID to retry (or press Enter to skip): ").strip()
     
@@ -167,7 +163,7 @@ def retry_failed_job():
     
     try:
         job = ProductScrapeJob.objects.get(id=int(job_id))
-        print(f"\nRetrying job #{job.id}: {job.url}")
+        print(f"\nRetrying job #{job.id}...")
         
         job.status = 'processing'
         job.error_message = None

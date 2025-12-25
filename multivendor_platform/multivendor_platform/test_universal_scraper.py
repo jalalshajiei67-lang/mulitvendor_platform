@@ -38,7 +38,6 @@ results = {
 for i, url in enumerate(test_urls, 1):
     print(f"\n{'='*100}")
     print(f"TEST {i}/{len(test_urls)}")
-    print(f"URL: {url}")
     print(f"{'='*100}")
     
     try:
@@ -54,9 +53,6 @@ for i, url in enumerate(test_urls, 1):
         print(f"   Price: {data['price']}")
         print(f"   Images Found: {len(data['images'])}")
         print(f"   Fetch Method: {data.get('fetch_method', 'unknown')}")
-
-        if data['images']:
-            print(f"   First Image: {data['images'][0][:80]}...")
         
         results['success'].append({
             'url': url,
@@ -88,7 +84,6 @@ if results['success']:
 if results['failed']:
     print(f"\n💥 FAILED SCRAPES:")
     for item in results['failed']:
-        print(f"   • {item['url'][:80]}")
         print(f"     Error: {item['error'][:100]}")
 
 print(f"\n{'='*100}")
@@ -108,16 +103,14 @@ with open(output_file, 'w', encoding='utf-8') as f:
     f.write("SUCCESSFUL SCRAPES:\n")
     f.write("-"*100 + "\n")
     for item in results['success']:
-        f.write(f"\nURL: {item['url']}\n")
-        f.write(f"Name: {item['name']}\n")
+        f.write(f"\nName: {item['name']}\n")
         f.write(f"Platform: {item['platform']}\n")
         f.write(f"Images: {item['images']}\n")
     
     f.write("\n\nFAILED SCRAPES:\n")
     f.write("-"*100 + "\n")
     for item in results['failed']:
-        f.write(f"\nURL: {item['url']}\n")
-        f.write(f"Error: {item['error']}\n")
+        f.write(f"\nError: {item['error']}\n")
 
 print(f"✅ Detailed results saved to: {output_file}\n")
 

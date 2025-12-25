@@ -2,6 +2,9 @@
 """
 Utility functions for products app
 """
+import os
+import json
+import time
 from django.conf import settings
 
 
@@ -62,4 +65,45 @@ def build_absolute_uri(request, relative_url):
     else:
         # Fallback: build URL manually with HTTPS
         return ensure_https_url(relative_url)
+
+
+def log_debug(session_id, run_id, hypothesis_id, location, message, data=None):
+    """
+    Safely log debug information to file.
+    Silently fails if the log file path doesn't exist (e.g., in production/Docker).
+    
+    Args:
+        session_id: Session identifier
+        run_id: Run identifier
+        hypothesis_id: Hypothesis identifier
+        location: Code location (e.g., 'products/serializers.py:get_promotional_labels')
+        message: Log message
+        data: Optional data dictionary
+    """
+    # Only log in development if the debug log path exists
+    log_path = "/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log"
+    
+    try:
+        # Check if the directory exists before trying to write
+        log_dir = os.path.dirname(log_path)
+        if not os.path.exists(log_dir):
+            return  # Silently fail if directory doesn't exist (e.g., in Docker/production)
+        
+        log_entry = {
+            "sessionId": session_id,
+            "runId": run_id,
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data or {},
+            "timestamp": int(time.time() * 1000)
+        }
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry) + "\n")
+    except (OSError, IOError, PermissionError):
+        # Silently fail if file doesn't exist, can't be written, or permission denied
+        pass
+    except Exception:
+        # Silently fail on any other error
+        pass
 

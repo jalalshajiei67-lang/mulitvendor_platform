@@ -18,7 +18,7 @@ test_url = "https://danacodenegar.com/product/cij-dcnlt860/"
 print("="*100)
 print("WORDPRESS SCRAPER TEST")
 print("="*100)
-print(f"Testing URL: {test_url}\n")
+print()
 
 try:
     # Try with SSL disabled and no proxy (common for some WordPress sites)
@@ -46,10 +46,9 @@ try:
         print(f"\n{'='*100}")
         print("IMAGES FOUND:")
         print(f"{'='*100}")
-        for i, img_url in enumerate(data['images'][:10], 1):  # Show first 10
-            print(f"{i}. {img_url}")
+        print(f"Total: {len(data['images'])} image(s)")
         if len(data['images']) > 10:
-            print(f"... and {len(data['images']) - 10} more images")
+            print(f"(Showing first 10 of {len(data['images'])} images)")
     
     print(f"\n{'='*100}")
     print("✅ Test completed successfully!")

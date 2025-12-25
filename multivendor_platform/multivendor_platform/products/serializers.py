@@ -16,7 +16,7 @@ from .models import (
 )
 from gamification.models import EarnedBadge
 from gamification.services import GamificationService
-from .utils import build_absolute_uri
+from .utils import build_absolute_uri, log_debug
 import json
 import time
 
@@ -510,21 +510,19 @@ class ProductSerializer(serializers.ModelSerializer):
         # #region agent log
         queries_used = len(connection.queries) - initial_queries
         elapsed = time.time() - start_time
-        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'post-fix',
-                'hypothesisId': 'C',
-                'location': 'products/serializers.py:get_vendor_badges',
-                'message': 'Vendor badges queried',
-                'data': {
-                    'product_id': obj.id,
-                    'queries_count': queries_used,
-                    'time_ms': round(elapsed * 1000, 2),
-                    'used_prefetch': hasattr(vendor_profile, 'earned_badges')
-                },
-                'timestamp': int(time.time() * 1000)
-            }) + '\n')
+        log_debug(
+            'debug-session',
+            'post-fix',
+            'C',
+            'products/serializers.py:get_vendor_badges',
+            'Vendor badges queried',
+            {
+                'product_id': obj.id,
+                'queries_count': queries_used,
+                'time_ms': round(elapsed * 1000, 2),
+                'used_prefetch': hasattr(vendor_profile, 'earned_badges')
+            }
+        )
         # #endregion agent log
         
         return result
@@ -626,20 +624,18 @@ class ProductSerializer(serializers.ModelSerializer):
         # #region agent log
         queries_used = len(connection.queries) - initial_queries
         elapsed = time.time() - start_time
-        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'post-fix',
-                'hypothesisId': 'D',
-                'location': 'products/serializers.py:get_promotional_labels',
-                'message': 'Promotional labels queried',
-                'data': {
-                    'product_id': obj.id,
-                    'queries_count': queries_used,
-                    'time_ms': round(elapsed * 1000, 2)
-                },
-                'timestamp': int(time.time() * 1000)
-            }) + '\n')
+        log_debug(
+            'debug-session',
+            'post-fix',
+            'D',
+            'products/serializers.py:get_promotional_labels',
+            'Promotional labels queried',
+            {
+                'product_id': obj.id,
+                'queries_count': queries_used,
+                'time_ms': round(elapsed * 1000, 2)
+            }
+        )
         # #endregion agent log
         
         return result
@@ -961,21 +957,19 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         # #region agent log
         queries_used = len(connection.queries) - initial_queries
         elapsed = time.time() - start_time
-        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'post-fix',
-                'hypothesisId': 'C',
-                'location': 'products/serializers.py:ProductDetailSerializer:get_vendor_badges',
-                'message': 'Vendor badges queried',
-                'data': {
-                    'product_id': obj.id,
-                    'queries_count': queries_used,
-                    'time_ms': round(elapsed * 1000, 2),
-                    'used_prefetch': hasattr(vendor_profile, 'earned_badges')
-                },
-                'timestamp': int(time.time() * 1000)
-            }) + '\n')
+        log_debug(
+            'debug-session',
+            'post-fix',
+            'C',
+            'products/serializers.py:ProductDetailSerializer:get_vendor_badges',
+            'Vendor badges queried',
+            {
+                'product_id': obj.id,
+                'queries_count': queries_used,
+                'time_ms': round(elapsed * 1000, 2),
+                'used_prefetch': hasattr(vendor_profile, 'earned_badges')
+            }
+        )
         # #endregion agent log
         
         return result
@@ -1054,20 +1048,18 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         # #region agent log
         queries_used = len(connection.queries) - initial_queries
         elapsed = time.time() - start_time
-        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'post-fix',
-                'hypothesisId': 'D',
-                'location': 'products/serializers.py:ProductDetailSerializer:get_promotional_labels',
-                'message': 'Promotional labels queried',
-                'data': {
-                    'product_id': obj.id,
-                    'queries_count': queries_used,
-                    'time_ms': round(elapsed * 1000, 2)
-                },
-                'timestamp': int(time.time() * 1000)
-            }) + '\n')
+        log_debug(
+            'debug-session',
+            'post-fix',
+            'D',
+            'products/serializers.py:ProductDetailSerializer:get_promotional_labels',
+            'Promotional labels queried',
+            {
+                'product_id': obj.id,
+                'queries_count': queries_used,
+                'time_ms': round(elapsed * 1000, 2)
+            }
+        )
         # #endregion agent log
         
         return result
@@ -1102,21 +1094,19 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         # #region agent log
         queries_used = len(connection.queries) - initial_queries
         elapsed = time.time() - start_time
-        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'post-fix',
-                'hypothesisId': 'E',
-                'location': 'products/serializers.py:get_comment_count',
-                'message': 'Comment count queried',
-                'data': {
-                    'product_id': obj.id,
-                    'queries_count': queries_used,
-                    'time_ms': round(elapsed * 1000, 2),
-                    'used_prefetch': hasattr(obj, 'comments')
-                },
-                'timestamp': int(time.time() * 1000)
-            }) + '\n')
+        log_debug(
+            'debug-session',
+            'post-fix',
+            'E',
+            'products/serializers.py:get_comment_count',
+            'Comment count queried',
+            {
+                'product_id': obj.id,
+                'queries_count': queries_used,
+                'time_ms': round(elapsed * 1000, 2),
+                'used_prefetch': hasattr(obj, 'comments')
+            }
+        )
         # #endregion agent log
         
         return result
@@ -1147,21 +1137,19 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         # #region agent log
         queries_used = len(connection.queries) - initial_queries
         elapsed = time.time() - start_time
-        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'post-fix',
-                'hypothesisId': 'E',
-                'location': 'products/serializers.py:get_average_rating',
-                'message': 'Average rating queried',
-                'data': {
-                    'product_id': obj.id,
-                    'queries_count': queries_used,
-                    'time_ms': round(elapsed * 1000, 2),
-                    'used_prefetch': hasattr(obj, 'comments')
-                },
-                'timestamp': int(time.time() * 1000)
-            }) + '\n')
+        log_debug(
+            'debug-session',
+            'post-fix',
+            'E',
+            'products/serializers.py:get_average_rating',
+            'Average rating queried',
+            {
+                'product_id': obj.id,
+                'queries_count': queries_used,
+                'time_ms': round(elapsed * 1000, 2),
+                'used_prefetch': hasattr(obj, 'comments')
+            }
+        )
         # #endregion agent log
         
         return result

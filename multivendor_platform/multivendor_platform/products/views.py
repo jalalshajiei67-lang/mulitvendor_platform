@@ -38,6 +38,7 @@ from .models import (
 )
 from gamification.models import EarnedBadge
 from .forms import ProductForm
+from .utils import log_debug
 from .serializers import (
     ProductSerializer,
     CategorySerializer,
@@ -179,24 +180,17 @@ class ProductViewSet(viewsets.ModelViewSet):
         
         # #region agent log
         queryset_build_time = time.time() - queryset_start
-        try:
-            debug_log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
-            if os.path.exists(os.path.dirname(debug_log_path)):
-                with open(debug_log_path, 'a') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'post-fix',
-                        'hypothesisId': 'A',
-                        'location': 'products/views.py:get_queryset:queryset_build',
-                        'message': 'Queryset built',
-                        'data': {
-                            'queries_so_far': len(connection.queries) - initial_query_count,
-                            'time_ms': round(queryset_build_time * 1000, 2)
-                        },
-                        'timestamp': int(time.time() * 1000)
-                    }) + '\n')
-        except Exception:
-            pass  # Silently fail in production
+        log_debug(
+            'debug-session',
+            'post-fix',
+            'A',
+            'products/views.py:get_queryset:queryset_build',
+            'Queryset built',
+            {
+                'queries_so_far': len(connection.queries) - initial_query_count,
+                'time_ms': round(queryset_build_time * 1000, 2)
+            }
+        )
         # #endregion agent log
 
         user = self.request.user
@@ -280,22 +274,18 @@ class ProductViewSet(viewsets.ModelViewSet):
         final_query_count = len(connection.queries) - initial_query_count
         total_time = time.time() - queryset_start
         try:
-            debug_log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
-            if os.path.exists(os.path.dirname(debug_log_path)):
-                with open(debug_log_path, 'a') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'post-fix',
-                        'hypothesisId': 'A',
-                        'location': 'products/views.py:get_queryset:final',
-                        'message': 'Queryset finalized',
-                        'data': {
-                            'total_queries': final_query_count,
-                            'total_time_ms': round(total_time * 1000, 2),
-                            'has_prefetch_related': False
-                        },
-                        'timestamp': int(time.time() * 1000)
-                    }) + '\n')
+            log_debug(
+                'debug-session',
+                'post-fix',
+                'A',
+                'products/views.py:get_queryset:final',
+                'Queryset finalized',
+                {
+                    'total_queries': final_query_count,
+                    'total_time_ms': round(total_time * 1000, 2),
+                    'has_prefetch_related': False
+                }
+            )
         except Exception:
             pass  # Silently fail in production
         # #endregion agent log
@@ -321,22 +311,18 @@ class ProductViewSet(viewsets.ModelViewSet):
         total_queries = len(connection.queries) - initial_queries
         total_time = time.time() - start_time
         try:
-            debug_log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
-            if os.path.exists(os.path.dirname(debug_log_path)):
-                with open(debug_log_path, 'a') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'post-fix',
-                        'hypothesisId': 'F',
-                        'location': 'products/views.py:list',
-                        'message': 'Product list endpoint completed',
-                        'data': {
-                            'total_queries': total_queries,
-                            'total_time_ms': round(total_time * 1000, 2),
-                            'results_count': len(response.data.get('results', [])) if hasattr(response, 'data') else 0
-                        },
-                        'timestamp': int(time.time() * 1000)
-                    }) + '\n')
+            log_debug(
+                'debug-session',
+                'post-fix',
+                'F',
+                'products/views.py:list',
+                'Product list endpoint completed',
+                {
+                    'total_queries': total_queries,
+                    'total_time_ms': round(total_time * 1000, 2),
+                    'results_count': len(response.data.get('results', [])) if hasattr(response, 'data') else 0
+                }
+            )
         except Exception:
             pass  # Silently fail in production
         # #endregion agent log
@@ -356,21 +342,17 @@ class ProductViewSet(viewsets.ModelViewSet):
         total_queries = len(connection.queries) - initial_queries
         total_time = time.time() - start_time
         try:
-            debug_log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
-            if os.path.exists(os.path.dirname(debug_log_path)):
-                with open(debug_log_path, 'a') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'post-fix',
-                        'hypothesisId': 'F',
-                        'location': 'products/views.py:retrieve',
-                        'message': 'Product retrieve endpoint completed',
-                        'data': {
-                            'total_queries': total_queries,
-                            'total_time_ms': round(total_time * 1000, 2)
-                        },
-                        'timestamp': int(time.time() * 1000)
-                    }) + '\n')
+            log_debug(
+                'debug-session',
+                'post-fix',
+                'F',
+                'products/views.py:retrieve',
+                'Product retrieve endpoint completed',
+                {
+                    'total_queries': total_queries,
+                    'total_time_ms': round(total_time * 1000, 2)
+                }
+            )
         except Exception:
             pass  # Silently fail in production
         # #endregion agent log
@@ -393,21 +375,17 @@ class ProductViewSet(viewsets.ModelViewSet):
         # #region agent log
         queries_after_get = len(connection.queries) - initial_queries
         try:
-            debug_log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
-            if os.path.exists(os.path.dirname(debug_log_path)):
-                with open(debug_log_path, 'a') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'post-fix',
-                        'hypothesisId': 'B',
-                        'location': 'products/views.py:retrieve_by_slug:after_get',
-                        'message': 'Product retrieved from DB',
-                        'data': {
-                            'queries_count': queries_after_get,
-                            'time_ms': round((time.time() - start_time) * 1000, 2)
-                        },
-                        'timestamp': int(time.time() * 1000)
-                    }) + '\n')
+            log_debug(
+                'debug-session',
+                'post-fix',
+                'B',
+                'products/views.py:retrieve_by_slug:after_get',
+                'Product retrieved from DB',
+                {
+                    'queries_count': queries_after_get,
+                    'time_ms': round((time.time() - start_time) * 1000, 2)
+                }
+            )
         except Exception:
             pass  # Silently fail in production
         # #endregion agent log
@@ -418,22 +396,18 @@ class ProductViewSet(viewsets.ModelViewSet):
         queries_after_serialize = len(connection.queries) - initial_queries
         serialize_time = time.time() - start_time
         try:
-            debug_log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
-            if os.path.exists(os.path.dirname(debug_log_path)):
-                with open(debug_log_path, 'a') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'post-fix',
-                        'hypothesisId': 'B',
-                        'location': 'products/views.py:retrieve_by_slug:after_serialize',
-                        'message': 'Product serialized',
-                        'data': {
-                            'queries_count': queries_after_serialize,
-                            'queries_during_serialize': queries_after_serialize - queries_after_get,
-                            'total_time_ms': round(serialize_time * 1000, 2)
-                        },
-                        'timestamp': int(time.time() * 1000)
-                    }) + '\n')
+            log_debug(
+                'debug-session',
+                'post-fix',
+                'B',
+                'products/views.py:retrieve_by_slug:after_serialize',
+                'Product serialized',
+                {
+                    'queries_count': queries_after_serialize,
+                    'queries_during_serialize': queries_after_serialize - queries_after_get,
+                    'total_time_ms': round(serialize_time * 1000, 2)
+                }
+            )
         except Exception:
             pass  # Silently fail in production
         # #endregion agent log

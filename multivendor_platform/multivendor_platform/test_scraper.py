@@ -31,7 +31,7 @@ def test_scraper():
         return
     
     try:
-        print(f"\n📡 Fetching page: {test_url}")
+        print(f"\n📡 Fetching page...")
         scraper = WordPressScraper(test_url)
         
         print("✓ Page fetched successfully!")
@@ -54,10 +54,8 @@ def test_scraper():
         print(f"   {desc_preview}")
         
         print(f"\n🖼️  Images Found: {len(data['images'])}")
-        for i, img_url in enumerate(data['images'][:5], 1):
-            print(f"   {i}. {img_url[:80]}...")
         if len(data['images']) > 5:
-            print(f"   ... and {len(data['images']) - 5} more")
+            print(f"   (Showing first 5 of {len(data['images'])} images)")
         
         print(f"\n🏷️  Categories:")
         if data['categories']:
