@@ -50,16 +50,25 @@ test_db_connection() {
 # Function to fix migration sequence (PostgreSQL only)
 fix_migration_sequence() {
     echo ""
-    echo "[3/8] Checking and fixing Django system table sequences..."
+    echo "[3/9] Checking and fixing Django system table sequences..."
     
     # Use the management command to fix all sequences (django_migrations, django_content_type, etc.)
     python manage.py fix_migration_sequence || echo "   ⚠️  Sequence check failed (non-critical, continuing...)"
 }
 
+# Function to fix migration inconsistency
+fix_migration_inconsistency() {
+    echo ""
+    echo "[4/9] Checking and fixing migration history inconsistencies..."
+    
+    # Fix inconsistent migration history (e.g., 0037 applied but 0036 not)
+    python manage.py fix_migration_inconsistency || echo "   ⚠️  Migration inconsistency check failed (non-critical, continuing...)"
+}
+
 # Function to run migrations
 run_migrations() {
     echo ""
-    echo "[4/8] Running database migrations..."
+    echo "[5/9] Running database migrations..."
     
     if python manage.py migrate --noinput; then
         echo "✅ Migrations completed successfully!"
@@ -76,7 +85,7 @@ run_migrations() {
 # Function to collect static files
 collect_static() {
     echo ""
-    echo "[5/8] Collecting static files..."
+    echo "[6/9] Collecting static files..."
     
     if python manage.py collectstatic --noinput --clear; then
         echo "✅ Static files collected successfully!"
@@ -89,7 +98,7 @@ collect_static() {
 # Function to create media directories
 setup_directories() {
     echo ""
-    echo "[6/8] Setting up media directories..."
+    echo "[7/9] Setting up media directories..."
     
     mkdir -p /app/logs
     mkdir -p /app/staticfiles
@@ -110,7 +119,7 @@ setup_directories() {
 # Function to verify Django configuration
 check_django() {
     echo ""
-    echo "[7/8] Verifying Django configuration..."
+    echo "[8/9] Verifying Django configuration..."
     
     python manage.py check --deploy 2>&1 || echo "⚠️  Django check found issues (non-critical)"
     
@@ -120,7 +129,7 @@ check_django() {
 # Function to start Daphne (ASGI server for WebSocket support)
 start_server() {
     echo ""
-    echo "[8/8] Starting Daphne ASGI server..."
+    echo "[9/9] Starting Daphne ASGI server..."
     
     # Use PORT environment variable if set, otherwise default to 8000 (Docker Compose) or 80 (CapRover)
     PORT=${PORT:-8000}
@@ -136,6 +145,7 @@ start_server() {
 wait_for_db
 test_db_connection
 fix_migration_sequence
+fix_migration_inconsistency
 run_migrations
 setup_directories
 collect_static
