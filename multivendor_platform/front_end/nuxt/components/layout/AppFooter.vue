@@ -7,6 +7,21 @@
           <p class="text-body-2 text-medium-emphasis">
             ایندکسو: خرید و فروش آسان ماشین‌آلات و تجهیزات از بهترین تولیدکنندگان کشور. بدون واسطه و با اطمینان کامل.
           </p>
+          <div class="mt-4">
+            <a
+              referrerpolicy="origin"
+              target="_blank"
+              href="https://trustseal.enamad.ir/?id=688658&Code=R7usHeRiqM3YjUBokO1eeblqzcmBLDjf"
+            >
+              <img
+                referrerpolicy="origin"
+                src="https://trustseal.enamad.ir/logo.aspx?id=688658&Code=R7usHeRiqM3YjUBokO1eeblqzcmBLDjf"
+                alt="نماد اعتماد الکترونیک"
+                style="cursor: pointer"
+                code="R7usHeRiqM3YjUBokO1eeblqzcmBLDjf"
+              />
+            </a>
+          </div>
         </v-col>
 
         <v-col cols="12" sm="6" md="4">

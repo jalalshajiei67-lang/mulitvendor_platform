@@ -1,3 +1,0 @@
-[33m2c4d13c[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Fix lint error: remove unused protocol variable
-[33mc00791a[m Fix 404 errors for category/subcategory/department images - Add image_url fields to serializers returning absolute HTTPS URLs - Update frontend to use HTTPS for production backend - Fix formatImageUrl to prefer image_url field - Add SECURE_PROXY_SSL_HEADER for proper HTTPS URL building behind proxy
-[33mae7c0e6[m Add dedicated h1 h2 h3 h4 heading buttons to TinyMCE toolbar

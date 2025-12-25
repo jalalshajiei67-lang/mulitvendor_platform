@@ -107,6 +107,16 @@ services:
       - multivendor_network
     labels:
       - "traefik.enable=true"
+      # WebSocket route (highest priority to match before other routes)
+      - "traefik.http.routers.backend-ws.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/ws`)"
+      - "traefik.http.routers.backend-ws.entrypoints=websecure"
+      - "traefik.http.routers.backend-ws.tls.certresolver=myresolver"
+      - "traefik.http.routers.backend-ws.service=backend"
+      - "traefik.http.routers.backend-ws.priority=20"
+      - "traefik.http.routers.backend-ws-http.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/ws`)"
+      - "traefik.http.routers.backend-ws-http.entrypoints=web"
+      - "traefik.http.routers.backend-ws-http.service=backend"
+      - "traefik.http.routers.backend-ws-http.priority=20"
       # Admin panel route (higher priority to match before API route)
       - "traefik.http.routers.backend-admin.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/admin`)"
       - "traefik.http.routers.backend-admin.entrypoints=websecure"

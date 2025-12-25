@@ -191,6 +191,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 'time_ms': round(queryset_build_time * 1000, 2)
             }
         )
+    
         # #endregion agent log
 
         user = self.request.user

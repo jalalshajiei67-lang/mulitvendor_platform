@@ -72,3 +72,31 @@ coverage.xml
 # */migrations/*.py
 # !*/migrations/__init__.py
 
+# Security - SSH keys and certificates
+*.key
+*.pem
+*.pub
+*_key
+*_key.pub
+github_actions_key*
+ssh-copy-id*
+
+# Backup files
+*.sql
+*.tar.gz
+*.backup
+backup.sql
+backend-deploy.tar.gz
+
+# Temporary files
+*-files/
+y/
+et --hard*
+h origin*
+
+# OS and editor temp files
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
