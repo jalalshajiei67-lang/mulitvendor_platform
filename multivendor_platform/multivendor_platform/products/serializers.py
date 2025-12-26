@@ -590,10 +590,63 @@ class ProductSerializer(serializers.ModelSerializer):
     
     def get_primary_image(self, obj):
         """Return the URL of the primary image"""
+        import json
+        import time
+        log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
+        
+        # #region agent log
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'location': 'products/serializers.py:591', 'message': 'ProductSerializer.get_primary_image entry', 'data': {'productId': obj.id, 'productName': obj.name}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'A'}) + '\n')
+        except: pass
+        # #endregion
+        
         primary_img = obj.primary_image
+        
+        # #region agent log
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'location': 'products/serializers.py:595', 'message': 'ProductSerializer.get_primary_image property accessed', 'data': {'hasPrimaryImg': bool(primary_img), 'primaryImgType': type(primary_img).__name__ if primary_img else None, 'hasUrl': hasattr(primary_img, 'url') if primary_img else False}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'C'}) + '\n')
+        except: pass
+        # #endregion
+        
         if primary_img:
-            request = self.context.get('request')
-            return build_absolute_uri(request, primary_img.url)
+            try:
+                relative_url = primary_img.url if hasattr(primary_img, 'url') else None
+                # #region agent log
+                try:
+                    with open(log_path, 'a', encoding='utf-8') as f:
+                        f.write(json.dumps({'location': 'products/serializers.py:600', 'message': 'ProductSerializer.get_primary_image relative_url', 'data': {'relativeUrl': relative_url, 'hasRequest': 'request' in self.context}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'B'}) + '\n')
+                except: pass
+                # #endregion
+                
+                request = self.context.get('request')
+                absolute_url = build_absolute_uri(request, relative_url)
+                
+                # #region agent log
+                try:
+                    with open(log_path, 'a', encoding='utf-8') as f:
+                        f.write(json.dumps({'location': 'products/serializers.py:607', 'message': 'ProductSerializer.get_primary_image absolute_url', 'data': {'absoluteUrl': absolute_url, 'urlLength': len(absolute_url) if absolute_url else 0}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'B'}) + '\n')
+                except: pass
+                # #endregion
+                
+                return absolute_url
+            except Exception as e:
+                # #region agent log
+                try:
+                    with open(log_path, 'a', encoding='utf-8') as f:
+                        f.write(json.dumps({'location': 'products/serializers.py:612', 'message': 'ProductSerializer.get_primary_image error', 'data': {'error': str(e), 'errorType': type(e).__name__}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'D'}) + '\n')
+                except: pass
+                # #endregion
+                return None
+        
+        # #region agent log
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'location': 'products/serializers.py:618', 'message': 'ProductSerializer.get_primary_image returning None', 'data': {}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'A'}) + '\n')
+        except: pass
+        # #endregion
+        
         return None
     
     def get_og_image_url(self, obj):
@@ -1018,10 +1071,63 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     def get_primary_image(self, obj):
         """Return the URL of the primary image"""
+        import json
+        import time
+        log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
+        
+        # #region agent log
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'location': 'products/serializers.py:1019', 'message': 'ProductDetailSerializer.get_primary_image entry', 'data': {'productId': obj.id, 'productName': obj.name}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'A'}) + '\n')
+        except: pass
+        # #endregion
+        
         primary_img = obj.primary_image
+        
+        # #region agent log
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'location': 'products/serializers.py:1023', 'message': 'ProductDetailSerializer.get_primary_image property accessed', 'data': {'hasPrimaryImg': bool(primary_img), 'primaryImgType': type(primary_img).__name__ if primary_img else None, 'hasUrl': hasattr(primary_img, 'url') if primary_img else False}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'C'}) + '\n')
+        except: pass
+        # #endregion
+        
         if primary_img:
-            request = self.context.get('request')
-            return build_absolute_uri(request, primary_img.url)
+            try:
+                relative_url = primary_img.url if hasattr(primary_img, 'url') else None
+                # #region agent log
+                try:
+                    with open(log_path, 'a', encoding='utf-8') as f:
+                        f.write(json.dumps({'location': 'products/serializers.py:1028', 'message': 'ProductDetailSerializer.get_primary_image relative_url', 'data': {'relativeUrl': relative_url, 'hasRequest': 'request' in self.context}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'B'}) + '\n')
+                except: pass
+                # #endregion
+                
+                request = self.context.get('request')
+                absolute_url = build_absolute_uri(request, relative_url)
+                
+                # #region agent log
+                try:
+                    with open(log_path, 'a', encoding='utf-8') as f:
+                        f.write(json.dumps({'location': 'products/serializers.py:1035', 'message': 'ProductDetailSerializer.get_primary_image absolute_url', 'data': {'absoluteUrl': absolute_url, 'urlLength': len(absolute_url) if absolute_url else 0}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'B'}) + '\n')
+                except: pass
+                # #endregion
+                
+                return absolute_url
+            except Exception as e:
+                # #region agent log
+                try:
+                    with open(log_path, 'a', encoding='utf-8') as f:
+                        f.write(json.dumps({'location': 'products/serializers.py:1042', 'message': 'ProductDetailSerializer.get_primary_image error', 'data': {'error': str(e), 'errorType': type(e).__name__}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'D'}) + '\n')
+                except: pass
+                # #endregion
+                return None
+        
+        # #region agent log
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'location': 'products/serializers.py:1048', 'message': 'ProductDetailSerializer.get_primary_image returning None', 'data': {}, 'timestamp': int(time.time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'A'}) + '\n')
+        except: pass
+        # #endregion
+        
         return None
     
     def get_og_image_url(self, obj):

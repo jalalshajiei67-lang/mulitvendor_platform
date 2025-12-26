@@ -24,21 +24,26 @@
       <v-row>
         <v-col cols="12" md="6">
           <v-sheet elevation="3" rounded="xl" class="pa-4">
-            <v-img
-              v-if="product.primary_image"
-              :src="product.primary_image"
-              :alt="product.name"
-              height="420"
-              class="rounded-lg"
-              cover
-              loading="lazy"
-            >
-              <template v-slot:placeholder>
-                <div class="d-flex align-center justify-center fill-height">
-                  <v-skeleton-loader type="image" width="100%" height="100%" />
-                </div>
-              </template>
-            </v-img>
+            <div v-if="primaryImageUrl" class="image-container" style="position: relative; min-height: 420px; width: 100%;">
+              <!-- Skeleton Loader -->
+              <div v-if="!primaryImageLoaded && !primaryImageError" class="skeleton-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2;">
+                <v-skeleton-loader type="image" width="100%" height="420" class="rounded-lg" />
+              </div>
+              <!-- Actual Image -->
+              <img
+                :key="`primary-${product.id}-${primaryImageUrl}`"
+                :src="primaryImageUrl"
+                :alt="product.name"
+                class="rounded-lg"
+                style="width: 100%; height: 420px; object-fit: cover; position: relative; z-index: 1;"
+                @error="handlePrimaryImageError"
+                @load="handlePrimaryImageLoad"
+              />
+              <!-- Error State -->
+              <div v-if="primaryImageError" class="d-flex align-center justify-center no-image" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 3; background: white;">
+                <v-icon size="64" color="grey-lighten-1">mdi-image-broken</v-icon>
+              </div>
+            </div>
             <div v-else class="no-image">
               <v-icon size="64" color="grey-lighten-1">mdi-cube-outline</v-icon>
             </div>
@@ -50,14 +55,14 @@
             >
               <v-slide-group-item v-for="image in product.images" :key="image.id">
                 <v-img
-                  :src="image.image"
+                  :src="image.image_url || image.image"
                   :alt="product.name"
                   height="80"
                   width="120"
                   cover
                   class="rounded-lg mx-2"
                   loading="lazy"
-                  @click="setPrimary(image.image)"
+                  @click="setPrimary(image.image_url || image.image)"
                 >
                   <template v-slot:placeholder>
                     <div class="d-flex align-center justify-center fill-height">
@@ -297,6 +302,7 @@ import { createError } from 'h3'
 import { generateProductSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
 import BadgeIcon from '~/components/gamification/BadgeIcon.vue'
 import ProductDetailSkeleton from '~/components/skeletons/ProductDetailSkeleton.vue'
+import { formatImageUrl } from '~/utils/imageUtils'
 
 definePageMeta({
   layout: 'default'
@@ -315,10 +321,26 @@ const vendorBadges = computed(() => {
   return Array.isArray(badges) ? badges : []
 })
 
+const primaryImageUrl = computed(() => {
+  if (!product.value?.primary_image) return null
+  const formatted = formatImageUrl(product.value.primary_image)
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products/[slug].vue:primaryImageUrl',message:'Primary image URL computed',data:{original:product.value.primary_image,formatted,productId:product.value?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
+  // Reset loading state when URL changes
+  if (formatted) {
+    primaryImageLoaded.value = false
+    primaryImageError.value = false
+  }
+  return formatted
+})
+
 const showRFQDialog = ref(false)
 const showSuccess = ref(false)
 const showError = ref(false)
 const errorMessage = ref('')
+const primaryImageLoaded = ref(false)
+const primaryImageError = ref(false)
 
 const handleRFQSubmitted = () => {
   showSuccess.value = true
@@ -354,14 +376,57 @@ const formatPrice = (value: number | string) => {
 }
 
 const setPrimary = (imageUrl: string) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products/[slug].vue:setPrimary',message:'setPrimary called',data:{imageUrl,productId:product.value?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
   if (product.value) {
+    primaryImageLoaded.value = false
+    primaryImageError.value = false
     product.value.primary_image = imageUrl
   }
 }
 
+const handlePrimaryImageError = (event: Event) => {
+  const imgElement = event.target as HTMLImageElement
+  const imageSrc = imgElement?.src
+  primaryImageError.value = true
+  primaryImageLoaded.value = false
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products/[slug].vue:handlePrimaryImageError',message:'Primary image error',data:{imageSrc,productId:product.value?.id,productName:product.value?.name,currentPrimaryImage:product.value?.primary_image},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
+  console.error('Primary image failed to load:', imageSrc)
+  // Try to fallback to first thumbnail if available
+  if (product.value?.images?.length > 0) {
+    const firstImage = product.value.images[0]
+    const fallbackUrl = firstImage?.image_url || firstImage?.image
+    if (fallbackUrl && fallbackUrl !== product.value.primary_image) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products/[slug].vue:handlePrimaryImageError',message:'Primary image fallback',data:{fallbackUrl,originalUrl:product.value.primary_image},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      product.value.primary_image = fallbackUrl
+      primaryImageError.value = false
+    }
+  }
+}
+
+const handlePrimaryImageLoad = (event: Event) => {
+  const imgElement = event.target as HTMLImageElement
+  const imageSrc = imgElement?.src
+  primaryImageLoaded.value = true
+  primaryImageError.value = false
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products/[slug].vue:handlePrimaryImageLoad',message:'Primary image loaded',data:{imageSrc,productId:product.value?.id,expectedSrc:product.value?.primary_image,imageComplete:imgElement?.complete,imageNaturalWidth:imgElement?.naturalWidth,imageNaturalHeight:imgElement?.naturalHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
+}
+
 const fetchPage = async () => {
   try {
+    primaryImageLoaded.value = false
+    primaryImageError.value = false
     const product = await productStore.fetchProductBySlug(slug.value)
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products/[slug].vue:fetchPage',message:'Product fetched',data:{productId:product?.id,hasPrimaryImage:!!product?.primary_image,primaryImageType:typeof product?.primary_image,primaryImageLength:product?.primary_image?.length,imagesCount:product?.images?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     return product
   } catch (error: any) {
     // Check if it's a 404 error (product not found or inactive)

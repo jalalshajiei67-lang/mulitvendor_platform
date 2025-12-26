@@ -47,23 +47,37 @@ def ensure_https_url(url):
 def build_absolute_uri(request, relative_url):
     """
     Build absolute URI with HTTPS, using request if available, otherwise fallback.
+    Preserves HTTP for localhost/127.0.0.1 in development.
     
     Args:
         request: Django request object (can be None)
         relative_url: Relative URL path
     
     Returns:
-        str: Absolute HTTPS URL
+        str: Absolute URL (HTTPS for production, HTTP for localhost)
     """
     if request:
         # Use request.build_absolute_uri which respects SECURE_PROXY_SSL_HEADER
         absolute_url = request.build_absolute_uri(relative_url)
-        # Ensure HTTPS (in case SECURE_PROXY_SSL_HEADER is not set)
-        if absolute_url.startswith('http://'):
+        # Only force HTTPS if not localhost/127.0.0.1 (for production)
+        host = request.get_host()
+        is_localhost = host.startswith('localhost') or host.startswith('127.0.0.1') or ':' in host and host.split(':')[0] in ['localhost', '127.0.0.1']
+        
+        if absolute_url.startswith('http://') and not is_localhost:
+            # Only convert to HTTPS for non-localhost (production)
             return absolute_url.replace('http://', 'https://', 1)
         return absolute_url
     else:
-        # Fallback: build URL manually with HTTPS
+        # Fallback: build URL manually
+        # Check if we're in development (localhost)
+        if 'localhost' in str(relative_url) or '127.0.0.1' in str(relative_url):
+            # For localhost, use HTTP
+            base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+            base_url = base_url.rstrip('/')
+            if relative_url.startswith('/'):
+                return f"{base_url}{relative_url}"
+            return f"{base_url}/{relative_url}"
+        # For production, use HTTPS
         return ensure_https_url(relative_url)
 
 

@@ -12,6 +12,9 @@ interface ExtendedFetchOptions<T> extends FetchOptions<T> {
 }
 
 export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOptions<T> = {}) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useApiFetch.ts:14',message:'useApiFetch entry',data:{endpoint,method:options?.method||'GET',hasBody:!!options?.body},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
   // Try to get Nuxt app - if not available during SSR, handle gracefully
   let config: any
   let authToken: string | null = null
@@ -59,6 +62,9 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
   const endpointPath = endpoint.replace(/^\//, '')
   
   const url = `${apiBase}/${endpointPath}`
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useApiFetch.ts:61',message:'useApiFetch URL constructed',data:{url,hasAuthToken:!!authToken,hasQuery:!!(options?.query||options?.params)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
@@ -84,13 +90,24 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
   const { params, skip404Redirect, ...restOptions } = options
 
   try {
-    return await $fetch<T>(url, {
+    const finalQuery = restOptions.query ?? params
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useApiFetch.ts:87',message:'useApiFetch before request',data:{url,method:restOptions.method||'GET',hasQuery:!!finalQuery,queryKeys:finalQuery?Object.keys(finalQuery):[]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    const response = await $fetch<T>(url, {
       ...restOptions,
-      query: restOptions.query ?? params,
+      query: finalQuery,
       headers,
       credentials: restOptions.credentials ?? 'include'
     })
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useApiFetch.ts:95',message:'useApiFetch success',data:{endpoint,responseType:typeof response,isArray:Array.isArray(response),hasResults:'results' in (response as any)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    return response
   } catch (error: any) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useApiFetch.ts:99',message:'useApiFetch error',data:{endpoint,statusCode:error?.statusCode||error?.status||error?.response?.status,errorMessage:error?.message,hasData:!!error?.data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     // Handle 404 errors - redirect to 404 page
     const statusCode = error?.statusCode || error?.status || error?.response?.status
     

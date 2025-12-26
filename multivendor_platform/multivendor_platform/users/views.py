@@ -2188,7 +2188,7 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_permissions(self):
         """All actions are public (read-only)"""
-        return []
+        return [AllowAny()]
     
     def get_queryset(self):
         """
@@ -2217,8 +2217,18 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
         For public access, only return approved suppliers.
         Optimized with select_related and annotations.
         """
+        import json
+        log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
+        
         # Get the pk from URL
         pk = self.kwargs.get('pk')
+        
+        # #region agent log
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'location': 'users/views.py:2214', 'message': 'SupplierViewSet.get_object entry', 'data': {'pk': pk, 'isAuthenticated': self.request.user.is_authenticated}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
+        except: pass
+        # #endregion
         
         # Optimize query with annotations and select_related
         queryset = VendorProfile.objects.select_related(
@@ -2245,7 +2255,19 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
         # Try to get the object from all VendorProfiles (not just approved ones)
         try:
             obj = queryset.get(pk=pk)
+            # #region agent log
+            try:
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({'location': 'users/views.py:2247', 'message': 'SupplierViewSet.get_object found', 'data': {'supplierId': obj.id, 'isApproved': obj.is_approved}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
+            except: pass
+            # #endregion
         except VendorProfile.DoesNotExist:
+            # #region agent log
+            try:
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({'location': 'users/views.py:2250', 'message': 'SupplierViewSet.get_object not found', 'data': {'pk': pk}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
+            except: pass
+            # #endregion
             from rest_framework.exceptions import NotFound
             raise NotFound("Supplier not found")
         
@@ -2255,51 +2277,115 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
                 user_vendor_profile = self.request.user.vendor_profile
                 if user_vendor_profile.id == obj.id:
                     # Owner can view their own profile even if not approved
+                    # #region agent log
+                    try:
+                        with open(log_path, 'a', encoding='utf-8') as f:
+                            f.write(json.dumps({'location': 'users/views.py:2258', 'message': 'SupplierViewSet.get_object owner access', 'data': {'supplierId': obj.id}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
+                    except: pass
+                    # #endregion
                     return obj
             except VendorProfile.DoesNotExist:
                 pass
         
         # For public access or non-owners, only return if approved
         if not obj.is_approved:
+            # #region agent log
+            try:
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({'location': 'users/views.py:2265', 'message': 'SupplierViewSet.get_object not approved', 'data': {'supplierId': obj.id}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
+            except: pass
+            # #endregion
             from rest_framework.exceptions import NotFound
             raise NotFound("Supplier not found or not approved")
+        
+        # #region agent log
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'location': 'users/views.py:2267', 'message': 'SupplierViewSet.get_object exit', 'data': {'supplierId': obj.id}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
+        except: pass
+        # #endregion
         
         return obj
     
     @action(detail=True, methods=['get'])
     def products(self, request, pk=None):
         """Get all products from a specific supplier with pagination and optimized queries"""
+        import json
+        import logging
+        logger = logging.getLogger(__name__)
+        log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
+        
+        # #region agent log
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'location': 'users/views.py:2270', 'message': 'SupplierViewSet.products entry', 'data': {'pk': pk, 'page': request.GET.get('page', '1')}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'B'}) + '\n')
+        except: pass
+        # #endregion
+        
         from products.models import Product, ProductImage, ProductFeature
         from products.serializers import ProductSerializer
         from rest_framework.pagination import PageNumberPagination
         
-        supplier = self.get_object()
-        
-        # Optimize queries with select_related and prefetch_related
-        products = Product.objects.filter(
-            vendor=supplier.user,
-            is_active=True
-        ).select_related(
-            'vendor',
-            'vendor__vendor_profile',
-            'primary_category'
-        ).prefetch_related(
-            'subcategories',
-            Prefetch(
-                'images',
-                queryset=ProductImage.objects.order_by('-is_primary', 'sort_order', 'created_at')
-            ),
-            'features',
-            'labels'
-        ).order_by('-created_at')
-        
-        # Add pagination
-        paginator = PageNumberPagination()
-        paginator.page_size = 20  # 20 products per page
-        paginated_products = paginator.paginate_queryset(products, request)
-        
-        serializer = ProductSerializer(paginated_products, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        try:
+            supplier = self.get_object()
+            # #region agent log
+            try:
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({'location': 'users/views.py:2280', 'message': 'SupplierViewSet.products supplier retrieved', 'data': {'supplierId': supplier.id, 'supplierName': supplier.store_name}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
+            except: pass
+            # #endregion
+            
+            # Optimize queries with select_related and prefetch_related
+            products = Product.objects.filter(
+                vendor=supplier.user,
+                is_active=True
+            ).select_related(
+                'vendor',
+                'vendor__vendor_profile',
+                'primary_category'
+            ).prefetch_related(
+                'subcategories',
+                Prefetch(
+                    'images',
+                    queryset=ProductImage.objects.order_by('-is_primary', 'sort_order', 'created_at')
+                ),
+                'features',
+                'labels'
+            ).order_by('-created_at')
+            
+            # #region agent log
+            try:
+                product_count_before_pag = products.count()
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({'location': 'users/views.py:2300', 'message': 'SupplierViewSet.products queryset ready', 'data': {'totalProducts': product_count_before_pag}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'F'}) + '\n')
+            except: pass
+            # #endregion
+            
+            # Add pagination
+            paginator = PageNumberPagination()
+            paginator.page_size = 20  # 20 products per page
+            paginated_products = paginator.paginate_queryset(products, request)
+            
+            serializer = ProductSerializer(paginated_products, many=True)
+            response = paginator.get_paginated_response(serializer.data)
+            
+            # #region agent log
+            try:
+                response_data = response.data if hasattr(response, 'data') else {}
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({'location': 'users/views.py:2310', 'message': 'SupplierViewSet.products response ready', 'data': {'hasResults': 'results' in response_data, 'resultsCount': len(response_data.get('results', [])), 'hasCount': 'count' in response_data, 'hasNext': 'next' in response_data}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'A'}) + '\n')
+            except: pass
+            # #endregion
+            
+            return response
+        except Exception as e:
+            # #region agent log
+            try:
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({'location': 'users/views.py:2315', 'message': 'SupplierViewSet.products error', 'data': {'pk': pk, 'error': str(e), 'errorType': type(e).__name__}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'D'}) + '\n')
+            except: pass
+            # #endregion
+            raise
     
     @action(detail=True, methods=['get'])
     def comments(self, request, pk=None):
