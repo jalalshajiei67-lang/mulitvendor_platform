@@ -31,8 +31,9 @@ class BuyerProfileSerializer(serializers.ModelSerializer):
 
 class VendorProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    product_count = serializers.SerializerMethodField()
-    rating_average = serializers.SerializerMethodField()
+    # Use annotated fields if available, otherwise fall back to method fields
+    product_count = serializers.IntegerField(read_only=True, required=False)
+    rating_average = serializers.FloatField(read_only=True, required=False)
     
     class Meta:
         model = VendorProfile
@@ -48,11 +49,22 @@ class VendorProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['is_approved', 'product_count', 'rating_average', 'created_at', 'updated_at']
     
-    def get_product_count(self, obj):
-        return obj.get_product_count()
-    
-    def get_rating_average(self, obj):
-        return obj.get_rating_average()
+    def to_representation(self, instance):
+        """Handle both annotated and non-annotated instances"""
+        data = super().to_representation(instance)
+        
+        # If annotations are not available, use method fields as fallback
+        if 'product_count' not in data or data['product_count'] is None:
+            data['product_count'] = instance.get_product_count()
+        
+        if 'rating_average' not in data or data['rating_average'] is None:
+            rating = instance.get_rating_average()
+            data['rating_average'] = round(rating, 1) if rating else 0
+        elif data['rating_average'] is not None:
+            # Round the annotated value
+            data['rating_average'] = round(data['rating_average'], 1)
+        
+        return data
 
 class SellerAdImageSerializer(serializers.ModelSerializer):
     class Meta:

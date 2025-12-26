@@ -60,11 +60,16 @@ export const useSupplierApi = () => {
     return await useApiFetch<Supplier>(`users/suppliers/${id}/`)
   }
 
-  const getSupplierProducts = async (id: number | string): Promise<any[]> => {
-    const response = await useApiFetch<{ results?: any[] } | any[]>(
-      `users/suppliers/${id}/products/`
+  const getSupplierProducts = async (id: number | string, page: number = 1): Promise<{ results: any[], count: number, next: string | null, previous: string | null } | any[]> => {
+    const response = await useApiFetch<{ results?: any[], count?: number, next?: string | null, previous?: string | null } | any[]>(
+      `users/suppliers/${id}/products/?page=${page}`
     )
-    return Array.isArray(response) ? response : response.results || []
+    // Handle paginated response
+    if (response && typeof response === 'object' && 'results' in response) {
+      return response as { results: any[], count: number, next: string | null, previous: string | null }
+    }
+    // Fallback for non-paginated response (backward compatibility)
+    return Array.isArray(response) ? response : []
   }
 
   const getSupplierComments = async (id: number | string): Promise<SupplierComment[]> => {

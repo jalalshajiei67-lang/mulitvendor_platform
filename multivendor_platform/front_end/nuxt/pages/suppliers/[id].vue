@@ -201,7 +201,6 @@
               :loading="portfolioLoading"
             />
           </div>
-
           <!-- Certifications Section -->
           <div v-if="hasCertifications" class="mb-6">
             <h2 class="section-title mb-4">
@@ -660,9 +659,19 @@ const fetchSupplier = async () => {
 const fetchProducts = async (id: string) => {
   productsLoading.value = true
   try {
-    products.value = await supplierApi.getSupplierProducts(id)
+    const response = await supplierApi.getSupplierProducts(id, 1)
+    // Handle paginated response
+    if (response && typeof response === 'object' && 'results' in response) {
+      products.value = response.results || []
+    } else if (Array.isArray(response)) {
+      // Fallback for non-paginated response (backward compatibility)
+      products.value = response
+    } else {
+      products.value = []
+    }
   } catch (err) {
     console.error('Error fetching products:', err)
+    products.value = []
   } finally {
     productsLoading.value = false
   }
@@ -894,10 +903,7 @@ onMounted(() => {
   bottom: 24px;
   left: 24px;
   z-index: 100;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important
-  
-  
-  ;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
 }
 
 .floating-contact-btn:hover {

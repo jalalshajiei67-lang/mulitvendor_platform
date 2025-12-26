@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.db.models import Q, Count, Sum
+from django.db.models import Q, Count, Sum, Avg, Prefetch
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
@@ -2192,22 +2192,57 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         """
-        Return approved suppliers for list view.
+        Return approved suppliers for list view with optimized queries.
         For detail view, get_object handles owner access.
         """
-        return VendorProfile.objects.filter(is_approved=True).order_by('store_name')
+        return VendorProfile.objects.filter(
+            is_approved=True
+        ).select_related(
+            'user'
+        ).annotate(
+            product_count=Count(
+                'user__products',
+                filter=Q(user__products__is_active=True),
+                distinct=True
+            ),
+            rating_average=Avg(
+                'comments__rating',
+                filter=Q(comments__is_approved=True)
+            )
+        ).order_by('store_name')
     
     def get_object(self):
         """
         Allow owners to view their own supplier profile even if not approved.
         For public access, only return approved suppliers.
+        Optimized with select_related and annotations.
         """
         # Get the pk from URL
         pk = self.kwargs.get('pk')
         
+        # Optimize query with annotations and select_related
+        queryset = VendorProfile.objects.select_related(
+            'user'
+        ).prefetch_related(
+            Prefetch(
+                'comments',
+                queryset=SupplierComment.objects.filter(is_approved=True).select_related('user')
+            )
+        ).annotate(
+            product_count=Count(
+                'user__products',
+                filter=Q(user__products__is_active=True),
+                distinct=True
+            ),
+            rating_average=Avg(
+                'comments__rating',
+                filter=Q(comments__is_approved=True)
+            )
+        )
+        
         # Try to get the object from all VendorProfiles (not just approved ones)
         try:
-            obj = VendorProfile.objects.get(pk=pk)
+            obj = queryset.get(pk=pk)
         except VendorProfile.DoesNotExist:
             from rest_framework.exceptions import NotFound
             raise NotFound("Supplier not found")
@@ -2231,14 +2266,38 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=True, methods=['get'])
     def products(self, request, pk=None):
-        """Get all products from a specific supplier"""
-        supplier = self.get_object()
-        from products.models import Product
+        """Get all products from a specific supplier with pagination and optimized queries"""
+        from products.models import Product, ProductImage, ProductFeature
         from products.serializers import ProductSerializer
+        from rest_framework.pagination import PageNumberPagination
         
-        products = Product.objects.filter(vendor=supplier.user, is_active=True)
-        serializer = ProductSerializer(products, many=True)
-        return Response(serializer.data)
+        supplier = self.get_object()
+        
+        # Optimize queries with select_related and prefetch_related
+        products = Product.objects.filter(
+            vendor=supplier.user,
+            is_active=True
+        ).select_related(
+            'vendor',
+            'vendor__vendor_profile',
+            'primary_category'
+        ).prefetch_related(
+            'subcategories',
+            Prefetch(
+                'images',
+                queryset=ProductImage.objects.order_by('-is_primary', 'sort_order', 'created_at')
+            ),
+            'features',
+            'labels'
+        ).order_by('-created_at')
+        
+        # Add pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 20  # 20 products per page
+        paginated_products = paginator.paginate_queryset(products, request)
+        
+        serializer = ProductSerializer(paginated_products, many=True)
+        return paginator.get_paginated_response(serializer.data)
     
     @action(detail=True, methods=['get'])
     def comments(self, request, pk=None):
@@ -2265,6 +2324,7 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
     def portfolio(self, request, pk=None):
         """Get all portfolio items for a specific supplier"""
         supplier = self.get_object()
+        # Use prefetch from get_object if available, otherwise query directly
         portfolio_items = supplier.portfolio_items.all().order_by('sort_order', '-project_date')
         serializer = SupplierPortfolioItemSerializer(portfolio_items, many=True)
         return Response(serializer.data)
@@ -2273,6 +2333,7 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
     def team(self, request, pk=None):
         """Get all team members for a specific supplier"""
         supplier = self.get_object()
+        # Use prefetch from get_object if available, otherwise query directly
         team_members = supplier.team_members.all().order_by('sort_order', 'name')
         serializer = SupplierTeamMemberSerializer(team_members, many=True)
         return Response(serializer.data)
