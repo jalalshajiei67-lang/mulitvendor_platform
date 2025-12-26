@@ -16,7 +16,8 @@ class BlogCategorySerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
-    post_count = serializers.SerializerMethodField()
+    # Use annotated field if available, otherwise fall back to method field
+    post_count = serializers.IntegerField(read_only=True, required=False)
     
     def get_linked_product_category(self, obj):
         """Get linked product category data safely"""
@@ -77,12 +78,18 @@ class BlogCategorySerializer(serializers.ModelSerializer):
             instance.linked_subcategories.set(subcategory_ids)
         return instance
     
-    def get_post_count(self, obj):
-        """Get count of published posts in this category"""
-        try:
-            return obj.blog_posts.filter(status='published').count()
-        except Exception:
-            return 0
+    def to_representation(self, instance):
+        """Handle both annotated and non-annotated instances"""
+        data = super().to_representation(instance)
+        
+        # If post_count annotation is not available, use method as fallback
+        if 'post_count' not in data or data['post_count'] is None:
+            try:
+                data['post_count'] = instance.blog_posts.filter(status='published').count()
+            except Exception:
+                data['post_count'] = 0
+        
+        return data
 
 class BlogCommentSerializer(serializers.ModelSerializer):
     """
@@ -118,7 +125,8 @@ class BlogPostListSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_color = serializers.CharField(source='category.color', read_only=True)
-    comment_count = serializers.SerializerMethodField()
+    # Use annotated field if available, otherwise fall back to method field
+    comment_count = serializers.IntegerField(read_only=True, required=False)
     
     class Meta:
         model = BlogPost
@@ -135,9 +143,18 @@ class BlogPostListSerializer(serializers.ModelSerializer):
         name_parts = [obj.author.first_name, obj.author.last_name]
         return ' '.join(filter(None, name_parts)) or obj.author.username
     
-    def get_comment_count(self, obj):
-        """Get count of approved comments"""
-        return obj.comments.filter(is_approved=True).count()
+    def to_representation(self, instance):
+        """Handle both annotated and non-annotated instances"""
+        data = super().to_representation(instance)
+        
+        # If comment_count annotation is not available, use method as fallback
+        if 'comment_count' not in data or data['comment_count'] is None:
+            try:
+                data['comment_count'] = instance.comments.filter(is_approved=True).count()
+            except Exception:
+                data['comment_count'] = 0
+        
+        return data
 
 class BlogPostDetailSerializer(serializers.ModelSerializer):
     """
@@ -155,7 +172,8 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     comments = BlogCommentSerializer(many=True, read_only=True)
-    comment_count = serializers.SerializerMethodField()
+    # Use annotated field if available, otherwise fall back to method field
+    comment_count = serializers.IntegerField(read_only=True, required=False)
 
     class Meta:
         model = BlogPost
@@ -174,9 +192,18 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
         name_parts = [obj.author.first_name, obj.author.last_name]
         return ' '.join(filter(None, name_parts)) or obj.author.username
     
-    def get_comment_count(self, obj):
-        """Get count of approved comments"""
-        return obj.comments.filter(is_approved=True).count()
+    def to_representation(self, instance):
+        """Handle both annotated and non-annotated instances"""
+        data = super().to_representation(instance)
+        
+        # If comment_count annotation is not available, use method as fallback
+        if 'comment_count' not in data or data['comment_count'] is None:
+            try:
+                data['comment_count'] = instance.comments.filter(is_approved=True).count()
+            except Exception:
+                data['comment_count'] = 0
+        
+        return data
 
     def get_linked_subcategories(self, obj):
         """Get linked subcategories data"""

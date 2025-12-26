@@ -5,7 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import CreateView, ListView, TemplateView
 from django.urls import reverse_lazy
 from django.db import models, connection
-from django.db.models import Case, When, Value, IntegerField, FloatField, BooleanField, F, Prefetch
+from django.db.models import Case, When, Value, IntegerField, FloatField, BooleanField, F, Prefetch, Count, Q
 from django.db.models.functions import Coalesce
 from django.conf import settings
 from django.utils import timezone
@@ -669,8 +669,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Optionally filter categories by department
+        Optimized with prefetch_related for departments
         """
-        queryset = Category.objects.all().order_by('sort_order', 'name')
+        queryset = Category.objects.all().prefetch_related(
+            'departments'
+        ).order_by('sort_order', 'name')
 
         # Filter out inactive categories for non-staff users
         user = self.request.user
@@ -713,8 +716,12 @@ class SubcategoryViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Optionally filter subcategories by category
+        Optimized with prefetch_related for categories and departments
         """
-        queryset = Subcategory.objects.all().order_by('sort_order', 'name')
+        queryset = Subcategory.objects.all().prefetch_related(
+            'categories',
+            'categories__departments'
+        ).order_by('sort_order', 'name')
 
         # Filter out inactive subcategories for non-staff users
         user = self.request.user
@@ -917,11 +924,20 @@ def global_search(request):
             'total': 0
         })
     
-    # Search products (only active ones)
+    # Search products (only active ones) - Optimized with select_related and prefetch_related
     products = Product.objects.filter(
         models.Q(name__icontains=query) | models.Q(description__icontains=query),
-        is_active=True
-    ).select_related('subcategory', 'vendor__profile', 'vendor__vendor_profile__engagement')
+        approval_status=Product.APPROVAL_STATUS_APPROVED,
+        is_active=True,
+        is_marketplace_hidden=False
+    ).select_related(
+        'vendor__profile',
+        'vendor__vendor_profile__engagement',
+        'primary_category'
+    ).prefetch_related(
+        'images',
+        'subcategories'
+    )
 
     # Annotate gamification fields for ranking
     products = products.annotate(
@@ -981,11 +997,20 @@ def global_search(request):
         '-created_at',
     )[:limit]
     
-    # Search blog posts (only published ones)
+    # Search blog posts (only published ones) - Optimized with select_related
     blogs = BlogPost.objects.filter(
         models.Q(title__icontains=query) | models.Q(content__icontains=query) | models.Q(excerpt__icontains=query),
         status='published'
-    ).select_related('author', 'category')[:limit]
+    ).select_related(
+        'author',
+        'category'
+    ).annotate(
+        comment_count=Count(
+            'comments',
+            filter=models.Q(comments__is_approved=True),
+            distinct=True
+        )
+    )[:limit]
     
     # Serialize results
     product_serializer = ProductSerializer(products, many=True, context={'request': request})

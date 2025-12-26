@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 from django.urls import reverse_lazy
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Prefetch
 from django.utils import timezone
 from django.conf import settings
 
@@ -38,9 +38,21 @@ class BlogCategoryViewSet(viewsets.ModelViewSet):
     lookup_field = 'slug'
     
     def get_queryset(self):
-        """Get queryset with safe select_related to avoid errors"""
+        """Get queryset with safe select_related and annotations to avoid errors"""
         try:
-            return BlogCategory.objects.filter(is_active=True).select_related('linked_product_category').order_by('name')
+            return BlogCategory.objects.filter(
+                is_active=True
+            ).select_related(
+                'linked_product_category'
+            ).prefetch_related(
+                'linked_subcategories'
+            ).annotate(
+                post_count=Count(
+                    'blog_posts',
+                    filter=Q(blog_posts__status='published'),
+                    distinct=True
+                )
+            ).order_by('name')
         except Exception:
             # Fallback if select_related fails
             return BlogCategory.objects.filter(is_active=True).order_by('name')
@@ -59,9 +71,22 @@ class BlogCategoryViewSet(viewsets.ModelViewSet):
     def posts(self, request, slug=None):
         """
         Get all published posts in this category
+        Optimized with select_related and annotations
         """
         category = self.get_object()
-        posts = category.blog_posts.filter(status='published').order_by('-created_at')
+        posts = BlogPost.objects.filter(
+            category=category,
+            status='published'
+        ).select_related(
+            'author',
+            'category'
+        ).annotate(
+            comment_count=Count(
+                'comments',
+                filter=Q(comments__is_approved=True),
+                distinct=True
+            )
+        ).order_by('-created_at')
         
         # Apply pagination
         paginator = BlogPagination()
@@ -111,8 +136,25 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filter queryset based on user permissions and status
+        Optimized with select_related and prefetch_related
         """
-        queryset = super().get_queryset()
+        queryset = BlogPost.objects.select_related(
+            'author',
+            'category',
+            'category__linked_product_category'
+        ).prefetch_related(
+            'linked_subcategories',
+            Prefetch(
+                'comments',
+                queryset=BlogComment.objects.filter(is_approved=True).select_related('author')
+            )
+        ).annotate(
+            comment_count=Count(
+                'comments',
+                filter=Q(comments__is_approved=True),
+                distinct=True
+            )
+        )
         
         # If user is not authenticated or not the author, only show published posts
         if not self.request.user.is_authenticated:
@@ -125,7 +167,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
                     Q(status='draft', author=self.request.user)
                 )
         
-        return queryset
+        return queryset.order_by('-created_at')
     
     def perform_create(self, serializer):
         """
@@ -136,8 +178,33 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         """
         Retrieve a blog post and increment view count
+        Optimized with select_related and prefetch_related
         """
-        instance = self.get_object()
+        # Get optimized queryset
+        queryset = BlogPost.objects.select_related(
+            'author',
+            'category',
+            'category__linked_product_category'
+        ).prefetch_related(
+            'linked_subcategories',
+            Prefetch(
+                'comments',
+                queryset=BlogComment.objects.filter(is_approved=True).select_related('author').prefetch_related(
+                    Prefetch(
+                        'replies',
+                        queryset=BlogComment.objects.filter(is_approved=True).select_related('author').order_by('created_at')
+                    )
+                )
+            )
+        ).annotate(
+            comment_count=Count(
+                'comments',
+                filter=Q(comments__is_approved=True),
+                distinct=True
+            )
+        )
+        
+        instance = queryset.get(slug=kwargs['slug'])
         
         # Only increment view count for published posts
         if instance.status == 'published':
@@ -150,10 +217,20 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def featured(self, request):
         """
         Get featured blog posts
+        Optimized with select_related and annotations
         """
-        featured_posts = self.get_queryset().filter(
+        featured_posts = BlogPost.objects.filter(
             status='published', 
             is_featured=True
+        ).select_related(
+            'author',
+            'category'
+        ).annotate(
+            comment_count=Count(
+                'comments',
+                filter=Q(comments__is_approved=True),
+                distinct=True
+            )
         ).order_by('-created_at')[:6]
         
         serializer = BlogPostListSerializer(featured_posts, many=True, context={'request': request})
@@ -163,8 +240,20 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def recent(self, request):
         """
         Get recent blog posts
+        Optimized with select_related and annotations
         """
-        recent_posts = self.get_queryset().filter(status='published').order_by('-created_at')[:10]
+        recent_posts = BlogPost.objects.filter(
+            status='published'
+        ).select_related(
+            'author',
+            'category'
+        ).annotate(
+            comment_count=Count(
+                'comments',
+                filter=Q(comments__is_approved=True),
+                distinct=True
+            )
+        ).order_by('-created_at')[:10]
         
         serializer = BlogPostListSerializer(recent_posts, many=True, context={'request': request})
         return Response(serializer.data)
@@ -173,8 +262,20 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def popular(self, request):
         """
         Get popular blog posts (by view count)
+        Optimized with select_related and annotations
         """
-        popular_posts = self.get_queryset().filter(status='published').order_by('-view_count')[:10]
+        popular_posts = BlogPost.objects.filter(
+            status='published'
+        ).select_related(
+            'author',
+            'category'
+        ).annotate(
+            comment_count=Count(
+                'comments',
+                filter=Q(comments__is_approved=True),
+                distinct=True
+            )
+        ).order_by('-view_count')[:10]
         
         serializer = BlogPostListSerializer(popular_posts, many=True, context={'request': request})
         return Response(serializer.data)
@@ -183,12 +284,22 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def related(self, request, slug=None):
         """
         Get related blog posts (same category, excluding current post)
+        Optimized with select_related and annotations
         """
         post = self.get_object()
-        related_posts = self.get_queryset().filter(
+        related_posts = BlogPost.objects.filter(
             category=post.category,
             status='published'
-        ).exclude(id=post.id).order_by('-created_at')[:5]
+        ).exclude(id=post.id).select_related(
+            'author',
+            'category'
+        ).annotate(
+            comment_count=Count(
+                'comments',
+                filter=Q(comments__is_approved=True),
+                distinct=True
+            )
+        ).order_by('-created_at')[:5]
         
         serializer = BlogPostListSerializer(related_posts, many=True, context={'request': request})
         return Response(serializer.data)
@@ -197,9 +308,17 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def comments(self, request, slug=None):
         """
         Retrieve approved comments for a blog post.
+        Optimized with select_related and prefetch_related
         """
         post = self.get_object()
-        comments_qs = post.comments.all().order_by('-created_at')
+        comments_qs = BlogComment.objects.filter(post=post).select_related(
+            'author'
+        ).prefetch_related(
+            Prefetch(
+                'replies',
+                queryset=BlogComment.objects.filter(is_approved=True).select_related('author').order_by('created_at')
+            )
+        ).order_by('-created_at')
         
         if not request.user.is_staff:
             comments_qs = comments_qs.filter(is_approved=True)
