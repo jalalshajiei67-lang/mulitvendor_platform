@@ -2226,7 +2226,9 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
         ).prefetch_related(
             Prefetch(
                 'comments',
-                queryset=SupplierComment.objects.filter(is_approved=True).select_related('user')
+                queryset=SupplierComment.objects.filter(
+                    is_approved=True
+                ).select_related('user').defer('is_flagged', 'flag_reason')
             )
         ).annotate(
             product_count=Count(
