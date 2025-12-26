@@ -2,16 +2,19 @@
   <div v-if="department" class="department-detail">
     <section class="hero">
       <v-container class="py-10">
-        <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0">
-          <template #divider>
-            <v-icon>mdi-chevron-left</v-icon>
-          </template>
-        </v-breadcrumbs>
         <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
           {{ department.name }}
         </h1>
       </v-container>
     </section>
+
+    <v-container class="breadcrumbs-container">
+      <v-breadcrumbs :items="breadcrumbs" class="pa-0">
+        <template #divider>
+          <v-icon>mdi-chevron-left</v-icon>
+        </template>
+      </v-breadcrumbs>
+    </v-container>
 
     <v-container class="py-8">
       <section class="mb-12">
@@ -189,6 +192,14 @@ useSeoMeta({
   inset: 0;
   background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.28), transparent 60%);
   pointer-events: none;
+}
+
+.breadcrumbs-container {
+  max-width: 1440px;
+  margin: -24px auto 16px;
+  padding: 0 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .category-card {

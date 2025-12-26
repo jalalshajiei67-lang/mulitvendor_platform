@@ -2,15 +2,6 @@
   <div v-if="product" class="product-detail">
     <section class="hero">
       <v-container class="py-8">
-        <v-breadcrumbs
-          :items="breadcrumbs"
-          class="pa-0 text-white"
-          density="comfortable"
-        >
-          <template #divider>
-            <v-icon>mdi-chevron-left</v-icon>
-          </template>
-        </v-breadcrumbs>
         <h1 class="text-h3 text-md-h2 font-weight-bold text-white mb-3">
           {{ product.name }}
         </h1>
@@ -19,6 +10,18 @@
         </p>
       </v-container>
     </section>
+
+    <v-container class="breadcrumbs-container">
+      <v-breadcrumbs
+        :items="breadcrumbs"
+        class="pa-0"
+        density="comfortable"
+      >
+        <template #divider>
+          <v-icon>mdi-chevron-left</v-icon>
+        </template>
+      </v-breadcrumbs>
+    </v-container>
 
     <v-container class="py-8">
       <v-row>
@@ -540,9 +543,60 @@ useHead(() => {
 </script>
 
 <style scoped>
+/* Shared container width matching v-container */
+.hero,
+.breadcrumbs-container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 600px) {
+  .hero,
+  .breadcrumbs-container {
+    max-width: 600px;
+  }
+}
+
+@media (min-width: 960px) {
+  .hero,
+  .breadcrumbs-container {
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .hero,
+  .breadcrumbs-container {
+    max-width: 1200px;
+  }
+}
+
 .hero {
   background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.9), rgba(var(--v-theme-secondary), 0.9));
   color: rgb(var(--v-theme-on-primary));
+  border-radius: 24px;
+  margin-top: 16px;
+  margin-bottom: 36px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.28), transparent 60%);
+  pointer-events: none;
+}
+
+.breadcrumbs-container {
+  margin-top: -24px;
+  margin-bottom: 16px;
+  padding: 0 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .product-detail .no-image {

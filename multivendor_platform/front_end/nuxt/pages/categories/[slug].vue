@@ -2,11 +2,6 @@
   <div v-if="category" class="category-detail">
     <section class="hero" :class="{ 'has-image': formatImageUrl(category) }" :style="heroImageStyle">
       <v-container class="py-10">
-        <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
-          <template #divider>
-            <v-icon>mdi-chevron-left</v-icon>
-          </template>
-        </v-breadcrumbs>
         <v-row align="center" class="text-white">
           <v-col cols="12" md="8">
             <h1 class="text-h3 text-md-h2 font-weight-bold mb-3">
@@ -31,6 +26,14 @@
         </v-row>
       </v-container>
     </section>
+
+    <v-container class="breadcrumbs-container">
+      <v-breadcrumbs :items="breadcrumbs" class="pa-0">
+        <template #divider>
+          <v-icon>mdi-chevron-left</v-icon>
+        </template>
+      </v-breadcrumbs>
+    </v-container>
 
     <v-container class="py-8">
       <v-row class="mb-6" v-if="category.department_name">
@@ -387,6 +390,14 @@ watch(() => category.value, async (newCategory) => {
 .hero :deep(.v-col) {
   position: relative;
   z-index: 2;
+}
+
+.breadcrumbs-container {
+  max-width: 1440px;
+  margin: -24px auto 16px;
+  padding: 0 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .hero-category-image {
