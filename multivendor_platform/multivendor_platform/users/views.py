@@ -870,14 +870,134 @@ def buyer_reviews_view(request):
 @permission_classes([IsAuthenticated])
 def seller_dashboard_view(request):
     """Get seller dashboard data with analytics"""
+    # #region agent log
+    import json
+    try:
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'run1',
+                'hypothesisId': 'A',
+                'location': 'users/views.py:871',
+                'message': 'seller_dashboard_view entry',
+                'data': {'user_id': request.user.id if request.user.is_authenticated else None, 'username': request.user.username if request.user.is_authenticated else None},
+                'timestamp': int(__import__('time').time() * 1000)
+            }) + '\n')
+    except: pass
+    # #endregion
     user = request.user
     
     # Check if user has profile and is seller
+    # Business rule: Seller = user with vendor_profile, role must be "seller"
+    # If user has vendor_profile but role is not "seller", update role to "seller"
     try:
         profile = user.profile
+        # Check if user has vendor_profile by querying the database directly
+        # This ensures we check the actual database state, not just cached attributes
+        has_vendor_profile = VendorProfile.objects.filter(user=user).exists()
+        
+        # Check if user has products (which would indicate they're a seller)
+        from products.models import Product
+        has_products = Product.objects.filter(vendor=user).exists()
+        
+        # #region agent log
+        try:
+            with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'post-fix',
+                    'hypothesisId': 'A',
+                    'location': 'users/views.py:892',
+                    'message': 'Profile found',
+                    'data': {
+                        'profile_id': profile.id if profile else None, 
+                        'role': profile.role if profile else None, 
+                        'is_seller': profile.is_seller() if profile else None, 
+                        'has_vendor_profile': has_vendor_profile,
+                        'has_products': has_products,
+                        'vendor_profile_count': VendorProfile.objects.filter(user=user).count()
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
+        except: pass
+        # #endregion
+        
+        # If user has products but no vendor_profile, create vendor_profile
+        # This fixes data inconsistency: users with products should have vendor_profile
+        if not has_vendor_profile and has_products:
+            import uuid
+            vendor_profile = VendorProfile.objects.create(
+                user=user,
+                store_name=f"فروشگاه_{user.username}_{uuid.uuid4().hex[:6]}",
+                description=''
+            )
+            has_vendor_profile = True
+            # #region agent log
+            try:
+                with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'sessionId': 'debug-session',
+                        'runId': 'post-fix',
+                        'hypothesisId': 'A',
+                        'location': 'users/views.py:914',
+                        'message': 'Created vendor_profile for user with products',
+                        'data': {'vendor_profile_id': vendor_profile.id, 'store_name': vendor_profile.store_name},
+                        'timestamp': int(__import__('time').time() * 1000)
+                    }) + '\n')
+            except: pass
+            # #endregion
+        
+        # If user has vendor_profile but role is not "seller", update role to "seller"
+        if has_vendor_profile and profile.role != 'seller':
+            profile.role = 'seller'
+            profile.save(update_fields=['role'])
+            # #region agent log
+            try:
+                with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'sessionId': 'debug-session',
+                        'runId': 'post-fix',
+                        'hypothesisId': 'A',
+                        'location': 'users/views.py:930',
+                        'message': 'Updated role to seller',
+                        'data': {'old_role': profile.role, 'new_role': 'seller'},
+                        'timestamp': int(__import__('time').time() * 1000)
+                    }) + '\n')
+            except: pass
+            # #endregion
+        
+        # Check if user is a seller (role must be "seller")
         if not profile.is_seller():
+            # #region agent log
+            try:
+                with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'sessionId': 'debug-session',
+                        'runId': 'post-fix',
+                        'hypothesisId': 'A',
+                        'location': 'users/views.py:910',
+                        'message': '403 Forbidden - not a seller',
+                        'data': {'role': profile.role if profile else None, 'is_seller_result': profile.is_seller() if profile else None, 'has_vendor_profile': has_vendor_profile},
+                        'timestamp': int(__import__('time').time() * 1000)
+                    }) + '\n')
+            except: pass
+            # #endregion
             return Response({'error': 'Only sellers can access this endpoint'}, status=status.HTTP_403_FORBIDDEN)
-    except (UserProfile.DoesNotExist, AttributeError):
+    except (UserProfile.DoesNotExist, AttributeError) as e:
+            # #region agent log
+            try:
+                with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'sessionId': 'debug-session',
+                        'runId': 'run1',
+                        'hypothesisId': 'B',
+                        'location': 'users/views.py:880',
+                        'message': 'Profile DoesNotExist or AttributeError',
+                        'data': {'error_type': type(e).__name__, 'error_msg': str(e), 'user_id': user.id},
+                        'timestamp': int(__import__('time').time() * 1000)
+                    }) + '\n')
+            except: pass
+            # #endregion
             # Try to create profile if it doesn't exist (shouldn't happen, but handle gracefully)
             # This is a fallback - normally profile should be created during registration
             try:
@@ -886,7 +1006,35 @@ def seller_dashboard_view(request):
                     role='seller'  # Default to seller if accessing seller dashboard
                 )
                 # Signal will create VendorProfile automatically
-            except Exception:
+                # #region agent log
+                try:
+                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'B',
+                            'location': 'users/views.py:887',
+                            'message': 'Profile created successfully',
+                            'data': {'profile_id': profile.id, 'role': profile.role},
+                            'timestamp': int(__import__('time').time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
+            except Exception as create_error:
+                # #region agent log
+                try:
+                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'B',
+                            'location': 'users/views.py:890',
+                            'message': 'Profile creation failed',
+                            'data': {'error_type': type(create_error).__name__, 'error_msg': str(create_error)},
+                            'timestamp': int(__import__('time').time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
                 # If creation fails, return empty dashboard data
                 import logging
                 logging.getLogger(__name__).warning(f"Failed to create profile for user {user.id}")
