@@ -2,11 +2,6 @@
   <div class="blog-list">
     <section class="hero">
       <v-container class="py-12 text-white">
-        <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
-          <template #divider>
-            <v-icon>mdi-chevron-left</v-icon>
-          </template>
-        </v-breadcrumbs>
         <h1 class="text-h3 text-md-h2 font-weight-bold mb-4 text-center readable-heading">
           {{ t('blog') }}
         </h1>
@@ -15,6 +10,14 @@
         </p>
       </v-container>
     </section>
+
+    <v-container class="breadcrumbs-container">
+      <v-breadcrumbs :items="breadcrumbs" class="pa-0">
+        <template #divider>
+          <v-icon>mdi-chevron-left</v-icon>
+        </template>
+      </v-breadcrumbs>
+    </v-container>
 
     <v-container class="py-6">
       <v-card elevation="2" rounded="xl" class="mb-8">
@@ -246,12 +249,41 @@ watch(
   min-height: 100vh;
 }
 
+/* Shared container width matching v-container */
+.hero,
+.breadcrumbs-container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 600px) {
+  .hero,
+  .breadcrumbs-container {
+    max-width: 600px;
+  }
+}
+
+@media (min-width: 960px) {
+  .hero,
+  .breadcrumbs-container {
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .hero,
+  .breadcrumbs-container {
+    max-width: 1200px;
+  }
+}
+
 .hero {
   background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.85), rgba(var(--v-theme-secondary), 0.9));
   color: rgba(var(--v-theme-on-primary), 0.98);
   border-radius: 24px;
-  margin: 16px auto 36px;
-  max-width: 1440px;
+  margin-top: 16px;
+  margin-bottom: 36px;
   position: relative;
   overflow: hidden;
   box-shadow: 0 24px 48px rgba(var(--v-theme-on-surface), 0.12);
@@ -263,6 +295,14 @@ watch(
   inset: 0;
   background: radial-gradient(circle at top right, rgba(var(--v-theme-surface), 0.28), transparent 60%);
   pointer-events: none;
+}
+
+.breadcrumbs-container {
+  margin-top: -24px;
+  margin-bottom: 16px;
+  padding: 0 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .max-w-600 {

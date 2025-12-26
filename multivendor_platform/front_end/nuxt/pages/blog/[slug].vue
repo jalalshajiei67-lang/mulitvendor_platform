@@ -3,11 +3,6 @@
     <section class="hero" :style="heroStyle">
       <v-container class="py-10 py-md-14">
         <div class="text-white">
-          <v-breadcrumbs :items="breadcrumbs" class="text-white pa-0 mb-4">
-            <template #divider>
-              <v-icon>mdi-chevron-left</v-icon>
-            </template>
-          </v-breadcrumbs>
           <v-chip v-if="post.category_name" class="mb-4" size="small" color="rgba(255,255,255,0.24)">
             {{ post.category_name }}
           </v-chip>
@@ -37,6 +32,14 @@
         </div>
       </v-container>
     </section>
+
+    <v-container class="breadcrumbs-container">
+      <v-breadcrumbs :items="breadcrumbs" class="pa-0">
+        <template #divider>
+          <v-icon>mdi-chevron-left</v-icon>
+        </template>
+      </v-breadcrumbs>
+    </v-container>
 
     <v-container class="py-10">
       <v-row>
@@ -347,15 +350,52 @@ useHead(() => {
 </script>
 
 <style scoped>
+/* Shared container width matching v-container */
+.hero,
+.breadcrumbs-container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 600px) {
+  .hero,
+  .breadcrumbs-container {
+    max-width: 600px;
+  }
+}
+
+@media (min-width: 960px) {
+  .hero,
+  .breadcrumbs-container {
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .hero,
+  .breadcrumbs-container {
+    max-width: 1200px;
+  }
+}
+
 .hero {
   color: rgba(var(--v-theme-on-primary), 0.98);
   border-radius: 24px;
-  margin: 16px auto 36px;
-  max-width: 1440px;
+  margin-top: 16px;
+  margin-bottom: 36px;
   position: relative;
   overflow: hidden;
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
   background: linear-gradient(135deg, rgb(var(--v-theme-primary)), rgb(var(--v-theme-secondary)));
+}
+
+.breadcrumbs-container {
+  margin-top: -24px;
+  margin-bottom: 16px;
+  padding: 0 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .hero::after {
