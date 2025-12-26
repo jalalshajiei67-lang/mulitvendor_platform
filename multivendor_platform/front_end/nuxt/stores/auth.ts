@@ -234,14 +234,19 @@ export const useAuthStore = defineStore('auth', () => {
   const logout = async () => {
     loading.value = true
 
-    try {
-      await useApiFetch<void>('auth/logout/', { method: 'POST' })
-    } catch (err) {
-      console.warn('Logout error:', err)
-    } finally {
-      persistSession(null, null)
-      loading.value = false
-    }
+    // Clear session immediately for instant UI feedback
+    persistSession(null, null)
+    
+    // Call logout API in background (fire-and-forget)
+    // Don't wait for it to complete - user is already logged out locally
+    useApiFetch<void>('auth/logout/', { method: 'POST' })
+      .catch(err => {
+        // Silently handle errors - user is already logged out locally
+        console.warn('Logout API error (non-blocking):', err)
+      })
+      .finally(() => {
+        loading.value = false
+      })
   }
 
   const register = async (payload: Record<string, any>) => {

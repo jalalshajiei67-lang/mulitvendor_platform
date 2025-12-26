@@ -185,19 +185,46 @@ def login_view(request):
 @permission_classes([IsAuthenticated])
 def logout_view(request):
     """
-    User logout endpoint
+    User logout endpoint - optimized for speed
     """
     try:
-        # Log logout activity
-        log_activity(request.user, 'logout', f'User {request.user.username} logged out', request)
+        # Store user info before deleting token (needed for logging)
+        user_id = request.user.id
+        username = request.user.username
         
+        # Delete token first (critical operation)
         request.user.auth_token.delete()
+        
+        # Log activity asynchronously after response (fire-and-forget)
+        # Use threading to avoid blocking the response
+        import threading
+        # Extract request data before passing to thread (request object is not thread-safe)
+        ip_address = get_client_ip(request) if request else None
+        
+        def log_logout_async():
+            try:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                user = User.objects.get(id=user_id)
+                # Create minimal activity data without request object
+                activity_data = {
+                    'user': user,
+                    'action': 'logout',
+                    'description': f'User {username} logged out',
+                    'ip_address': ip_address
+                }
+                UserActivity.objects.create(**activity_data)
+            except Exception:
+                # Silently fail if logging fails - don't block logout
+                pass
+        
+        # Start logging in background thread
+        threading.Thread(target=log_logout_async, daemon=True).start()
+        
         return Response({'message': 'Successfully logged out'})
-    except:
-        return Response(
-            {'error': 'Error logging out'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    except Exception as e:
+        # Even if token deletion fails, return success to allow frontend cleanup
+        return Response({'message': 'Logged out'})
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -874,32 +901,38 @@ def seller_dashboard_view(request):
                     'recent_orders': [],
                 })
     
-    # Get products
+    # Get products - optimized with single query
     from products.models import Product
-    products = Product.objects.filter(vendor=user)
-    total_products = products.count()
-    active_products = products.filter(is_active=True).count()
+    products_queryset = Product.objects.filter(vendor=user)
+    total_products = products_queryset.count()
+    active_products = products_queryset.filter(is_active=True).count()
     
-    # Get orders for seller's products (check both seller field and product vendor for backward compatibility)
+    # Get orders for seller's products - optimized with select_related
     order_items = OrderItem.objects.filter(
         Q(seller=user) | Q(product__vendor=user)
-    )
-    total_sales = order_items.aggregate(total=Sum('subtotal'))['total'] or 0
-    total_orders = order_items.values('order').distinct().count()
+    ).select_related('order', 'product', 'product__vendor')
     
-    # Get recent orders
+    # Aggregate in single query
+    order_stats = order_items.aggregate(
+        total=Sum('subtotal'),
+        order_count=Count('order', distinct=True)
+    )
+    total_sales = order_stats['total'] or 0
+    total_orders = order_stats['order_count'] or 0
+    
+    # Get recent orders - optimized with prefetch_related
     recent_order_ids = order_items.values_list('order', flat=True).distinct()[:5]
     recent_orders = Order.objects.filter(id__in=recent_order_ids).select_related(
         'buyer', 'category'
     ).prefetch_related(
-        'items__product', 'images', 'payments'
-    )
+        'items__product', 'items__product__vendor', 'images', 'payments'
+    ).order_by('-created_at')
     
-    # Get ads
-    ads = SellerAd.objects.filter(seller=user)
+    # Get ads count - use count() instead of loading all
+    total_ads = SellerAd.objects.filter(seller=user).count()
     
-    # Get reviews on seller's products
-    reviews = ProductComment.objects.filter(product__vendor=user)
+    # Get reviews count - use count() instead of loading all
+    total_reviews = ProductComment.objects.filter(product__vendor=user).count()
     
     # Get product views (we'll need to implement view tracking separately)
     # For now, just return 0
@@ -908,11 +941,11 @@ def seller_dashboard_view(request):
     dashboard_data = {
         'total_products': total_products,
         'active_products': active_products,
-        'total_ads': ads.count(),
+        'total_ads': total_ads,
         'total_sales': float(total_sales),
         'total_orders': total_orders,
         'product_views': product_views,
-        'total_reviews': reviews.count(),
+        'total_reviews': total_reviews,
         'recent_orders': OrderSerializer(recent_orders, many=True, context={'request': request}).data,
     }
     

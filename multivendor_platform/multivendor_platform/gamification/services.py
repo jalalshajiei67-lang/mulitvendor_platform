@@ -801,10 +801,14 @@ class GamificationService:
         portfolio_score_data = self.compute_portfolio_score()
         team_score_data = self.compute_team_score()
         
-        # Count products
+        # Count products - single query
         product_count = Product.objects.filter(vendor=self.vendor_profile.user).count()
         products_completed = product_count >= 3
         products_score = min(100, int((product_count / 3) * 100))
+        
+        # Prefetch counts for team and portfolio to avoid multiple queries
+        team_count = self.vendor_profile.team_members.count()
+        portfolio_count = self.vendor_profile.portfolio_items.count()
         
         # Define milestones with completion criteria
         milestones = [
@@ -834,19 +838,19 @@ class GamificationService:
             {
                 'name': 'team',
                 'title': 'معرفی تیم',
-                'completed': self.vendor_profile.team_members.count() >= 1,
-                'score': 100 if self.vendor_profile.team_members.count() >= 1 else 0,
+                'completed': team_count >= 1,
+                'score': 100 if team_count >= 1 else 0,
                 'order': 4,
-                'current': self.vendor_profile.team_members.count(),
+                'current': team_count,
                 'target': 1
             },
             {
                 'name': 'portfolio',
                 'title': 'نمونه کارها',
-                'completed': self.vendor_profile.portfolio_items.count() >= 1,
-                'score': 100 if self.vendor_profile.portfolio_items.count() >= 1 else 0,
+                'completed': portfolio_count >= 1,
+                'score': 100 if portfolio_count >= 1 else 0,
                 'order': 5,
-                'current': self.vendor_profile.portfolio_items.count(),
+                'current': portfolio_count,
                 'target': 1
             }
         ]

@@ -135,43 +135,17 @@
             <h2 class="text-subtitle-1 font-weight-bold mb-4">
               {{ t('keySpecifications') }}
             </h2>
-            <v-list lines="two" density="comfortable">
-              <v-list-item v-if="product.sku">
-                <v-list-item-title>{{ t('sku') }}</v-list-item-title>
-                <v-list-item-subtitle>{{ product.sku }}</v-list-item-subtitle>
-              </v-list-item>
-              <v-list-item v-if="product.stock">
-                <v-list-item-title>{{ t('stockStatus') }}</v-list-item-title>
-                <v-list-item-subtitle>{{ product.stock }}</v-list-item-subtitle>
-              </v-list-item>
-              <v-list-item v-if="product.minimum_order_quantity">
-                <v-list-item-title>{{ t('minimumOrder') }}</v-list-item-title>
-                <v-list-item-subtitle>{{ product.minimum_order_quantity }}</v-list-item-subtitle>
-              </v-list-item>
-              <v-list-item v-if="product.country_of_origin">
-                <v-list-item-title>{{ t('originCountry') }}</v-list-item-title>
-                <v-list-item-subtitle>{{ product.country_of_origin }}</v-list-item-subtitle>
-              </v-list-item>
-            </v-list>
-          </v-card>
-        </v-col>
-      </v-row>
-
-      <v-row class="mt-8">
-        <v-col cols="12" md="8">
-          <v-card elevation="1" rounded="xl" class="pa-6">
-            <h2 class="text-h5 font-weight-bold mb-4 readable-heading">توضیحات محصول</h2>
-            
-            <!-- Product Status Information -->
-            <div v-if="product.availability_status || product.condition || product.origin || product.lead_time_days" class="mb-6">
-              <v-divider class="mb-4"></v-divider>
-              
+            <div v-if="product.availability_status || product.condition || product.origin || product.sku || product.stock || product.minimum_order_quantity || product.country_of_origin || product.lead_time_days">
               <div class="d-flex flex-column gap-3">
                 <!-- Availability Status -->
                 <div v-if="product.availability_status" class="d-flex align-center gap-2">
                   <v-icon color="primary">mdi-package-variant-closed</v-icon>
                   <span class="font-weight-medium">وضعیت موجودی:</span>
-                  <v-chip size="small" :color="product.availability_status === 'in_stock' ? 'success' : 'warning'">
+                  <v-chip 
+                    size="small" 
+                    :color="product.availability_status === 'in_stock' ? 'success' : 'warning'"
+                    variant="tonal"
+                  >
                     {{ product.availability_status === 'in_stock' ? 'موجود در انبار' : 'سفارشی' }}
                   </v-chip>
                 </div>
@@ -180,7 +154,11 @@
                 <div v-if="product.availability_status === 'in_stock' && product.condition" class="d-flex align-center gap-2">
                   <v-icon color="info">mdi-check-circle</v-icon>
                   <span class="font-weight-medium">وضعیت:</span>
-                  <v-chip size="small" :color="product.condition === 'new' ? 'success' : 'default'">
+                  <v-chip 
+                    size="small" 
+                    :color="product.condition === 'new' ? 'success' : 'default'"
+                    variant="tonal"
+                  >
                     {{ product.condition === 'new' ? 'نو' : 'دست دوم' }}
                   </v-chip>
                 </div>
@@ -189,7 +167,9 @@
                 <div v-if="product.availability_status === 'made_to_order' && product.lead_time_days" class="d-flex align-center gap-2">
                   <v-icon color="warning">mdi-calendar-clock</v-icon>
                   <span class="font-weight-medium">زمان تحویل:</span>
-                  <span>{{ product.lead_time_days }} روز کاری</span>
+                  <v-chip size="small" color="warning" variant="tonal">
+                    {{ product.lead_time_days }} روز کاری
+                  </v-chip>
                 </div>
 
                 <!-- Origin -->
@@ -200,11 +180,53 @@
                     {{ product.origin === 'iran' ? 'ساخت ایران' : 'وارداتی' }}
                   </v-chip>
                 </div>
+
+                <!-- SKU -->
+                <div v-if="product.sku" class="d-flex align-center gap-2">
+                  <v-icon color="primary">mdi-barcode</v-icon>
+                  <span class="font-weight-medium">{{ t('sku') }}:</span>
+                  <v-chip size="small" color="primary" variant="tonal">
+                    {{ product.sku }}
+                  </v-chip>
+                </div>
+
+                <!-- Stock -->
+                <div v-if="product.stock" class="d-flex align-center gap-2">
+                  <v-icon color="info">mdi-warehouse</v-icon>
+                  <span class="font-weight-medium">{{ t('stockStatus') }}:</span>
+                  <v-chip size="small" color="info" variant="tonal">
+                    {{ product.stock }}
+                  </v-chip>
+                </div>
+
+                <!-- Minimum Order Quantity -->
+                <div v-if="product.minimum_order_quantity" class="d-flex align-center gap-2">
+                  <v-icon color="warning">mdi-cart-arrow-down</v-icon>
+                  <span class="font-weight-medium">{{ t('minimumOrder') }}:</span>
+                  <v-chip size="small" color="warning" variant="tonal">
+                    {{ product.minimum_order_quantity }}
+                  </v-chip>
+                </div>
+
+                <!-- Country of Origin -->
+                <div v-if="product.country_of_origin" class="d-flex align-center gap-2">
+                  <v-icon color="secondary">mdi-flag</v-icon>
+                  <span class="font-weight-medium">{{ t('originCountry') }}:</span>
+                  <v-chip size="small" color="secondary" variant="tonal">
+                    {{ product.country_of_origin }}
+                  </v-chip>
+                </div>
               </div>
-
-              <v-divider class="mt-4"></v-divider>
             </div>
+          </v-card>
+        </v-col>
+      </v-row>
 
+      <v-row class="mt-8">
+        <v-col cols="12" md="8">
+          <v-card elevation="1" rounded="xl" class="pa-6">
+            <h2 class="text-h5 font-weight-bold mb-4 readable-heading">توضیحات محصول</h2>
+            
             <!-- Key Features Table -->
             <div v-if="product.features && product.features.length > 0" class="mb-6">
               <h3 class="text-h6 font-weight-bold mb-3">ویژگی‌های کلیدی</h3>

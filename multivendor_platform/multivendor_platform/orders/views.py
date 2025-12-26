@@ -366,6 +366,21 @@ def vendor_rfq_reveal_view(request, rfq_id):
       - Vendor has a product in the RFQ category
       - Vendor is explicitly selected as supplier
     """
+    # #region agent log
+    import json
+    try:
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'run1',
+                'hypothesisId': 'A',
+                'location': 'orders/views.py:360',
+                'message': 'vendor_rfq_reveal_view entry',
+                'data': {'rfq_id': rfq_id, 'user_id': request.user.id if request.user.is_authenticated else None},
+                'timestamp': int(__import__('time').time() * 1000)
+            }) + '\n')
+    except: pass
+    # #endregion
     rfq = Order.objects.filter(is_rfq=True, id=rfq_id).select_related('buyer', 'category').prefetch_related('items__product', 'images', 'suppliers').first()
     if not rfq:
         return Response({'detail': 'RFQ not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -382,6 +397,20 @@ def vendor_rfq_reveal_view(request, rfq_id):
     if not (rfq.is_free or owns_product or matches_category or is_selected_supplier):
         return Response({'detail': 'You are not allowed to view this lead'}, status=status.HTTP_403_FORBIDDEN)
 
+    # #region agent log
+    try:
+        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({
+                'sessionId': 'debug-session',
+                'runId': 'run1',
+                'hypothesisId': 'A',
+                'location': 'orders/views.py:385',
+                'message': 'Before VendorSubscription.for_user call',
+                'data': {'user_id': request.user.id},
+                'timestamp': int(__import__('time').time() * 1000)
+            }) + '\n')
+    except: pass
+    # #endregion
     subscription = VendorSubscription.for_user(request.user)
     existing_view = OrderVendorView.objects.filter(order=rfq, vendor=request.user).first()
     can_unlock, next_unlock_at = subscription.can_unlock_customer()

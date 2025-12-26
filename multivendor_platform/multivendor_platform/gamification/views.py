@@ -8,6 +8,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from django.core.cache import cache
+from django.db.models import Q
 
 from .models import (
     Badge,
@@ -883,6 +884,12 @@ class GamificationDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        # Check cache first (30 second TTL)
+        cache_key = f'gamification_dashboard_{request.user.id}'
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+        
         service = GamificationService.for_user(request.user)
         
         # If user doesn't have vendor_profile, try to create it if user is a seller
@@ -935,24 +942,21 @@ class GamificationDashboardView(APIView):
         # Calculate tier and rank
         tier = service.calculate_tier()
         
-        # Get all engagements for ranking
-        all_engagements = list(
-            SupplierEngagement.objects.select_related('vendor_profile')
-            .order_by('-total_points', 'id')
-        )
-        
+        # Optimize ranking calculation - use database query instead of loading all
         user_rank = None
         if engagement:
-            for idx, eng in enumerate(all_engagements, start=1):
-                if eng.id == engagement.id:
-                    user_rank = idx
-                    break
+            # Count how many engagements have more points than this user
+            rank_count = SupplierEngagement.objects.filter(
+                Q(total_points__gt=engagement.total_points) |
+                Q(total_points=engagement.total_points, id__lt=engagement.id)
+            ).count()
+            user_rank = rank_count + 1
         
         # Get progress and current task
         progress = service.get_overall_progress()
         current_task = service.get_current_task()
         
-        return Response({
+        response_data = {
             'status': {
                 'tier': tier,
                 'tier_display': service.get_tier_display_name(tier),
@@ -966,7 +970,13 @@ class GamificationDashboardView(APIView):
             'progress': progress,
             'current_task': current_task,
             'leaderboard_position': user_rank
-        })
+        }
+        
+        # Cache response for 30 seconds to reduce database load
+        cache_key = f'gamification_dashboard_{request.user.id}'
+        cache.set(cache_key, response_data, 30)
+        
+        return Response(response_data)
 
 
 class CompleteTaskView(APIView):
@@ -1024,6 +1034,10 @@ class CompleteTaskView(APIView):
         
         # Get updated progress
         progress = service.get_overall_progress()
+        
+        # Invalidate cache after task completion
+        cache_key = f'gamification_dashboard_{request.user.id}'
+        cache.delete(cache_key)
         
         return Response({
             'points_awarded': points_awarded,

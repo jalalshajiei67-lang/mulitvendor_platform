@@ -959,29 +959,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, defineAsyncComponent } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useSellerApi } from '~/composables/useSellerApi'
 import type { SellerOrder, SellerReview } from '~/composables/useSellerApi'
 import { useRfqApi } from '~/composables/useRfqApi'
 import { useCrmApi } from '~/composables/useCrmApi'
-import MiniWebsiteSettings from '~/components/supplier/MiniWebsiteSettings.vue'
-import PortfolioManager from '~/components/supplier/PortfolioManager.vue'
-import TeamManager from '~/components/supplier/TeamManager.vue'
-import ContactMessagesInbox from '~/components/supplier/ContactMessagesInbox.vue'
-import SupplierProductForm from '~/components/supplier/ProductForm.vue'
-import SupplierProductList from '~/components/supplier/ProductList.vue'
-import ChatRoom from '~/components/chat/ChatRoom.vue'
-import FormQualityScore from '~/components/gamification/FormQualityScore.vue'
-// NEW: Simplified Gamification Components
+// Lazy load heavy components for better initial load performance
+const MiniWebsiteSettings = defineAsyncComponent(() => import('~/components/supplier/MiniWebsiteSettings.vue'))
+const PortfolioManager = defineAsyncComponent(() => import('~/components/supplier/PortfolioManager.vue'))
+const TeamManager = defineAsyncComponent(() => import('~/components/supplier/TeamManager.vue'))
+const ContactMessagesInbox = defineAsyncComponent(() => import('~/components/supplier/ContactMessagesInbox.vue'))
+const SupplierProductForm = defineAsyncComponent(() => import('~/components/supplier/ProductForm.vue'))
+const SupplierProductList = defineAsyncComponent(() => import('~/components/supplier/ProductList.vue'))
+const ChatRoom = defineAsyncComponent(() => import('~/components/chat/ChatRoom.vue'))
+const FormQualityScore = defineAsyncComponent(() => import('~/components/gamification/FormQualityScore.vue'))
+// NEW: Simplified Gamification Components - keep critical ones synchronous
 import StatusCard from '~/components/gamification/StatusCard.vue'
 import CurrentTaskCard from '~/components/gamification/CurrentTaskCard.vue'
-import CelebrationOverlay from '~/components/gamification/CelebrationOverlay.vue'
-import LeaderboardSection from '~/components/gamification/LeaderboardSection.vue'
-import InsightsFeed from '~/components/gamification/InsightsFeed.vue'
-import WelcomeOnboardingTour from '~/components/gamification/WelcomeOnboardingTour.vue'
-import CrmManager from '~/components/crm/CrmManager.vue'
-import PaymentHistorySection from '~/components/seller/PaymentHistorySection.vue'
+const CelebrationOverlay = defineAsyncComponent(() => import('~/components/gamification/CelebrationOverlay.vue'))
+const LeaderboardSection = defineAsyncComponent(() => import('~/components/gamification/LeaderboardSection.vue'))
+const InsightsFeed = defineAsyncComponent(() => import('~/components/gamification/InsightsFeed.vue'))
+const WelcomeOnboardingTour = defineAsyncComponent(() => import('~/components/gamification/WelcomeOnboardingTour.vue'))
+const CrmManager = defineAsyncComponent(() => import('~/components/crm/CrmManager.vue'))
+const PaymentHistorySection = defineAsyncComponent(() => import('~/components/seller/PaymentHistorySection.vue'))
 import { useGamificationStore } from '~/stores/gamification'
 import { useGamificationApi, type SellerInsight } from '~/composables/useGamification'
 import { useGamificationDashboard, type DashboardData, type CurrentTask } from '~/composables/useGamificationDashboard'
@@ -1845,24 +1846,45 @@ const loadProfileScore = async () => {
   }
 }
 
-// Watch tab changes to load data when needed
-watch(tab, async (newTab) => {
-  if (newTab === 'orders') {
-    // Recheck products threshold when accessing orders tab
-    await checkSellerProducts()
-    if (hasProductsUnderThreshold.value && orders.value.length === 0 && !loadingOrders.value) {
-      await loadOrders()
-    }
-  } else if (newTab === 'reviews' && reviews.value.length === 0 && !loadingReviews.value) {
-    await loadReviews()
-  } else if (newTab === 'insights' && !insightsLoaded.value && !insightsLoading.value) {
-    await loadInsights()
-  } else if (newTab === 'chats' && chatRooms.value.length === 0 && !loadingChats.value) {
-    await loadChatRooms()
-  } else if (newTab === 'miniwebsite' && miniWebsiteTab.value === 'profile') {
-    // Load profile score when profile tab is accessed
-    await loadProfileScore()
+// Watch tab changes to load data when needed - optimized with debouncing
+let tabLoadTimeout: ReturnType<typeof setTimeout> | null = null
+const stopTabWatcher = watch(tab, async (newTab) => {
+  // Don't load data if user is logging out
+  if (!authStore.isAuthenticated) {
+    return
   }
+  
+  // Clear any pending tab load
+  if (tabLoadTimeout) {
+    clearTimeout(tabLoadTimeout)
+  }
+  
+  // Debounce tab loading to avoid rapid tab switching issues
+  tabLoadTimeout = setTimeout(async () => {
+    // Check again if still authenticated before making API calls
+    if (!authStore.isAuthenticated) {
+      return
+    }
+    
+    if (newTab === 'orders') {
+      // Recheck products threshold when accessing orders tab
+      await checkSellerProducts()
+      if (hasProductsUnderThreshold.value && orders.value.length === 0 && !loadingOrders.value) {
+        await loadOrders()
+      }
+    } else if (newTab === 'reviews' && reviews.value.length === 0 && !loadingReviews.value) {
+      await loadReviews()
+    } else if (newTab === 'insights' && !insightsLoaded.value && !insightsLoading.value) {
+      await loadInsights()
+    } else if (newTab === 'chats' && chatRooms.value.length === 0 && !loadingChats.value) {
+      await loadChatRooms()
+    } else if (newTab === 'customerPool' && customerPool.value.length === 0 && !loadingCustomerPool.value) {
+      await loadCustomerPool()
+    } else if (newTab === 'miniwebsite' && miniWebsiteTab.value === 'profile') {
+      // Load profile score when profile tab is accessed
+      await loadProfileScore()
+    }
+  }, 100) // 100ms debounce
 })
 
 // Watch miniWebsiteTab to load profile score when profile tab is selected
@@ -1872,37 +1894,34 @@ watch(miniWebsiteTab, async (newTab) => {
   }
 })
 
-// Gamification: Hydrate store on mount
+// Gamification: Hydrate store on mount - optimized with parallel loading
 onMounted(async () => {
-  try {
-    await loadDashboardGamification()
-  } catch (error) {
-    console.warn('Failed to load gamification data', error)
-  }
+  // Load profile data first (needed for other operations)
+  loadProfileData()
   
-  // Check if seller has products under threshold
-  await checkSellerProducts()
-  
-  // Load initial data
+  // Parallelize all independent API calls
   await Promise.all([
-    loadDashboardData(),
-    loadProfileData(),
-    loadCustomerPool()
+    // Core dashboard data
+    loadDashboardGamification().catch(err => console.warn('Failed to load gamification data', err)),
+    loadDashboardData().catch(err => console.warn('Failed to load dashboard data', err)),
+    checkSellerProducts().catch(err => console.warn('Failed to check products', err))
   ])
   
-  // Load profile score from backend after loading profile data
-  await loadProfileScore()
+  // Load customer pool only if on home tab (for preview)
+  if (tab.value === 'home' || tab.value === 'customerPool') {
+    loadCustomerPool().catch(err => console.warn('Failed to load customer pool', err))
+  }
   
-  // Load chat rooms if on chats tab
+  // Load profile score after profile data is ready
+  await loadProfileScore().catch(err => console.warn('Failed to load profile score', err))
+  
+  // Load tab-specific data only if that tab is active
   if (tab.value === 'chats') {
-    await loadChatRooms()
-  }
-  if (tab.value === 'insights') {
-    await loadInsights()
-  }
-  // Load profile score if on miniwebsite profile tab
-  if (tab.value === 'miniwebsite' && miniWebsiteTab.value === 'profile') {
-    await loadProfileScore()
+    loadChatRooms().catch(err => console.warn('Failed to load chat rooms', err))
+  } else if (tab.value === 'insights') {
+    loadInsights().catch(err => console.warn('Failed to load insights', err))
+  } else if (tab.value === 'miniwebsite' && miniWebsiteTab.value === 'profile') {
+    loadProfileScore().catch(err => console.warn('Failed to load profile score', err))
   }
 })
 
@@ -1917,6 +1936,18 @@ watch(profileScore, (score) => {
     })
   }
 }, { immediate: true })
+
+// Cleanup on unmount - clear timeouts and stop watchers
+onBeforeUnmount(() => {
+  // Clear any pending tab load timeout
+  if (tabLoadTimeout) {
+    clearTimeout(tabLoadTimeout)
+    tabLoadTimeout = null
+  }
+  
+  // Stop watchers to prevent API calls during logout/navigation
+  stopTabWatcher()
+})
 </script>
 
 <style scoped>
