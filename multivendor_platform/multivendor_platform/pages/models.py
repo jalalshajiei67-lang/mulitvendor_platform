@@ -368,3 +368,98 @@ class Redirect(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+
+class ShortLink(models.Model):
+    """Marketing campaign short links with tracking"""
+    short_code = models.CharField(
+        max_length=100,
+        unique=True,
+        db_index=True,
+        verbose_name='کد کوتاه',
+        help_text='کد کوتاه برای لینک (مثال: summer-sale)'
+    )
+    target_url = models.CharField(
+        max_length=500,
+        verbose_name='آدرس هدف',
+        help_text='آدرس صفحه داخلی (مثال: /products/special-offer)'
+    )
+    campaign_name = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name='نام کمپین',
+        help_text='نام کمپین برای شناسایی راحتتر'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='فعال',
+        help_text='اگر غیرفعال باشد، لینک کار نمیکند'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='آخرین بروزرسانی')
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='shortlinks_created',
+        verbose_name='ایجاد شده توسط'
+    )
+    
+    class Meta:
+        verbose_name = 'لینک کوتاه'
+        verbose_name_plural = 'لینکهای کوتاه'
+        db_table = 'pages_shortlink'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['short_code', 'is_active'], name='pages_short_code_active_idx'),
+        ]
+    
+    def __str__(self):
+        status = '✓' if self.is_active else '✗'
+        return f"{status} /s/{self.short_code} → {self.target_url}"
+    
+    def get_click_count(self):
+        return self.clicks.count()
+    
+    def get_unique_visitors(self):
+        return self.clicks.values('ip_address').distinct().count()
+
+
+class ShortLinkClick(models.Model):
+    """Track clicks on short links"""
+    DEVICE_CHOICES = [
+        ('mobile', 'موبایل'),
+        ('tablet', 'تبلت'),
+        ('desktop', 'دسکتاپ'),
+        ('unknown', 'نامشخص'),
+    ]
+    
+    short_link = models.ForeignKey(
+        ShortLink,
+        on_delete=models.CASCADE,
+        related_name='clicks',
+        verbose_name='لینک کوتاه'
+    )
+    ip_address = models.GenericIPAddressField(verbose_name='آیپی')
+    device_type = models.CharField(
+        max_length=20,
+        choices=DEVICE_CHOICES,
+        default='unknown',
+        verbose_name='نوع دستگاه'
+    )
+    clicked_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name='زمان کلیک')
+    
+    class Meta:
+        verbose_name = 'کلیک لینک'
+        verbose_name_plural = 'کلیکهای لینک'
+        db_table = 'pages_shortlinkclick'
+        ordering = ['-clicked_at']
+        indexes = [
+            models.Index(fields=['short_link', 'clicked_at'], name='pages_short_link_time_idx'),
+            models.Index(fields=['ip_address', 'short_link'], name='pages_short_ip_link_idx'),
+        ]
+    
+    def __str__(self):
+        return f"{self.short_link.short_code} - {self.ip_address} - {self.clicked_at}"
+

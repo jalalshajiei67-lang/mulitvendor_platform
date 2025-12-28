@@ -15,6 +15,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import View
 from django.views.static import serve as static_serve
 from multivendor_platform.tinymce_views import tinymce_image_upload
+from pages.views import short_link_redirect
 
 # Import sitemaps
 from products.sitemaps import ProductSitemap, DepartmentSitemap, CategorySitemap, SubcategorySitemap, StaticViewSitemap
@@ -289,6 +290,9 @@ urlpatterns = [
     re_path(r'^categories/(?P<path>.*)$', category_redirect_view, name='category-redirect'),
     re_path(r'^subcategories/(?P<path>.*)$', subcategory_redirect_view, name='subcategory-redirect'),
     re_path(r'^departments/(?P<path>.*)$', department_redirect_view, name='department-redirect'),
+    
+    # Short link redirect for marketing campaigns
+    path('s/<str:short_code>/', short_link_redirect, name='short-link-redirect'),
     
     # TinyMCE
     path('tinymce/', include('tinymce.urls')),

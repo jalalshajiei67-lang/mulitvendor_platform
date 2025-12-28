@@ -26,6 +26,7 @@ from .models import (
     LabelComboSeoPage,
     CategoryRequest,
 )
+from .admin_filters import SubcategorySearchFilter, CategorySearchFilter
 
 # Custom widget for multiple file uploads
 class MultipleFileInput(forms.ClearableFileInput):
@@ -679,9 +680,11 @@ class CategoryAdmin(admin.ModelAdmin):
     form = CategoryAdminForm
     list_display = ['name', 'slug', 'get_departments', 'is_active', 'sort_order', 'created_at']
     list_filter = ['is_active', 'departments', 'created_at']
-    search_fields = ['name', 'description']
+    search_fields = ['name', 'slug', 'description', 'departments__name']
+    search_help_text = 'Search by name, slug, description, or department name'
     prepopulated_fields = {'slug': ('name',)}
     filter_horizontal = ['departments', 'subcategories']
+    autocomplete_fields = ['departments', 'subcategories']
     actions = ['delete_selected']  # Explicitly include delete action
     fieldsets = (
         ('Basic Information', {
@@ -737,10 +740,12 @@ class SubcategoryAdminForm(forms.ModelForm):
 class SubcategoryAdmin(admin.ModelAdmin):
     form = SubcategoryAdminForm
     list_display = ['name', 'slug', 'get_departments', 'get_categories', 'is_active', 'sort_order', 'created_at']
-    list_filter = ['is_active', 'categories', 'created_at']
-    search_fields = ['name', 'description']
+    list_filter = ['is_active', ('categories', CategorySearchFilter), 'created_at']
+    search_fields = ['name', 'slug', 'description']
+    search_help_text = 'Search by subcategory name, slug, or description only'
     prepopulated_fields = {'slug': ('name',)}
     filter_horizontal = ['categories']
+    autocomplete_fields = ['categories']
     actions = ['delete_selected']  # Explicitly include delete action
     fieldsets = (
         ('Basic Information', {
@@ -837,12 +842,26 @@ class ProductCommentInline(admin.TabularInline):
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
     list_display = ['name', 'slug', 'vendor', 'supplier', 'primary_category', 'get_subcategories', 'get_labels', 'price', 'stock', 'image_count', 'comment_count', 'approval_status', 'is_active', 'created_at']
-    list_filter = ['approval_status', 'is_active', 'primary_category', 'subcategories', 'labels', 'created_at']
-    search_fields = ['name', 'description', 'vendor__username', 'vendor__email']
+    list_filter = ['approval_status', 'is_active', 'primary_category', ('subcategories', SubcategorySearchFilter), 'labels', 'availability_status', 'condition', 'origin', 'created_at', 'updated_at']
+    search_fields = [
+        'name', 'slug', 'description',
+        'vendor__username', 'vendor__email', 'vendor__first_name', 'vendor__last_name',
+        'supplier__name',
+        'subcategories__name', 'subcategories__slug',
+        'primary_category__name', 'primary_category__slug',
+        'labels__name', 'labels__slug'
+    ]
+    search_help_text = 'Search by product name, slug, description, vendor, supplier, subcategory, category, or label'
     prepopulated_fields = {'slug': ('name',)}
     filter_horizontal = ['subcategories', 'labels']
+    autocomplete_fields = ['subcategories', 'labels', 'primary_category', 'supplier']
     inlines = [ProductImageInline, ProductCommentInline]
     actions = ['make_active', 'make_inactive', 'approve_products', 'reject_products', 'delete_selected']  # Enable bulk actions with delete
+    
+    def get_search_results(self, request, queryset, search_term):
+        """Override to ensure subcategory search works properly"""
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        return queryset, True  # Always use distinct to avoid duplicates from M2M relationships
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'slug', 'description', 'image', 'image_alt_text')

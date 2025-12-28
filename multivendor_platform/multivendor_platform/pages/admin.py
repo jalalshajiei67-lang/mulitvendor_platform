@@ -3,8 +3,9 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django import forms
 from django.utils.html import format_html
+from django.db.models import Count
 from tinymce.widgets import TinyMCE
-from .models import AboutPage, ContactPage, Redirect
+from .models import AboutPage, ContactPage, Redirect, ShortLink, ShortLinkClick
 
 
 class AboutPageAdminForm(forms.ModelForm):
@@ -228,3 +229,103 @@ class RedirectAdmin(admin.ModelAdmin):
         updated = queryset.update(is_active=False)
         self.message_user(request, f'{updated} هدایت غیرفعال شد.')
     deactivate_redirects.short_description = 'غیرفعال کردن هدایت‌های انتخاب شده'
+
+
+
+class ShortLinkClickInline(admin.TabularInline):
+    model = ShortLinkClick
+    extra = 0
+    can_delete = False
+    readonly_fields = ('ip_address', 'device_type', 'clicked_at')
+    fields = ('ip_address', 'device_type', 'clicked_at')
+    
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ShortLink)
+class ShortLinkAdmin(admin.ModelAdmin):
+    list_display = ('short_code_display', 'campaign_name', 'target_url_display', 'click_stats', 'is_active', 'created_at')
+    list_filter = ('is_active', 'created_at')
+    search_fields = ('short_code', 'campaign_name', 'target_url')
+    readonly_fields = ('created_at', 'updated_at', 'created_by', 'full_url', 'stats_summary')
+    inlines = [ShortLinkClickInline]
+    list_display_links = ('short_code_display', 'campaign_name')
+    
+    fieldsets = (
+        ('اطلاعات لینک (Link Information)', {
+            'fields': ('short_code', 'target_url', 'campaign_name', 'is_active', 'full_url'),
+        }),
+        ('آمار (Statistics)', {
+            'fields': ('stats_summary',),
+        }),
+        ('اطلاعات (Information)', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+    
+    def short_code_display(self, obj):
+        return format_html('<code>/s/{}</code>', obj.short_code)
+    short_code_display.short_description = 'کد کوتاه'
+    
+    def target_url_display(self, obj):
+        return format_html('<a href="{}" target="_blank">{}</a>', obj.target_url, obj.target_url)
+    target_url_display.short_description = 'آدرس هدف'
+    
+    def full_url(self, obj):
+        if obj.pk:
+            return format_html('<code>indexo.ir/s/{}</code>', obj.short_code)
+        return '-'
+    full_url.short_description = 'لینک کامل'
+    
+    def stats_summary(self, obj):
+        if not obj.pk:
+            return '-'
+        clicks = obj.get_click_count()
+        unique = obj.get_unique_visitors()
+        mobile = obj.clicks.filter(device_type='mobile').count()
+        desktop = obj.clicks.filter(device_type='desktop').count()
+        tablet = obj.clicks.filter(device_type='tablet').count()
+        
+        return format_html(
+            '<div style="line-height: 1.8;">' 
+            '<strong>کل کلیک‌ها:</strong> {}<br>'
+            '<strong>بازدیدکننده یکتا:</strong> {}<br>'
+            '<strong>موبایل:</strong> {} | <strong>دسکتاپ:</strong> {} | <strong>تبلت:</strong> {}'
+            '</div>',
+            clicks, unique, mobile, desktop, tablet
+        )
+    stats_summary.short_description = 'خلاصه آمار'
+    
+    def click_stats(self, obj):
+        clicks = obj.get_click_count()
+        unique = obj.get_unique_visitors()
+        return format_html('<strong>{}</strong> کلیک | <strong>{}</strong> بازدیدکننده', clicks, unique)
+    click_stats.short_description = 'آمار'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            click_count=Count('clicks'),
+            unique_visitors=Count('clicks__ip_address', distinct=True)
+        )
+
+
+@admin.register(ShortLinkClick)
+class ShortLinkClickAdmin(admin.ModelAdmin):
+    list_display = ('short_link', 'ip_address', 'device_type', 'clicked_at')
+    list_filter = ('device_type', 'clicked_at', 'short_link')
+    search_fields = ('ip_address', 'short_link__short_code')
+    readonly_fields = ('short_link', 'ip_address', 'device_type', 'clicked_at')
+    date_hierarchy = 'clicked_at'
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return False

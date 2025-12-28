@@ -21,6 +21,9 @@ Disallow: /health/
 # Disallow TinyMCE editor (internal admin tool)
 Disallow: /tinymce/
 
+# Disallow backend domain (API server)
+Disallow: https://multivendor-backend.indexo.ir/
+
 # Allow sitemap for better SEO indexing
 Sitemap: https://indexo.ir/sitemap.xml
 

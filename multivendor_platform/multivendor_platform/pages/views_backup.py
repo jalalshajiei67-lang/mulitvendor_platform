@@ -1,20 +1,6 @@
 from django.shortcuts import redirect, get_object_or_404
-from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
-from .models import AboutPage, ContactPage, ShortLink, ShortLinkClick
-from .serializers import AboutPageSerializer, ContactPageSerializer
-
-
-class AboutPageViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = AboutPage.objects.all()
-    serializer_class = AboutPageSerializer
-    permission_classes = [AllowAny]
-
-
-class ContactPageViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = ContactPage.objects.all()
-    serializer_class = ContactPageSerializer
-    permission_classes = [AllowAny]
+from django.http import HttpResponse
+from .models import ShortLink, ShortLinkClick
 
 
 def get_client_ip(request):

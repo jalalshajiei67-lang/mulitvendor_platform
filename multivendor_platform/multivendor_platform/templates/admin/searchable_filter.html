@@ -1,0 +1,52 @@
+{% load i18n static %}
+<details data-filter-title="{{ title|lower }}" open>
+  <summary>
+     By {{ title|lower }} 
+  </summary>
+  
+  {# Search input for filtering #}
+  <div class="filter-search-container">
+    <input 
+      type="text" 
+      id="filter-search-{{ spec.field_path }}"
+      class="filter-search-input"
+      placeholder="Search {{ title|lower }}..."
+      value="{{ spec.search_term }}"
+    />
+  </div>
+  
+  <ul id="filter-list-{{ spec.field_path }}">
+  {% for choice in choices %}
+    <li{% if choice.selected %} class="selected"{% endif %}>
+      <a href="{{ choice.query_string|iriencode }}">{{ choice.display }}</a>
+    </li>
+  {% endfor %}
+  </ul>
+</details>
+
+<script>
+(function() {
+  const searchInput = document.getElementById('filter-search-{{ spec.field_path }}');
+  const filterList = document.getElementById('filter-list-{{ spec.field_path }}');
+  
+  if (searchInput && filterList) {
+    // Real-time filtering as user types
+    searchInput.addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase();
+      const items = filterList.querySelectorAll('li');
+      
+      items.forEach(function(item) {
+        const text = item.textContent.toLowerCase();
+        // Always show "All" option and selected items
+        if (text.includes(searchTerm) || item.classList.contains('selected') || text.trim() === 'all') {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    });
+  }
+})();
+</script>
+
+<link rel="stylesheet" href="{% static 'admin/css/searchable_filter.css' %}">

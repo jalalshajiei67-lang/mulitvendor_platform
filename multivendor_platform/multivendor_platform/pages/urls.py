@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import AboutPageViewSet, ContactPageViewSet
+from .views import AboutPageViewSet, ContactPageViewSet, short_link_redirect
 
 # Create a router for the API endpoints
 router = DefaultRouter()
