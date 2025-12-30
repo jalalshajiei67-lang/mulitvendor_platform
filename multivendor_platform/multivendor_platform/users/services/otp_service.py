@@ -228,7 +228,7 @@ class OTPService:
             )
         
         # Check max attempts (brute force protection)
-        max_attempts = 5
+        max_attempts = 3
         if otp_obj.attempts >= max_attempts:
             otp_obj.is_used = True
             otp_obj.save()

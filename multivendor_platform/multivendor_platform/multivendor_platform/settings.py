@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'chat',  # Chat system
     'payments',  # Payment management
     'sms_newsletter',  # SMS newsletter for sellers
+    'auctions',  # Reverse auctions
 ]
 
 MIDDLEWARE = [

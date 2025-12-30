@@ -97,6 +97,22 @@ export function handleAuthError(error: any): AuthError {
 
   // 404 Not Found
   if (status === 404) {
+    // Check for specific error message from backend first
+    const errorData = error?.data || error?.response?.data || {}
+    const errorMessage = errorData?.error || errorData?.message
+    const hintMessage = errorData?.hint || errorData?.helpful_message
+    
+    if (errorMessage) {
+      return {
+        message: errorMessage,
+        hint: hintMessage || 'لطفاً اطلاعات را بررسی کنید و دوباره تلاش کنید.',
+        type: 'validation',
+        recoverable: true,
+        action: 'retry'
+      }
+    }
+    
+    // Generic 404 for actual page not found
     return {
       message: 'صفحه مورد نظر یافت نشد',
       hint: 'لطفاً آدرس را بررسی کنید و دوباره تلاش کنید.',

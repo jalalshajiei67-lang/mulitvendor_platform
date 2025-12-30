@@ -33,6 +33,10 @@
                 class="mr-1"
               ></v-badge>
             </v-tab>
+            <v-tab value="auctions">
+              <v-icon start>mdi-gavel</v-icon>
+              مناقصه‌ها
+            </v-tab>
             <v-tab value="payments">
               <v-icon start>mdi-credit-card</v-icon>
               سوابق پرداخت
@@ -553,6 +557,40 @@
                   </v-data-table>
                 </div>
               </v-window-item>
+              <!-- Auctions Tab -->
+              <v-window-item value="auctions">
+                <div class="py-4">
+                  <div class="d-flex align-center justify-space-between mb-4">
+                    <h3 class="text-h6">مناقصه‌ها</h3>
+                    <v-btn
+                      color="primary"
+                      prepend-icon="mdi-plus"
+                      :to="'/buyer/create-auction'"
+                    >
+                      ایجاد مناقصه جدید
+                    </v-btn>
+                  </div>
+                  <v-row v-if="loadingAuctions" justify="center">
+                    <v-col cols="12" class="text-center">
+                      <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                    </v-col>
+                  </v-row>
+                  <v-row v-else-if="auctions.length > 0">
+                    <v-col
+                      v-for="auction in auctions"
+                      :key="auction.id"
+                      cols="12"
+                      md="6"
+                      lg="4"
+                    >
+                      <AuctionCard :auction="auction" user-role="buyer" />
+                    </v-col>
+                  </v-row>
+                  <v-alert v-else type="info" variant="tonal">
+                    هنوز مناقصه‌ای ایجاد نکرده‌اید
+                  </v-alert>
+                </div>
+              </v-window-item>
             </v-window>
           </v-card-text>
         </v-card>
@@ -570,7 +608,9 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useBuyerApi } from '~/composables/useBuyerApi'
+import { useAuctionApi } from '~/composables/useAuctionApi'
 import type { BuyerOrder, BuyerReview, BuyerRFQ } from '~/composables/useBuyerApi'
+import AuctionCard from '~/components/auction/AuctionCard.vue'
 
 definePageMeta({
   middleware: 'authenticated',
@@ -579,6 +619,7 @@ definePageMeta({
 
 const authStore = useAuthStore()
 const buyerApi = useBuyerApi()
+const auctionApi = useAuctionApi()
 const route = useRoute()
 
 // Check for tab query parameter - default to 'home'
@@ -604,10 +645,12 @@ const dashboardData = ref({
 const orders = ref<BuyerOrder[]>([])
 const rfqs = ref<BuyerRFQ[]>([])
 const reviews = ref<BuyerReview[]>([])
+const auctions = ref<any[]>([])
 const loading = ref(false)
 const loadingOrders = ref(false)
 const loadingRFQs = ref(false)
 const loadingReviews = ref(false)
+const loadingAuctions = ref(false)
 const saving = ref(false)
 const snackbar = ref(false)
 const snackbarMessage = ref('')
@@ -726,6 +769,19 @@ const loadReviews = async () => {
   }
 }
 
+const loadAuctions = async () => {
+  loadingAuctions.value = true
+  try {
+    const response = await auctionApi.getAuctions()
+    auctions.value = response.results || response || []
+  } catch (error) {
+    console.error('Failed to load auctions:', error)
+    showSnackbar('خطا در بارگذاری مناقصه‌ها', 'error')
+  } finally {
+    loadingAuctions.value = false
+  }
+}
+
 const updateProfile = async () => {
   saving.value = true
   try {
@@ -816,6 +872,8 @@ watch(tab, (newTab) => {
     loadOrders()
   } else if (newTab === 'reviews' && reviews.value.length === 0) {
     loadReviews()
+  } else if (newTab === 'auctions' && auctions.value.length === 0) {
+    loadAuctions()
   }
 })
 

@@ -61,7 +61,7 @@
         <!-- Success Message (for dev mode) -->
         <transition name="slide-fade">
           <v-alert
-            v-if="devModeCode"
+            v-if="devModeCode && process.env.NODE_ENV === 'development'"
             type="info"
             variant="tonal"
             class="mb-4"
@@ -72,6 +72,28 @@
               <div>
                 <div class="font-weight-bold">حالت توسعه</div>
                 <div class="text-body-2">کد تأیید: <strong>{{ devModeCode }}</strong></div>
+              </div>
+            </div>
+          </v-alert>
+        </transition>
+
+        <!-- Spam Folder Reminder Message -->
+        <transition name="slide-fade">
+          <v-alert
+            v-if="showSpamMessage"
+            type="warning"
+            variant="tonal"
+            class="mb-4"
+            rounded="lg"
+            closable
+            @click:close="showSpamMessage = false"
+            :icon="'mdi-alert'"
+          >
+            <div class="d-flex align-center">
+              <div>
+                <div class="text-body-1 font-weight-medium">
+                  اگر کد تأیید را دریافت نکرده‌اید، لطفاً پوشه پیام‌های هرزنامه (Spam) خود را بررسی کنید.
+                </div>
               </div>
             </div>
           </v-alert>
@@ -146,7 +168,10 @@ const resending = ref(false)
 const canResend = ref(false)
 const countdown = ref(120) // 2 minutes
 const devModeCode = ref<string | null>(null)
+const showSpamMessage = ref(false)
+const isVerified = ref(false)
 let countdownTimer: NodeJS.Timeout | null = null
+let spamMessageTimer: NodeJS.Timeout | null = null
 
 const isOtpComplete = computed(() => {
   return otpDigits.value.every(digit => digit !== '')
@@ -160,6 +185,7 @@ const otpCode = computed(() => {
 onMounted(async () => {
   await requestOtp()
   startCountdown()
+  startSpamMessageTimer()
 })
 
 // Cleanup timer on unmount
@@ -167,11 +193,17 @@ watch(() => props.phone, () => {
   if (countdownTimer) {
     clearInterval(countdownTimer)
   }
+  if (spamMessageTimer) {
+    clearTimeout(spamMessageTimer)
+  }
   otpDigits.value = ['', '', '', '', '', '']
   error.value = ''
   devModeCode.value = null
+  showSpamMessage.value = false
+  isVerified.value = false
   requestOtp()
   startCountdown()
+  startSpamMessageTimer()
 })
 
 const requestOtp = async () => {
@@ -185,22 +217,20 @@ const requestOtp = async () => {
       purpose: props.purpose
     })
     
-    // Check if OTP code is returned (dev mode)
-    if (response.otp_code) {
+    // Check if OTP code is returned (dev mode only)
+    if (response.otp_code && process.env.NODE_ENV === 'development') {
       devModeCode.value = response.otp_code
       // Auto-fill in dev mode
-      if (process.env.NODE_ENV === 'development') {
-        const code = response.otp_code
-        for (let i = 0; i < 6; i++) {
-          otpDigits.value[i] = code[i] || ''
-        }
-        // Focus last input
-        setTimeout(() => {
-          if (inputRefs.value[5]) {
-            (inputRefs.value[5] as any).focus()
-          }
-        }, 100)
+      const code = response.otp_code
+      for (let i = 0; i < 6; i++) {
+        otpDigits.value[i] = code[i] || ''
       }
+      // Focus last input
+      setTimeout(() => {
+        if (inputRefs.value[5]) {
+          (inputRefs.value[5] as any).focus()
+        }
+      }, 100)
     }
   } catch (err: any) {
     const errorMessage = err.data?.error || err.message || 'خطا در ارسال کد تأیید'
@@ -234,6 +264,14 @@ const verifyOtp = async () => {
     })
     
     if (response.success) {
+      // Mark as verified and hide spam message
+      isVerified.value = true
+      showSpamMessage.value = false
+      if (spamMessageTimer) {
+        clearTimeout(spamMessageTimer)
+        spamMessageTimer = null
+      }
+      
       // Include the OTP code in the response for password reset flow
       const responseWithCode = {
         ...response,
@@ -267,8 +305,15 @@ const resendOtp = async () => {
   if (props.onResend) {
     props.onResend()
   }
+  // Reset spam message and timer when resending
+  showSpamMessage.value = false
+  isVerified.value = false
+  if (spamMessageTimer) {
+    clearTimeout(spamMessageTimer)
+  }
   await requestOtp()
   startCountdown()
+  startSpamMessageTimer()
 }
 
 const handleInput = (index: number, event: Event) => {
@@ -340,9 +385,29 @@ const startCountdown = () => {
   }, 1000)
 }
 
+const startSpamMessageTimer = () => {
+  // Clear existing timer if any
+  if (spamMessageTimer) {
+    clearTimeout(spamMessageTimer)
+  }
+  
+  // Reset spam message flag
+  showSpamMessage.value = false
+  
+  // Show spam message after 1 minute (60 seconds) if not verified
+  spamMessageTimer = setTimeout(() => {
+    if (!isVerified.value) {
+      showSpamMessage.value = true
+    }
+  }, 60000) // 60 seconds = 1 minute
+}
+
 onUnmounted(() => {
   if (countdownTimer) {
     clearInterval(countdownTimer)
+  }
+  if (spamMessageTimer) {
+    clearTimeout(spamMessageTimer)
   }
 })
 </script>

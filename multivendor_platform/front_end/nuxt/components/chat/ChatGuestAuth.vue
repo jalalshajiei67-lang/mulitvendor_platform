@@ -110,7 +110,7 @@
           <!-- Success Message (for dev mode) -->
           <transition name="slide-fade">
             <v-alert
-              v-if="devModeCode"
+              v-if="devModeCode && process.env.NODE_ENV === 'development'"
               type="info"
               variant="tonal"
               class="mb-4"
@@ -303,22 +303,20 @@ const requestOtp = async () => {
 
     const response = await authStore.requestOtpLogin(mobile.value)
 
-    // Check if OTP code is returned (dev mode)
-    if (response.otp_code) {
+    // Check if OTP code is returned (dev mode only)
+    if (response.otp_code && process.env.NODE_ENV === 'development') {
       devModeCode.value = response.otp_code
       // Auto-fill in dev mode
-      if (process.env.NODE_ENV === 'development') {
-        const code = response.otp_code
-        for (let i = 0; i < 6; i++) {
-          otpDigits.value[i] = code[i] || ''
-        }
-        // Focus last input
-        setTimeout(() => {
-          if (inputRefs.value[5]) {
-            (inputRefs.value[5] as any).focus()
-          }
-        }, 100)
+      const code = response.otp_code
+      for (let i = 0; i < 6; i++) {
+        otpDigits.value[i] = code[i] || ''
       }
+      // Focus last input
+      setTimeout(() => {
+        if (inputRefs.value[5]) {
+          (inputRefs.value[5] as any).focus()
+        }
+      }, 100)
     }
 
     otpRequested.value = true

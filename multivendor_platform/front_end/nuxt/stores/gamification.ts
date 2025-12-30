@@ -141,6 +141,27 @@ export const useGamificationStore = defineStore('gamification', () => {
     }
   }
 
+  /**
+   * Reset all store data (call on logout/login)
+   */
+  const reset = () => {
+    dashboardData.value = null
+    loading.value = false
+    scores.value = {
+      product: null,
+      profile: null,
+      miniWebsite: null,
+      portfolio: null,
+      team: null
+    }
+    engagement.value = null
+    badges.value = []
+    earnedBadges.value = []
+    leaderboard.value = []
+    userRank.value = null
+    userTier.value = null
+  }
+
   return {
     // NEW: Primary state
     dashboardData,
@@ -163,6 +184,7 @@ export const useGamificationStore = defineStore('gamification', () => {
     fetchEngagement,
     fetchBadges,
     fetchLeaderboard,
-    updateLocalScore
+    updateLocalScore,
+    reset
   }
 })

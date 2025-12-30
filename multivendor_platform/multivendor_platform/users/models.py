@@ -208,21 +208,6 @@ class PricingTier(models.Model):
     @classmethod
     def get_default_free(cls):
         """Return the default free tier, creating it if missing."""
-        # #region agent log
-        import json
-        try:
-            with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({
-                    'sessionId': 'debug-session',
-                    'runId': 'post-fix',
-                    'hypothesisId': 'A',
-                    'location': 'users/models.py:209',
-                    'message': 'get_default_free entry',
-                    'data': {'method': 'get_default_free', 'cls': str(cls)},
-                    'timestamp': int(__import__('time').time() * 1000)
-                }) + '\n')
-        except: pass
-        # #endregion
         from django.db import OperationalError
         try:
             # Try normal get_or_create first
@@ -237,57 +222,15 @@ class PricingTier(models.Model):
                     'allow_marketplace_visibility': True,
                 },
             )
-            # #region agent log
-            try:
-                with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'post-fix',
-                        'hypothesisId': 'A',
-                        'location': 'users/models.py:222',
-                        'message': 'get_or_create success',
-                        'data': {'tier_id': tier.id if tier else None, 'created': _},
-                        'timestamp': int(__import__('time').time() * 1000)
-                    }) + '\n')
-            except: pass
-            # #endregion
             return tier
         except OperationalError as e:
             # Handle case where monthly_price_rial column doesn't exist yet (migration not applied)
             if 'monthly_price_rial' in str(e):
-                # #region agent log
-                try:
-                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'sessionId': 'debug-session',
-                            'runId': 'post-fix',
-                            'hypothesisId': 'A',
-                            'location': 'users/models.py:230',
-                            'message': 'Migration workaround - using only() to exclude monthly_price_rial',
-                            'data': {'error': str(e)},
-                            'timestamp': int(__import__('time').time() * 1000)
-                        }) + '\n')
-                except: pass
-                # #endregion
                 # Use only() to query without the problematic field
                 try:
                     tier = cls.objects.only('id', 'slug', 'name', 'pricing_type', 'is_commission_based', 
                                             'daily_customer_unlock_limit', 'lead_exclusivity', 
                                             'allow_marketplace_visibility', 'created_at', 'updated_at').get(slug='free')
-                    # #region agent log
-                    try:
-                        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({
-                                'sessionId': 'debug-session',
-                                'runId': 'post-fix',
-                                'hypothesisId': 'A',
-                                'location': 'users/models.py:240',
-                                'message': 'Found existing tier using only()',
-                                'data': {'tier_id': tier.id},
-                                'timestamp': int(__import__('time').time() * 1000)
-                            }) + '\n')
-                    except: pass
-                    # #endregion
                     return tier
                 except cls.DoesNotExist:
                     # Create without monthly_price_rial field
@@ -300,20 +243,6 @@ class PricingTier(models.Model):
                         lead_exclusivity='shared',
                         allow_marketplace_visibility=True,
                     )
-                    # #region agent log
-                    try:
-                        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({
-                                'sessionId': 'debug-session',
-                                'runId': 'post-fix',
-                                'hypothesisId': 'A',
-                                'location': 'users/models.py:255',
-                                'message': 'Created tier without monthly_price_rial',
-                                'data': {'tier_id': tier.id},
-                                'timestamp': int(__import__('time').time() * 1000)
-                            }) + '\n')
-                    except: pass
-                    # #endregion
                     return tier
             else:
                 # Re-raise if it's a different OperationalError
@@ -414,54 +343,11 @@ class VendorSubscription(models.Model):
         Return the subscription for the given user, creating a free subscription
         if none exists.
         """
-        # #region agent log
-        import json
-        try:
-            with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({
-                    'sessionId': 'debug-session',
-                    'runId': 'run1',
-                    'hypothesisId': 'A',
-                    'location': 'users/models.py:343',
-                    'message': 'for_user entry',
-                    'data': {'user_id': user.id if user else None, 'username': user.username if user else None},
-                    'timestamp': int(__import__('time').time() * 1000)
-                }) + '\n')
-        except: pass
-        # #endregion
         tier = PricingTier.get_default_free()
-        # #region agent log
-        try:
-            with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({
-                    'sessionId': 'debug-session',
-                    'runId': 'run1',
-                    'hypothesisId': 'A',
-                    'location': 'users/models.py:349',
-                    'message': 'After get_default_free',
-                    'data': {'tier_id': tier.id if tier else None, 'tier_slug': tier.slug if tier else None},
-                    'timestamp': int(__import__('time').time() * 1000)
-                }) + '\n')
-        except: pass
-        # #endregion
         subscription, _ = cls.objects.get_or_create(
             user=user,
             defaults={'tier': tier, 'is_active': True},
         )
-        # #region agent log
-        try:
-            with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({
-                    'sessionId': 'debug-session',
-                    'runId': 'run1',
-                    'hypothesisId': 'A',
-                    'location': 'users/models.py:353',
-                    'message': 'for_user exit',
-                    'data': {'subscription_id': subscription.id if subscription else None, 'created': _},
-                    'timestamp': int(__import__('time').time() * 1000)
-                }) + '\n')
-        except: pass
-        # #endregion
         return subscription
 
     def can_unlock_customer(self):

@@ -214,6 +214,11 @@ export const useAuthStore = defineStore('auth', () => {
     authError.value = null
 
     try {
+      // Clear gamification store before login to ensure fresh data
+      const { useGamificationStore } = await import('./gamification')
+      const gamificationStore = useGamificationStore()
+      gamificationStore.reset()
+      
       const response = await useApiFetch<LoginResponse>('auth/login/', {
         method: 'POST',
         body: credentials
@@ -237,6 +242,22 @@ export const useAuthStore = defineStore('auth', () => {
     // Clear session immediately for instant UI feedback
     persistSession(null, null)
     
+    // Clear gamification store data
+    const { useGamificationStore } = await import('./gamification')
+    const gamificationStore = useGamificationStore()
+    gamificationStore.reset()
+    
+    // Clear chat store data if available
+    try {
+      const { useChatStore } = await import('./chat')
+      const chatStore = useChatStore()
+      if (chatStore.clearChatState) {
+        chatStore.clearChatState()
+      }
+    } catch (e) {
+      // Chat store might not be available, ignore
+    }
+    
     // Call logout API in background (fire-and-forget)
     // Don't wait for it to complete - user is already logged out locally
     useApiFetch<void>('auth/logout/', { method: 'POST' })
@@ -255,6 +276,11 @@ export const useAuthStore = defineStore('auth', () => {
     authError.value = null
 
     try {
+      // Clear gamification store before register to ensure fresh data
+      const { useGamificationStore } = await import('./gamification')
+      const gamificationStore = useGamificationStore()
+      gamificationStore.reset()
+      
       const response = await useApiFetch<LoginResponse>('auth/register/', {
         method: 'POST',
         body: payload

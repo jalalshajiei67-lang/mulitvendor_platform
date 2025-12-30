@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.db.models import Q, Count, Sum, Avg, Prefetch
+from django.conf import settings
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
@@ -256,8 +257,52 @@ def otp_request_view(request):
                 except:
                     phone = user.username
         except User.DoesNotExist:
+            # For login purpose, check if user exists by phone before returning error
+            if purpose == 'login':
+                # Try to find user by phone
+                if phone:
+                    try:
+                        user = User.objects.filter(profile__phone=phone).first()
+                        if not user:
+                            # Also try username (phone might be stored as username)
+                            user = User.objects.filter(username=phone).first()
+                    except:
+                        pass
+                
+                # If still no user found for login, return error
+                if not user:
+                    return Response(
+                        {
+                            'error': 'شماره موبایل وارد شده در سیستم ثبت نشده است.',
+                            'hint': 'لطفاً از صفحه ثبت‌نام استفاده کنید.'
+                        },
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            else:
+                return Response(
+                    {'error': 'کاربری با این نام کاربری یافت نشد'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+    
+    # For login purpose, ensure user exists before sending OTP
+    if purpose == 'login' and not user:
+        # Try to find user by phone if phone is provided
+        if phone:
+            try:
+                user = User.objects.filter(profile__phone=phone).first()
+                if not user:
+                    # Also try username (phone might be stored as username)
+                    user = User.objects.filter(username=phone).first()
+            except:
+                pass
+        
+        # If user still doesn't exist, don't send OTP
+        if not user:
             return Response(
-                {'error': 'کاربری با این نام کاربری یافت نشد'},
+                {
+                    'error': 'شماره موبایل وارد شده در سیستم ثبت نشده است.',
+                    'hint': 'لطفاً از صفحه ثبت‌نام استفاده کنید.'
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
     
@@ -273,8 +318,9 @@ def otp_request_view(request):
             'message': 'کد تأیید با موفقیت ارسال شد. لطفاً پیامک دریافتی را بررسی کنید.'
         }
         
-        # In local/dev mode, include the OTP code in response
-        if 'code' in result:
+        # In local/dev mode only, include the OTP code in response
+        # Only return code if DEBUG=True (development mode)
+        if settings.DEBUG and 'code' in result:
             response_data['otp_code'] = result['code']
             response_data['message'] = 'کد تأیید برای شما آماده است (حالت تست)'
         
@@ -619,40 +665,91 @@ def register_view(request):
     """
     User registration endpoint with role selection
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
-            token = Token.objects.create(user=user)
+            try:
+                user = serializer.save()
+            except Exception as e:
+                # Log the error for debugging
+                logger.error(f"Error during user registration save: {e}", exc_info=True)
+                # Check if it's a validation error from serializer
+                if hasattr(e, 'detail'):
+                    return Response({'error': e.detail}, status=status.HTTP_400_BAD_REQUEST)
+                # Otherwise return generic error
+                return Response(
+                    {'error': {'non_field_errors': ['خطا در ایجاد حساب کاربری. لطفاً دوباره تلاش کنید.']}},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
-            # Log registration activity
-            log_activity(user, 'register', f'New user {user.username} registered with role {user.profile.role}', request)
-            
-            # Get user profile info
+            # Verify profiles were created correctly
             profile = user.profile
-            vendor_profile = None
-            if profile.is_seller():
+            role = profile.role
+            
+            # Verify BuyerProfile exists for buyers
+            if role in ['buyer', 'both']:
                 try:
+                    buyer_profile = user.buyer_profile
+                except Exception as e:
+                    logger.error(f"BuyerProfile missing for user {user.id} with role {role}: {e}")
+                    return Response(
+                        {'error': {'non_field_errors': ['خطا در ایجاد پروفایل خریدار. لطفاً با پشتیبانی تماس بگیرید.']}},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+            
+            # Verify VendorProfile exists for sellers
+            vendor_profile = None
+            if role in ['seller', 'both']:
+                try:
+                    vendor_profile_obj = user.vendor_profile
                     vendor_profile = {
-                        'store_name': user.vendor_profile.store_name if user.vendor_profile.store_name else None,
-                        'logo': user.vendor_profile.logo.url if user.vendor_profile.logo else None
+                        'store_name': vendor_profile_obj.store_name if vendor_profile_obj.store_name else None,
+                        'logo': vendor_profile_obj.logo.url if vendor_profile_obj.logo else None
                     }
                 except VendorProfile.DoesNotExist:
+                    logger.error(f"VendorProfile missing for user {user.id} with role {role}")
+                    return Response(
+                        {'error': {'non_field_errors': ['خطا در ایجاد پروفایل فروشنده. لطفاً با پشتیبانی تماس بگیرید.']}},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+                except Exception as e:
+                    logger.error(f"Error accessing VendorProfile for user {user.id}: {e}", exc_info=True)
                     vendor_profile = None
             
-            return Response({
-                'token': token.key,
+            # Create authentication token
+            try:
+                token = Token.objects.create(user=user)
+            except Exception as e:
+                logger.error(f"Error creating token for user {user.id}: {e}")
+                # Token creation failure shouldn't block registration, but log it
+                token = None
+            
+            # Log registration activity
+            try:
+                log_activity(user, 'register', f'New user {user.username} registered with role {role}', request)
+            except Exception as e:
+                logger.warning(f"Failed to log registration activity for user {user.id}: {e}")
+            
+            response_data = {
                 'user': {
                     'id': user.id,
                     'username': user.username,
                     'email': user.email if user.email and '@placeholder.local' not in user.email else '',
                     'first_name': user.first_name,
                     'last_name': user.last_name,
-                    'role': profile.role,
+                    'role': role,
                     'is_verified': profile.is_verified,
                     'vendor_profile': vendor_profile
                 }
-            }, status=status.HTTP_201_CREATED)
+            }
+            
+            if token:
+                response_data['token'] = token.key
+            
+            return Response(response_data, status=status.HTTP_201_CREATED)
         
         # Format validation errors for better user experience
         formatted_errors = {}
@@ -666,8 +763,9 @@ def register_view(request):
         return Response({'error': formatted_errors}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         # Handle unexpected errors
+        logger.error(f"Unexpected error in register_view: {e}", exc_info=True)
         return Response(
-            {'error': 'مشکلی در ثبت‌نام پیش آمده است. لطفاً دوباره تلاش کنید.'},
+            {'error': {'non_field_errors': ['مشکلی در ثبت‌نام پیش آمده است. لطفاً دوباره تلاش کنید.']}},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -720,65 +818,9 @@ def update_profile_view(request):
         # Update vendor profile if user is seller
         if profile.is_seller():
             try:
-                # #region agent log
-                import json
-                import time
-                try:
-                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'sessionId': 'debug-session',
-                            'runId': 'run1',
-                            'hypothesisId': 'A',
-                            'location': 'users/views.py:721',
-                            'message': 'Starting vendor profile update',
-                            'data': {
-                                'user_id': user.id,
-                                'username': user.username,
-                                'has_vendor_profile_attr': hasattr(user, 'vendor_profile'),
-                                'vendor_profile_exists': VendorProfile.objects.filter(user=user).exists()
-                            },
-                            'timestamp': int(time.time() * 1000)
-                        }) + '\n')
-                except: pass
-                # #endregion
                 vendor_profile = user.vendor_profile
-                # #region agent log
-                try:
-                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'sessionId': 'debug-session',
-                            'runId': 'run1',
-                            'hypothesisId': 'A',
-                            'location': 'users/views.py:724',
-                            'message': 'Vendor profile retrieved',
-                            'data': {
-                                'vendor_profile_id': vendor_profile.id if vendor_profile else None,
-                                'current_store_name': vendor_profile.store_name if vendor_profile else None
-                            },
-                            'timestamp': int(time.time() * 1000)
-                        }) + '\n')
-                except: pass
-                # #endregion
                 # Handle FormData - parse JSON fields if they're strings
                 vendor_data = dict(request.data)
-                # #region agent log
-                try:
-                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'sessionId': 'debug-session',
-                            'runId': 'post-fix',
-                            'hypothesisId': 'A',
-                            'location': 'users/views.py:763',
-                            'message': 'Vendor data extracted from request',
-                            'data': {
-                                'vendor_data_keys': list(vendor_data.keys()),
-                                'has_store_name': 'store_name' in vendor_data,
-                                'store_name_value': vendor_data.get('store_name')
-                            },
-                            'timestamp': int(time.time() * 1000)
-                        }) + '\n')
-                except: pass
-                # #endregion
                 
                 # Remove fields that don't belong to vendor profile
                 user_fields = ['first_name', 'last_name', 'email']
@@ -830,106 +872,21 @@ def update_profile_view(request):
                 # If store_name is being sent but hasn't changed, remove it from update data
                 # This avoids unnecessary uniqueness validation and prevents errors when frontend
                 # sends stale or unchanged store_name values
-                # #region agent log
-                try:
-                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'sessionId': 'debug-session',
-                            'runId': 'post-fix',
-                            'hypothesisId': 'A',
-                            'location': 'users/views.py:815',
-                            'message': 'Checking store_name in vendor_data',
-                            'data': {
-                                'has_store_name': 'store_name' in vendor_data,
-                                'store_name_in_data': vendor_data.get('store_name'),
-                                'current_store_name': vendor_profile.store_name
-                            },
-                            'timestamp': int(time.time() * 1000)
-                        }) + '\n')
-                except: pass
-                # #endregion
                 if 'store_name' in vendor_data:
                     if vendor_data['store_name'] == vendor_profile.store_name:
                         # Store name hasn't changed, remove it to avoid unnecessary validation
-                        # #region agent log
-                        try:
-                            with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                                f.write(json.dumps({
-                                    'sessionId': 'debug-session',
-                                    'runId': 'post-fix',
-                                    'hypothesisId': 'A',
-                                    'location': 'users/views.py:819',
-                                    'message': 'Store name unchanged, removing from update',
-                                    'data': {},
-                                    'timestamp': int(time.time() * 1000)
-                                }) + '\n')
-                        except: pass
-                        # #endregion
                         vendor_data.pop('store_name')
                     else:
                         # Store name is being changed - check if it already exists for another vendor
-                        # #region agent log
-                        try:
-                            with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                                f.write(json.dumps({
-                                    'sessionId': 'debug-session',
-                                    'runId': 'post-fix',
-                                    'hypothesisId': 'A',
-                                    'location': 'users/views.py:822',
-                                    'message': 'Store name changed, checking for conflicts',
-                                    'data': {
-                                        'new_store_name': vendor_data['store_name'],
-                                        'current_store_name': vendor_profile.store_name
-                                    },
-                                    'timestamp': int(time.time() * 1000)
-                                }) + '\n')
-                        except: pass
-                        # #endregion
                         existing_vendor = VendorProfile.objects.filter(
                             store_name=vendor_data['store_name']
                         ).exclude(user=user).first()
                         if existing_vendor:
-                            # #region agent log
-                            try:
-                                with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                                    f.write(json.dumps({
-                                        'sessionId': 'debug-session',
-                                        'runId': 'post-fix',
-                                        'hypothesisId': 'A',
-                                        'location': 'users/views.py:829',
-                                        'message': 'Store name conflict found, removing from update (likely stale frontend data)',
-                                        'data': {
-                                            'conflicting_store_name': vendor_data['store_name'],
-                                            'existing_vendor_id': existing_vendor.id if existing_vendor else None
-                                        },
-                                        'timestamp': int(time.time() * 1000)
-                                    }) + '\n')
-                            except: pass
-                            # #endregion
                             # If store_name conflicts with another vendor, it's likely stale data from frontend
                             # Remove it from the update to prevent validation errors
                             # The user's current store_name will remain unchanged
                             vendor_data.pop('store_name')
                 
-                # #region agent log
-                try:
-                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'sessionId': 'debug-session',
-                            'runId': 'post-fix',
-                            'hypothesisId': 'A',
-                            'location': 'users/views.py:774',
-                            'message': 'Before vendor serializer validation',
-                            'data': {
-                                'store_name_in_data': vendor_data.get('store_name'),
-                                'current_store_name': vendor_profile.store_name,
-                                'store_name_removed_if_unchanged': 'store_name' not in vendor_data or vendor_data.get('store_name') != vendor_profile.store_name,
-                                'vendor_data_keys': list(vendor_data.keys())
-                            },
-                            'timestamp': int(time.time() * 1000)
-                        }) + '\n')
-                except: pass
-                # #endregion
                 vendor_serializer = VendorProfileSerializer(vendor_profile, data=vendor_data, partial=True)
                 if vendor_serializer.is_valid():
                     vendor_serializer.save()
@@ -938,25 +895,6 @@ def update_profile_view(request):
                     # Also refresh user to ensure relationships are updated
                     user.refresh_from_db()
                 else:
-                    # #region agent log
-                    try:
-                        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({
-                                'sessionId': 'debug-session',
-                                'runId': 'run1',
-                                'hypothesisId': 'A',
-                                'location': 'users/views.py:781',
-                                'message': 'Vendor serializer validation failed',
-                                'data': {
-                                    'errors': str(vendor_serializer.errors),
-                                    'store_name_in_data': vendor_data.get('store_name'),
-                                    'current_store_name': vendor_profile.store_name,
-                                    'store_name_error': 'store_name' in vendor_serializer.errors
-                                },
-                                'timestamp': int(time.time() * 1000)
-                            }) + '\n')
-                    except: pass
-                    # #endregion
                     # Log validation errors for debugging
                     import logging
                     logger = logging.getLogger(__name__)
@@ -968,24 +906,6 @@ def update_profile_view(request):
                         'vendor_profile_errors': vendor_serializer.errors
                     }, status=status.HTTP_400_BAD_REQUEST)
             except VendorProfile.DoesNotExist:
-                # #region agent log
-                try:
-                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'sessionId': 'debug-session',
-                            'runId': 'run1',
-                            'hypothesisId': 'B',
-                            'location': 'users/views.py:792',
-                            'message': 'VendorProfile DoesNotExist exception',
-                            'data': {
-                                'user_id': user.id,
-                                'username': user.username,
-                                'vendor_profile_exists_in_db': VendorProfile.objects.filter(user=user).exists()
-                            },
-                            'timestamp': int(time.time() * 1000)
-                        }) + '\n')
-                except: pass
-                # #endregion
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.warning(f'VendorProfile does not exist for user {user.id}')
@@ -1066,21 +986,6 @@ def buyer_reviews_view(request):
 @permission_classes([IsAuthenticated])
 def seller_dashboard_view(request):
     """Get seller dashboard data with analytics"""
-    # #region agent log
-    import json
-    try:
-        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'run1',
-                'hypothesisId': 'A',
-                'location': 'users/views.py:871',
-                'message': 'seller_dashboard_view entry',
-                'data': {'user_id': request.user.id if request.user.is_authenticated else None, 'username': request.user.username if request.user.is_authenticated else None},
-                'timestamp': int(__import__('time').time() * 1000)
-            }) + '\n')
-    except: pass
-    # #endregion
     user = request.user
     
     # Check if user has profile and is seller
@@ -1096,28 +1001,6 @@ def seller_dashboard_view(request):
         from products.models import Product
         has_products = Product.objects.filter(vendor=user).exists()
         
-        # #region agent log
-        try:
-            with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({
-                    'sessionId': 'debug-session',
-                    'runId': 'post-fix',
-                    'hypothesisId': 'A',
-                    'location': 'users/views.py:892',
-                    'message': 'Profile found',
-                    'data': {
-                        'profile_id': profile.id if profile else None, 
-                        'role': profile.role if profile else None, 
-                        'is_seller': profile.is_seller() if profile else None, 
-                        'has_vendor_profile': has_vendor_profile,
-                        'has_products': has_products,
-                        'vendor_profile_count': VendorProfile.objects.filter(user=user).count()
-                    },
-                    'timestamp': int(__import__('time').time() * 1000)
-                }) + '\n')
-        except: pass
-        # #endregion
-        
         # If user has products but no vendor_profile, create vendor_profile
         # This fixes data inconsistency: users with products should have vendor_profile
         if not has_vendor_profile and has_products:
@@ -1128,72 +1011,16 @@ def seller_dashboard_view(request):
                 description=''
             )
             has_vendor_profile = True
-            # #region agent log
-            try:
-                with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'post-fix',
-                        'hypothesisId': 'A',
-                        'location': 'users/views.py:914',
-                        'message': 'Created vendor_profile for user with products',
-                        'data': {'vendor_profile_id': vendor_profile.id, 'store_name': vendor_profile.store_name},
-                        'timestamp': int(__import__('time').time() * 1000)
-                    }) + '\n')
-            except: pass
-            # #endregion
         
         # If user has vendor_profile but role is not "seller", update role to "seller"
         if has_vendor_profile and profile.role != 'seller':
             profile.role = 'seller'
             profile.save(update_fields=['role'])
-            # #region agent log
-            try:
-                with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'post-fix',
-                        'hypothesisId': 'A',
-                        'location': 'users/views.py:930',
-                        'message': 'Updated role to seller',
-                        'data': {'old_role': profile.role, 'new_role': 'seller'},
-                        'timestamp': int(__import__('time').time() * 1000)
-                    }) + '\n')
-            except: pass
-            # #endregion
         
         # Check if user is a seller (role must be "seller")
         if not profile.is_seller():
-            # #region agent log
-            try:
-                with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'post-fix',
-                        'hypothesisId': 'A',
-                        'location': 'users/views.py:910',
-                        'message': '403 Forbidden - not a seller',
-                        'data': {'role': profile.role if profile else None, 'is_seller_result': profile.is_seller() if profile else None, 'has_vendor_profile': has_vendor_profile},
-                        'timestamp': int(__import__('time').time() * 1000)
-                    }) + '\n')
-            except: pass
-            # #endregion
             return Response({'error': 'Only sellers can access this endpoint'}, status=status.HTTP_403_FORBIDDEN)
     except (UserProfile.DoesNotExist, AttributeError) as e:
-            # #region agent log
-            try:
-                with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'run1',
-                        'hypothesisId': 'B',
-                        'location': 'users/views.py:880',
-                        'message': 'Profile DoesNotExist or AttributeError',
-                        'data': {'error_type': type(e).__name__, 'error_msg': str(e), 'user_id': user.id},
-                        'timestamp': int(__import__('time').time() * 1000)
-                    }) + '\n')
-            except: pass
-            # #endregion
             # Try to create profile if it doesn't exist (shouldn't happen, but handle gracefully)
             # This is a fallback - normally profile should be created during registration
             try:
@@ -1202,35 +1029,7 @@ def seller_dashboard_view(request):
                     role='seller'  # Default to seller if accessing seller dashboard
                 )
                 # Signal will create VendorProfile automatically
-                # #region agent log
-                try:
-                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'sessionId': 'debug-session',
-                            'runId': 'run1',
-                            'hypothesisId': 'B',
-                            'location': 'users/views.py:887',
-                            'message': 'Profile created successfully',
-                            'data': {'profile_id': profile.id, 'role': profile.role},
-                            'timestamp': int(__import__('time').time() * 1000)
-                        }) + '\n')
-                except: pass
-                # #endregion
             except Exception as create_error:
-                # #region agent log
-                try:
-                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({
-                            'sessionId': 'debug-session',
-                            'runId': 'run1',
-                            'hypothesisId': 'B',
-                            'location': 'users/views.py:890',
-                            'message': 'Profile creation failed',
-                            'data': {'error_type': type(create_error).__name__, 'error_msg': str(create_error)},
-                            'timestamp': int(__import__('time').time() * 1000)
-                        }) + '\n')
-                except: pass
-                # #endregion
                 # If creation fails, return empty dashboard data
                 import logging
                 logging.getLogger(__name__).warning(f"Failed to create profile for user {user.id}")
@@ -2594,18 +2393,8 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
         For public access, only return approved suppliers.
         Optimized with select_related and annotations.
         """
-        import json
-        log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
-        
         # Get the pk from URL
         pk = self.kwargs.get('pk')
-        
-        # #region agent log
-        try:
-            with open(log_path, 'a', encoding='utf-8') as f:
-                f.write(json.dumps({'location': 'users/views.py:2214', 'message': 'SupplierViewSet.get_object entry', 'data': {'pk': pk, 'isAuthenticated': self.request.user.is_authenticated}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
-        except: pass
-        # #endregion
         
         # Optimize query with annotations and select_related
         queryset = VendorProfile.objects.select_related(
@@ -2631,26 +2420,8 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
         
         # Try to get the object from all VendorProfiles (not just approved ones)
         try:
-            # #region agent log
-            try:
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    f.write(json.dumps({'location': 'users/views.py:2633', 'message': 'SupplierViewSet.get_object trying to get object', 'data': {'pk': pk, 'userId': self.request.user.id if self.request.user.is_authenticated else None, 'isAuthenticated': self.request.user.is_authenticated}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'D'}) + '\n')
-            except: pass
-            # #endregion
             obj = queryset.get(pk=pk)
-            # #region agent log
-            try:
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    f.write(json.dumps({'location': 'users/views.py:2247', 'message': 'SupplierViewSet.get_object found', 'data': {'supplierId': obj.id, 'isApproved': obj.is_approved}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
-            except: pass
-            # #endregion
         except VendorProfile.DoesNotExist:
-            # #region agent log
-            try:
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    f.write(json.dumps({'location': 'users/views.py:2250', 'message': 'SupplierViewSet.get_object not found', 'data': {'pk': pk}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
-            except: pass
-            # #endregion
             from rest_framework.exceptions import NotFound
             raise NotFound("Supplier not found")
         
@@ -2660,50 +2431,20 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
                 user_vendor_profile = self.request.user.vendor_profile
                 if user_vendor_profile.id == obj.id:
                     # Owner can view their own profile even if not approved
-                    # #region agent log
-                    try:
-                        with open(log_path, 'a', encoding='utf-8') as f:
-                            f.write(json.dumps({'location': 'users/views.py:2258', 'message': 'SupplierViewSet.get_object owner access', 'data': {'supplierId': obj.id}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
-                    except: pass
-                    # #endregion
                     return obj
             except VendorProfile.DoesNotExist:
                 pass
         
         # For public access or non-owners, only return if approved
         if not obj.is_approved:
-            # #region agent log
-            try:
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    f.write(json.dumps({'location': 'users/views.py:2265', 'message': 'SupplierViewSet.get_object not approved', 'data': {'supplierId': obj.id}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
-            except: pass
-            # #endregion
             from rest_framework.exceptions import NotFound
             raise NotFound("Supplier not found or not approved")
-        
-        # #region agent log
-        try:
-            with open(log_path, 'a', encoding='utf-8') as f:
-                f.write(json.dumps({'location': 'users/views.py:2267', 'message': 'SupplierViewSet.get_object exit', 'data': {'supplierId': obj.id}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
-        except: pass
-        # #endregion
         
         return obj
     
     @action(detail=True, methods=['get'])
     def products(self, request, pk=None):
         """Get all products from a specific supplier with pagination and optimized queries"""
-        import json
-        import logging
-        logger = logging.getLogger(__name__)
-        log_path = '/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log'
-        
-        # #region agent log
-        try:
-            with open(log_path, 'a', encoding='utf-8') as f:
-                f.write(json.dumps({'location': 'users/views.py:2270', 'message': 'SupplierViewSet.products entry', 'data': {'pk': pk, 'page': request.GET.get('page', '1')}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'B'}) + '\n')
-        except: pass
-        # #endregion
         
         from products.models import Product, ProductImage, ProductFeature
         from products.serializers import ProductSerializer
@@ -2711,12 +2452,6 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
         
         try:
             supplier = self.get_object()
-            # #region agent log
-            try:
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    f.write(json.dumps({'location': 'users/views.py:2280', 'message': 'SupplierViewSet.products supplier retrieved', 'data': {'supplierId': supplier.id, 'supplierName': supplier.store_name}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'E'}) + '\n')
-            except: pass
-            # #endregion
             
             # Optimize queries with select_related and prefetch_related
             products = Product.objects.filter(
@@ -2736,14 +2471,6 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
                 'labels'
             ).order_by('-created_at')
             
-            # #region agent log
-            try:
-                product_count_before_pag = products.count()
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    f.write(json.dumps({'location': 'users/views.py:2300', 'message': 'SupplierViewSet.products queryset ready', 'data': {'totalProducts': product_count_before_pag}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'F'}) + '\n')
-            except: pass
-            # #endregion
-            
             # Add pagination
             paginator = PageNumberPagination()
             paginator.page_size = 20  # 20 products per page
@@ -2752,22 +2479,8 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
             serializer = ProductSerializer(paginated_products, many=True)
             response = paginator.get_paginated_response(serializer.data)
             
-            # #region agent log
-            try:
-                response_data = response.data if hasattr(response, 'data') else {}
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    f.write(json.dumps({'location': 'users/views.py:2310', 'message': 'SupplierViewSet.products response ready', 'data': {'hasResults': 'results' in response_data, 'resultsCount': len(response_data.get('results', [])), 'hasCount': 'count' in response_data, 'hasNext': 'next' in response_data}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'A'}) + '\n')
-            except: pass
-            # #endregion
-            
             return response
         except Exception as e:
-            # #region agent log
-            try:
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    f.write(json.dumps({'location': 'users/views.py:2315', 'message': 'SupplierViewSet.products error', 'data': {'pk': pk, 'error': str(e), 'errorType': type(e).__name__}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'D'}) + '\n')
-            except: pass
-            # #endregion
             raise
     
     @action(detail=True, methods=['get'])
