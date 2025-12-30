@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@mdi/font": "^7.4.47",
-    "@pinia/nuxt": "^0.6.1",
+    "@pinia/nuxt": "^0.7.0",
     "@tiptap/extension-image": "^3.10.2",
     "@tiptap/extension-link": "^3.10.2",
     "@tiptap/extension-table": "^3.10.2",
