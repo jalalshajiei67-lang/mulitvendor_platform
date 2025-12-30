@@ -162,15 +162,19 @@ class GamificationService:
             Metric(
                 'category',
                 'دسته‌بندی',
-                'زیر دسته مناسب را انتخاب کنید.',
-                latest_product.subcategories.exists(),
+                'دسته‌بندی توسط ادمین پس از تایید محصول تعیین خواهد شد.',
+                # For pending products, category check passes automatically
+                # For approved products, check if categories are assigned by admin
+                latest_product.approval_status == 'pending' or latest_product.subcategories.exists(),
                 0.15,
             ),
             Metric(
                 'seo',
                 'سئو',
-                'نامک و توضیح کوتاه را پر کنید.',
-                bool(latest_product.slug and latest_product.meta_description),
+                'نامک و توضیح کوتاه توسط ادمین پس از تایید تنظیم خواهد شد.',
+                # For pending products, SEO check passes automatically
+                # For approved products, check if slug and meta are set by admin
+                latest_product.approval_status == 'pending' or bool(latest_product.slug and latest_product.meta_description),
                 0.1,
             ),
         ]

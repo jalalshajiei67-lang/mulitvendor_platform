@@ -12,7 +12,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Case, When, Value, IntegerField
 from tinymce.widgets import TinyMCE
 from .models import (
     Department,
@@ -841,7 +841,7 @@ class ProductCommentInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
-    list_display = ['name', 'slug', 'vendor', 'supplier', 'primary_category', 'get_subcategories', 'get_labels', 'price', 'stock', 'image_count', 'comment_count', 'approval_status', 'is_active', 'created_at']
+    list_display = ['name', 'slug', 'vendor', 'supplier', 'primary_category', 'get_subcategories', 'get_labels', 'price', 'stock', 'image_count', 'comment_count', 'approval_status_badge', 'is_active', 'created_at']
     list_filter = ['approval_status', 'is_active', 'primary_category', ('subcategories', SubcategorySearchFilter), 'labels', 'availability_status', 'condition', 'origin', 'created_at', 'updated_at']
     search_fields = [
         'name', 'slug', 'description',
@@ -857,6 +857,20 @@ class ProductAdmin(admin.ModelAdmin):
     autocomplete_fields = ['subcategories', 'labels', 'primary_category', 'supplier']
     inlines = [ProductImageInline, ProductCommentInline]
     actions = ['make_active', 'make_inactive', 'approve_products', 'reject_products', 'delete_selected']  # Enable bulk actions with delete
+
+    def get_queryset(self, request):
+        """Order by approval status to show pending products first"""
+        qs = super().get_queryset(request)
+        # Order by approval status with pending first, then approved, then rejected
+        return qs.annotate(
+            approval_order=Case(
+                When(approval_status='pending', then=Value(0)),
+                When(approval_status='approved', then=Value(1)),
+                When(approval_status='rejected', then=Value(2)),
+                default=Value(3),
+                output_field=IntegerField(),
+            )
+        ).order_by('approval_order', '-created_at')
     
     def get_search_results(self, request, queryset, search_term):
         """Override to ensure subcategory search works properly"""
@@ -966,7 +980,22 @@ class ProductAdmin(admin.ModelAdmin):
         except Exception as e:
             return format_html('<span style="color: orange;">Error</span>')
     get_labels.short_description = 'Labels'
-    
+
+    @admin.display(description='Approval Status')
+    def approval_status_badge(self, obj):
+        """Display approval status with colored badges"""
+        status_colors = {
+            'pending': '#ffa726',  # Orange
+            'approved': '#66bb6a',  # Green
+            'rejected': '#ef5350',  # Red
+        }
+        color = status_colors.get(obj.approval_status, '#999')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 8px; '
+            'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
+            color, obj.get_approval_status_display()
+        )
+
     # Bulk actions
     def make_active(self, request, queryset):
         """Mark selected products as active"""

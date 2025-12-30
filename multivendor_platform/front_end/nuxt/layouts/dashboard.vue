@@ -214,7 +214,7 @@
               class="text-white nav-btn"
               prepend-icon="mdi-account-group"
             >
-              استخر مشتریان
+              فرصت‌های فروش
             </v-btn>
             <v-btn
               to="/seller/dashboard?tab=crm"
@@ -280,7 +280,7 @@
               class="text-white nav-btn"
               prepend-icon="mdi-chat-processing-outline"
             >
-              گفتگوها
+              چتها
             </v-btn>
             <v-btn
               to="/seller/dashboard?tab=insights"
@@ -343,7 +343,7 @@
                 <v-list-item-title>شرکت من</v-list-item-title>
               </v-list-item>
               <v-list-item to="/seller/dashboard?tab=customerPool" prepend-icon="mdi-account-group">
-                <v-list-item-title>استخر مشتریان</v-list-item-title>
+                <v-list-item-title>فرصت‌های فروش</v-list-item-title>
               </v-list-item>
               <v-list-item to="/seller/dashboard?tab=crm" prepend-icon="mdi-account-box-multiple">
                 <v-list-item-title>CRM مدیریت مشتریان</v-list-item-title>
@@ -372,7 +372,7 @@
                 to="/seller/dashboard?tab=chats"
                 prepend-icon="mdi-chat-processing-outline"
               >
-                <v-list-item-title>گفتگوها</v-list-item-title>
+                <v-list-item-title>چتها</v-list-item-title>
               </v-list-item>
               <v-list-item
                 to="/seller/dashboard?tab=insights"
@@ -563,27 +563,36 @@ const handleNotificationClick = (notification: any) => {
   }
 }
 
-// Load notifications when authenticated buyer
-watch(
-  [isAuthenticated, isBuyer],
-  ([auth, buyer]) => {
-    if (notificationInterval) {
-      clearInterval(notificationInterval)
-      notificationInterval = null
-    }
+// Setup notification polling when component mounts (client-side only)
+onMounted(() => {
+  if (isAuthenticated.value && isBuyer.value) {
+    loadNotifications()
+    // Refresh notifications every 30 seconds
+    notificationInterval = setInterval(() => {
+      if (isAuthenticated.value && isBuyer.value) {
+        loadNotifications()
+      }
+    }, 30000)
+  }
+})
 
-    if (auth && buyer) {
-      loadNotifications()
-      // Refresh notifications every 30 seconds
-      notificationInterval = setInterval(() => {
-        if (isAuthenticated.value && isBuyer.value) {
-          loadNotifications()
-        }
-      }, 30000)
-    }
-  },
-  { immediate: true },
-)
+// Update notifications when authentication state changes
+watch([isAuthenticated, isBuyer], ([auth, buyer]) => {
+  if (notificationInterval) {
+    clearInterval(notificationInterval)
+    notificationInterval = null
+  }
+
+  if (auth && buyer) {
+    loadNotifications()
+    // Refresh notifications every 30 seconds
+    notificationInterval = setInterval(() => {
+      if (isAuthenticated.value && isBuyer.value) {
+        loadNotifications()
+      }
+    }, 30000)
+  }
+})
 
 // Cleanup on unmount
 onUnmounted(() => {
@@ -621,7 +630,7 @@ watch(
 const { showToast } = useToast()
 
 const showSnackbar = (message: string, color: string = 'info') => {
-  showToast({ message, color })
+  showToast({ message, color: color as any })
 }
 
 // Tier helper functions

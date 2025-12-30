@@ -178,9 +178,9 @@
                     <v-card elevation="2" rounded="xl" class="pa-4">
                       <div class="d-flex align-center justify-space-between mb-4">
                         <div>
-                          <div class="text-h6 font-weight-bold">مشتریان منتظر شما (۳ فرصت اخیر)</div>
+                          <div class="text-h6 font-weight-bold">مشتریان صنعتی منتظر شما (۳ فرصت اخیر)</div>
                           <div class="text-body-2 text-medium-emphasis">
-                            این افراد به دنبال محصولاتی هستند که شما می‌فروشید. با آنها تماس بگیرید.
+                            این مشتریان صنعتی به دنبال ماشین‌آلات و تجهیزات شما هستند. فرصت را از دست ندهید و سریع تماس بگیرید.
                           </div>
                         </div>
                         <v-btn
@@ -327,9 +327,9 @@
                     <v-card elevation="2" rounded="xl" class="pa-4">
                       <div class="d-flex align-center justify-space-between mb-4">
                         <div>
-                          <div class="text-h6 font-weight-bold">مشتریان بالقوه</div>
+                          <div class="text-h6 font-weight-bold">فرصت‌های فروش صنعتی</div>
                           <div class="text-body-2 text-medium-emphasis">
-                            لیست خریدارانی که به دنبال محصولات شما هستند. پاسخگویی سریع = اعتماد بیشتر.
+                            لیست مشتریان صنعتی که به دنبال ماشین‌آلات و تجهیزات شما هستند. پاسخ سریع = فروش بیشتر.
                           </div>
                         </div>
                         <v-btn
@@ -356,7 +356,7 @@
                         variant="tonal"
                         class="mb-0"
                       >
-                        هنوز درخواستی موجود نیست. با تکمیل محصولات خود، به مشتریان کمک کنید شما را پیدا کنند.
+                        هنوز مشتری صنعتی جدیدی درخواست نداده. با تکمیل اطلاعات ماشین‌آلات و تجهیزات خود، مشتریان بیشتری شما را پیدا کنند.
                       </v-alert>
 
                       <v-row v-else class="gy-4">
@@ -418,7 +418,7 @@
                             <v-sheet color="surface-variant" class="pa-3 rounded-lg">
                               <div class="text-caption text-medium-emphasis mb-1">شماره تماس</div>
                               <div class="text-body-1 font-weight-bold">
-                                {{ lead.contact_revealed ? lead.phone_number : (lead.phone_number || 'برای نمایش، دکمه زیر را بزنید') }}
+                                {{ lead.contact_revealed ? lead.phone_number : (lead.phone_number || 'برای نمایش شماره، دکمه تماس را بزنید') }}
                               </div>
                             </v-sheet>
 
@@ -430,7 +430,7 @@
                               :disabled="lead.contact_revealed"
                               @click="revealLeadContact(lead.id)"
                             >
-                              {{ lead.contact_revealed ? 'اطلاعات نمایش داده شد' : 'دریافت شماره تماس خریدار' }}
+                              {{ lead.contact_revealed ? 'شماره نمایش داده شد' : 'دریافت شماره تماس مشتری' }}
                             </v-btn>
                           </v-card>
                         </v-col>
@@ -853,7 +853,7 @@
                       <v-card v-else-if="!loadingChats && chatRooms.length === 0" elevation="0" class="flex-grow-1 d-flex align-center justify-center">
                         <div class="text-center text-medium-emphasis">
                           <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-chat-outline</v-icon>
-                          <div class="text-body-1">هیچ گفتگویی وجود ندارد</div>
+                          <div class="text-body-1">هیچ چتی وجود ندارد</div>
                         </div>
                       </v-card>
                     </v-card>
@@ -895,7 +895,7 @@
                     <v-card v-else elevation="2" rounded="xl" height="650" class="d-flex align-center justify-center bg-grey-lighten-5">
                       <div class="text-center text-medium-emphasis">
                         <v-icon size="80" color="grey-lighten-1" class="mb-4">mdi-chat-processing-outline</v-icon>
-                        <div class="text-h6">یک گفتگو را انتخاب کنید</div>
+                        <div class="text-h6">یک چت را انتخاب کنید</div>
                       </div>
                     </v-card>
                   </v-col>
@@ -1152,7 +1152,7 @@ const getLeadName = (lead: CustomerLead) => {
 
 const getLeadCategoryLabel = (lead: CustomerLead) => {
   if (lead.is_free) return 'رایگان'
-  return lead.category_name || 'مرتبط با محصولات شما'
+  return lead.category_name || 'مرتبط با ماشین‌آلات شما'
 }
 
 const normalizeLead = (lead: any): CustomerLead => ({
@@ -1668,7 +1668,7 @@ const loadCustomerPool = async () => {
     customerPool.value = (Array.isArray(data) ? data : []).map(normalizeLead)
   } catch (error: any) {
     console.error('Failed to load customer pool:', error)
-    showSnackbar('خطا در بارگذاری درخواست های خرید رایگان', 'error')
+    showSnackbar('خطا در بارگذاری فرصت‌های فروش صنعتی', 'error')
   } finally {
     loadingCustomerPool.value = false
   }
@@ -1694,7 +1694,7 @@ const revealLeadContact = async (leadId: number) => {
         if (idx !== -1) {
           customerPool.value.splice(idx, 1)
         }
-        showSnackbar('این مخاطب قبلاً در CRM شما ثبت شده است، برای مشاهده به CRM مراجعه کنید.', 'هشدار')
+        showSnackbar('این مشتری قبلاً در سیستم مدیریت ارتباط با مشتریان شما ثبت شده است، برای مشاهده به بخش CRM مراجعه کنید.', 'هشدار')
         return
       }
     }
@@ -1716,22 +1716,22 @@ const revealLeadContact = async (leadId: number) => {
         customerPool.value.splice(idx, 1)
       }
       
-      showSnackbar('اطلاعات با موفقیت به CRM اضافه شد. برای مشاهده به تب CRM مراجعه کنید.', 'success')
+      showSnackbar('مشتری با موفقیت به سیستم مدیریت ارتباط با مشتریان اضافه شد. برای مشاهده به بخش CRM مراجعه کنید.', 'success')
     } catch (crmError: any) {
       console.error('Failed to add contact to CRM:', crmError)
       // Don't show contact info if CRM add fails
-      showSnackbar('خطا در افزودن به CRM. لطفاً دوباره تلاش کنید.', 'error')
+      showSnackbar('خطا در افزودن مشتری به سیستم مدیریت ارتباط با مشتریان. لطفاً دوباره تلاش کنید.', 'error')
     }
   } catch (error: any) {
     console.error('Failed to reveal contact:', error)
     
     // Extract error message from response
     const statusCode = error?.statusCode || error?.status || error?.response?.status
-    let errorMessage = 'دسترسی به این مشتری ممکن نیست'
+    let errorMessage = 'دسترسی به اطلاعات این مشتری صنعتی ممکن نیست'
     
     // Handle 429 rate limit error specifically
     if (statusCode === 429) {
-      errorMessage = error?.data?.detail || 'شما به حد مجاز روزانه برای مشاهده مشتریهای جدید رسیده‌اید. لطفاً بعداً تلاش کنید.'
+      errorMessage = error?.data?.detail || 'شما به حد مجاز روزانه برای مشاهده فرصت‌های فروش جدید رسیده‌اید. لطفاً فردا دوباره تلاش کنید.'
     } else if (error?.data?.detail) {
       errorMessage = error.data.detail
     } else if (error?.message) {
@@ -1754,7 +1754,7 @@ const loadChatRooms = async () => {
     unreadChatsCount.value = chatRooms.value.reduce((sum, room) => sum + (room.unread_count || 0), 0)
   } catch (error: any) {
     console.error('Failed to load chat rooms:', error)
-    showSnackbar('خطا در بارگذاری گفتگوها', 'error')
+    showSnackbar('خطا در بارگذاری چتها', 'error')
   } finally {
     loadingChats.value = false
   }

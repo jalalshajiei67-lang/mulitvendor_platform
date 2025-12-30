@@ -186,7 +186,7 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 
 const drawer = ref(false)
 const authStore = useAuthStore()
@@ -256,13 +256,26 @@ const handleNotificationClick = (notification: any) => {
 
 let notificationInterval: ReturnType<typeof setInterval> | null = null
 
-// Load notifications when authenticated buyer
+// Setup notification polling when component mounts (client-side only)
+onMounted(() => {
+  if (isAuthenticated.value && isBuyer.value) {
+    loadNotifications()
+    // Refresh notifications every 30 seconds
+    notificationInterval = setInterval(() => {
+      if (isAuthenticated.value && isBuyer.value) {
+        loadNotifications()
+      }
+    }, 30000)
+  }
+})
+
+// Update notifications when authentication state changes
 watch([isAuthenticated, isBuyer], ([auth, buyer]) => {
   if (notificationInterval) {
     clearInterval(notificationInterval)
     notificationInterval = null
   }
-  
+
   if (auth && buyer) {
     loadNotifications()
     // Refresh notifications every 30 seconds
@@ -272,7 +285,7 @@ watch([isAuthenticated, isBuyer], ([auth, buyer]) => {
       }
     }, 30000)
   }
-}, { immediate: true })
+})
 
 // Cleanup on unmount
 onUnmounted(() => {

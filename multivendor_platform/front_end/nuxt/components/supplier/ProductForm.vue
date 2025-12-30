@@ -21,6 +21,8 @@
                 data-tour="product-name-input"
               ></v-text-field>
 
+              <!-- Slug field hidden from sellers - will be set by admin during approval -->
+              <!--
               <v-text-field
                 v-model="product.slug"
                 label="Slug (نامک)"
@@ -30,6 +32,7 @@
                 persistent-hint
                 class="mb-4"
               ></v-text-field>
+              -->
 
               <div class="mb-4" data-tour="product-description-input">
                 <label class="text-body-2 mb-2 d-block font-weight-medium">
@@ -206,16 +209,17 @@
             </v-card-text>
           </v-card>
 
-          <!-- Category Selection -->
+          <!-- Category Selection - Hidden from sellers, will be set by admin during approval -->
+          <!--
           <v-card elevation="2" rounded="lg" class="mb-4">
             <v-card-title class="text-h6 font-weight-bold bg-secondary pa-4">
               <v-icon class="ml-2">mdi-folder-outline</v-icon>
               دسته‌بندی
             </v-card-title>
             <v-card-text class="pa-4">
-              <v-alert 
-                type="info" 
-                variant="tonal" 
+              <v-alert
+                type="info"
+                variant="tonal"
                 density="compact"
                 class="mb-4"
               >
@@ -224,8 +228,7 @@
                   اگر دسته‌بندی مناسب محصول خود را پیدا نکردید، می‌توانید درخواست ایجاد دسته‌بندی جدید دهید.
                 </div>
               </v-alert>
-              
-              <!-- Searchable Subcategory Selector -->
+
               <div class="d-flex gap-2 align-center mb-2">
               <v-autocomplete
                 v-model="product.subcategory"
@@ -265,8 +268,7 @@
                   </v-list-item>
                 </template>
               </v-autocomplete>
-                
-                <!-- Always visible category request button -->
+
                 <v-btn
                   v-if="!showCategoryRequest"
                   color="orange"
@@ -279,11 +281,10 @@
                 </v-btn>
               </div>
 
-              <!-- Category Request Option (when search fails) -->
-              <v-alert 
+              <v-alert
                 v-if="subcategorySearch && subcategorySearch.length > 2 && !product.subcategory && filteredSearchableSubcategories.length === 0 && !showCategoryRequest"
-                type="info" 
-                variant="tonal" 
+                type="info"
+                variant="tonal"
                 class="mt-3"
               >
                 <div class="d-flex align-center justify-space-between">
@@ -302,10 +303,9 @@
                 </div>
               </v-alert>
 
-              <!-- Category Request Form (Inline) -->
-              <v-card 
-                v-if="showCategoryRequest" 
-                elevation="1" 
+              <v-card
+                v-if="showCategoryRequest"
+                elevation="1"
                 variant="outlined"
                 class="mt-3"
               >
@@ -324,7 +324,7 @@
                     class="mb-3"
                     :disabled="requestingCategory"
                   ></v-text-field>
-                  
+
                   <div class="d-flex gap-2">
                     <v-btn
                       @click="submitCategoryRequest"
@@ -345,11 +345,10 @@
                 </v-card-text>
               </v-card>
 
-              <!-- Full Path Display -->
-              <v-alert 
-                v-if="product.subcategory && selectedSubcategoryPath" 
-                type="success" 
-                variant="tonal" 
+              <v-alert
+                v-if="product.subcategory && selectedSubcategoryPath"
+                type="success"
+                variant="tonal"
                 class="mt-3"
               >
                 <div class="d-flex align-center">
@@ -361,7 +360,6 @@
                 </div>
               </v-alert>
 
-              <!-- Optional: Show Department and Category for reference -->
               <v-row v-if="product.subcategory && selectedSubcategoryPath" class="mt-2">
                 <v-col cols="12" sm="6">
                   <v-text-field
@@ -386,6 +384,34 @@
                   ></v-text-field>
                 </v-col>
               </v-row>
+            </v-card-text>
+          </v-card>
+          -->
+
+          <!-- Category Assignment Info -->
+          <v-card elevation="2" rounded="lg" class="mb-4">
+            <v-card-title class="text-h6 font-weight-bold bg-info pa-4">
+              <v-icon class="ml-2">mdi-information</v-icon>
+              تخصیص دسته‌بندی
+            </v-card-title>
+            <v-card-text class="pa-4">
+              <v-alert
+                type="info"
+                variant="tonal"
+                density="compact"
+                class="mb-0"
+              >
+                <div class="text-body-2">
+                  <v-icon size="small" class="ml-1">mdi-information</v-icon>
+                  <strong>دسته‌بندی محصول توسط ادمین تعیین خواهد شد:</strong>
+                  <br>
+                  • پس از ذخیره محصول، ادمین درخواست شما را بررسی می‌کند
+                  • ادمین بهترین دسته‌بندی را برای محصول شما انتخاب خواهد کرد
+                  • محصول پس از تایید ادمین در سایت نمایش داده خواهد شد
+                  <br><br>
+                  <em class="text-caption">این فرآیند تضمین می‌کند که محصولات در دسته‌بندی‌های مناسب قرار گیرند و مشتریان به راحتی محصولات شما را پیدا کنند.</em>
+                </div>
+              </v-alert>
             </v-card-text>
           </v-card>
 
@@ -643,11 +669,9 @@ const fileInput = ref<HTMLInputElement | null>(null)
 
 const product = ref<{
   name: string
-  slug: string
   description: string
   price: number
   stock: number
-  subcategory: number | null
   is_active: boolean
   is_featured: boolean
   availability_status: string
@@ -656,11 +680,9 @@ const product = ref<{
   lead_time_days: number | null
 }>({
   name: '',
-  slug: '',
   description: '',
   price: 0,
   stock: 0,
-  subcategory: null,
   is_active: true,
   is_featured: false,
   availability_status: '',
@@ -745,6 +767,8 @@ const removeFeature = (index: number) => {
   }
 }
 
+// Category-related variables - commented out since sellers don't select categories anymore
+/*
 const departments = ref<any[]>([])
 const categories = ref<any[]>([])
 const subcategories = ref<any[]>([])
@@ -757,6 +781,7 @@ const searchableSubcategories = ref<Array<{ id: number; name: string; label: str
 const showCategoryRequest = ref(false)
 const categoryRequest = ref({ name: '' })
 const requestingCategory = ref(false)
+*/
 
 const uploadedImages = ref<any[]>([])
 const existingImageCount = ref(props.productData?.images?.length ?? 0)
@@ -895,9 +920,9 @@ const productMetrics = computed(() => [
   {
     key: 'category',
     label: 'دسته‌بندی',
-    tip: 'زیر دسته دقیق را انتخاب کنید تا مشتری راحت‌تر شما را پیدا کند.',
+    tip: 'دسته‌بندی توسط ادمین پس از تایید محصول تعیین خواهد شد.',
     weight: 0.1,
-    passed: Boolean(product.value.subcategory)
+    passed: true // Always passed since admin assigns categories
   },
   {
     key: 'attributes',
@@ -909,9 +934,9 @@ const productMetrics = computed(() => [
   {
     key: 'seo',
     label: 'سئو',
-    tip: 'نامک و توضیح کوتاه را تکمیل کنید.',
+    tip: 'نامک و توضیح کوتاه توسط ادمین پس از تایید تنظیم خواهد شد.',
     weight: 0.1,
-    passed: Boolean(product.value.slug && product.value.slug.length > 3 && product.value.description)
+    passed: true // Always passed since admin assigns slug and meta description
   },
   {
     key: 'status',
@@ -995,32 +1020,33 @@ const removeImage = (index: number) => {
   uploadedImages.value.splice(index, 1)
 }
 
-// Build searchable subcategories with full path
+// Category-related functions - commented out since sellers don't select categories anymore
+/*
 const buildSearchableSubcategories = () => {
   const searchable: Array<{ id: number; name: string; label: string; path: string; category: number; department: number }> = []
-  
+
   subcategories.value.forEach(sub => {
     // Handle both 'category' (singular) and 'categories' (plural/array)
     let categoryId: number | null = null
     let category: any = null
-    
+
     // Check if subcategory has 'categories' array (ManyToMany)
     if (sub.categories && Array.isArray(sub.categories) && sub.categories.length > 0) {
       // Use first category from the array
       const firstCategory = sub.categories[0]
       categoryId = typeof firstCategory === 'object' ? firstCategory?.id : firstCategory
       category = categories.value.find(c => c.id === categoryId)
-    } 
+    }
     // Fallback to 'category' (singular) field
     else if (sub.category) {
       categoryId = typeof sub.category === 'object' ? sub.category?.id : sub.category
       category = categories.value.find(c => c.id === categoryId)
     }
-    
+
     // Get department - handle both object and ID
     let departmentId: number | null = null
     let department: any = null
-    
+
     if (category) {
       // Handle both 'department' (singular) and 'departments' (array)
       if (category.departments && Array.isArray(category.departments) && category.departments.length > 0) {
@@ -1032,21 +1058,21 @@ const buildSearchableSubcategories = () => {
         department = departments.value.find(d => d.id === departmentId)
       }
     }
-    
+
     // Also check if subcategory has departments directly
     if (!department && sub.departments && Array.isArray(sub.departments) && sub.departments.length > 0) {
       const firstDept = sub.departments[0]
       departmentId = typeof firstDept === 'object' ? firstDept?.id : firstDept
       department = departments.value.find(d => d.id === departmentId)
     }
-    
+
     // Build path
     const pathParts: string[] = []
     if (department) pathParts.push(department.name)
     if (category) pathParts.push(category.name)
     pathParts.push(sub.name)
     const path = pathParts.join(' ← ')
-    
+
     // Only add if we have valid category and department
     if (categoryId && departmentId) {
       searchable.push({
@@ -1069,7 +1095,7 @@ const buildSearchableSubcategories = () => {
       })
     }
   })
-  
+
   searchableSubcategories.value = searchable
 }
 
@@ -1094,13 +1120,13 @@ const onSubcategorySelect = (subcategoryId: number | null) => {
     selectedCategory.value = null
     return
   }
-  
+
   const subcategory = searchableSubcategories.value.find(s => s.id === subcategoryId)
   if (subcategory) {
     // Set category and department from the searchable subcategory
     selectedCategory.value = subcategory.category || null
     selectedDepartment.value = subcategory.department || null
-    
+
     // Debug logging
     console.log('Subcategory selected:', {
       subcategoryId,
@@ -1136,7 +1162,7 @@ const filteredSearchableSubcategories = computed(() => {
   if (!subcategorySearch.value) {
     return searchableSubcategories.value
   }
-  
+
   const searchLower = subcategorySearch.value.toLowerCase()
   return searchableSubcategories.value.filter(sub => {
     return (
@@ -1182,7 +1208,7 @@ const fetchFormData = async () => {
 
     filteredCategories.value = categories.value
     filteredSubcategories.value = subcategories.value
-    
+
     // Build searchable subcategories after data is loaded
     buildSearchableSubcategories()
   } catch (error) {
@@ -1219,7 +1245,7 @@ const submitCategoryRequest = async () => {
 
   try {
     const { useApiFetch } = await import('~/composables/useApiFetch')
-    
+
     // First create the category request
     const requestResponse = await useApiFetch('/category-requests/', {
       method: 'POST',
@@ -1246,6 +1272,7 @@ const submitCategoryRequest = async () => {
     requestingCategory.value = false
   }
 }
+*/
 
 const cancelCategoryRequest = () => {
   categoryRequest.value.name = ''
@@ -1313,18 +1340,8 @@ const saveProductWithRequest = async (categoryRequestId: number) => {
       }
     })
 
-    // Don't require subcategory if we have a category request
-    // Handle subcategories (ManyToMany field - needs to be integer)
-    if (product.value.subcategory) {
-      const subcategoryId = Number(product.value.subcategory)
-      if (!isNaN(subcategoryId)) {
-        formData.append('subcategories', String(subcategoryId))
-      }
-    }
-
-    if (selectedCategory.value) {
-      formData.append('primary_category', String(selectedCategory.value))
-    }
+    // Categories are now assigned by admin during approval
+    // No subcategory or primary_category selection for sellers
 
     // Add features
     const validFeatures = productFeatures.value.filter(f => f.name && f.value)
@@ -1336,7 +1353,7 @@ const saveProductWithRequest = async (categoryRequestId: number) => {
     formData.append('category_request_id', String(categoryRequestId))
 
     const response: any = await productApi.createProduct(formData)
-    successMessage.value = `محصول "${(response as any)?.name || 'محصول'}" با موفقیت ایجاد شد! درخواست دسته‌بندی "${categoryRequest.value.name}" در حال بررسی است.`
+    successMessage.value = `محصول "${(response as any)?.name || 'محصول'}" با موفقیت ایجاد شد! محصول و درخواست دسته‌بندی شما توسط ادمین بررسی خواهد شد.`
     showSuccessSnackbar.value = true
     markOnce('product-save-button')
     const awarded = await awardProductSection()
@@ -1453,17 +1470,8 @@ const saveProduct = async () => {
       }
     })
 
-    // Handle subcategories (ManyToMany field - needs to be integer)
-    if (product.value.subcategory) {
-      const subcategoryId = Number(product.value.subcategory)
-      if (!isNaN(subcategoryId)) {
-        formData.append('subcategories', String(subcategoryId))
-      }
-    }
-
-    if (selectedCategory.value) {
-      formData.append('primary_category', String(selectedCategory.value))
-    }
+    // Categories are now assigned by admin during approval
+    // No subcategory or primary_category selection for sellers
 
     // Add features
     const validFeatures = productFeatures.value.filter(f => f.name && f.value)
@@ -1486,7 +1494,7 @@ const saveProduct = async () => {
       successMessage.value = `محصول "${response?.name || 'محصول'}" با موفقیت به‌روزرسانی شد!`
     } else {
       response = await productApi.createProduct(formData)
-      successMessage.value = `محصول "${response?.name || 'محصول'}" با موفقیت ایجاد شد!`
+      successMessage.value = `محصول "${response?.name || 'محصول'}" با موفقیت ایجاد شد! محصول شما پس از بررسی و تایید ادمین در سایت نمایش داده خواهد شد.`
     }
 
     showSuccessSnackbar.value = true
@@ -1564,7 +1572,7 @@ const getFieldLabel = (field: string): string => {
 }
 
 onMounted(async () => {
-  await fetchFormData()
+  // Category loading removed - sellers don't select categories anymore
 
   // If editing, populate form with existing data
   if (props.editMode && props.productData) {
@@ -1581,40 +1589,7 @@ onMounted(async () => {
       }
     }
     
-    // Set selected values for dropdowns
-    // Handle subcategory - could be from subcategory field or subcategories array
-    let subcategoryId: number | null = null
-    if (props.productData.subcategory) {
-      subcategoryId = typeof props.productData.subcategory === 'number' 
-        ? props.productData.subcategory 
-        : Number(props.productData.subcategory)
-    } else if (props.productData.subcategories && Array.isArray(props.productData.subcategories) && props.productData.subcategories.length > 0) {
-      // If subcategories array exists, use the first one
-      const firstSub = props.productData.subcategories[0]
-      subcategoryId = typeof firstSub === 'object' ? firstSub.id : (typeof firstSub === 'number' ? firstSub : Number(firstSub))
-    }
-    
-    if (subcategoryId && !isNaN(subcategoryId)) {
-      product.value.subcategory = subcategoryId as number
-      // Find subcategory in searchable list
-      const sub = searchableSubcategories.value.find(s => s.id === subcategoryId)
-      if (sub) {
-        selectedCategory.value = sub.category
-        selectedDepartment.value = sub.department
-      } else {
-        // Fallback: find in subcategories array
-        const subcategory = subcategories.value.find(s => s.id === subcategoryId)
-        if (subcategory) {
-          const categoryId = typeof subcategory.category === 'object' ? subcategory.category?.id : subcategory.category
-          selectedCategory.value = categoryId
-          const category = categories.value.find(c => c.id === categoryId)
-          if (category) {
-            const deptId = typeof category.department === 'object' ? category.department?.id : category.department
-            selectedDepartment.value = deptId
-          }
-        }
-      }
-    }
+    // Category selection removed - categories are now assigned by admin during approval
   }
 })
 </script>

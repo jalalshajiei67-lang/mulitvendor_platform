@@ -421,6 +421,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             subcategory_ids = self._get_subcategory_ids()
             if subcategory_ids:
                 # Remove subcategories from validated_data if present, we'll handle it manually
+                # Note: subcategories field won't exist for non-staff users
                 if 'subcategories' in serializer.validated_data:
                     serializer.validated_data.pop('subcategories')
             
@@ -459,6 +460,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             subcategory_ids = self._get_subcategory_ids()
             if subcategory_ids:
                 # Remove subcategories from validated_data if present, we'll handle it manually
+                # Note: subcategories field won't exist for non-staff users
                 if 'subcategories' in serializer.validated_data:
                     serializer.validated_data.pop('subcategories')
             

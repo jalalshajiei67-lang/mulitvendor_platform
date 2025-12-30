@@ -14,3 +14,17 @@
     </h1>
 {% endblock %}
 
+{% block nav-global %}
+    {{ block.super }}
+    {% load products_tags %}
+    {% pending_products_count as pending_count %}
+    {% if pending_count > 0 %}
+        <div style="background: #ff6b35; color: white; padding: 8px 12px; margin: 10px; border-radius: 4px; text-align: center;">
+            ⚠️ <strong>{{ pending_count }} محصول در انتظار تایید</strong>
+            <a href="{% url 'admin:products_product_changelist' %}?approval_status=pending" style="color: white; text-decoration: underline;">
+                مشاهده محصولات
+            </a>
+        </div>
+    {% endif %}
+{% endblock %}
+

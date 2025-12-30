@@ -450,7 +450,7 @@ class ProductSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         request = self.context.get('request')
-        
+
         if request and request.user.is_staff:
             # Admin users can modify vendor field, but it's optional (will default to current user if not provided)
             self.Meta.read_only_fields = ['created_at', 'updated_at']
@@ -461,6 +461,12 @@ class ProductSerializer(serializers.ModelSerializer):
         else:
             # Regular users cannot modify vendor field
             self.Meta.read_only_fields = ['vendor', 'created_at', 'updated_at']
+            # Hide slug, subcategories, and primary_category fields from regular users
+            # These will be set by admin during approval process
+            hidden_fields = ['slug', 'subcategories', 'primary_category']
+            for field_name in hidden_fields:
+                if field_name in self.fields:
+                    del self.fields[field_name]
     
     def get_breadcrumb_hierarchy(self, obj):
         """Return the breadcrumb hierarchy for the product"""
@@ -706,7 +712,9 @@ class ProductSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         # Remove subcategories from validated_data - it will be handled in the view
-        validated_data.pop('subcategories', None)
+        # But only if it exists (won't exist for non-staff users)
+        if 'subcategories' in validated_data:
+            validated_data.pop('subcategories', None)
         
         # Set the vendor to the current authenticated user, unless it's an admin specifying a different vendor
         request = self.context.get('request')
@@ -719,6 +727,8 @@ class ProductSerializer(serializers.ModelSerializer):
             validated_data['approval_status'] = Product.APPROVAL_STATUS_PENDING
             validated_data.pop('is_marketplace_hidden', None)
             validated_data.pop('marketplace_hide_reason', None)
+            # Sellers cannot set categories - these will be assigned by admin during approval
+            validated_data.pop('primary_category', None)
         else:
             validated_data.setdefault('approval_status', Product.APPROVAL_STATUS_APPROVED)
 
@@ -736,7 +746,9 @@ class ProductSerializer(serializers.ModelSerializer):
     
     def update(self, instance, validated_data):
         # Remove subcategories from validated_data - it will be handled in the view
-        validated_data.pop('subcategories', None)
+        # But only if it exists (won't exist for non-staff users)
+        if 'subcategories' in validated_data:
+            validated_data.pop('subcategories', None)
         request = self.context.get('request')
         is_staff = bool(request and request.user and request.user.is_staff)
         if not is_staff:
@@ -761,7 +773,9 @@ class ProductSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         # Remove subcategories from data before validation - view will handle it
-        data.pop('subcategories', None)
+        # But only if the field exists (it won't exist for non-staff users)
+        if 'subcategories' in data:
+            data.pop('subcategories', None)
         
         # Check if images are being uploaded via FormData
         request = self.context.get('request')

@@ -7,9 +7,9 @@
           <div>
             <h1 class="text-h4 mb-2">
               <v-icon class="ml-2" color="primary">mdi-shield-account</v-icon>
-              مدیریت گفتگوها
+              مدیریت چتها
             </h1>
-            <p class="text-grey">نظارت و مدیریت تمام گفتگوها</p>
+            <p class="text-grey">نظارت و مدیریت تمام چتها</p>
           </div>
           <div class="d-flex gap-2">
             <v-btn
@@ -44,7 +44,7 @@
               </v-avatar>
               <div>
                 <div class="text-h5 font-weight-bold">{{ totalRooms }}</div>
-                <div class="text-caption text-grey">کل گفتگوها</div>
+                <div class="text-caption text-grey">کل چتها</div>
               </div>
             </div>
           </v-card-text>
@@ -107,7 +107,7 @@
               <div class="d-flex align-center justify-space-between mb-3">
                 <span class="text-white font-weight-bold">
                   <v-icon class="ml-2">mdi-format-list-bulleted</v-icon>
-                  لیست گفتگوها
+                  لیست چتها
                 </span>
                 <v-chip size="small" color="white" text-color="primary">
                   {{ filteredRooms.length }}
@@ -190,9 +190,9 @@
 
             <div v-else class="empty-state">
               <v-icon size="80" color="grey-lighten-2">mdi-chat-search</v-icon>
-              <p class="text-h6 text-grey mt-4">گفتگویی یافت نشد</p>
+              <p class="text-h6 text-grey mt-4">چتی یافت نشد</p>
               <p class="text-caption text-grey">
-                {{ searchQuery ? 'عبارت دیگری جستجو کنید' : 'هنوز گفتگویی وجود ندارد' }}
+                {{ searchQuery ? 'عبارت دیگری جستجو کنید' : 'هنوز چتی وجود ندارد' }}
               </p>
             </div>
           </v-card-text>
@@ -229,9 +229,9 @@
         <v-card v-else height="700" elevation="3" class="empty-chat-card">
           <div class="empty-state">
             <v-icon size="120" color="primary" class="empty-icon">mdi-chat-processing-outline</v-icon>
-            <p class="text-h5 text-grey mt-6 mb-2">یک گفتگو را انتخاب کنید</p>
+            <p class="text-h5 text-grey mt-6 mb-2">یک چت را انتخاب کنید</p>
             <p class="text-body-2 text-grey">
-              برای مشاهده جزئیات گفتگو، از لیست سمت راست انتخاب کنید
+              برای مشاهده جزئیات چت، از لیست سمت راست انتخاب کنید
             </p>
           </div>
         </v-card>
@@ -244,7 +244,7 @@
         <v-card>
           <v-card-text>
             <div class="text-h4 text-primary">{{ totalRooms }}</div>
-            <div class="text-caption text-grey">کل گفتگوها</div>
+            <div class="text-caption text-grey">کل چتها</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -320,7 +320,7 @@ const filteredRooms = computed(() => {
 
 const getRoomTitle = (room: any) => {
   const participants = room.participants_details || []
-  if (participants.length === 0) return 'گفتگو'
+  if (participants.length === 0) return 'چت'
   
   return participants
     .map((p: any) => p.username || p.first_name || 'کاربر')
