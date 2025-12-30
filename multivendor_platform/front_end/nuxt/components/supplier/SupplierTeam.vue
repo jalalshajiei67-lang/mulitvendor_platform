@@ -64,6 +64,7 @@
                     color="white"
                     :href="member.linkedin"
                     target="_blank"
+                    rel="noopener noreferrer"
                     class="social-link"
                     @click.stop
                   ></v-btn>
@@ -270,6 +271,7 @@
                 v-if="selectedMember.linkedin"
                 :href="selectedMember.linkedin"
                 target="_blank"
+                rel="noopener noreferrer"
                 color="blue-darken-3"
                 variant="outlined"
                 prepend-icon="mdi-linkedin"

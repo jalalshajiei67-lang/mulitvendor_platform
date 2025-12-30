@@ -881,6 +881,7 @@
                             class="ml-2"
                             :to="`/products/${selectedChatRoom.product_id}`"
                             target="_blank"
+                            rel="noopener noreferrer"
                           >
                             مشاهده محصول
                             <v-icon end size="small">mdi-open-in-new</v-icon>

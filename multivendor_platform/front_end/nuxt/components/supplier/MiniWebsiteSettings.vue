@@ -219,7 +219,7 @@
                     label="موبایل"
                     variant="outlined"
                     density="comfortable"
-                    hint="مثال: 09123456789"
+                    hint="مثال: 09123456789 یا 02155457899"
                     :rules="phoneRules"
                   >
                     <template #prepend>
@@ -764,8 +764,20 @@ const phoneRules = [
   (value: string) => {
     if (!value) return true
     const cleaned = value.replace(/[\s\-()]/g, '')
+    
+    // Mobile number format: 09XXXXXXXXX, +98XXXXXXXXXX, 0098XXXXXXXXXX, 98XXXXXXXXXX, 9XXXXXXXXX
     const mobileRegex = /^(\+98|0098|98|0)?9\d{9}$/
-    return mobileRegex.test(cleaned) || 'شماره معتبر نیست'
+    
+    // Landline format: 0XX-XXXXXXX (11 digits total, area code 2-3 digits)
+    // Examples: 02155457899, 03112345678, 04198765432
+    const landlineRegex = /^0\d{2,3}\d{7,8}$/
+    
+    // Check if it matches either mobile or landline format
+    if (mobileRegex.test(cleaned) || landlineRegex.test(cleaned)) {
+      return true
+    }
+    
+    return 'شماره معتبر نیست (مثال: 09123456789 یا 02155457899)'
   }
 ]
 
@@ -926,13 +938,24 @@ const normalizeUrl = (url: string | null | undefined): string | null => {
 
 const loadCurrentSettings = async () => {
   if (loadingSettings.value) return
-  
+
   loadingSettings.value = true
   try {
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MiniWebsiteSettings.vue:939',message:'loadCurrentSettings called',data:{initialVendorProfile:authStore.vendorProfile},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{})
+    } catch {}
+    // #endregion
+
     // Use single source of truth from store
     let vendorProfile = authStore.vendorProfile
 
     if (!vendorProfile?.id) {
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MiniWebsiteSettings.vue:949',message:'vendorProfile missing, fetching user',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{})
+      } catch {}
+      // #endregion
       try {
         await authStore.fetchCurrentUser()
         vendorProfile = authStore.vendorProfile
@@ -940,6 +963,12 @@ const loadCurrentSettings = async () => {
         console.error('Error fetching user:', err)
       }
     }
+
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MiniWebsiteSettings.vue:956',message:'after fetchCurrentUser',data:{vendorProfileId:vendorProfile?.id,vendorProfileApproved:vendorProfile?.is_approved},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{})
+    } catch {}
+    // #endregion
 
     if (vendorProfile?.id) {
       supplierId.value = vendorProfile.id
@@ -1051,13 +1080,41 @@ const resetForm = () => {
 }
 
 const previewWebsite = async () => {
+  // #region agent log
+  try {
+    fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MiniWebsiteSettings.vue:1065',message:'previewWebsite called',data:{supplierId:supplierId.value,previewUrl:previewUrl.value,hasAuth:!!authStore.user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{})
+  } catch {}
+  // #endregion
+
   if (!supplierId.value) {
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MiniWebsiteSettings.vue:1070',message:'supplierId is null, loading settings',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{})
+    } catch {}
+    // #endregion
     await loadCurrentSettings()
   }
 
+  // #region agent log
+  try {
+    fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MiniWebsiteSettings.vue:1075',message:'after loadCurrentSettings',data:{supplierId:supplierId.value,previewUrl:previewUrl.value,vendorProfile:authStore.vendorProfile},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{})
+  } catch {}
+  // #endregion
+
   if (previewUrl.value) {
     const fullUrl = window.location.origin + previewUrl.value
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MiniWebsiteSettings.vue:1080',message:'opening preview URL',data:{fullUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{})
+    } catch {}
+    // #endregion
     window.open(fullUrl, '_blank', 'noopener,noreferrer')
+  } else {
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MiniWebsiteSettings.vue:1085',message:'no preview URL available',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{})
+    } catch {}
+    // #endregion
   }
 }
 

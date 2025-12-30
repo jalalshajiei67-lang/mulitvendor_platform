@@ -58,6 +58,23 @@ OTP_RATE_LIMIT_REQUESTS=3
 OTP_RATE_LIMIT_WINDOW_MINUTES=15
 ```
 
+**OTP_SENDER_CLASS:**
+- برای محیط development: `users.services.otp_senders.LocalOTPSender` (کد OTP در لاگ نمایش داده می‌شود)
+- برای محیط production: `users.services.otp_senders.KavenegarOTPSender` (ارسال واقعی پیامک)
+
+### Kavenegar SMS Settings (for OTP)
+```env
+KAVENEGAR_API_KEY=your-kavenegar-api-key
+KAVENEGAR_OTP_TEMPLATE_NAME=OTPInedexo
+```
+
+**برای فعال‌سازی ارسال OTP با Kavenegar:**
+1. `KAVENEGAR_API_KEY` را از پنل Kavenegar دریافت کنید
+2. `KAVENEGAR_OTP_TEMPLATE_NAME` را نام قالب Lookup خود در Kavenegar تنظیم کنید
+3. `OTP_SENDER_CLASS` را به `users.services.otp_senders.KavenegarOTPSender` تغییر دهید
+
+**نکته:** قالب OTP باید یک Lookup template در Kavenegar باشد که یک token (کد OTP) دریافت می‌کند.
+
 ### Zibal Payment Gateway
 ```env
 ZIBAL_MERCHANT=zibal

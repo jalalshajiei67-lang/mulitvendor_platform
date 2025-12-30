@@ -617,6 +617,12 @@ const fetchSupplier = async () => {
   try {
     const id = route.params.id
 
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'suppliers/[id].vue:613',message:'fetchSupplier called',data:{id,hasUser:!!authStore.user,hasToken:!!authStore.token,vendorProfileId:authStore.vendorProfile?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{})
+    } catch {}
+    // #endregion
+
     if (typeof window !== 'undefined' && !authStore.user && authStore.token) {
       await authStore.fetchCurrentUser()
     }
@@ -625,7 +631,18 @@ const fetchSupplier = async () => {
     const vendorProfile = authStore.vendorProfile
     const isOwner = vendorProfile?.id === parseInt(id as string)
 
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'suppliers/[id].vue:628',message:'checking owner status',data:{isOwner,vendorProfileId:vendorProfile?.id,requestedId:id,vendorProfileApproved:vendorProfile?.is_approved},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{})
+    } catch {}
+    // #endregion
+
     if (isOwner && vendorProfile) {
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'suppliers/[id].vue:629',message:'using owner profile',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{})
+      } catch {}
+      // #endregion
       supplier.value = vendorProfile
 
       await Promise.all([
@@ -635,6 +652,11 @@ const fetchSupplier = async () => {
         fetchComments(id as string)
       ])
     } else {
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'suppliers/[id].vue:638',message:'calling supplierApi.getSupplier',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{})
+      } catch {}
+      // #endregion
       supplier.value = await supplierApi.getSupplier(id as string)
 
       await Promise.all([

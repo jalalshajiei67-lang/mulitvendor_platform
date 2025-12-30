@@ -720,9 +720,65 @@ def update_profile_view(request):
         # Update vendor profile if user is seller
         if profile.is_seller():
             try:
+                # #region agent log
+                import json
+                import time
+                try:
+                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'A',
+                            'location': 'users/views.py:721',
+                            'message': 'Starting vendor profile update',
+                            'data': {
+                                'user_id': user.id,
+                                'username': user.username,
+                                'has_vendor_profile_attr': hasattr(user, 'vendor_profile'),
+                                'vendor_profile_exists': VendorProfile.objects.filter(user=user).exists()
+                            },
+                            'timestamp': int(time.time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
                 vendor_profile = user.vendor_profile
+                # #region agent log
+                try:
+                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'A',
+                            'location': 'users/views.py:724',
+                            'message': 'Vendor profile retrieved',
+                            'data': {
+                                'vendor_profile_id': vendor_profile.id if vendor_profile else None,
+                                'current_store_name': vendor_profile.store_name if vendor_profile else None
+                            },
+                            'timestamp': int(time.time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
                 # Handle FormData - parse JSON fields if they're strings
                 vendor_data = dict(request.data)
+                # #region agent log
+                try:
+                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'sessionId': 'debug-session',
+                            'runId': 'post-fix',
+                            'hypothesisId': 'A',
+                            'location': 'users/views.py:763',
+                            'message': 'Vendor data extracted from request',
+                            'data': {
+                                'vendor_data_keys': list(vendor_data.keys()),
+                                'has_store_name': 'store_name' in vendor_data,
+                                'store_name_value': vendor_data.get('store_name')
+                            },
+                            'timestamp': int(time.time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
                 
                 # Remove fields that don't belong to vendor profile
                 user_fields = ['first_name', 'last_name', 'email']
@@ -771,6 +827,109 @@ def update_profile_view(request):
                 if 'description' in vendor_data and vendor_data['description'] is None:
                     vendor_data['description'] = ''
                 
+                # If store_name is being sent but hasn't changed, remove it from update data
+                # This avoids unnecessary uniqueness validation and prevents errors when frontend
+                # sends stale or unchanged store_name values
+                # #region agent log
+                try:
+                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'sessionId': 'debug-session',
+                            'runId': 'post-fix',
+                            'hypothesisId': 'A',
+                            'location': 'users/views.py:815',
+                            'message': 'Checking store_name in vendor_data',
+                            'data': {
+                                'has_store_name': 'store_name' in vendor_data,
+                                'store_name_in_data': vendor_data.get('store_name'),
+                                'current_store_name': vendor_profile.store_name
+                            },
+                            'timestamp': int(time.time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
+                if 'store_name' in vendor_data:
+                    if vendor_data['store_name'] == vendor_profile.store_name:
+                        # Store name hasn't changed, remove it to avoid unnecessary validation
+                        # #region agent log
+                        try:
+                            with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                                f.write(json.dumps({
+                                    'sessionId': 'debug-session',
+                                    'runId': 'post-fix',
+                                    'hypothesisId': 'A',
+                                    'location': 'users/views.py:819',
+                                    'message': 'Store name unchanged, removing from update',
+                                    'data': {},
+                                    'timestamp': int(time.time() * 1000)
+                                }) + '\n')
+                        except: pass
+                        # #endregion
+                        vendor_data.pop('store_name')
+                    else:
+                        # Store name is being changed - check if it already exists for another vendor
+                        # #region agent log
+                        try:
+                            with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                                f.write(json.dumps({
+                                    'sessionId': 'debug-session',
+                                    'runId': 'post-fix',
+                                    'hypothesisId': 'A',
+                                    'location': 'users/views.py:822',
+                                    'message': 'Store name changed, checking for conflicts',
+                                    'data': {
+                                        'new_store_name': vendor_data['store_name'],
+                                        'current_store_name': vendor_profile.store_name
+                                    },
+                                    'timestamp': int(time.time() * 1000)
+                                }) + '\n')
+                        except: pass
+                        # #endregion
+                        existing_vendor = VendorProfile.objects.filter(
+                            store_name=vendor_data['store_name']
+                        ).exclude(user=user).first()
+                        if existing_vendor:
+                            # #region agent log
+                            try:
+                                with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                                    f.write(json.dumps({
+                                        'sessionId': 'debug-session',
+                                        'runId': 'post-fix',
+                                        'hypothesisId': 'A',
+                                        'location': 'users/views.py:829',
+                                        'message': 'Store name conflict found, removing from update (likely stale frontend data)',
+                                        'data': {
+                                            'conflicting_store_name': vendor_data['store_name'],
+                                            'existing_vendor_id': existing_vendor.id if existing_vendor else None
+                                        },
+                                        'timestamp': int(time.time() * 1000)
+                                    }) + '\n')
+                            except: pass
+                            # #endregion
+                            # If store_name conflicts with another vendor, it's likely stale data from frontend
+                            # Remove it from the update to prevent validation errors
+                            # The user's current store_name will remain unchanged
+                            vendor_data.pop('store_name')
+                
+                # #region agent log
+                try:
+                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'sessionId': 'debug-session',
+                            'runId': 'post-fix',
+                            'hypothesisId': 'A',
+                            'location': 'users/views.py:774',
+                            'message': 'Before vendor serializer validation',
+                            'data': {
+                                'store_name_in_data': vendor_data.get('store_name'),
+                                'current_store_name': vendor_profile.store_name,
+                                'store_name_removed_if_unchanged': 'store_name' not in vendor_data or vendor_data.get('store_name') != vendor_profile.store_name,
+                                'vendor_data_keys': list(vendor_data.keys())
+                            },
+                            'timestamp': int(time.time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
                 vendor_serializer = VendorProfileSerializer(vendor_profile, data=vendor_data, partial=True)
                 if vendor_serializer.is_valid():
                     vendor_serializer.save()
@@ -779,6 +938,25 @@ def update_profile_view(request):
                     # Also refresh user to ensure relationships are updated
                     user.refresh_from_db()
                 else:
+                    # #region agent log
+                    try:
+                        with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                            f.write(json.dumps({
+                                'sessionId': 'debug-session',
+                                'runId': 'run1',
+                                'hypothesisId': 'A',
+                                'location': 'users/views.py:781',
+                                'message': 'Vendor serializer validation failed',
+                                'data': {
+                                    'errors': str(vendor_serializer.errors),
+                                    'store_name_in_data': vendor_data.get('store_name'),
+                                    'current_store_name': vendor_profile.store_name,
+                                    'store_name_error': 'store_name' in vendor_serializer.errors
+                                },
+                                'timestamp': int(time.time() * 1000)
+                            }) + '\n')
+                    except: pass
+                    # #endregion
                     # Log validation errors for debugging
                     import logging
                     logger = logging.getLogger(__name__)
@@ -790,6 +968,24 @@ def update_profile_view(request):
                         'vendor_profile_errors': vendor_serializer.errors
                     }, status=status.HTTP_400_BAD_REQUEST)
             except VendorProfile.DoesNotExist:
+                # #region agent log
+                try:
+                    with open('/media/jalal/New Volume/project/mulitvendor_platform/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'B',
+                            'location': 'users/views.py:792',
+                            'message': 'VendorProfile DoesNotExist exception',
+                            'data': {
+                                'user_id': user.id,
+                                'username': user.username,
+                                'vendor_profile_exists_in_db': VendorProfile.objects.filter(user=user).exists()
+                            },
+                            'timestamp': int(time.time() * 1000)
+                        }) + '\n')
+                except: pass
+                # #endregion
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.warning(f'VendorProfile does not exist for user {user.id}')
@@ -2435,6 +2631,12 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
         
         # Try to get the object from all VendorProfiles (not just approved ones)
         try:
+            # #region agent log
+            try:
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({'location': 'users/views.py:2633', 'message': 'SupplierViewSet.get_object trying to get object', 'data': {'pk': pk, 'userId': self.request.user.id if self.request.user.is_authenticated else None, 'isAuthenticated': self.request.user.is_authenticated}, 'timestamp': int(__import__('time').time() * 1000), 'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'D'}) + '\n')
+            except: pass
+            # #endregion
             obj = queryset.get(pk=pk)
             # #region agent log
             try:

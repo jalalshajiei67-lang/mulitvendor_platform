@@ -165,7 +165,14 @@ class OTPService:
         # Send OTP via configured sender
         send_result = self.sender.send_otp(code, phone, purpose)
         
-        logger.info(f"OTP generated for {phone} (purpose: {purpose})")
+        # Check if sending was successful
+        if not send_result.get('success', False):
+            error_message = send_result.get('message', 'Failed to send OTP')
+            logger.error(f"OTP sender failed for {phone} (purpose: {purpose}): {error_message}")
+            # Still return success=True for security (don't reveal phone existence)
+            # But log the error for monitoring
+        else:
+            logger.info(f"OTP sent successfully for {phone} (purpose: {purpose})")
         
         return {
             'success': True,

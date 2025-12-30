@@ -378,4 +378,5 @@ SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 
 # Kavenegar SMS Settings
 KAVENEGAR_API_KEY = os.environ.get('KAVENEGAR_API_KEY', '')
-KAVENEGAR_TEMPLATE_NAME = os.environ.get('KAVENEGAR_TEMPLATE_NAME', '')
+KAVENEGAR_TEMPLATE_NAME = os.environ.get('KAVENEGAR_TEMPLATE_NAME', '')  # For newsletter SMS
+KAVENEGAR_OTP_TEMPLATE_NAME = os.environ.get('KAVENEGAR_OTP_TEMPLATE_NAME', '')  # For OTP SMS
