@@ -4,8 +4,8 @@ FROM node:20-slim AS build-stage
 
 WORKDIR /app
 
-# Increase Node.js memory limit for SSR build
-ENV NODE_OPTIONS=--max-old-space-size=2048
+# Increase Node.js memory limit for SSR build (4GB)
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
 # Accept build arguments
 ARG NUXT_PUBLIC_API_BASE=""
@@ -26,8 +26,8 @@ RUN npm ci --legacy-peer-deps --force && \
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application (with explicit memory limit)
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Stage 2: Production stage
 FROM node:20-slim AS production-stage
@@ -39,8 +39,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Keep same Node options at runtime
-ENV NODE_OPTIONS=--max-old-space-size=2048
+# Keep same Node options at runtime (4GB)
+ENV NODE_OPTIONS=--max-old-space-size=4096
 ENV NODE_ENV=production
 ENV NUXT_HOST=0.0.0.0
 ENV NUXT_PORT=3000
