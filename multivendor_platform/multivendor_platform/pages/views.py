@@ -1,6 +1,8 @@
 from django.shortcuts import redirect, get_object_or_404
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from .models import AboutPage, ContactPage, ShortLink, ShortLinkClick
 from .serializers import AboutPageSerializer, ContactPageSerializer
 
@@ -10,11 +12,53 @@ class AboutPageViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AboutPageSerializer
     permission_classes = [AllowAny]
 
+    @action(detail=False, methods=['get'], url_path='current')
+    def current(self, request):
+        """
+        Get the current About Us page.
+        Returns the single AboutPage instance (only one should exist).
+        """
+        try:
+            about_page = AboutPage.objects.first()
+            if not about_page:
+                return Response(
+                    {'detail': 'صفحه درباره ما هنوز ایجاد نشده است'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            serializer = self.get_serializer(about_page)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response(
+                {'detail': 'خطا در دریافت صفحه درباره ما'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class ContactPageViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ContactPage.objects.all()
     serializer_class = ContactPageSerializer
     permission_classes = [AllowAny]
+
+    @action(detail=False, methods=['get'], url_path='current')
+    def current(self, request):
+        """
+        Get the current Contact Us page.
+        Returns the single ContactPage instance (only one should exist).
+        """
+        try:
+            contact_page = ContactPage.objects.first()
+            if not contact_page:
+                return Response(
+                    {'detail': 'صفحه تماس با ما هنوز ایجاد نشده است'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            serializer = self.get_serializer(contact_page)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response(
+                {'detail': 'خطا در دریافت صفحه تماس با ما'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 def get_client_ip(request):
