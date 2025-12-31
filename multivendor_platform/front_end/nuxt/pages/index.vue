@@ -710,7 +710,10 @@ const fetchCategories = async () => {
     const data = await useApiFetch<any[] | { results: any[] }>('categories/')
     categoryOptions.value = Array.isArray(data) ? data : data.results ?? []
   } catch (err) {
-    console.error('Error fetching categories for filters:', err)
+    // Non-critical error: categories filter may be empty, but page should still load
+    console.warn('Warning: Failed to fetch categories for filters:', err)
+    // Ensure empty array as fallback
+    categoryOptions.value = []
   }
 }
 

@@ -9,6 +9,65 @@ interface ExtendedFetchOptions<T> extends FetchOptions<T> {
    * If true, 404 errors will not redirect to 404 page (default: false)
    */
   skip404Redirect?: boolean
+  /**
+   * If true, disable retry logic for this request (default: false)
+   * Retry is enabled by default for GET requests during SSR
+   */
+  disableRetry?: boolean
+}
+
+/**
+ * Retry a function with exponential backoff
+ * @param fn Function to retry
+ * @param maxRetries Maximum number of retry attempts (default: 3)
+ * @param baseDelay Base delay in milliseconds (default: 100)
+ * @returns Promise that resolves with the function result
+ */
+const retryWithBackoff = async <T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 100
+): Promise<T> => {
+  let lastError: any
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (error: any) {
+      lastError = error
+      
+      // Don't retry on last attempt
+      if (attempt >= maxRetries) {
+        break
+      }
+      
+      // Check if error is retryable (network errors, 404, 500-504)
+      const statusCode = error?.statusCode || error?.status || error?.response?.status
+      const isRetryable = 
+        !statusCode || // Network error (no status code)
+        statusCode === 404 || // Not found (might be temporary)
+        (statusCode >= 500 && statusCode <= 504) // Server errors
+      
+      // Don't retry on authentication/authorization errors
+      if (statusCode === 401 || statusCode === 403) {
+        break
+      }
+      
+      // Only retry retryable errors
+      if (!isRetryable) {
+        break
+      }
+      
+      // Calculate delay with exponential backoff
+      const delay = baseDelay * Math.pow(2, attempt)
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+  
+  // All retries failed, throw the last error
+  throw lastError
 }
 
 export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOptions<T> = {}) => {
@@ -87,9 +146,14 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
     }
   }
 
-  const { params, skip404Redirect, ...restOptions } = options
+  const { params, skip404Redirect, disableRetry, ...restOptions } = options
 
-  try {
+  // Determine if retry should be enabled
+  // Default: enabled for GET requests during SSR, disabled otherwise
+  const isGetRequest = !restOptions.method || restOptions.method === 'GET' || restOptions.method === 'get'
+  const shouldRetry = !disableRetry && isGetRequest && !process.client
+
+  const fetchRequest = async (): Promise<T> => {
     const finalQuery = restOptions.query ?? params
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useApiFetch.ts:87',message:'useApiFetch before request',data:{url,method:restOptions.method||'GET',hasQuery:!!finalQuery,queryKeys:finalQuery?Object.keys(finalQuery):[]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
@@ -103,6 +167,14 @@ export const useApiFetch = async <T>(endpoint: string, options: ExtendedFetchOpt
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useApiFetch.ts:95',message:'useApiFetch success',data:{endpoint,responseType:typeof response,isArray:Array.isArray(response),hasResults:'results' in (response as any)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
+    return response
+  }
+
+  try {
+    // Use retry logic if enabled, otherwise make direct request
+    const response = shouldRetry 
+      ? await retryWithBackoff(fetchRequest, 3, 100)
+      : await fetchRequest()
     return response
   } catch (error: any) {
     // #region agent log

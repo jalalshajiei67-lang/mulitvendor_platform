@@ -189,6 +189,36 @@ definePageMeta({
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
+// Validate slug - reject reserved/invalid slugs
+const reservedSlugs = ['robots.txt', 'sitemap.xml', 'favicon.ico', 'admin', 'api', 'dashboard', 'health']
+const invalidExtensions = ['.txt', '.xml', '.ico', '.json', '.css', '.js', '.map']
+
+const isValidSlug = computed(() => {
+  const slugValue = slug.value
+  if (!slugValue) return false
+  
+  // Check if slug matches reserved patterns
+  if (reservedSlugs.includes(slugValue.toLowerCase())) {
+    return false
+  }
+  
+  // Check for file extensions that shouldn't be blog slugs
+  const lowerSlug = slugValue.toLowerCase()
+  if (invalidExtensions.some(ext => lowerSlug.endsWith(ext))) {
+    return false
+  }
+  
+  return true
+})
+
+// Validate slug early - throw 404 if invalid
+if (process.server && !isValidSlug.value) {
+  throw createError({
+    statusCode: 404,
+    message: 'صفحه مورد نظر یافت نشد'
+  })
+}
+
 const blogStore = useBlogStore()
 const { currentPost, comments, recentPosts, relatedPosts } = storeToRefs(blogStore)
 const t = blogStore.t
@@ -240,6 +270,14 @@ const formatDate = (value: string | null | undefined) => {
 }
 
 const fetchPage = async () => {
+  // Validate slug before fetching (client-side check)
+  if (!isValidSlug.value) {
+    throw createError({
+      statusCode: 404,
+      message: 'صفحه مورد نظر یافت نشد'
+    })
+  }
+  
   const post = await blogStore.fetchPost(slug.value)
   await Promise.all([
     blogStore.fetchRecentPosts(),
