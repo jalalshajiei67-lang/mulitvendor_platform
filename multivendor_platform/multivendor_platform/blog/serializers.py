@@ -1,6 +1,7 @@
 # blog/serializers.py
 from rest_framework import serializers
 from .models import BlogPost, BlogCategory, BlogComment
+from products.utils import build_absolute_uri
 
 class BlogCategorySerializer(serializers.ModelSerializer):
     """
@@ -143,9 +144,29 @@ class BlogPostListSerializer(serializers.ModelSerializer):
         name_parts = [obj.author.first_name, obj.author.last_name]
         return ' '.join(filter(None, name_parts)) or obj.author.username
     
+    def get_featured_image_url(self, obj):
+        """Return the full URL of the featured image, checking if file exists"""
+        image_field = getattr(obj, 'featured_image', None)
+        if not image_field:
+            return None
+        
+        try:
+            storage = image_field.storage
+            if not storage.exists(image_field.name):
+                return None
+            
+            request = self.context.get('request')
+            return build_absolute_uri(request, image_field.url)
+        except Exception:
+            return None
+    
     def to_representation(self, instance):
         """Handle both annotated and non-annotated instances"""
         data = super().to_representation(instance)
+        
+        # Replace featured_image with properly encoded URL that checks file existence
+        featured_image_url = self.get_featured_image_url(instance)
+        data['featured_image'] = featured_image_url
         
         # If comment_count annotation is not available, use method as fallback
         if 'comment_count' not in data or data['comment_count'] is None:
@@ -192,9 +213,29 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
         name_parts = [obj.author.first_name, obj.author.last_name]
         return ' '.join(filter(None, name_parts)) or obj.author.username
     
+    def get_featured_image_url(self, obj):
+        """Return the full URL of the featured image, checking if file exists"""
+        image_field = getattr(obj, 'featured_image', None)
+        if not image_field:
+            return None
+        
+        try:
+            storage = image_field.storage
+            if not storage.exists(image_field.name):
+                return None
+            
+            request = self.context.get('request')
+            return build_absolute_uri(request, image_field.url)
+        except Exception:
+            return None
+    
     def to_representation(self, instance):
         """Handle both annotated and non-annotated instances"""
         data = super().to_representation(instance)
+        
+        # Replace featured_image with properly encoded URL that checks file existence
+        featured_image_url = self.get_featured_image_url(instance)
+        data['featured_image'] = featured_image_url
         
         # If comment_count annotation is not available, use method as fallback
         if 'comment_count' not in data or data['comment_count'] is None:
