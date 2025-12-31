@@ -290,7 +290,7 @@
     </v-container>
   </div>
 
-  <ProductDetailSkeleton v-else />
+  <ProductDetailSkeleton v-else-if="pending || !product" />
 
   <!-- RFQ Form Dialog -->
   <LazyRFQForm
@@ -340,7 +340,46 @@ const productStore = useProductStore()
 const { currentProduct } = storeToRefs(productStore)
 const t = productStore.t
 
-const product = computed(() => currentProduct.value)
+const showRFQDialog = ref(false)
+const showSuccess = ref(false)
+const showError = ref(false)
+const errorMessage = ref('')
+const primaryImageLoaded = ref(false)
+const primaryImageError = ref(false)
+
+const fetchPage = async () => {
+  try {
+    primaryImageLoaded.value = false
+    primaryImageError.value = false
+    const product = await productStore.fetchProductBySlug(slug.value)
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products/[slug].vue:fetchPage',message:'Product fetched',data:{productId:product?.id,hasPrimaryImage:!!product?.primary_image,primaryImageType:typeof product?.primary_image,primaryImageLength:product?.primary_image?.length,imagesCount:product?.images?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    return product
+  } catch (error: any) {
+    // Check if it's a 404 error (product not found or inactive)
+    const statusCode = error?.statusCode || error?.status || error?.response?.status
+    if (statusCode === 404) {
+      // Create a proper 404 error that will be handled by Nuxt
+      // Inactive products are correctly filtered by the backend and should return 404
+      throw createError({
+        statusCode: 404,
+        message: 'محصول مورد نظر یافت نشد یا غیرفعال است.'
+      })
+    }
+    // For other errors, log and re-throw
+    console.error('Error loading product detail:', error)
+    throw error
+  }
+}
+
+const { data: productData, pending, error: asyncError } = await useAsyncData(`product-detail-${slug.value}`, fetchPage, {
+  server: true,
+  default: () => null
+})
+
+// Use product from store, but fallback to useAsyncData result if store is not set yet
+const product = computed(() => currentProduct.value || productData.value)
 const vendorBadges = computed(() => {
   const badges = product.value?.vendor_badges
   return Array.isArray(badges) ? badges : []
@@ -359,13 +398,6 @@ const primaryImageUrl = computed(() => {
   }
   return formatted
 })
-
-const showRFQDialog = ref(false)
-const showSuccess = ref(false)
-const showError = ref(false)
-const errorMessage = ref('')
-const primaryImageLoaded = ref(false)
-const primaryImageError = ref(false)
 
 const handleRFQSubmitted = () => {
   showSuccess.value = true
@@ -443,37 +475,6 @@ const handlePrimaryImageLoad = (event: Event) => {
   fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products/[slug].vue:handlePrimaryImageLoad',message:'Primary image loaded',data:{imageSrc,productId:product.value?.id,expectedSrc:product.value?.primary_image,imageComplete:imgElement?.complete,imageNaturalWidth:imgElement?.naturalWidth,imageNaturalHeight:imgElement?.naturalHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
   // #endregion
 }
-
-const fetchPage = async () => {
-  try {
-    primaryImageLoaded.value = false
-    primaryImageError.value = false
-    const product = await productStore.fetchProductBySlug(slug.value)
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/62116b0f-d571-42f7-a49f-52eb30bf1f17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products/[slug].vue:fetchPage',message:'Product fetched',data:{productId:product?.id,hasPrimaryImage:!!product?.primary_image,primaryImageType:typeof product?.primary_image,primaryImageLength:product?.primary_image?.length,imagesCount:product?.images?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    return product
-  } catch (error: any) {
-    // Check if it's a 404 error (product not found or inactive)
-    const statusCode = error?.statusCode || error?.status || error?.response?.status
-    if (statusCode === 404) {
-      // Create a proper 404 error that will be handled by Nuxt
-      // Inactive products are correctly filtered by the backend and should return 404
-      throw createError({
-        statusCode: 404,
-        message: 'محصول مورد نظر یافت نشد یا غیرفعال است.'
-      })
-    }
-    // For other errors, log and re-throw
-    console.error('Error loading product detail:', error)
-    throw error
-  }
-}
-
-await useAsyncData(`product-detail-${slug.value}`, fetchPage, {
-  server: true,
-  default: () => null
-})
 
 watch(
   () => route.params.slug,

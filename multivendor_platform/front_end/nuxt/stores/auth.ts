@@ -9,9 +9,6 @@ const AUTH_USER_COOKIE = 'authUser'
 
 // Helper to safely check if we're in production
 const isProduction = () => {
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env.NODE_ENV === 'production'
-  }
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     return import.meta.env.PROD === true
   }

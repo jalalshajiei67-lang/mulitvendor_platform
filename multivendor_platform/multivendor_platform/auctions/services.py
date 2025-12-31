@@ -19,7 +19,7 @@ class AuctionService:
         
         # Find suppliers who have active products in this category
         suppliers_with_products = User.objects.filter(
-            products__category=auction.category,
+            products__primary_category=auction.category,
             products__is_active=True
         ).distinct()
         

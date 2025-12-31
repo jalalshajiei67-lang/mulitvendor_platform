@@ -110,7 +110,7 @@
           <!-- Success Message (for dev mode) -->
           <transition name="slide-fade">
             <v-alert
-              v-if="devModeCode && process.env.NODE_ENV === 'development'"
+              v-if="devModeCode && isDev"
               type="info"
               variant="tonal"
               class="mb-4"
@@ -196,6 +196,9 @@ import { useChatStore } from '~/stores/chat'
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+
+// Development mode check
+const isDev = import.meta.env.DEV
 
 // Form state
 const fullName = ref('')
@@ -304,7 +307,7 @@ const requestOtp = async () => {
     const response = await authStore.requestOtpLogin(mobile.value)
 
     // Check if OTP code is returned (dev mode only)
-    if (response.otp_code && process.env.NODE_ENV === 'development') {
+    if (response.otp_code && isDev) {
       devModeCode.value = response.otp_code
       // Auto-fill in dev mode
       const code = response.otp_code
