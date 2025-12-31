@@ -13,12 +13,15 @@ ARG NUXT_PUBLIC_SITE_URL=""
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 ENV NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
 
-# Copy package files
+# Copy package files and patches directory (needed for patch-package)
 COPY package*.json ./
+COPY patches/ ./patches/
 
-# Install dependencies
+# Install dependencies (this will run postinstall which applies patches)
 RUN npm ci --legacy-peer-deps --force && \
-    npm rebuild
+    npm rebuild && \
+    # Ensure patches are applied
+    npx patch-package || true
 
 # Copy source code
 COPY . .
@@ -42,11 +45,15 @@ ENV NODE_ENV=production
 ENV NUXT_HOST=0.0.0.0
 ENV NUXT_PORT=3000
 
-# Copy package files
+# Copy package files and patches directory (needed for patch-package)
 COPY package*.json ./
+COPY patches/ ./patches/
 
 # Install production dependencies only
-RUN npm ci --omit=dev --legacy-peer-deps --force
+# Note: patch-package is in dependencies, so it will be installed
+RUN npm ci --omit=dev --legacy-peer-deps --force && \
+    # Ensure patches are applied in production stage too
+    npx patch-package || true
 
 # Copy built application from build stage
 COPY --from=build-stage /app/.output /app/.output

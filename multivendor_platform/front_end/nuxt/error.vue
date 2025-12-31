@@ -12,7 +12,7 @@
           </v-icon>
           <h1 class="text-h4 mb-4">خطایی رخ داد</h1>
           <p class="text-body-1 text-medium-emphasis mb-6">
-            {{ error.message || 'متأسفانه خطایی در سیستم رخ داده است. لطفاً دوباره تلاش کنید.' }}
+            {{ sanitizedError.message || 'متأسفانه خطایی در سیستم رخ داده است. لطفاً دوباره تلاش کنید.' }}
           </p>
           <v-row justify="center" class="gap-2">
             <v-btn
@@ -47,17 +47,46 @@ const props = defineProps<{
     statusCode?: number
     statusMessage?: string
     message?: string
+    data?: any
+    [key: string]: any
   }
 }>()
 
 const display = useDisplay()
 
+// Sanitize error object to ensure it's serializable and doesn't break Pinia hydration
+// This prevents "hasOwnProperty is not a function" errors
+const sanitizedError = computed(() => {
+  const error = props.error
+  if (!error) return { message: 'خطایی رخ داده است' }
+  
+  // Create a clean error object with proper prototype
+  const clean: Record<string, any> = {
+    statusCode: error.statusCode,
+    statusMessage: error.statusMessage,
+    message: error.message
+  }
+  
+  // Safely copy other properties if they exist and are serializable
+  if (error.data && typeof error.data === 'object') {
+    try {
+      // Only include simple serializable properties
+      if (error.data.path) clean.path = String(error.data.path)
+      if (error.data.url) clean.url = String(error.data.url)
+    } catch (e) {
+      // Ignore non-serializable properties
+    }
+  }
+  
+  return clean
+})
+
 useHead({
-  title: `خطا ${props.error.statusCode || ''}`,
+  title: `خطا ${sanitizedError.value.statusCode || ''}`,
   meta: [
     {
       name: 'description',
-      content: props.error.message || props.error.statusMessage || 'خطایی در سیستم رخ داده است'
+      content: sanitizedError.value.message || sanitizedError.value.statusMessage || 'خطایی در سیستم رخ داده است'
     },
     {
       name: 'robots',

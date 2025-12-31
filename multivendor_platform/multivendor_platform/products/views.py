@@ -363,7 +363,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='slug/(?P<slug>[^/.]+)', permission_classes=[AllowAny])
     def retrieve_by_slug(self, request, slug=None):
         """
-        Retrieve product detail using slug instead of numeric ID.
+        Retrieve product detail using slug or numeric ID.
+        If slug parameter is numeric, treat it as an ID; otherwise treat it as a slug.
         """
         # #region agent log
         initial_queries = len(connection.queries)
@@ -371,7 +372,20 @@ class ProductViewSet(viewsets.ModelViewSet):
         # #endregion agent log
         
         queryset = self.get_queryset()
-        product = get_object_or_404(queryset, slug=slug)
+        
+        # Check if slug parameter is numeric (ID) or a string slug
+        try:
+            # Try to convert to integer - if successful, it might be an ID
+            product_id = int(slug)
+            # Try to get by ID first
+            try:
+                product = queryset.get(id=product_id)
+            except Product.DoesNotExist:
+                # ID doesn't exist, try as slug (in case product has numeric slug)
+                product = get_object_or_404(queryset, slug=slug)
+        except (ValueError, TypeError):
+            # Not numeric, treat as slug
+            product = get_object_or_404(queryset, slug=slug)
         
         # #region agent log
         queries_after_get = len(connection.queries) - initial_queries
