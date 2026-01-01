@@ -2,7 +2,7 @@
   <v-footer color="white" class="app-footer">
     <v-container fluid>
       <v-row class="py-8">
-        <v-col cols="12" md="4">
+        <v-col cols="12" md="3">
           <div class="text-h6 font-weight-bold mb-2">ایندکسو</div>
           <p class="text-body-2 text-medium-emphasis">
             ایندکسو: خرید و فروش آسان ماشین‌آلات و تجهیزات از بهترین تولیدکنندگان کشور. بدون واسطه و با اطمینان کامل.
@@ -24,7 +24,7 @@
           </div>
         </v-col>
 
-        <v-col cols="12" sm="6" md="4">
+        <v-col cols="12" sm="6" md="3">
           <div class="text-subtitle-1 font-weight-bold mb-3">لینک‌های سریع</div>
           <ul class="footer-links">
             <li v-for="link in quickLinks" :key="link.to">
@@ -35,7 +35,32 @@
           </ul>
         </v-col>
 
-        <v-col cols="12" sm="6" md="4">
+        <v-col cols="12" sm="6" md="3">
+          <div class="text-subtitle-1 font-weight-bold mb-3">صفحات اصلی</div>
+          <ul class="footer-links">
+            <li v-for="link in mainLinks" :key="link.to">
+              <NuxtLink :to="link.to">
+                {{ link.label }}
+              </NuxtLink>
+            </li>
+          </ul>
+          <div v-if="authStore.isAuthenticated" class="mt-4">
+            <div class="text-subtitle-1 font-weight-bold mb-3">حساب کاربری</div>
+            <ul class="footer-links">
+              <li v-if="authStore.isSeller">
+                <NuxtLink to="/seller/dashboard">داشبورد فروشنده</NuxtLink>
+              </li>
+              <li v-if="authStore.isBuyer">
+                <NuxtLink to="/buyer/dashboard">داشبورد خریدار</NuxtLink>
+              </li>
+              <li v-if="authStore.isAdmin">
+                <NuxtLink to="/admin/dashboard">داشبورد ادمین</NuxtLink>
+              </li>
+            </ul>
+          </div>
+        </v-col>
+
+        <v-col cols="12" sm="6" md="3">
           <div class="text-subtitle-1 font-weight-bold mb-3">خبرنامه</div>
           <p class="text-body-2 text-medium-emphasis">
             برای دریافت آخرین محصولات و تخفیف‌های ویژه، ایمیل خود را وارد کنید.
@@ -72,13 +97,25 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from '~/stores/auth'
+
+const authStore = useAuthStore()
 const newsletter = ref('')
 
 const quickLinks = [
   { to: '/', label: 'خانه' },
+  { to: '/seller', label: 'فروشنده شوید' },
   { to: '/rfq', label: 'درخواست خرید' },
   { to: '/faqs', label: 'سؤالات متداول' },
   { to: '/terms', label: 'قوانین و مقررات' }
+]
+
+const mainLinks = [
+  { to: '/products', label: 'محصولات' },
+  { to: '/suppliers', label: 'تامین‌کنندگان' },
+  { to: '/blog', label: 'مجله' },
+  { to: '/about', label: 'درباره ما' },
+  { to: '/contact', label: 'تماس با ما' }
 ]
 
 const currentYear = new Date().getFullYear()
