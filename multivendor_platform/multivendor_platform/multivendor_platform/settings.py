@@ -292,9 +292,8 @@ CORS_PREFLIGHT_MAX_AGE = int(os.environ.get('CORS_PREFLIGHT_MAX_AGE', '86400'))
 # This improves security and performance
 CORS_URLS_REGEX = r'^/api/.*$'
 
-# Replace CORS middleware with a custom one that doesn't interfere with other responses
-# This ensures CORS headers are properly set even under pressure
-CORS_REPLACE_HTTPS_REFERER = False  # Keep original referer for security logging
+# Note: CORS_REPLACE_HTTPS_REFERER was removed in django-cors-headers 4.0+
+# This setting is no longer needed or supported
 
 # CSRF Trusted Origins - Required for admin login and API requests from frontend
 csrf_trusted_origins_str = os.environ.get('CSRF_TRUSTED_ORIGINS', '')

@@ -146,11 +146,23 @@ if [ -n "$DB_PASSWORD" ]; then
 fi
 
 # Find the backend container name (handles both production and staging)
-BACKEND_CONTAINER=$(docker ps --filter "name=multivendor_backend" --format "{{.Names}}" | head -n 1)
+# Check both running and stopped containers
+BACKEND_CONTAINER=$(docker ps -a --filter "name=multivendor_backend" --format "{{.Names}}" | head -n 1)
 
 if [ -z "$BACKEND_CONTAINER" ]; then
     echo "❌ Backend container not found!"
+    echo "   Checking all containers..."
+    docker ps -a | grep -i backend || echo "   No backend containers found"
     exit 1
+fi
+
+# Check if container is running, if not, try to start it
+CONTAINER_STATUS=$(docker inspect --format='{{.State.Status}}' "$BACKEND_CONTAINER" 2>/dev/null || echo "unknown")
+if [ "$CONTAINER_STATUS" != "running" ]; then
+    echo "⚠️  Backend container exists but is not running (status: $CONTAINER_STATUS)"
+    echo "   Attempting to start container..."
+    docker start "$BACKEND_CONTAINER" || echo "   Failed to start container, will check logs"
+    sleep 5
 fi
 
 echo "📦 Found backend container: $BACKEND_CONTAINER"
