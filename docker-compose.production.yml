@@ -256,8 +256,8 @@ services:
       - "traefik.http.routers.backend-http.service=backend"
       - "traefik.http.routers.backend-http.priority=10"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
-      # Backend service health check
-      - "traefik.http.services.backend.loadbalancer.healthcheck.path=/api/"
+      # Backend service health check - use a valid endpoint that returns 200
+      - "traefik.http.services.backend.loadbalancer.healthcheck.path=/api/products/"
       - "traefik.http.services.backend.loadbalancer.healthcheck.interval=30s"
       - "traefik.http.services.backend.loadbalancer.healthcheck.timeout=10s"
     restart: always
