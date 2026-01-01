@@ -558,13 +558,6 @@ if USE_REDIS_CACHE and REDIS_HOST:
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
             'LOCATION': REDIS_URL if REDIS_PASSWORD else f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
             'OPTIONS': {
-                'SOCKET_CONNECT_TIMEOUT': 5,
-                'SOCKET_TIMEOUT': 5,
-                'CONNECTION_POOL_KWARGS': {
-                    'max_connections': int(os.environ.get('REDIS_MAX_CONNECTIONS', '50')),
-                    'retry_on_timeout': True,
-                    'health_check_interval': 30,
-                },
                 'IGNORE_EXCEPTIONS': True,  # Don't fail if Redis is down
             },
             'KEY_PREFIX': 'multivendor',
