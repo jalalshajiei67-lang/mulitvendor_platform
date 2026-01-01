@@ -27,8 +27,8 @@ services:
       - "--entrypoints.websecure.transport.respondingTimeouts.readTimeout=60s"
       - "--entrypoints.websecure.transport.respondingTimeouts.writeTimeout=60s"
       - "--entrypoints.websecure.transport.respondingTimeouts.idleTimeout=180s"
-      # Rate limiting
-      - "--entrypoints.websecure.http.middlewares=rate-limit@docker"
+      # Rate limiting - commented out until middleware is configured
+      # - "--entrypoints.websecure.http.middlewares=rate-limit@docker"
       # SSL/TLS
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=jalal.shajiei67@gmail.com"
