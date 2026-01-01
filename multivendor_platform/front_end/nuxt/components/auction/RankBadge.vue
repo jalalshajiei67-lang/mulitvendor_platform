@@ -50,3 +50,5 @@ const rankIcon = computed(() => {
 }
 </style>
 
+
+

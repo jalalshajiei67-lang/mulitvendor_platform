@@ -119,3 +119,5 @@ const navigateToDetail = () => {
 }
 </style>
 
+
+

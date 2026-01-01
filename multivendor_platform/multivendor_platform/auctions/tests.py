@@ -142,3 +142,5 @@ class ReverseAuctionTestCase(TestCase):
         self.auction.save()
         self.assertFalse(self.auction.should_extend())
 
+
+

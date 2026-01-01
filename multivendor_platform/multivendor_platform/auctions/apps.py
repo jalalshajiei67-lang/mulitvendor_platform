@@ -6,3 +6,5 @@ class AuctionsConfig(AppConfig):
     name = 'auctions'
     verbose_name = 'Reverse Auctions'
 
+
+

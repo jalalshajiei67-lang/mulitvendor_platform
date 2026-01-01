@@ -327,3 +327,5 @@ class ReverseAuctionViewSet(viewsets.ModelViewSet):
         serializer = ReverseAuctionDetailSerializer(auction, context={'request': request})
         return Response(serializer.data)
 
+
+
