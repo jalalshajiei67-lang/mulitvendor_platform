@@ -14,6 +14,14 @@ echo "  - USE_REDIS_CACHE: ${USE_REDIS_CACHE:-Not Set}"
 echo "  - DB_CONN_MAX_AGE: ${DB_CONN_MAX_AGE:-60}"
 echo ""
 
+# Check for deprecated CORS_REPLACE_HTTPS_REFERER environment variable
+if [ -n "${CORS_REPLACE_HTTPS_REFERER:-}" ]; then
+    echo "⚠️  Warning: CORS_REPLACE_HTTPS_REFERER environment variable is set"
+    echo "   This setting has been removed from django-cors-headers and should be unset"
+    echo "   Please remove it from your environment variables"
+    unset CORS_REPLACE_HTTPS_REFERER
+fi
+
 # Function to wait for database to be ready with exponential backoff
 wait_for_db() {
     echo "[2/9] Waiting for database to be ready..."
@@ -202,8 +210,18 @@ check_django() {
     echo ""
     echo "[9/9] Verifying Django configuration..."
     
-    # Run Django system checks (non-critical)
-    python manage.py check --deploy 2>&1 | head -n 20 || echo "⚠️  Django check found issues (non-critical)"
+    # Run Django system check and capture output
+    check_output=$(python manage.py check --deploy 2>&1) || {
+        # Check if the error is specifically about CORS_REPLACE_HTTPS_REFERER
+        if echo "$check_output" | grep -q "CORS_REPLACE_HTTPS_REFERER"; then
+            echo "⚠️  Warning: CORS_REPLACE_HTTPS_REFERER setting detected but has been removed from django-cors-headers"
+            echo "   This setting should be removed from your environment variables"
+            echo "   Continuing anyway (non-critical)..."
+        else
+            echo "⚠️  Django check found issues (non-critical):"
+            echo "$check_output"
+        fi
+    }
     
     echo "✅ Django configuration verified!"
 }

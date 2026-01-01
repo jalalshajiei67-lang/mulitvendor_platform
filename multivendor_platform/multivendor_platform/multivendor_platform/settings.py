@@ -200,6 +200,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS Configuration - Enhanced for Production Under Pressure
 # ============================================================
 
+# Remove deprecated CORS_REPLACE_HTTPS_REFERER setting if it exists
+# This setting was removed in django-cors-headers 4.0+
+if 'CORS_REPLACE_HTTPS_REFERER' in os.environ:
+    del os.environ['CORS_REPLACE_HTTPS_REFERER']
+
 # CORS settings - read from environment or use defaults
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
 
