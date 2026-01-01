@@ -238,7 +238,7 @@ class Command(BaseCommand):
                                 '❌ Failed to mark migration 0036 as applied.'
                             )
                         )
-            elif not m36_applied and not m37_applied:
+            elif not m36_applied and not m38_applied:
                 self.stdout.write(
                     self.style.SUCCESS(
                         '✓ Both migrations are not applied. This is normal - they will be applied in order.'
@@ -254,7 +254,7 @@ class Command(BaseCommand):
                     {}
                 )
                 # #endregion
-            elif m36_applied and m37_applied:
+            elif m36_applied and m38_applied:
                 self.stdout.write(
                     self.style.SUCCESS(
                         '✓ Both migrations are applied. Migration history is consistent.'
