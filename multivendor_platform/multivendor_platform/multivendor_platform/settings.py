@@ -595,33 +595,32 @@ KAVENEGAR_OTP_TEMPLATE_NAME = os.environ.get('KAVENEGAR_OTP_TEMPLATE_NAME', '') 
 # ============================================================
 # Logging Configuration - Enhanced for Production Debugging
 # ============================================================
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '[{levelname}] {asctime} {name} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '[{levelname}] {asctime} {message}',
-            'style': '{',
-        },
+# Ensure logs directory exists (create with proper error handling)
+try:
+    LOGS_DIR = BASE_DIR / 'logs'
+    LOGS_DIR.mkdir(exist_ok=True)
+    # Test if we can write to the directory
+    test_file = LOGS_DIR / '.test'
+    test_file.touch()
+    test_file.unlink()
+    LOGS_AVAILABLE = True
+except (OSError, PermissionError):
+    # If we can't create/write to logs directory, use console only
+    LOGS_AVAILABLE = False
+    print("[WARNING] Could not create logs directory, using console logging only")
+
+# Build handlers list dynamically based on availability
+LOGGING_HANDLERS = {
+    'console': {
+        'level': 'INFO',
+        'class': 'logging.StreamHandler',
+        'formatter': 'simple',
     },
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse',
-        },
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
-        },
-    },
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
+}
+
+# Only add file handlers if logs directory is writable
+if LOGS_AVAILABLE:
+    LOGGING_HANDLERS.update({
         'file': {
             'level': 'WARNING',
             'class': 'logging.handlers.RotatingFileHandler',
@@ -646,30 +645,68 @@ LOGGING = {
             'backupCount': 3,
             'formatter': 'verbose',
         },
+    })
+
+# Configure logger handlers based on what's available
+if LOGS_AVAILABLE:
+    DJANGO_HANDLERS = ['console', 'file']
+    REQUEST_HANDLERS = ['console', 'error_file']
+    DB_HANDLERS = ['db_file']
+    SECURITY_HANDLERS = ['error_file']
+    APP_HANDLERS = ['console', 'file']
+else:
+    # Console only if logs directory not available
+    DJANGO_HANDLERS = ['console']
+    REQUEST_HANDLERS = ['console']
+    DB_HANDLERS = ['console']
+    SECURITY_HANDLERS = ['console']
+    APP_HANDLERS = ['console']
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {name} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '[{levelname}] {asctime} {message}',
+            'style': '{',
+        },
     },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': LOGGING_HANDLERS,
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': DJANGO_HANDLERS,
             'level': 'INFO',
             'propagate': True,
         },
         'django.request': {
-            'handlers': ['console', 'error_file'],
+            'handlers': REQUEST_HANDLERS,
             'level': 'ERROR',
             'propagate': False,
         },
         'django.db.backends': {
-            'handlers': ['db_file'],
+            'handlers': DB_HANDLERS,
             'level': 'DEBUG' if DEBUG else 'WARNING',
             'propagate': False,
         },
         'django.security': {
-            'handlers': ['error_file'],
+            'handlers': SECURITY_HANDLERS,
             'level': 'WARNING',
             'propagate': False,
         },
         'multivendor_platform': {
-            'handlers': ['console', 'file'],
+            'handlers': APP_HANDLERS,
             'level': 'INFO',
             'propagate': False,
         },

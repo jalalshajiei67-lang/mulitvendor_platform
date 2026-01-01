@@ -16,7 +16,7 @@ echo ""
 
 # Function to wait for database to be ready with exponential backoff
 wait_for_db() {
-    echo "[1/9] Waiting for database to be ready..."
+    echo "[2/9] Waiting for database to be ready..."
     
     max_retries=30
     retry_count=0
@@ -51,7 +51,7 @@ wait_for_db() {
 # Function to test database connection with Django (with retries)
 test_db_connection() {
     echo ""
-    echo "[2/9] Testing database connection with retry logic..."
+    echo "[3/9] Testing database connection with retry logic..."
     
     max_retries=5
     retry_count=0
@@ -77,7 +77,7 @@ test_db_connection() {
 # Function to test Redis connection
 test_redis_connection() {
     echo ""
-    echo "[3/9] Testing Redis connection..."
+    echo "[4/9] Testing Redis connection..."
     
     # Check if Redis is configured
     if [ -z "$REDIS_HOST" ] || [ "$REDIS_HOST" = "localhost" ]; then
@@ -100,7 +100,7 @@ test_redis_connection() {
 # Function to fix migration sequence (PostgreSQL only)
 fix_migration_sequence() {
     echo ""
-    echo "[4/9] Checking and fixing Django system table sequences..."
+    echo "[5/9] Checking and fixing Django system table sequences..."
     
     # Use the management command to fix all sequences (django_migrations, django_content_type, etc.)
     python manage.py fix_migration_sequence || echo "   ⚠️  Sequence check failed (non-critical, continuing...)"
@@ -109,7 +109,7 @@ fix_migration_sequence() {
 # Function to fix migration inconsistency
 fix_migration_inconsistency() {
     echo ""
-    echo "[5/9] Checking and fixing migration history inconsistencies..."
+    echo "[6/9] Checking and fixing migration history inconsistencies..."
     
     # Fix inconsistent migration history (e.g., 0037 applied but 0036 not)
     python manage.py fix_migration_inconsistency || echo "   ⚠️  Migration inconsistency check failed (non-critical, continuing...)"
@@ -119,7 +119,7 @@ fix_migration_inconsistency() {
 # Function to run migrations with retry logic
 run_migrations() {
     echo ""
-    echo "[6/9] Running database migrations with retry logic..."
+    echo "[7/9] Running database migrations with retry logic..."
     
     max_retries=3
     retry_count=0
@@ -148,7 +148,7 @@ run_migrations() {
 # Function to collect static files
 collect_static() {
     echo ""
-    echo "[7/9] Collecting static files..."
+    echo "[8/9] Collecting static files..."
     
     if python manage.py collectstatic --noinput --clear; then
         echo "✅ Static files collected successfully!"
@@ -158,12 +158,15 @@ collect_static() {
     fi
 }
 
-# Function to create media directories
+# Function to create media and log directories
 setup_directories() {
     echo ""
-    echo "[8/9] Setting up media and log directories..."
+    echo "[1/9] Setting up media and log directories..."
     
-    mkdir -p /app/logs
+    # Create logs directory first (critical for Django startup)
+    mkdir -p /app/logs || echo "⚠️  Could not create logs directory"
+    
+    # Create other directories
     mkdir -p /app/staticfiles
     mkdir -p /app/media
     mkdir -p /app/media/category_images
@@ -174,7 +177,22 @@ setup_directories() {
     mkdir -p /app/media/user_images
     
     # Try to set permissions (may fail with mounted volumes, that's okay)
-    chmod -R 755 /app/media /app/staticfiles /app/logs 2>/dev/null || echo "⚠️  Could not set permissions (may be expected with persistent volumes)"
+    # Use 755 for directories (rwxr-xr-x)
+    if chmod -R 755 /app/logs 2>/dev/null; then
+        echo "✅ Logs directory created and permissions set"
+    else
+        echo "⚠️  Logs directory exists but could not set permissions (may use console logging only)"
+    fi
+    
+    chmod -R 755 /app/media /app/staticfiles 2>/dev/null || echo "⚠️  Could not set media/static permissions (may be expected with persistent volumes)"
+    
+    # Test if we can write to logs directory
+    if touch /app/logs/.test 2>/dev/null; then
+        rm -f /app/logs/.test
+        echo "✅ Logs directory is writable"
+    else
+        echo "⚠️  Logs directory is not writable, Django will use console logging only"
+    fi
     
     echo "✅ Directories set up!"
 }
@@ -227,6 +245,9 @@ start_server() {
 echo "Starting initialization sequence..."
 echo ""
 
+# Step 0: Setup directories FIRST (needed for Django settings to load)
+setup_directories
+
 # Step 1: Wait for database
 wait_for_db
 
@@ -248,10 +269,7 @@ run_migrations
 # Step 7: Collect static files
 collect_static
 
-# Step 8: Setup directories
-setup_directories
-
-# Step 9: Verify Django configuration
+# Step 8: Verify Django configuration
 check_django
 
 # Final: Start the server
