@@ -58,6 +58,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',  # Required for admin
     'django.middleware.common.CommonMiddleware',
+    'multivendor_platform.csrf_exempt_middleware.CsrfExemptApiMiddleware',  # Exempt API routes from CSRF
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',  # Required for admin
     'django.contrib.messages.middleware.MessageMiddleware',  # Required for admin
@@ -363,10 +364,9 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups' if not DEBUG else
 # Django REST Framework Configuration - Enhanced for Production
 # ============================================================
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'multivendor_platform.authentication.CsrfExemptSessionAuthentication',  # Custom session auth without CSRF
-        'rest_framework.authentication.TokenAuthentication',
-    ],
+    # No default authentication - allows anonymous access to public endpoints
+    # Views that need authentication should specify authentication_classes explicitly
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],

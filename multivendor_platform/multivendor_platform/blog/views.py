@@ -36,6 +36,7 @@ class BlogCategoryViewSet(viewsets.ModelViewSet):
     queryset = BlogCategory.objects.filter(is_active=True).order_by('name')
     serializer_class = BlogCategorySerializer
     lookup_field = 'slug'
+    permission_classes = [AllowAny]  # Set at class level as fallback
     
     def get_queryset(self):
         """Get queryset with safe select_related and annotations to avoid errors"""
@@ -112,6 +113,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     search_fields = ['title', 'excerpt', 'content']
     ordering_fields = ['created_at', 'updated_at', 'view_count', 'title']
     ordering = ['-created_at']
+    permission_classes = [AllowAny]  # Set at class level as fallback, get_permissions() will override for write actions
     
     def get_permissions(self):
         """
@@ -120,7 +122,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
         else:
-            permission_classes = []
+            permission_classes = [AllowAny]  # Fixed: Changed from [] to [AllowAny]
         return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):

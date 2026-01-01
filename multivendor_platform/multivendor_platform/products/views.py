@@ -111,12 +111,17 @@ class ProductViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     filterset_fields = ['vendor', 'is_active', 'primary_category', 'approval_status', 'is_marketplace_hidden']
     ordering_fields = ['created_at', 'price', 'name']
+    permission_classes = [AllowAny]  # Set at class level as fallback
     
     def get_permissions(self):
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        # For custom actions with @action decorator, check if they have permission_classes
+        # retrieve_by_slug has permission_classes=[AllowAny] in decorator
+        if self.action == 'retrieve_by_slug':
+            permission_classes = [AllowAny]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated]
         else:
             permission_classes = [AllowAny]
@@ -681,6 +686,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', 'description']
+    permission_classes = [AllowAny]  # Set at class level as fallback
     
     def get_queryset(self):
         """
