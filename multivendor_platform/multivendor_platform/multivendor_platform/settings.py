@@ -503,8 +503,8 @@ if REDIS_PASSWORD:
                 # Connection pool settings for better performance under pressure
                 "capacity": int(os.environ.get('REDIS_CHANNEL_CAPACITY', '1000')),  # Max messages per channel
                 "expiry": int(os.environ.get('REDIS_CHANNEL_EXPIRY', '60')),  # Message expiry in seconds
-                # Connection retry settings
-                "channel_capacity": int(os.environ.get('REDIS_CHANNEL_LAYER_CAPACITY', '100')),
+                # channel_capacity should be a dict mapping channel patterns to capacities, or omitted
+                # Removing it to use default behavior
                 # Symmetric encryption for WebSocket messages (optional)
                 "symmetric_encryption_keys": [SECRET_KEY[:32]],  # Use first 32 chars of SECRET_KEY
             },
@@ -519,7 +519,8 @@ else:
                 # Connection pool settings
                 "capacity": int(os.environ.get('REDIS_CHANNEL_CAPACITY', '1000')),
                 "expiry": int(os.environ.get('REDIS_CHANNEL_EXPIRY', '60')),
-                "channel_capacity": int(os.environ.get('REDIS_CHANNEL_LAYER_CAPACITY', '100')),
+                # channel_capacity should be a dict mapping channel patterns to capacities, or omitted
+                # Removing it to use default behavior
                 # Symmetric encryption
                 "symmetric_encryption_keys": [SECRET_KEY[:32]],
             },
@@ -556,13 +557,12 @@ if DEBUG and REDIS_HOST == 'localhost':
 USE_REDIS_CACHE = os.environ.get('USE_REDIS_CACHE', 'False') == 'True'
 
 if USE_REDIS_CACHE and REDIS_HOST:
+    # Build Redis location URL
+    redis_location = REDIS_URL if REDIS_PASSWORD else f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}'
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': REDIS_URL if REDIS_PASSWORD else f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
-            'OPTIONS': {
-                'IGNORE_EXCEPTIONS': True,  # Don't fail if Redis is down
-            },
+            'LOCATION': redis_location,
             'KEY_PREFIX': 'multivendor',
             'TIMEOUT': 300,  # Default cache timeout (5 minutes)
         }

@@ -258,7 +258,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useProductApi } from '~/composables/useProductApi'
 
 interface ProductOption {
@@ -372,9 +372,15 @@ const faqs = [
 const productApi = useProductApi()
 
 const loadProducts = async () => {
+  if (!isMounted.value) return // Don't load if component is unmounting
+  
   loadingProducts.value = true
   try {
     const response = await productApi.getProducts({ page_size: 100, ordering: '-created_at' })
+    
+    // Check if component is still mounted before updating state
+    if (!isMounted.value) return
+    
     const items = Array.isArray(response?.results) ? response.results : []
     products.value = items
       .filter((product: any) => product?.id && product?.name)
@@ -382,11 +388,26 @@ const loadProducts = async () => {
         id: Number(product.id),
         name: product.name ?? `محصول ${product.id}`
       }))
-  } catch (error) {
-    console.error('RFQ: failed to load products', error)
-    errorMessage.value = 'خطا در بارگذاری فهرست محصولات. لطفاً بعداً دوباره تلاش کنید.'
+  } catch (error: any) {
+    // Ignore abort errors (DOMException: The operation was aborted)
+    // These occur when component unmounts or navigation happens during request
+    if (error?.name === 'AbortError' || 
+        error?.message?.includes('aborted') || 
+        error?.message?.includes('The operation was aborted') ||
+        error?.name === 'DOMException') {
+      // Silently ignore - request was cancelled due to navigation/unmount
+      return
+    }
+    
+    // Only log and show error if component is still mounted
+    if (isMounted.value) {
+      console.error('RFQ: failed to load products', error)
+      errorMessage.value = 'خطا در بارگذاری فهرست محصولات. لطفاً بعداً دوباره تلاش کنید.'
+    }
   } finally {
-    loadingProducts.value = false
+    if (isMounted.value) {
+      loadingProducts.value = false
+    }
   }
 }
 
@@ -421,8 +442,16 @@ const clearError = () => {
   errorMessage.value = ''
 }
 
+// Track if component is mounted to prevent state updates after unmount
+const isMounted = ref(true)
+
 onMounted(() => {
+  isMounted.value = true
   loadProducts()
+})
+
+onBeforeUnmount(() => {
+  isMounted.value = false
 })
 
 useSeoMeta({

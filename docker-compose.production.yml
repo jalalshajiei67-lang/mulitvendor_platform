@@ -344,8 +344,8 @@ services:
       - "traefik.http.routers.nginx.tls.certresolver=myresolver"
       - "traefik.http.routers.nginx.priority=20"
       - "traefik.http.routers.nginx.service=nginx"
-      # Nginx service health check
-      - "traefik.http.services.nginx.loadbalancer.healthcheck.path=/static/"
+      # Nginx service health check - use /health endpoint
+      - "traefik.http.services.nginx.loadbalancer.healthcheck.path=/health"
       - "traefik.http.services.nginx.loadbalancer.healthcheck.interval=30s"
       - "traefik.http.services.nginx.loadbalancer.healthcheck.timeout=5s"
     restart: always
