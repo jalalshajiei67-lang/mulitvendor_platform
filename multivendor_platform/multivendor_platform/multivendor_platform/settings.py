@@ -364,9 +364,12 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups' if not DEBUG else
 # Django REST Framework Configuration - Enhanced for Production
 # ============================================================
 REST_FRAMEWORK = {
-    # No default authentication - allows anonymous access to public endpoints
-    # Views that need authentication should specify authentication_classes explicitly
-    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    # Default authentication - TokenAuthentication for API endpoints
+    # Views can override this if needed
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # For admin panel
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
