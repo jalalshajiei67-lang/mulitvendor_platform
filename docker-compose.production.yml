@@ -260,6 +260,8 @@ services:
       - "traefik.http.services.backend.loadbalancer.healthcheck.path=/api/products/"
       - "traefik.http.services.backend.loadbalancer.healthcheck.interval=30s"
       - "traefik.http.services.backend.loadbalancer.healthcheck.timeout=10s"
+      # Pass Host header to backend
+      - "traefik.http.services.backend.loadbalancer.passHostHeader=true"
     restart: always
 
   # Nuxt.js Frontend
