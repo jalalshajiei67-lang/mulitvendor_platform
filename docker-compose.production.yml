@@ -258,9 +258,9 @@ services:
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
       # Pass Host header to backend
       - "traefik.http.services.backend.loadbalancer.passHostHeader=true"
-      # Add forwarded headers so Django knows it's behind HTTPS proxy
-      - "traefik.http.services.backend.loadbalancer.server.scheme=http"
+      # Add forwarded headers middleware
       - "traefik.http.middlewares.backend-headers.headers.customRequestHeaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.backend-headers.headers.customRequestHeaders.X-Forwarded-Port=443"
       - "traefik.http.routers.backend.middlewares=backend-headers"
       - "traefik.http.routers.backend-http.middlewares=backend-headers"
     restart: always
