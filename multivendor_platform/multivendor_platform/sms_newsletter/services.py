@@ -68,13 +68,15 @@ def send_sms_via_kavenegar(
     
     # Use seller name - truncate if too long to avoid HTTP 431 errors
     # HTTP 431 = Request Header Fields Too Large
-    # API key in URL is already 88 chars, so we need very short tokens
-    # Persian characters in URL encoding can be 9 bytes each (%D8%A7), so limit to 30 chars
-    MAX_TOKEN_LENGTH = 30
+    # API key in URL is already 88 chars, making total URL ~136 chars
+    # Need very short tokens to keep total request header size under limit
+    # Persian characters in URL encoding can be 9 bytes each (%D8%A7)
+    # Reduce to 20 chars to be safe (even shorter than before)
+    MAX_TOKEN_LENGTH = 20
     seller_name_display = seller.name[:MAX_TOKEN_LENGTH] if len(seller.name) > MAX_TOKEN_LENGTH else seller.name
     
     # Use filter name - truncate if too long to avoid HTTP 431 errors
-    # Even with POST, very long parameters can cause header size issues
+    # Even with POST, the URL length itself can cause header size issues
     filter_name_display = filter_name[:MAX_TOKEN_LENGTH] if len(filter_name) > MAX_TOKEN_LENGTH else filter_name
     
     if len(seller.name) > MAX_TOKEN_LENGTH or len(filter_name) > MAX_TOKEN_LENGTH:
@@ -117,9 +119,9 @@ def send_sms_via_kavenegar(
     
     # Prepare parameters
     # Template: SupplyerNotif
-    # %token = seller name (max 30 chars to avoid HTTP 431 - Request Header Fields Too Large)
-    # %token2 = filter name (max 30 chars to avoid HTTP 431 - Request Header Fields Too Large)
-    # Note: Using POST method to avoid URL length issues with Persian characters
+    # %token = seller name (max 20 chars to avoid HTTP 431 - Request Header Fields Too Large)
+    # %token2 = filter name (max 20 chars to avoid HTTP 431 - Request Header Fields Too Large)
+    # Note: Try GET first (like OTP sender), fall back to POST if needed
     params = {
         'receptor': phone,
         'template': template_name,
@@ -131,16 +133,46 @@ def send_sms_via_kavenegar(
         # Log the request for debugging (without exposing full API key)
         logger.info(f"Sending SMS via Kavenegar - Template: {template_name}, Receptor: {phone}, Token1 length: {len(seller_name_display)}, Token2 length: {len(filter_name_display)}")
         
-        # Use POST method (required for Persian characters and long parameters)
-        # Kavenegar API supports POST for verify/lookup endpoint
-        # Use minimal headers to avoid HTTP 431 (Request Header Fields Too Large)
+        # Try GET method first (like OTP sender) to reduce header size
+        # GET puts params in URL query string, which might be smaller than POST headers
+        # If GET fails with 431, the URL itself is too long (API key + params)
+        # Use minimal approach to avoid HTTP 431 (Request Header Fields Too Large)
         try:
-            response = requests.post(
-                base_url, 
-                data=params, 
-                timeout=10,
-                headers={'Content-Type': 'application/x-www-form-urlencoded'}
-            )
+            # Try GET first (works for OTP, might work here too with short tokens)
+            response = requests.get(base_url, params=params, timeout=10)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as get_error:
+            # If GET fails with 431, try POST (but likely will also fail)
+            # If GET fails with other error, try POST as fallback
+            if hasattr(get_error, 'response') and get_error.response.status_code == 431:
+                # GET also got 431, URL is too long even with GET
+                # Try POST as last resort, but it will likely also fail
+                logger.warning("GET request returned 431, trying POST method (may also fail)")
+                try:
+                    response = requests.post(
+                        base_url, 
+                        data=params, 
+                        timeout=10,
+                        headers={'Content-Type': 'application/x-www-form-urlencoded'}
+                    )
+                    response.raise_for_status()
+                except requests.exceptions.HTTPError as post_error:
+                    # POST also failed, re-raise to be handled below
+                    raise post_error
+            else:
+                # GET failed with non-431 error, try POST
+                logger.debug("GET request failed with non-431 error, trying POST method")
+                try:
+                    response = requests.post(
+                        base_url, 
+                        data=params, 
+                        timeout=10,
+                        headers={'Content-Type': 'application/x-www-form-urlencoded'}
+                    )
+                    response.raise_for_status()
+                except requests.exceptions.HTTPError as post_error:
+                    # POST also failed, re-raise to be handled below
+                    raise post_error
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             # Handle HTTP 431 (Request Header Fields Too Large)
