@@ -174,23 +174,23 @@ class SellerAdmin(admin.ModelAdmin):
             # Get subcategory names
             subcategories = Subcategory.objects.filter(id__in=working_field_ids)
             if subcategories.exists():
-                # Combine names, limit to 45 chars total
+                # Combine names, limit to 30 chars total (to avoid URL length issues)
                 names = [sc.name for sc in subcategories]
                 combined = ", ".join(names)
-                if len(combined) > 45:
-                    # Try to fit as many as possible within 45 chars
+                if len(combined) > 30:
+                    # Try to fit as many as possible within 30 chars
                     result = ""
                     for name in names:
-                        if len(result) + len(name) + 2 <= 45:  # +2 for ", "
+                        if len(result) + len(name) + 2 <= 30:  # +2 for ", "
                             if result:
                                 result += ", "
                             result += name
                         else:
                             break
                     if not result:  # Even first name is too long
-                        result = names[0][:42] + "..."
+                        result = names[0][:27] + "..."
                     else:
-                        result = result[:42] + "..."
+                        result = result[:27] + "..."
                     return result
                 return combined
         except Exception:

@@ -60,18 +60,28 @@ def send_sms_via_kavenegar(
     template_name = getattr(settings, 'KAVENEGAR_SUPPLIER_NOTIF_TEMPLATE_NAME', 'SupplyerNotif')
     use_local_mode = getattr(settings, 'SMS_NEWSLETTER_LOCAL_MODE', False)
     
+    # Debug logging
+    logger.debug(f"SMS Newsletter - API Key present: {bool(api_key)}, Template: {template_name}, Local Mode: {use_local_mode}")
+    
     # Normalize phone number
     phone = _normalize_phone(seller.mobile_number)
     
-    # Prepare filter name - limit to 45 characters
+    # Prepare seller name - limit to reasonable length (30 chars to be safe)
+    seller_name_display = seller.name[:30] if len(seller.name) > 30 else seller.name
+    
+    # Prepare filter name - limit to 30 characters (shorter to avoid URL length issues)
     # Truncate if too long and add ellipsis
-    if len(filter_name) > 45:
-        filter_name_display = filter_name[:42] + "..."
+    if len(filter_name) > 30:
+        filter_name_display = filter_name[:27] + "..."
     else:
         filter_name_display = filter_name
     
     # Local mode: Log to console instead of sending real SMS
     if not api_key or use_local_mode:
+        if not api_key:
+            logger.warning("KAVENEGAR_API_KEY is not set - using local mode. Set KAVENEGAR_API_KEY in environment variables to send real SMS.")
+        if use_local_mode:
+            logger.info("SMS_NEWSLETTER_LOCAL_MODE is enabled - using local mode")
         logger.info(f"[LOCAL SMS] Supplier Notification SMS (not sent)")
         print(f"\n{'='*70}")
         print(f"📱 SUPPLIER NOTIFICATION SMS (LOCAL MODE - NOT SENT)")
@@ -80,10 +90,10 @@ def send_sms_via_kavenegar(
         print(f"Seller: {seller.name}")
         print(f"Filter Name: {filter_name_display}")
         print(f"\nMessage Template: SupplyerNotif")
-        print(f"Token 1 (Name): {seller.name}")
+        print(f"Token 1 (Name): {seller_name_display}")
         print(f"Token 2 (Filter): {filter_name_display}")
         print(f"\nFull Message:")
-        print(f"سلام، {seller.name} عزیز برای {filter_name_display} مشتری جدیدی منتظر شماست.")
+        print(f"سلام، {seller_name_display} عزیز برای {filter_name_display} مشتری جدیدی منتظر شماست.")
         print(f"ایندکسو")
         print(f"indexo.ir/s/notif")
         print(f"{'='*70}\n")
@@ -99,16 +109,20 @@ def send_sms_via_kavenegar(
     
     # Prepare parameters
     # Template: SupplyerNotif
-    # %token = seller name
-    # %token2 = filter name (max 45 chars)
+    # %token = seller name (max 30 chars)
+    # %token2 = filter name (max 30 chars)
+    # Note: Limiting to 30 chars each to avoid URL length issues with Persian characters
     params = {
         'receptor': phone,
         'template': template_name,
-        'token': seller.name,
+        'token': seller_name_display,
         'token2': filter_name_display
     }
     
     try:
+        # Log the request for debugging (without exposing full API key)
+        logger.info(f"Sending SMS via Kavenegar - Template: {template_name}, Receptor: {phone}, Token1 length: {len(seller_name_display)}, Token2 length: {len(filter_name_display)}")
+        
         # Make API request
         response = requests.get(base_url, params=params, timeout=10)
         response.raise_for_status()

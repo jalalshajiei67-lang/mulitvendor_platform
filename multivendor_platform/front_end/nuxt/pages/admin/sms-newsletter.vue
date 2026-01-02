@@ -367,12 +367,19 @@ const sendSmsToSelected = async () => {
     return
   }
 
+  // Filter is required
+  if (selectedWorkingFields.value.length === 0) {
+    showToast({
+      message: 'لطفاً ابتدا فیلتر را اعمال کنید. ارسال پیامک نیاز به فیلتر دارد.',
+      color: 'error'
+    })
+    return
+  }
+
   sendingSms.value = true
   
   try {
-    const workingFieldIds = selectedWorkingFields.value.length > 0
-      ? selectedWorkingFields.value
-      : undefined
+    const workingFieldIds = selectedWorkingFields.value
     
     const response = await smsApi.sendSms(selectedSellers.value, workingFieldIds)
     

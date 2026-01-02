@@ -93,23 +93,23 @@ def send_sms_view(request):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Combine names, limit to 45 chars
+        # Combine names, limit to 30 chars (to avoid URL length issues)
         names = [sc.name for sc in subcategories]
         filter_name = ", ".join(names)
-        if len(filter_name) > 45:
-            # Try to fit as many as possible within 45 chars
+        if len(filter_name) > 30:
+            # Try to fit as many as possible within 30 chars
             result = ""
             for name in names:
-                if len(result) + len(name) + 2 <= 45:  # +2 for ", "
+                if len(result) + len(name) + 2 <= 30:  # +2 for ", "
                     if result:
                         result += ", "
                     result += name
                 else:
                     break
             if not result:  # Even first name is too long
-                result = names[0][:42] + "..."
+                result = names[0][:27] + "..."
             else:
-                result = result[:42] + "..."
+                result = result[:27] + "..."
             filter_name = result
     except Exception as e:
         return Response(
