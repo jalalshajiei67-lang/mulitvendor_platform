@@ -588,6 +588,7 @@ SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 KAVENEGAR_API_KEY = os.environ.get('KAVENEGAR_API_KEY', '')
 KAVENEGAR_TEMPLATE_NAME = os.environ.get('KAVENEGAR_TEMPLATE_NAME', '')  # For newsletter SMS
 KAVENEGAR_OTP_TEMPLATE_NAME = os.environ.get('KAVENEGAR_OTP_TEMPLATE_NAME', '')  # For OTP SMS
+KAVENEGAR_SUPPLIER_NOTIF_TEMPLATE_NAME = os.environ.get('KAVENEGAR_SUPPLIER_NOTIF_TEMPLATE_NAME', 'SupplyerNotif')  # For supplier notification SMS
 
 # ============================================================
 # Logging Configuration - Enhanced for Production Debugging

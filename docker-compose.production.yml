@@ -247,6 +247,18 @@ services:
       - "traefik.http.routers.backend-admin-http.entrypoints=web"
       - "traefik.http.routers.backend-admin-http.service=backend"
       - "traefik.http.routers.backend-admin-http.priority=15"
+      # Short link route (same priority as admin)
+      - "traefik.http.routers.backend-shortlink.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/s`)"
+      - "traefik.http.routers.backend-shortlink.entrypoints=websecure"
+      - "traefik.http.routers.backend-shortlink.tls.certresolver=myresolver"
+      - "traefik.http.routers.backend-shortlink.service=backend"
+      - "traefik.http.routers.backend-shortlink.priority=15"
+      - "traefik.http.routers.backend-shortlink.middlewares=backend-headers"
+      - "traefik.http.routers.backend-shortlink-http.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/s`)"
+      - "traefik.http.routers.backend-shortlink-http.entrypoints=web"
+      - "traefik.http.routers.backend-shortlink-http.service=backend"
+      - "traefik.http.routers.backend-shortlink-http.priority=15"
+      - "traefik.http.routers.backend-shortlink-http.middlewares=backend-headers"
       # API route
       - "traefik.http.routers.backend.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.entrypoints=websecure"

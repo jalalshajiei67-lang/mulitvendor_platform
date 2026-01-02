@@ -37,10 +37,12 @@
               <v-btn
                 color="primary"
                 variant="elevated"
+                size="large"
                 :disabled="!hasSelectedSellers || sendingSms"
                 :loading="sendingSms"
                 @click="sendSmsToSelected"
                 class="ml-auto"
+                block
               >
                 <v-icon class="ml-2">mdi-send</v-icon>
                 ارسال پیامک
@@ -50,6 +52,16 @@
               </v-btn>
             </v-col>
           </v-row>
+          <v-alert
+            v-if="!hasSelectedSellers && sellers.length > 0"
+            type="info"
+            variant="tonal"
+            density="compact"
+            class="mt-4"
+          >
+            <v-icon class="ml-2">mdi-information</v-icon>
+            لطفاً فروشنده‌های مورد نظر را از لیست زیر انتخاب کنید
+          </v-alert>
         </v-card-text>
 
         <v-divider></v-divider>
@@ -199,6 +211,28 @@
           </div>
         </v-card-text>
       </v-card>
+
+      <!-- Floating Action Button for Mobile -->
+      <v-btn
+        v-if="hasSelectedSellers && sellers.length > 0"
+        class="sms-fab d-md-none"
+        color="primary"
+        size="large"
+        :disabled="sendingSms"
+        :loading="sendingSms"
+        @click="sendSmsToSelected"
+        icon
+        elevation="8"
+      >
+        <v-badge
+          :content="selectedSellers.length > 99 ? '99+' : selectedSellers.length"
+          color="error"
+          overlap
+          floating
+        >
+          <v-icon size="28">mdi-send</v-icon>
+        </v-badge>
+      </v-btn>
     </v-container>
   </div>
 </template>
@@ -394,6 +428,29 @@ onMounted(async () => {
   padding-top: 80px;
 }
 
+.sms-fab {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  z-index: 1000;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(25, 118, 210, 0.4), 
+              0 4px 8px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sms-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 32px rgba(25, 118, 210, 0.5), 
+              0 6px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.sms-fab:active {
+  transform: scale(0.95);
+}
+
 @media (max-width: 960px) {
   .sms-newsletter-wrapper {
     padding-top: 72px;
@@ -403,6 +460,11 @@ onMounted(async () => {
 @media (max-width: 600px) {
   .sms-newsletter-wrapper {
     padding-top: 72px;
+  }
+  
+  .sms-fab {
+    bottom: 16px;
+    right: 16px;
   }
 }
 </style>
