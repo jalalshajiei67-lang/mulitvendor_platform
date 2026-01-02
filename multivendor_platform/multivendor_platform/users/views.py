@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
+from rest_framework.authentication import SessionAuthentication
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from .models import (
@@ -820,7 +821,37 @@ def update_profile_view(request):
             try:
                 vendor_profile = user.vendor_profile
                 # Handle FormData - parse JSON fields if they're strings
-                vendor_data = dict(request.data)
+                # Start with request.data and add files from request.FILES
+                vendor_data = {}
+                
+                # Copy all non-file fields from request.data
+                for key, value in request.data.items():
+                    if key not in ['banner_image', 'logo']:  # Skip file fields, we'll handle them separately
+                        vendor_data[key] = value
+                    elif key == 'banner_image' and value == '__DELETE__':
+                        # Special marker to delete the banner image
+                        vendor_data[key] = None
+                
+                # Handle file uploads from request.FILES (banner_image, logo, etc.)
+                import logging
+                logger = logging.getLogger(__name__)
+                if request.FILES:
+                    logger.info(f'request.FILES contains: {list(request.FILES.keys())}')
+                    for key, file_obj in request.FILES.items():
+                        if key in ['banner_image', 'logo']:
+                            vendor_data[key] = file_obj
+                            # Log file upload for debugging
+                            logger.info(f'File upload detected: {key}, size: {file_obj.size}, name: {file_obj.name}, content_type: {file_obj.content_type}')
+                
+                # Log vendor_data keys before serialization (without file content)
+                vendor_data_keys = list(vendor_data.keys())
+                logger.info(f'Vendor data keys before serialization: {vendor_data_keys}')
+                if 'banner_image' in vendor_data:
+                    banner_value = vendor_data['banner_image']
+                    if hasattr(banner_value, 'name'):
+                        logger.info(f'banner_image is a file object: {banner_value.name}')
+                    else:
+                        logger.info(f'banner_image value type: {type(banner_value)}, value: {banner_value}')
                 
                 # Remove fields that don't belong to vendor profile
                 user_fields = ['first_name', 'last_name', 'email']
@@ -887,7 +918,12 @@ def update_profile_view(request):
                             # The user's current store_name will remain unchanged
                             vendor_data.pop('store_name')
                 
-                vendor_serializer = VendorProfileSerializer(vendor_profile, data=vendor_data, partial=True)
+                vendor_serializer = VendorProfileSerializer(
+                    vendor_profile, 
+                    data=vendor_data, 
+                    partial=True,
+                    context={'request': request}
+                )
                 if vendor_serializer.is_valid():
                     vendor_serializer.save()
                     # Refresh vendor_profile from database to get updated data
@@ -1003,14 +1039,27 @@ def seller_dashboard_view(request):
         
         # If user has products but no vendor_profile, create vendor_profile
         # This fixes data inconsistency: users with products should have vendor_profile
+        # But first check if vendor_profile already exists to enforce one-per-user rule
         if not has_vendor_profile and has_products:
-            import uuid
-            vendor_profile = VendorProfile.objects.create(
-                user=user,
-                store_name=f"فروشگاه_{user.username}_{uuid.uuid4().hex[:6]}",
-                description=''
-            )
-            has_vendor_profile = True
+            # Double-check to prevent race condition
+            if not VendorProfile.objects.filter(user=user).exists():
+                import uuid
+                try:
+                    vendor_profile = VendorProfile.objects.create(
+                        user=user,
+                        store_name=f"فروشگاه_{user.username}_{uuid.uuid4().hex[:6]}",
+                        description=''
+                    )
+                    has_vendor_profile = True
+                except IntegrityError:
+                    # Another process might have created it, get existing one
+                    try:
+                        vendor_profile = VendorProfile.objects.get(user=user)
+                        has_vendor_profile = True
+                    except VendorProfile.DoesNotExist:
+                        pass  # Will be handled by permission check below
+            else:
+                has_vendor_profile = True
         
         # If user has vendor_profile but role is not "seller", update role to "seller"
         if has_vendor_profile and profile.role != 'seller':
@@ -2361,6 +2410,8 @@ class SupplierViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = VendorProfile.objects.filter(is_approved=True).order_by('store_name')
     serializer_class = VendorProfileSerializer
+    authentication_classes = []  # Disable authentication for public endpoint
+    permission_classes = [AllowAny]  # Public access
     
     def get_permissions(self):
         """All actions are public (read-only)"""

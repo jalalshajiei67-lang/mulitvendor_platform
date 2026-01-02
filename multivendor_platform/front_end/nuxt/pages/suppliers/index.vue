@@ -211,7 +211,7 @@ const display = useDisplay()
 const supplierApi = useSupplierApi()
 
 const suppliers = ref<Supplier[]>([])
-const loading = ref(false)
+const loading = ref(true)
 const error = ref<string | null>(null)
 const searchQuery = ref('')
 const sortBy = ref('store_name')
@@ -237,31 +237,43 @@ const filteredSuppliers = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(supplier =>
-      supplier.store_name.toLowerCase().includes(query) ||
+      (supplier.store_name && supplier.store_name.toLowerCase().includes(query)) ||
       (supplier.description && supplier.description.toLowerCase().includes(query)) ||
       (supplier.contact_email && supplier.contact_email.toLowerCase().includes(query))
     )
   }
 
   // Sort
-  if (sortBy.value) {
+  if (sortBy.value && filtered.length > 0) {
     const isDescending = sortBy.value.startsWith('-')
     const sortKey = isDescending ? sortBy.value.substring(1) : sortBy.value
 
     filtered.sort((a, b) => {
-      let aValue: any = a[sortKey as keyof Supplier] || 0
-      let bValue: any = b[sortKey as keyof Supplier] || 0
+      let aValue: any = a[sortKey as keyof Supplier]
+      let bValue: any = b[sortKey as keyof Supplier]
 
-      if (typeof aValue === 'string') {
+      // Handle null/undefined values
+      if (aValue === null || aValue === undefined) {
+        aValue = isDescending ? -Infinity : Infinity
+      }
+      if (bValue === null || bValue === undefined) {
+        bValue = isDescending ? -Infinity : Infinity
+      }
+
+      // Handle string comparison
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
         aValue = aValue.toLowerCase()
         bValue = bValue.toLowerCase()
       }
 
-      if (isDescending) {
-        return bValue > aValue ? 1 : -1
-      } else {
-        return aValue > bValue ? 1 : -1
+      // Compare values
+      if (aValue < bValue) {
+        return isDescending ? 1 : -1
       }
+      if (aValue > bValue) {
+        return isDescending ? -1 : 1
+      }
+      return 0
     })
   }
 
@@ -269,6 +281,11 @@ const filteredSuppliers = computed(() => {
 })
 
 const getSupplierLogo = (supplier: Supplier) => {
+  // Prefer banner_image for cards (more visually appealing), fallback to logo
+  if (supplier.banner_image) {
+    const formattedUrl = formatImageUrl(supplier.banner_image)
+    if (formattedUrl) return formattedUrl
+  }
   if (supplier.logo) {
     const formattedUrl = formatImageUrl(supplier.logo)
     if (formattedUrl) return formattedUrl

@@ -138,7 +138,7 @@
                   v-model="bannerFile"
                   label="انتخاب تصویر از کامپیوتر"
                   accept="image/*"
-                  @change="onBannerChange"
+                  @update:model-value="onBannerChange"
                   variant="outlined"
                   density="comfortable"
                   class="file-input-large"
@@ -691,6 +691,8 @@ const snackbarColor = ref('success')
 const supplierId = ref<number | null>(null)
 const bannerFile = ref<File[]>([])
 const previewBanner = ref<string>('')
+const savedBannerUrl = ref<string>('') // Track saved banner URL from backend
+const bannerRemoved = ref(false) // Flag to track if user explicitly removed the banner
 const isMounted = ref(false)
 const hasLoadedData = ref(false)
 
@@ -913,20 +915,47 @@ const removeAward = (index: number) => {
   awards.value.splice(index, 1)
 }
 
-const onBannerChange = (event: Event) => {
-  const files = (event.target as HTMLInputElement).files
-  if (files?.[0]) {
+const onBannerChange = (files: File | File[] | null) => {
+  // Sync bannerFile.value with the files parameter
+  const fileArray = Array.isArray(files) ? files : files ? [files] : []
+  
+  // Update bannerFile to match what v-model should have set
+  // This ensures consistency between v-model and the handler
+  if (fileArray.length > 0) {
+    bannerFile.value = fileArray
+    bannerRemoved.value = false // User selected a new file, so banner is not removed
+  } else {
+    bannerFile.value = []
+  }
+  
+  // Update preview - show new file if selected, otherwise show saved image (if not removed)
+  if (fileArray.length > 0 && fileArray[0] instanceof File) {
     const reader = new FileReader()
     reader.onload = (e) => {
-      previewBanner.value = e.target?.result as string
+      if (e.target?.result) {
+        previewBanner.value = e.target.result as string
+      }
     }
-    reader.readAsDataURL(files[0])
+    reader.onerror = () => {
+      console.error('Error reading banner file')
+      // On error, restore saved banner if available and not removed
+      previewBanner.value = bannerRemoved.value ? '' : savedBannerUrl.value
+    }
+    reader.readAsDataURL(fileArray[0])
+  } else {
+    // No new file selected - restore saved image only if banner wasn't explicitly removed
+    if (!bannerRemoved.value) {
+      previewBanner.value = savedBannerUrl.value
+    }
   }
 }
 
 const removeBanner = () => {
+  // Clear the file input
   bannerFile.value = []
+  // Clear preview and set flag - user explicitly wants to remove the banner
   previewBanner.value = ''
+  bannerRemoved.value = true
 }
 
 const normalizeUrl = (url: string | null | undefined): string | null => {
@@ -991,7 +1020,25 @@ const loadCurrentSettings = async () => {
         meta_description: vendorProfile.meta_description || ''
       }
 
-      previewBanner.value = vendorProfile.banner_image || ''
+      // Format banner image URL if it exists
+      if (vendorProfile.banner_image) {
+        const { formatImageUrl } = await import('~/utils/imageUtils')
+        const formattedUrl = formatImageUrl(vendorProfile.banner_image) || ''
+        savedBannerUrl.value = formattedUrl
+        // Reset removal flag when loading saved data
+        bannerRemoved.value = false
+        // Only set preview if no new file is selected and banner wasn't removed
+        if (bannerFile.value.length === 0 && !bannerRemoved.value) {
+          previewBanner.value = formattedUrl
+        }
+      } else {
+        savedBannerUrl.value = ''
+        bannerRemoved.value = false
+        // Only clear preview if no new file is selected
+        if (bannerFile.value.length === 0) {
+          previewBanner.value = ''
+        }
+      }
       certifications.value = Array.isArray(vendorProfile.certifications) 
         ? vendorProfile.certifications 
         : []
@@ -1040,12 +1087,35 @@ const saveSettings = async () => {
       social_media: normalizedSocialMedia
     }
 
-    if (bannerFile.value.length > 0) {
+    // Handle banner image upload/removal
+    if (bannerFile.value.length > 0 && bannerFile.value[0] instanceof File) {
+      // New file selected - send it to replace existing banner
       updateData.banner_image = bannerFile.value[0]
+    } else if (bannerRemoved.value && savedBannerUrl.value) {
+      // User explicitly removed the banner (clicked X button)
+      // Send null to remove the banner from backend
+      updateData.banner_image = null
     }
+    // If bannerFile is empty and bannerRemoved is false, it means we're keeping the existing image
+    // Don't include banner_image in updateData - backend will keep the existing one
 
     await supplierApi.updateSupplierProfile(updateData)
     const awarded = await awardMiniWebsite()
+    
+    // Refresh auth store to get updated vendor profile
+    try {
+      await authStore.fetchCurrentUser()
+    } catch (err) {
+      console.warn('Error refreshing user:', err)
+    }
+    
+    // Clear the file input after successful save
+    // The preview will be updated by loadCurrentSettings with the saved image
+    bannerFile.value = []
+    
+    // Reload form data with updated values (including the saved banner image)
+    await loadCurrentSettings()
+    
     if (awarded > 0) {
       snackbarMessage.value = `تغییرات ذخیره شد (+${awarded} امتیاز)`
       try {
@@ -1053,16 +1123,9 @@ const saveSettings = async () => {
       } catch (e) {
         console.warn('Failed to hydrate gamification after mini site update', e)
       }
+    } else {
+      snackbarMessage.value = 'تغییرات ذخیره شد'
     }
-    
-    try {
-      await authStore.fetchCurrentUser()
-    } catch (err) {
-      console.warn('Error refreshing user:', err)
-    }
-
-    bannerFile.value = []
-    snackbarMessage.value = 'تغییرات ذخیره شد'
     snackbarColor.value = 'success'
     snackbar.value = true
   } catch (error: any) {

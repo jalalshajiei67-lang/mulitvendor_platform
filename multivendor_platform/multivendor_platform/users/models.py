@@ -441,7 +441,7 @@ class VendorSubscription(models.Model):
 
 class Supplier(models.Model):
     """Company/Supplier model - scraped or manually created"""
-    vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='suppliers', help_text="The user/admin who manages this supplier")
+    vendor = models.OneToOneField(User, on_delete=models.CASCADE, related_name='supplier', help_text="The user/vendor who manages this supplier. Each user can only have one supplier profile.")
     name = models.CharField(max_length=200, help_text="Company name")
     website = models.URLField(max_length=500, blank=True, null=True)
     phone = models.CharField(max_length=50, blank=True, null=True)
@@ -458,7 +458,7 @@ class Supplier(models.Model):
         ordering = ['name']
         verbose_name = "Supplier/Company"
         verbose_name_plural = "Suppliers/Companies"
-        unique_together = [['name', 'website']]  # Unique by name AND website
+        # Removed unique_together since OneToOneField already enforces uniqueness per user
     
     def __str__(self):
         return self.name

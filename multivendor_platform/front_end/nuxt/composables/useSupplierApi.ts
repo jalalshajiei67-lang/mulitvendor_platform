@@ -186,24 +186,41 @@ export const useSupplierApi = () => {
   const updateSupplierProfile = async (data: Partial<Supplier & { banner_image?: File | string }>): Promise<any> => {
     // Check if there's a file upload (banner_image)
     const bannerImage = data.banner_image
-    // Check if banner_image is a File object
-    const hasFile = bannerImage && typeof bannerImage === 'object' && 'size' in bannerImage && 'type' in bannerImage
+    // Check if banner_image is a File object - more robust check
+    const hasFile = bannerImage instanceof File || 
+                    (bannerImage && typeof bannerImage === 'object' && 
+                     'size' in bannerImage && 'type' in bannerImage && 'name' in bannerImage)
     
-    console.log('updateSupplierProfile called with:', { data, hasFile })
+    console.log('updateSupplierProfile called with:', { 
+      data, 
+      hasFile, 
+      bannerImageType: typeof bannerImage,
+      isFile: bannerImage instanceof File,
+      bannerImageKeys: bannerImage && typeof bannerImage === 'object' ? Object.keys(bannerImage) : null
+    })
     
     if (hasFile) {
       // Use FormData for file uploads
       const formData = new FormData()
       
       Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (key === 'banner_image' && value instanceof File) {
-            formData.append(key, value as File)
-          } else if (typeof value === 'object' && !(value instanceof File)) {
-            // Stringify objects (certifications, awards, social_media)
-            formData.append(key, JSON.stringify(value))
-          } else {
-            formData.append(key, value.toString())
+        if (value !== undefined) {
+          if (key === 'banner_image') {
+            if (value instanceof File) {
+              // New file to upload
+              formData.append(key, value as File)
+            } else if (value === null) {
+              // Special marker to delete the banner
+              formData.append(key, '__DELETE__')
+            }
+            // If value is undefined or something else, skip it
+          } else if (value !== null) {
+            if (typeof value === 'object' && !(value instanceof File)) {
+              // Stringify objects (certifications, awards, social_media)
+              formData.append(key, JSON.stringify(value))
+            } else {
+              formData.append(key, value.toString())
+            }
           }
         }
       })

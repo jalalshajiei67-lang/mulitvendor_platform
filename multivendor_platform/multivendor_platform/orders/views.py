@@ -127,8 +127,10 @@ def vendor_rfq_list_view(request):
     vendor_products = Product.objects.filter(vendor=request.user, is_active=True)
     vendor_category_ids = vendor_products.values_list('primary_category_id', flat=True)
     
-    # Get suppliers managed by this vendor
-    vendor_suppliers = Supplier.objects.filter(vendor=request.user, is_active=True)
+    # Get supplier managed by this vendor (OneToOne relationship - each user can only have one supplier)
+    vendor_suppliers = []
+    if hasattr(request.user, 'supplier') and request.user.supplier.is_active:
+        vendor_suppliers = [request.user.supplier]
     
     # Get RFQs for:
     # - free leads (is_free=True)
@@ -173,7 +175,10 @@ def vendor_rfq_my_list_view(request):
 
     vendor_products = Product.objects.filter(vendor=request.user, is_active=True)
     vendor_category_ids = vendor_products.values_list('primary_category_id', flat=True)
-    vendor_suppliers = Supplier.objects.filter(vendor=request.user, is_active=True)
+    # Get supplier managed by this vendor (OneToOne relationship - each user can only have one supplier)
+    vendor_suppliers = []
+    if hasattr(request.user, 'supplier') and request.user.supplier.is_active:
+        vendor_suppliers = [request.user.supplier]
 
     rfqs = Order.objects.filter(is_rfq=True, id__in=viewed_ids).filter(
         Q(is_free=True)
@@ -387,12 +392,15 @@ def vendor_rfq_reveal_view(request, rfq_id):
 
     vendor_products = Product.objects.filter(vendor=request.user, is_active=True)
     vendor_category_ids = set(vendor_products.values_list('primary_category_id', flat=True))
-    vendor_suppliers = Supplier.objects.filter(vendor=request.user, is_active=True)
+    # Get supplier managed by this vendor (OneToOne relationship - each user can only have one supplier)
+    vendor_suppliers = []
+    if hasattr(request.user, 'supplier') and request.user.supplier.is_active:
+        vendor_suppliers = [request.user.supplier]
 
     owns_product = rfq.items.filter(product__vendor=request.user).exists()
     has_product = rfq.items.filter(product__isnull=False).exists()
     matches_category = not has_product and rfq.category_id in vendor_category_ids if rfq.category_id else False
-    is_selected_supplier = rfq.suppliers.filter(id__in=vendor_suppliers).exists()
+    is_selected_supplier = vendor_suppliers and rfq.suppliers.filter(id__in=[s.id for s in vendor_suppliers]).exists()
 
     if not (rfq.is_free or owns_product or matches_category or is_selected_supplier):
         return Response({'detail': 'You are not allowed to view this lead'}, status=status.HTTP_403_FORBIDDEN)

@@ -34,8 +34,9 @@ from .serializers import (
     SellerInsightCommentSerializer,
 )
 from .services import GamificationService, _get_vendor_profile
-from users.models import SupplierComment, ProductReview
+from users.models import SupplierComment, ProductReview, VendorProfile
 from django.contrib.contenttypes.models import ContentType
+from django.db import IntegrityError
 
 logger = logging.getLogger(__name__)
 
@@ -899,15 +900,22 @@ class GamificationDashboardView(APIView):
                 from users.models import UserProfile, VendorProfile
                 profile = request.user.profile
                 if profile.is_seller():
-                    # Try to create vendor profile (signal should have done this, but ensure it exists)
-                    import uuid
-                    vendor_profile, created = VendorProfile.objects.get_or_create(
-                        user=request.user,
-                        defaults={
-                            'store_name': f"فروشگاه_{request.user.username}_{uuid.uuid4().hex[:6]}",
-                            'description': ''
-                        }
-                    )
+                    # Try to get vendor profile (signal should have created this)
+                    # Business rule: Each user can only have one vendor profile
+                    try:
+                        vendor_profile = VendorProfile.objects.get(user=request.user)
+                    except VendorProfile.DoesNotExist:
+                        # Signal failed, create it here as backup
+                        import uuid
+                        try:
+                            vendor_profile = VendorProfile.objects.create(
+                                user=request.user,
+                                store_name=f"فروشگاه_{request.user.username}_{uuid.uuid4().hex[:6]}",
+                                description=''
+                            )
+                        except IntegrityError:
+                            # Another process created it, get it
+                            vendor_profile = VendorProfile.objects.get(user=request.user)
                     # Re-initialize service with the new vendor profile
                     service = GamificationService.for_user(request.user)
             except (UserProfile.DoesNotExist, AttributeError, Exception):

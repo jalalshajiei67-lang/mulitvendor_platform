@@ -360,21 +360,31 @@ class CategoryRequestCreateSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             raise serializers.ValidationError("Authentication required")
         
-        # Get supplier from user
+        # Get supplier from user (OneToOne relationship - each user can only have one supplier)
+        from users.models import Supplier
         try:
-            supplier = request.user.suppliers.first()
-            if not supplier:
-                # Try to get from vendor profile
+            # Check if user has a supplier profile
+            if hasattr(request.user, 'supplier'):
+                supplier = request.user.supplier
+                # Ensure supplier is active
+                if not supplier.is_active:
+                    raise serializers.ValidationError("پروفایل تأمین‌کننده شما غیرفعال است")
+            else:
+                # Try to create supplier from vendor profile if user is a seller
                 if hasattr(request.user, 'vendor_profile'):
-                    # Create supplier from vendor profile if needed
-                    from users.models import Supplier
-                    supplier, _ = Supplier.objects.get_or_create(
+                    # Use get_or_create to handle race conditions and enforce one-per-user rule
+                    supplier, created = Supplier.objects.get_or_create(
                         vendor=request.user,
-                        defaults={'name': request.user.vendor_profile.store_name}
+                        defaults={'name': request.user.vendor_profile.store_name, 'is_active': True}
                     )
                 else:
                     raise serializers.ValidationError("شما به عنوان تأمین‌کننده ثبت نشده‌اید")
+        except Supplier.DoesNotExist:
+            raise serializers.ValidationError("پروفایل تأمین‌کننده یافت نشد")
         except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting supplier for user {request.user.id}: {e}", exc_info=True)
             raise serializers.ValidationError(f"خطا در دریافت اطلاعات تأمین‌کننده: {str(e)}")
         
         validated_data['supplier'] = supplier

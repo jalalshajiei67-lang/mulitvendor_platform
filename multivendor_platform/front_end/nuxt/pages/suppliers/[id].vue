@@ -44,7 +44,7 @@
     <div v-else-if="supplier">
       <!-- Simplified Hero -->
       <div class="hero-section">
-        <div class="hero-bg" v-if="supplier.banner_image" :style="{ backgroundImage: `url(${supplier.banner_image})` }"></div>
+        <div class="hero-bg" v-if="bannerImageUrl" :style="{ backgroundImage: `url(${bannerImageUrl})` }"></div>
         <div class="hero-overlay"></div>
         
         <v-container class="hero-content">
@@ -59,8 +59,8 @@
             <h1 class="text-h4 text-md-h3 font-weight-bold mb-2">
               {{ supplier.store_name }}
             </h1>
-            <p v-if="supplier.description" class="text-body-1 text-medium-emphasis mb-6">
-              {{ supplier.description }}
+            <p v-if="supplier.slogan" class="text-body-1 text-medium-emphasis mb-6">
+              {{ supplier.slogan }}
             </p>
             
             <!-- Quick Actions -->
@@ -366,6 +366,7 @@ import {
   type SupplierTeamMember
 } from '~/composables/useSupplierTeamApi'
 import { generateOrganizationSchema, generateBreadcrumbSchema, prepareSchemaScripts } from '~/composables/useSchema'
+import { formatImageUrl } from '~/utils/imageUtils'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -380,7 +381,7 @@ const portfolioItems = ref<SupplierPortfolioItem[]>([])
 const teamMembers = ref<SupplierTeamMember[]>([])
 const comments = ref<SupplierComment[]>([])
 
-const loading = ref(false)
+const loading = ref(true)
 const productsLoading = ref(false)
 const portfolioLoading = ref(false)
 const teamLoading = ref(false)
@@ -483,6 +484,11 @@ const brandingStyles = computed(() => {
     styles['--brand-secondary'] = supplier.value.brand_color_secondary
   }
   return styles
+})
+
+const bannerImageUrl = computed(() => {
+  if (!supplier.value?.banner_image) return null
+  return formatImageUrl(supplier.value.banner_image)
 })
 
 const hasCertifications = computed(() => {
@@ -623,8 +629,12 @@ const fetchSupplier = async () => {
     } catch {}
     // #endregion
 
-    if (typeof window !== 'undefined' && !authStore.user && authStore.token) {
-      await authStore.fetchCurrentUser()
+    // Refresh user data if authenticated to ensure we have latest vendor profile
+    if (typeof window !== 'undefined' && authStore.token) {
+      if (!authStore.user || authStore.vendorProfile?.id === parseInt(id as string)) {
+        // Refresh if no user loaded, or if viewing own profile to get latest data
+        await authStore.fetchCurrentUser()
+      }
     }
 
     // Use single source of truth from store
@@ -668,10 +678,13 @@ const fetchSupplier = async () => {
     }
   } catch (err: any) {
     console.error('Error fetching supplier:', err)
-    if (err?.response?.status === 404 || err?.statusCode === 404) {
-      error.value = 'صفحه تامین‌کننده یافت نشد یا هنوز تایید نشده است.'
+    const statusCode = err?.response?.status || err?.statusCode || err?.status
+    if (statusCode === 404) {
+      const errorMessage = err?.data?.detail || err?.response?.data?.detail || err?.message
+      error.value = errorMessage || 'صفحه تامین‌کننده یافت نشد یا هنوز تایید نشده است.'
     } else {
-      error.value = 'خطا در بارگذاری اطلاعات تامین‌کننده'
+      const errorMessage = err?.data?.detail || err?.response?.data?.detail || err?.data?.error || err?.message
+      error.value = errorMessage || 'خطا در بارگذاری اطلاعات تامین‌کننده'
     }
   } finally {
     loading.value = false

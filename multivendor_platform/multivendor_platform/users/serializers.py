@@ -49,9 +49,71 @@ class VendorProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['is_approved', 'product_count', 'rating_average', 'created_at', 'updated_at']
     
+    def validate(self, data):
+        """
+        Ensure that each user can only have one vendor profile.
+        This validation prevents creating multiple vendor profiles for the same user.
+        """
+        # Get the user from the instance (for updates) or from the request context (for creates)
+        if self.instance:
+            # Update case - instance already has a user
+            user = self.instance.user
+        else:
+            # Create case - check if user is provided in context or request
+            request = self.context.get('request')
+            if request and request.user.is_authenticated:
+                user = request.user
+            else:
+                # If no user in context, validation will fail at model level (OneToOneField)
+                return data
+        
+        # Check if user already has a vendor profile (and we're not updating it)
+        if not self.instance:
+            if VendorProfile.objects.filter(user=user).exists():
+                raise serializers.ValidationError({
+                    'non_field_errors': ['شما قبلاً یک پروفایل فروشنده دارید. هر کاربر فقط می‌تواند یک پروفایل فروشنده داشته باشد.']
+                })
+        
+        # Validate store_name uniqueness (exclude current instance if updating)
+        store_name = data.get('store_name')
+        if store_name:
+            queryset = VendorProfile.objects.filter(store_name=store_name)
+            if self.instance:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            if queryset.exists():
+                raise serializers.ValidationError({
+                    'store_name': ['این نام فروشگاه قبلاً استفاده شده است. لطفاً نام دیگری انتخاب کنید.']
+                })
+        
+        return data
+    
     def to_representation(self, instance):
         """Handle both annotated and non-annotated instances"""
         data = super().to_representation(instance)
+        
+        # Convert image fields to full URLs if they exist
+        request = self.context.get('request')
+        if request:
+            from django.utils.http import urlencode
+            from django.urls import reverse
+            
+            # Handle banner_image
+            if data.get('banner_image'):
+                try:
+                    banner_field = getattr(instance, 'banner_image', None)
+                    if banner_field and banner_field.name:
+                        data['banner_image'] = request.build_absolute_uri(banner_field.url)
+                except Exception:
+                    pass
+            
+            # Handle logo
+            if data.get('logo'):
+                try:
+                    logo_field = getattr(instance, 'logo', None)
+                    if logo_field and logo_field.name:
+                        data['logo'] = request.build_absolute_uri(logo_field.url)
+                except Exception:
+                    pass
         
         # If annotations are not available, use method fields as fallback
         if 'product_count' not in data or data['product_count'] is None:
@@ -296,44 +358,56 @@ class RegisterSerializer(serializers.Serializer):
             from users.signals import _generate_unique_store_name
             from django.db import IntegrityError, transaction
             
-            try:
-                # Signal should have created it, but get it to update if needed
-                vendor_profile = VendorProfile.objects.get(user=user)
-            except VendorProfile.DoesNotExist:
-                # Signal failed, create it here as backup
+            # Check if vendor profile already exists (should not happen, but enforce business rule)
+            if VendorProfile.objects.filter(user=user).exists():
                 import logging
                 logger = logging.getLogger(__name__)
-                logger.warning(f"VendorProfile not created by signal for user {user.id}, creating in serializer")
-                
+                logger.warning(f"VendorProfile already exists for user {user.id} during registration")
+                vendor_profile = VendorProfile.objects.get(user=user)
+            else:
                 try:
-                    with transaction.atomic():
-                        vendor_profile = VendorProfile.objects.create(
-                            user=user,
-                            store_name=_generate_unique_store_name(user.username),
-                            description=''
-                        )
-                except IntegrityError as e:
-                    # Handle store_name uniqueness conflict
-                    logger.error(f"Store name conflict creating VendorProfile for user {user.id}: {e}")
-                    # Try with a different unique name
-                    max_attempts = 10
-                    attempts = 0
-                    while attempts < max_attempts:
-                        try:
+                    # Signal should have created it, but get it to update if needed
+                    vendor_profile = VendorProfile.objects.get(user=user)
+                except VendorProfile.DoesNotExist:
+                    # Signal failed, create it here as backup
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"VendorProfile not created by signal for user {user.id}, creating in serializer")
+                    
+                    try:
+                        with transaction.atomic():
                             vendor_profile = VendorProfile.objects.create(
                                 user=user,
                                 store_name=_generate_unique_store_name(user.username),
                                 description=''
                             )
-                            break
-                        except IntegrityError:
-                            attempts += 1
-                    
-                    if attempts >= max_attempts:
-                        logger.error(f"Could not create VendorProfile for user {user.id} after {max_attempts} attempts")
-                        raise serializers.ValidationError({
-                            'non_field_errors': ['خطا در ایجاد پروفایل فروشنده. لطفاً دوباره تلاش کنید.']
-                        })
+                    except IntegrityError as e:
+                        # Handle store_name uniqueness conflict or OneToOne constraint violation
+                        logger.error(f"IntegrityError creating VendorProfile for user {user.id}: {e}")
+                        # Try to get existing profile (might have been created by another process)
+                        try:
+                            vendor_profile = VendorProfile.objects.get(user=user)
+                            logger.info(f"VendorProfile found for user {user.id} after IntegrityError")
+                        except VendorProfile.DoesNotExist:
+                            # Try with a different unique name
+                            max_attempts = 10
+                            attempts = 0
+                            while attempts < max_attempts:
+                                try:
+                                    vendor_profile = VendorProfile.objects.create(
+                                        user=user,
+                                        store_name=_generate_unique_store_name(user.username),
+                                        description=''
+                                    )
+                                    break
+                                except IntegrityError:
+                                    attempts += 1
+                            
+                            if attempts >= max_attempts:
+                                logger.error(f"Could not create VendorProfile for user {user.id} after {max_attempts} attempts")
+                                raise serializers.ValidationError({
+                                    'non_field_errors': ['خطا در ایجاد پروفایل فروشنده. لطفاً دوباره تلاش کنید.']
+                                })
             
             # Update store_name and description if provided during registration
             store_name = validated_data.get('store_name', '').strip()

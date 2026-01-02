@@ -29,17 +29,23 @@ def create_or_update_role_profiles(sender, instance, created, **kwargs):
     
     # Create vendor profile if user is seller or both
     # This is critical - ensures VendorProfile exists for all sellers
+    # Business rule: Each user can only have one vendor profile
     if instance.role in ['seller', 'both']:
         try:
             # Use transaction to ensure atomicity
             with transaction.atomic():
-                vendor_profile, vendor_created = VendorProfile.objects.get_or_create(
-                    user=instance.user,
-                    defaults={
-                        'store_name': _generate_unique_store_name(instance.user.username),
-                        'description': ''
-                    }
-                )
+                # Check if vendor profile already exists first (enforce one-per-user rule)
+                try:
+                    vendor_profile = VendorProfile.objects.get(user=instance.user)
+                    vendor_created = False
+                except VendorProfile.DoesNotExist:
+                    # Create new vendor profile only if it doesn't exist
+                    vendor_profile = VendorProfile.objects.create(
+                        user=instance.user,
+                        store_name=_generate_unique_store_name(instance.user.username),
+                        description=''
+                    )
+                    vendor_created = True
                 
                 # If vendor profile already existed but store_name is empty or default, update it
                 if not vendor_created and (not vendor_profile.store_name or vendor_profile.store_name.startswith('فروشگاه_')):

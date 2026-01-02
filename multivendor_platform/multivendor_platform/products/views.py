@@ -1071,8 +1071,9 @@ class CategoryRequestViewSet(viewsets.ModelViewSet):
             # Non-admin users can only see their own requests
             if not self.request.user.is_staff:
                 try:
-                    supplier = self.request.user.suppliers.first()
-                    if supplier:
+                    # OneToOne relationship - each user can only have one supplier
+                    if hasattr(self.request.user, 'supplier') and self.request.user.supplier.is_active:
+                        supplier = self.request.user.supplier
                         queryset = queryset.filter(supplier=supplier)
                     else:
                         # If no supplier, return empty queryset
