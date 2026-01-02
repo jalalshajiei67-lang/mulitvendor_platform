@@ -38,44 +38,61 @@ def _normalize_phone(phone: str) -> str:
 
 def send_sms_via_kavenegar(
     seller: Seller,
-    working_fields: Optional[List[Subcategory]] = None
+    filter_name: str
 ) -> Dict[str, any]:
     """
     Send SMS to seller via Kavenegar API using lookup template.
     Template: SupplyerNotif
     - %token = seller name
-    - %token2 = working fields
+    - %token2 = filter name (applied filter from admin, max 45 chars)
+    
+    In local/development mode (when KAVENEGAR_API_KEY is not set),
+    the SMS content will be logged to console instead of being sent.
     
     Args:
         seller: Seller instance
-        working_fields: Optional list of Subcategory instances to include in SMS
+        filter_name: Name of the applied filter (from admin filter selection)
         
     Returns:
         Dict with 'success' (bool) and 'message' (str) keys
     """
     api_key = getattr(settings, 'KAVENEGAR_API_KEY', None)
     template_name = getattr(settings, 'KAVENEGAR_SUPPLIER_NOTIF_TEMPLATE_NAME', 'SupplyerNotif')
-    
-    if not api_key:
-        logger.error('KAVENEGAR_API_KEY not configured in settings')
-        return {
-            'success': False,
-            'message': 'سرویس پیامک پیکربندی نشده است. لطفاً با پشتیبانی تماس بگیرید.'
-        }
+    use_local_mode = getattr(settings, 'SMS_NEWSLETTER_LOCAL_MODE', False)
     
     # Normalize phone number
     phone = _normalize_phone(seller.mobile_number)
     
-    # Prepare working fields display
-    if working_fields:
-        working_fields_names = ", ".join([wf.name for wf in working_fields])
+    # Prepare filter name - limit to 45 characters
+    # Truncate if too long and add ellipsis
+    if len(filter_name) > 45:
+        filter_name_display = filter_name[:42] + "..."
     else:
-        # Use seller's working fields if not provided
-        seller_working_fields = seller.working_fields.all()
-        if seller_working_fields.exists():
-            working_fields_names = ", ".join([wf.name for wf in seller_working_fields])
-        else:
-            working_fields_names = '-'
+        filter_name_display = filter_name
+    
+    # Local mode: Log to console instead of sending real SMS
+    if not api_key or use_local_mode:
+        logger.info(f"[LOCAL SMS] Supplier Notification SMS (not sent)")
+        print(f"\n{'='*70}")
+        print(f"📱 SUPPLIER NOTIFICATION SMS (LOCAL MODE - NOT SENT)")
+        print(f"{'='*70}")
+        print(f"To: {phone}")
+        print(f"Seller: {seller.name}")
+        print(f"Filter Name: {filter_name_display}")
+        print(f"\nMessage Template: SupplyerNotif")
+        print(f"Token 1 (Name): {seller.name}")
+        print(f"Token 2 (Filter): {filter_name_display}")
+        print(f"\nFull Message:")
+        print(f"سلام، {seller.name} عزیز برای {filter_name_display} مشتری جدیدی منتظر شماست.")
+        print(f"ایندکسو")
+        print(f"indexo.ir/s/notif")
+        print(f"{'='*70}\n")
+        
+        return {
+            'success': True,
+            'message': 'پیامک با موفقیت ارسال شد (حالت تست - در محیط واقعی ارسال می‌شود)',
+            'local_mode': True
+        }
     
     # Prepare API URL
     base_url = f'https://api.kavenegar.com/v1/{api_key}/verify/lookup.json'
@@ -83,12 +100,12 @@ def send_sms_via_kavenegar(
     # Prepare parameters
     # Template: SupplyerNotif
     # %token = seller name
-    # %token2 = working fields
+    # %token2 = filter name (max 45 chars)
     params = {
         'receptor': phone,
         'template': template_name,
         'token': seller.name,
-        'token2': working_fields_names
+        'token2': filter_name_display
     }
     
     try:

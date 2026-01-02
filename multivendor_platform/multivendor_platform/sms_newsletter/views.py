@@ -63,6 +63,13 @@ def send_sms_view(request):
     seller_ids = serializer.validated_data['seller_ids']
     working_field_ids = serializer.validated_data.get('working_field_ids', [])
     
+    # Filter name is required
+    if not working_field_ids:
+        return Response(
+            {'error': 'working_field_ids is required. Please apply a filter first.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
     # Get sellers
     try:
         sellers = Seller.objects.filter(id__in=seller_ids).prefetch_related('working_fields')
@@ -77,26 +84,43 @@ def send_sms_view(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     
-    # Get working fields if provided
-    working_fields = None
-    if working_field_ids:
-        try:
-            working_fields = list(Subcategory.objects.filter(id__in=working_field_ids))
-            if len(working_fields) != len(working_field_ids):
-                return Response(
-                    {'error': 'Some working field IDs not found'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-        except Exception as e:
+    # Get filter name from working field IDs
+    try:
+        subcategories = Subcategory.objects.filter(id__in=working_field_ids)
+        if not subcategories.exists():
             return Response(
-                {'error': f'Error fetching working fields: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {'error': 'No valid working fields found'},
+                status=status.HTTP_404_NOT_FOUND
             )
+        
+        # Combine names, limit to 45 chars
+        names = [sc.name for sc in subcategories]
+        filter_name = ", ".join(names)
+        if len(filter_name) > 45:
+            # Try to fit as many as possible within 45 chars
+            result = ""
+            for name in names:
+                if len(result) + len(name) + 2 <= 45:  # +2 for ", "
+                    if result:
+                        result += ", "
+                    result += name
+                else:
+                    break
+            if not result:  # Even first name is too long
+                result = names[0][:42] + "..."
+            else:
+                result = result[:42] + "..."
+            filter_name = result
+    except Exception as e:
+        return Response(
+            {'error': f'Error fetching working fields: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
     
     # Send SMS to each seller
     results = []
     for seller in sellers:
-        result = send_sms_via_kavenegar(seller, working_fields)
+        result = send_sms_via_kavenegar(seller, filter_name=filter_name)
         results.append({
             'seller_id': seller.id,
             'seller_name': seller.name,

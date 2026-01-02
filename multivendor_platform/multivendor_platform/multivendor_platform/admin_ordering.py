@@ -147,11 +147,12 @@ def _sort_apps(app_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 _original_get_app_list = AdminSite.get_app_list
 
 
-def custom_get_app_list(self: AdminSite, request):
+def custom_get_app_list(self: AdminSite, request, app_label=None):
     """
     Replacement for AdminSite.get_app_list that applies custom ordering.
+    Supports both full app list and single app list views.
     """
-    app_list = list(_original_get_app_list(self, request))
+    app_list = list(_original_get_app_list(self, request, app_label))
     return _sort_apps(app_list)
 
 

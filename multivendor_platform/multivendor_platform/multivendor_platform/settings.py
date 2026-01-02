@@ -589,6 +589,9 @@ KAVENEGAR_API_KEY = os.environ.get('KAVENEGAR_API_KEY', '')
 KAVENEGAR_TEMPLATE_NAME = os.environ.get('KAVENEGAR_TEMPLATE_NAME', '')  # For newsletter SMS
 KAVENEGAR_OTP_TEMPLATE_NAME = os.environ.get('KAVENEGAR_OTP_TEMPLATE_NAME', '')  # For OTP SMS
 KAVENEGAR_SUPPLIER_NOTIF_TEMPLATE_NAME = os.environ.get('KAVENEGAR_SUPPLIER_NOTIF_TEMPLATE_NAME', 'SupplyerNotif')  # For supplier notification SMS
+# Local mode for SMS newsletter (logs to console instead of sending real SMS)
+# Automatically enabled if KAVENEGAR_API_KEY is not set
+SMS_NEWSLETTER_LOCAL_MODE = os.environ.get('SMS_NEWSLETTER_LOCAL_MODE', '').lower() in ('true', '1', 'yes') or not KAVENEGAR_API_KEY
 
 # ============================================================
 # Logging Configuration - Enhanced for Production Debugging
