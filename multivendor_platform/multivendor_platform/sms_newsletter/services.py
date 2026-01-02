@@ -66,15 +66,12 @@ def send_sms_via_kavenegar(
     # Normalize phone number
     phone = _normalize_phone(seller.mobile_number)
     
-    # Prepare seller name - limit to reasonable length (30 chars to be safe)
-    seller_name_display = seller.name[:30] if len(seller.name) > 30 else seller.name
+    # Use seller name as-is (Kavenegar has no token length limit)
+    seller_name_display = seller.name
     
-    # Prepare filter name - limit to 30 characters (shorter to avoid URL length issues)
-    # Truncate if too long and add ellipsis
-    if len(filter_name) > 30:
-        filter_name_display = filter_name[:27] + "..."
-    else:
-        filter_name_display = filter_name
+    # Use filter name as-is (Kavenegar has no token length limit)
+    # We use POST method to avoid URL length issues, so no need to truncate
+    filter_name_display = filter_name
     
     # Local mode: Log to console instead of sending real SMS
     if not api_key or use_local_mode:
@@ -123,9 +120,18 @@ def send_sms_via_kavenegar(
         # Log the request for debugging (without exposing full API key)
         logger.info(f"Sending SMS via Kavenegar - Template: {template_name}, Receptor: {phone}, Token1 length: {len(seller_name_display)}, Token2 length: {len(filter_name_display)}")
         
-        # Make API request
-        response = requests.get(base_url, params=params, timeout=10)
-        response.raise_for_status()
+        # Try POST first (better for long parameters with Persian characters)
+        # If POST fails, fall back to GET
+        try:
+            response = requests.post(base_url, data=params, timeout=10)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 405:  # Method Not Allowed - POST not supported
+                logger.info("POST not supported, trying GET method")
+                response = requests.get(base_url, params=params, timeout=10)
+                response.raise_for_status()
+            else:
+                raise
         
         result = response.json()
         
