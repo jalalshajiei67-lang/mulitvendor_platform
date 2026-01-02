@@ -66,12 +66,23 @@ def send_sms_via_kavenegar(
     # Normalize phone number
     phone = _normalize_phone(seller.mobile_number)
     
-    # Use seller name as-is (Kavenegar has no token length limit)
-    seller_name_display = seller.name
+    # Use seller name - truncate if too long to avoid HTTP 431 errors
+    # HTTP 431 = Request Header Fields Too Large
+    # API key in URL is already 88 chars, so we need very short tokens
+    # Persian characters in URL encoding can be 9 bytes each (%D8%A7), so limit to 30 chars
+    MAX_TOKEN_LENGTH = 30
+    seller_name_display = seller.name[:MAX_TOKEN_LENGTH] if len(seller.name) > MAX_TOKEN_LENGTH else seller.name
     
-    # Use filter name as-is (Kavenegar has no token length limit)
-    # We use POST method to avoid URL length issues, so no need to truncate
-    filter_name_display = filter_name
+    # Use filter name - truncate if too long to avoid HTTP 431 errors
+    # Even with POST, very long parameters can cause header size issues
+    filter_name_display = filter_name[:MAX_TOKEN_LENGTH] if len(filter_name) > MAX_TOKEN_LENGTH else filter_name
+    
+    if len(seller.name) > MAX_TOKEN_LENGTH or len(filter_name) > MAX_TOKEN_LENGTH:
+        logger.warning(
+            f'Token values truncated to avoid HTTP 431: '
+            f'Seller name: {len(seller.name)} -> {len(seller_name_display)}, '
+            f'Filter name: {len(filter_name)} -> {len(filter_name_display)}'
+        )
     
     # Local mode: Log to console instead of sending real SMS
     if not api_key or use_local_mode:
@@ -106,9 +117,9 @@ def send_sms_via_kavenegar(
     
     # Prepare parameters
     # Template: SupplyerNotif
-    # %token = seller name (max 30 chars)
-    # %token2 = filter name (max 30 chars)
-    # Note: Limiting to 30 chars each to avoid URL length issues with Persian characters
+    # %token = seller name (max 30 chars to avoid HTTP 431 - Request Header Fields Too Large)
+    # %token2 = filter name (max 30 chars to avoid HTTP 431 - Request Header Fields Too Large)
+    # Note: Using POST method to avoid URL length issues with Persian characters
     params = {
         'receptor': phone,
         'template': template_name,
@@ -120,24 +131,42 @@ def send_sms_via_kavenegar(
         # Log the request for debugging (without exposing full API key)
         logger.info(f"Sending SMS via Kavenegar - Template: {template_name}, Receptor: {phone}, Token1 length: {len(seller_name_display)}, Token2 length: {len(filter_name_display)}")
         
-        # Try POST first (better for long parameters with Persian characters)
-        # If POST fails, fall back to GET
+        # Use POST method (required for Persian characters and long parameters)
+        # Kavenegar API supports POST for verify/lookup endpoint
+        # Use minimal headers to avoid HTTP 431 (Request Header Fields Too Large)
         try:
-            response = requests.post(base_url, data=params, timeout=10)
+            response = requests.post(
+                base_url, 
+                data=params, 
+                timeout=10,
+                headers={'Content-Type': 'application/x-www-form-urlencoded'}
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 405:  # Method Not Allowed - POST not supported
-                logger.info("POST not supported, trying GET method")
-                response = requests.get(base_url, params=params, timeout=10)
-                response.raise_for_status()
-            else:
-                raise
+            # Handle HTTP 431 (Request Header Fields Too Large)
+            # This can happen if parameters are too long or API key in URL makes total request too large
+            if e.response.status_code == 431:
+                logger.error(
+                    f'HTTP 431: Request header too large. '
+                    f'Token1 length: {len(seller_name_display)}, Token2 length: {len(filter_name_display)}, '
+                    f'Total URL length: ~{len(base_url)} chars'
+                )
+                return {
+                    'success': False,
+                    'message': 'خطا: داده‌های ارسالی بیش از حد مجاز است. لطفاً طول نام فروشنده یا فیلتر را کاهش دهید.',
+                    'error': 'Request header too large (HTTP 431)',
+                    'error_code': 431,
+                    'help': f'Token1: {len(seller_name_display)} chars, Token2: {len(filter_name_display)} chars'
+                }
+            # Re-raise other HTTP errors to be handled by outer exception handler
+            raise
         
         result = response.json()
         
         # Check Kavenegar response structure
         # Kavenegar returns: {"return": {"status": 200, "message": "..."}, "entries": [...]}
-        if result.get('return', {}).get('status') == 200:
+        status_code = result.get('return', {}).get('status')
+        if status_code == 200:
             logger.info(f"Supplier notification SMS sent successfully via Kavenegar to {phone} (seller: {seller.name})")
             return {
                 'success': True,
@@ -145,12 +174,32 @@ def send_sms_via_kavenegar(
             }
         else:
             error_message = result.get('return', {}).get('message', 'Unknown error')
-            logger.error(f'Kavenegar API error: {error_message} | Response: {result} | Seller: {seller.name} | Phone: {phone}')
-            return {
-                'success': False,
-                'message': 'خطا در ارسال پیامک. لطفاً بعداً تلاش کنید.',
-                'error': error_message
-            }
+            
+            # Special handling for error 431 (template structure mismatch)
+            if status_code == 431:
+                logger.error(
+                    f'Kavenegar API error 431 (Template structure mismatch): {error_message} | '
+                    f'Template: {template_name} | Seller: {seller.name} | Phone: {phone} | '
+                    f'Token1: {seller_name_display[:50]}... | Token2: {filter_name_display[:50]}...'
+                )
+                return {
+                    'success': False,
+                    'message': 'خطا در ساختار قالب پیامک. لطفاً تنظیمات قالب "SupplyerNotif" را در پنل کاوه‌نگار بررسی کنید.',
+                    'error': error_message,
+                    'error_code': 431,
+                    'help': 'لطفاً در پنل کاوه‌نگار بررسی کنید که قالب "SupplyerNotif" با دو توکن (token و token2) تعریف شده باشد.'
+                }
+            else:
+                logger.error(
+                    f'Kavenegar API error {status_code}: {error_message} | '
+                    f'Response: {result} | Seller: {seller.name} | Phone: {phone}'
+                )
+                return {
+                    'success': False,
+                    'message': 'خطا در ارسال پیامک. لطفاً بعداً تلاش کنید.',
+                    'error': error_message,
+                    'error_code': status_code
+                }
                 
     except requests.exceptions.Timeout:
         logger.error(f'Kavenegar API timeout when sending supplier notification SMS to {phone} (seller: {seller.name})')

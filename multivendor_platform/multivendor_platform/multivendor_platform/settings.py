@@ -582,7 +582,8 @@ else:
 # Zibal Payment Gateway Settings
 ZIBAL_MERCHANT = os.environ.get('ZIBAL_MERCHANT', 'zibal')  # Use 'zibal' for test mode
 ZIBAL_API_BASE = 'https://gateway.zibal.ir'
-SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
+# Note: SITE_URL is already defined earlier in this file (line ~195)
+# It should point to the FRONTEND URL, not the backend
 
 # Kavenegar SMS Settings
 KAVENEGAR_API_KEY = os.environ.get('KAVENEGAR_API_KEY', '')
