@@ -86,6 +86,8 @@ def get_device_type(request):
 
 def short_link_redirect(request, short_code):
     """Handle short link redirect and track click"""
+    from django.conf import settings
+    
     short_link = get_object_or_404(ShortLink, short_code=short_code, is_active=True)
     
     # Track click
@@ -95,4 +97,14 @@ def short_link_redirect(request, short_code):
         device_type=get_device_type(request)
     )
     
-    return redirect(short_link.target_url)
+    # Build the target URL
+    target_url = short_link.target_url
+    
+    # If the target URL is relative (starts with /), convert to absolute URL
+    # pointing to the frontend domain
+    if target_url.startswith('/'):
+        # Get the main domain from SITE_URL setting
+        site_url = getattr(settings, 'SITE_URL', 'https://indexo.ir')
+        target_url = f"{site_url.rstrip('/')}{target_url}"
+    
+    return redirect(target_url)
