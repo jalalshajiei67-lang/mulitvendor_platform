@@ -18,20 +18,8 @@
       <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
     </v-row>
 
-    <!-- Empty State -->
-    <EmptyState
-      v-else-if="products.length === 0"
-      icon="mdi-package-variant-closed"
-      icon-size="80"
-      icon-color="grey-lighten-1"
-      title="شما هنوز محصولی اضافه نکرده‌اید"
-      description="برای شروع، اولین محصول خود را اضافه کنید"
-      action-label="افزودن محصول"
-      action-icon="mdi-plus-circle"
-      :gamification-context="productGamificationContext"
-      @action="$emit('add-product')"
-      data-tour="add-product-btn"
-    />
+    <!-- Product Upload Request Form (when no products) -->
+    <ProductUploadRequestForm v-else-if="products.length === 0" />
 
     <!-- Products Grid -->
     <div v-else>
@@ -259,6 +247,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useProductApi } from '~/composables/useProductApi'
 import { useGamificationStore } from '~/stores/gamification'
 import EmptyState from '~/components/common/EmptyState.vue'
+import ProductUploadRequestForm from '~/components/supplier/ProductUploadRequestForm.vue'
 
 defineEmits(['add-product', 'edit-product'])
 

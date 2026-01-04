@@ -170,8 +170,10 @@ const handleCreateBlogPost = () => {
 }
 
 const handleNotificationClick = (notification: any) => {
-  // Handle notification click
-  console.log('Notification clicked:', notification)
+  showNotificationsMenu.value = false
+  if (notification.link) {
+    navigateTo(notification.link)
+  }
 }
 
 const handleLogout = async () => {

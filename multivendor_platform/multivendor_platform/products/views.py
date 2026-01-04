@@ -35,6 +35,7 @@ from .models import (
     LabelGroup,
     LabelComboSeoPage,
     CategoryRequest,
+    ProductUploadRequest,
 )
 from gamification.models import EarnedBadge
 from .forms import ProductForm
@@ -53,6 +54,8 @@ from .serializers import (
     LabelComboSeoPageSerializer,
     CategoryRequestSerializer,
     CategoryRequestCreateSerializer,
+    ProductUploadRequestSerializer,
+    ProductUploadRequestCreateSerializer,
 )
 
 # --- DJANGO DASHBOARD VIEWS ---
@@ -111,17 +114,12 @@ class ProductViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     filterset_fields = ['vendor', 'is_active', 'primary_category', 'approval_status', 'is_marketplace_hidden']
     ordering_fields = ['created_at', 'price', 'name']
-    permission_classes = [AllowAny]  # Set at class level as fallback
     
     def get_permissions(self):
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        # For custom actions with @action decorator, check if they have permission_classes
-        # retrieve_by_slug has permission_classes=[AllowAny] in decorator
-        if self.action == 'retrieve_by_slug':
-            permission_classes = [AllowAny]
-        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated]
         else:
             permission_classes = [AllowAny]
@@ -686,7 +684,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', 'description']
-    permission_classes = [AllowAny]  # Set at class level as fallback
     
     def get_queryset(self):
         """
@@ -1071,9 +1068,8 @@ class CategoryRequestViewSet(viewsets.ModelViewSet):
             # Non-admin users can only see their own requests
             if not self.request.user.is_staff:
                 try:
-                    # OneToOne relationship - each user can only have one supplier
-                    if hasattr(self.request.user, 'supplier') and self.request.user.supplier.is_active:
-                        supplier = self.request.user.supplier
+                    supplier = self.request.user.suppliers.first()
+                    if supplier:
                         queryset = queryset.filter(supplier=supplier)
                     else:
                         # If no supplier, return empty queryset
@@ -1149,3 +1145,109 @@ class CategoryRequestViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(category_request)
         return Response(serializer.data)
+
+class ProductUploadRequestViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing product upload requests.
+    Sellers can create requests, admins can review and mark as completed.
+    """
+    queryset = ProductUploadRequest.objects.all()
+    serializer_class = ProductUploadRequestSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['status', 'supplier']
+    search_fields = ['supplier__name', 'website']
+    permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action"""
+        if hasattr(self, 'action') and self.action in ['create']:
+            return ProductUploadRequestCreateSerializer
+        return ProductUploadRequestSerializer
+    
+    def get_queryset(self):
+        """Filter queryset based on user role"""
+        queryset = ProductUploadRequest.objects.all().order_by('-created_at')
+        
+        # Only filter if request and user are available (not during URL registration)
+        if hasattr(self, 'request') and hasattr(self.request, 'user') and self.request.user.is_authenticated:
+            # Non-admin users can only see their own requests
+            if not self.request.user.is_staff:
+                try:
+                    if hasattr(self.request.user, 'supplier'):
+                        supplier = self.request.user.supplier
+                        queryset = queryset.filter(supplier=supplier)
+                    else:
+                        # If no supplier, return empty queryset
+                        queryset = queryset.none()
+                except:
+                    queryset = queryset.none()
+        
+        return queryset
+    
+    def create(self, request, *args, **kwargs):
+        """Override create to use the correct serializer"""
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def mark_completed(self, request, pk=None):
+        """Mark a product upload request as completed (admin only)"""
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Only admins can mark requests as completed'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        upload_request = self.get_object()
+        upload_request.status = 'completed'
+        upload_request.reviewed_by = request.user
+        upload_request.reviewed_at = timezone.now()
+        upload_request.save()
+        
+        serializer = self.get_serializer(upload_request)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def reject(self, request, pk=None):
+        """Reject a product upload request (admin only)"""
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Only admins can reject requests'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        upload_request = self.get_object()
+        admin_notes = request.data.get('admin_notes', '')
+        
+        upload_request.status = 'rejected'
+        upload_request.admin_notes = admin_notes
+        upload_request.reviewed_by = request.user
+        upload_request.reviewed_at = timezone.now()
+        upload_request.save()
+        
+        serializer = self.get_serializer(upload_request)
+        return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_product_upload_requests_view(request):
+    """
+    Get pending product upload requests for admin notifications
+    """
+    if not request.user.is_staff:
+        return Response(
+            {'error': 'Only admins can access this endpoint'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    pending_requests = ProductUploadRequest.objects.filter(status='pending').order_by('-created_at')
+    
+    serializer = ProductUploadRequestSerializer(pending_requests, many=True)
+    return Response({
+        'count': pending_requests.count(),
+        'results': serializer.data
+    })

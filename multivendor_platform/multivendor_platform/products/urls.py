@@ -5,7 +5,8 @@ from .views import (
     ProductViewSet, CategoryViewSet, SubcategoryViewSet, DepartmentViewSet,
     MyProductsView, ProductCommentViewSet, global_search,
     LabelGroupViewSet, LabelViewSet, LabelComboSeoPageViewSet,
-    CategoryRequestViewSet
+    CategoryRequestViewSet, ProductUploadRequestViewSet,
+    admin_product_upload_requests_view
 )
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -24,6 +25,7 @@ router.register(r'label-groups', LabelGroupViewSet, basename='label-group')
 router.register(r'labels', LabelViewSet, basename='label')
 router.register(r'label-combos', LabelComboSeoPageViewSet, basename='label-combo')
 router.register(r'category-requests', CategoryRequestViewSet, basename='category-request')
+router.register(r'product-upload-requests', ProductUploadRequestViewSet, basename='product-upload-request')
 
 # Custom view function for label SEO content by slug
 @api_view(['GET'])
@@ -38,6 +40,9 @@ urlpatterns = [
     # Put specific routes FIRST before router
     path('products/my_products/', MyProductsView.as_view({'get': 'list'}), name='my-products'),
     path('search/', global_search, name='global-search'),
+    
+    # Admin endpoints
+    path('admin/product-upload-requests/', admin_product_upload_requests_view, name='admin-product-upload-requests'),
     
     # Label SEO content by slug (custom route before router)
     # Using a more specific path to avoid router conflicts

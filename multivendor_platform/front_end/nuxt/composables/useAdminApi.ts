@@ -96,6 +96,11 @@ export const useAdminApi = () => {
       })
     },
 
+    // Product Upload Requests
+    async getProductUploadRequests() {
+      return useApiFetch<{ results: any[]; count: number }>('products/admin/product-upload-requests/')
+    },
+
     // RFQs
     async getRFQs(params: Record<string, any> = {}) {
       return useApiFetch<any[]>('orders/admin/rfq/', {

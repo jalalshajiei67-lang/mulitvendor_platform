@@ -25,6 +25,7 @@ from .models import (
     LabelGroup,
     LabelComboSeoPage,
     CategoryRequest,
+    ProductUploadRequest,
 )
 from .admin_filters import SubcategorySearchFilter, CategorySearchFilter
 
@@ -1178,20 +1179,101 @@ class CategoryRequestAdmin(admin.ModelAdmin):
         )
         self.message_user(request, f'{updated} request(s) rejected.')
 
-        ordered_models = [
-            (Product, ProductAdmin),
-            (Department, DepartmentAdmin),
-            (Category, CategoryAdmin),
-            (Subcategory, SubcategoryAdmin),
-            (ProductComment, ProductCommentAdmin),
-            (CategoryRequest, CategoryRequestAdmin),
-        ]
 
-        # Unregister each model if it's already registered.
-        for model, _ in ordered_models:
-            if site.is_registered(model):
-                site.unregister(model)
+@admin.register(ProductUploadRequest)
+class ProductUploadRequestAdmin(admin.ModelAdmin):
+    list_display = ['id', 'supplier_link', 'website_link', 'status_display', 'reviewed_by', 'created_at', 'reviewed_at']
+    list_filter = ['status', 'created_at', 'reviewed_at']
+    search_fields = ['supplier__name', 'website', 'supplier__vendor__email', 'supplier__phone']
+    readonly_fields = ['created_at', 'updated_at', 'reviewed_at']
+    actions = ['mark_completed', 'reject_requests']
+    
+    fieldsets = (
+        ('Request Information', {
+            'fields': ('supplier', 'website', 'status')
+        }),
+        ('Review Information', {
+            'fields': ('reviewed_by', 'reviewed_at', 'admin_notes')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def supplier_link(self, obj):
+        """Link to supplier admin page"""
+        url = f'/admin/users/supplier/{obj.supplier.id}/change/'
+        return format_html(
+            '<a href="{}" style="color: #667eea;">{}</a>',
+            url, obj.supplier.name
+        )
+    supplier_link.short_description = 'Supplier'
+    
+    def website_link(self, obj):
+        """Link to website"""
+        if obj.website:
+            return format_html(
+                '<a href="{}" target="_blank" style="color: #667eea;">{}</a>',
+                obj.website, obj.website[:50]
+            )
+        return '-'
+    website_link.short_description = 'Website'
+    
+    def status_display(self, obj):
+        status_colors = {
+            'pending': '#FFA500',
+            'completed': '#28a745',
+            'rejected': '#dc3545',
+        }
+        color = status_colors.get(obj.status, '#999')
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color, obj.get_status_display()
+        )
+    status_display.short_description = 'Status'
+    
+    @admin.action(description='Mark selected requests as completed')
+    def mark_completed(self, request, queryset):
+        """Mark product upload requests as completed"""
+        from django.utils import timezone
+        updated = queryset.filter(status='pending').update(
+            status='completed',
+            reviewed_by=request.user,
+            reviewed_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} request(s) marked as completed. Please add 3 products for the supplier.')
+    
+    @admin.action(description='Reject selected requests')
+    def reject_requests(self, request, queryset):
+        """Reject product upload requests"""
+        from django.utils import timezone
+        updated = queryset.filter(status='pending').update(
+            status='rejected',
+            reviewed_by=request.user,
+            reviewed_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} request(s) rejected.')
 
-       # Re-register all models in the new, defined order.
-        for model, admin_class in ordered_models:
-            site.register(model, admin_class)
+
+# Model ordering for admin
+def register_ordered_models():
+    """Register models in a specific order"""
+    ordered_models = [
+        (Product, ProductAdmin),
+        (Department, DepartmentAdmin),
+        (Category, CategoryAdmin),
+        (Subcategory, SubcategoryAdmin),
+        (ProductComment, ProductCommentAdmin),
+        (CategoryRequest, CategoryRequestAdmin),
+        (ProductUploadRequest, ProductUploadRequestAdmin),
+    ]
+
+    # Unregister each model if it's already registered.
+    for model, _ in ordered_models:
+        if site.is_registered(model):
+            site.unregister(model)
+
+    # Re-register all models in the new, defined order.
+    for model, admin_class in ordered_models:
+        site.register(model, admin_class)

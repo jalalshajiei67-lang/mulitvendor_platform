@@ -13,6 +13,7 @@ from .models import (
     LabelGroup,
     LabelComboSeoPage,
     CategoryRequest,
+    ProductUploadRequest,
 )
 from gamification.models import EarnedBadge
 from gamification.services import GamificationService
@@ -386,6 +387,107 @@ class CategoryRequestCreateSerializer(serializers.ModelSerializer):
             logger = logging.getLogger(__name__)
             logger.error(f"Error getting supplier for user {request.user.id}: {e}", exc_info=True)
             raise serializers.ValidationError(f"خطا در دریافت اطلاعات تأمین‌کننده: {str(e)}")
+        
+        validated_data['supplier'] = supplier
+        return super().create(validated_data)
+
+class ProductUploadRequestSerializer(serializers.ModelSerializer):
+    """Serializer for product upload requests"""
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
+    supplier_email = serializers.CharField(source='supplier.vendor.email', read_only=True)
+    supplier_phone = serializers.CharField(source='supplier.phone', read_only=True)
+    reviewed_by_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ProductUploadRequest
+        fields = [
+            'id', 'supplier', 'supplier_name', 'supplier_email', 'supplier_phone',
+            'website', 'status', 'admin_notes', 'reviewed_by', 'reviewed_by_name',
+            'reviewed_at', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['status', 'admin_notes', 'reviewed_by', 'reviewed_at', 'created_at', 'updated_at']
+    
+    def get_reviewed_by_name(self, obj):
+        """Get reviewer display name: first_name last_name"""
+        if not obj.reviewed_by:
+            return None
+        name_parts = [obj.reviewed_by.first_name, obj.reviewed_by.last_name]
+        return ' '.join(filter(None, name_parts)) or obj.reviewed_by.username
+
+class ProductUploadRequestCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating product upload requests (seller side)"""
+    
+    class Meta:
+        model = ProductUploadRequest
+        fields = ['id', 'website', 'status', 'created_at']
+        read_only_fields = ['id', 'status', 'created_at']
+        extra_kwargs = {
+            'website': {
+                'required': True,
+                'error_messages': {
+                    'required': 'آدرس وب‌سایت الزامی است',
+                    'blank': 'آدرس وب‌سایت نمی‌تواند خالی باشد',
+                    'invalid': 'آدرس وب‌سایت معتبر نیست'
+                }
+            }
+        }
+    
+    def validate_website(self, value):
+        """Validate website URL"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("آدرس وب‌سایت نمی‌تواند خالی باشد")
+        
+        # Ensure URL has protocol
+        value = value.strip()
+        if not value.startswith(('http://', 'https://')):
+            value = 'https://' + value
+        
+        return value
+    
+    def create(self, validated_data):
+        """Create product upload request and link to supplier"""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError("Authentication required")
+        
+        # Get supplier from user (OneToOne relationship - each user can only have one supplier)
+        from users.models import Supplier
+        try:
+            # Check if user has a supplier profile
+            if hasattr(request.user, 'supplier'):
+                supplier = request.user.supplier
+                # Ensure supplier is active
+                if not supplier.is_active:
+                    raise serializers.ValidationError("پروفایل تأمین‌کننده شما غیرفعال است")
+            else:
+                # Try to create supplier from vendor profile if user is a seller
+                if hasattr(request.user, 'vendor_profile'):
+                    # Use get_or_create to handle race conditions and enforce one-per-user rule
+                    supplier, created = Supplier.objects.get_or_create(
+                        vendor=request.user,
+                        defaults={'name': request.user.vendor_profile.store_name, 'is_active': True}
+                    )
+                else:
+                    raise serializers.ValidationError("شما به عنوان تأمین‌کننده ثبت نشده‌اید")
+        except Supplier.DoesNotExist:
+            raise serializers.ValidationError("پروفایل تأمین‌کننده یافت نشد")
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting supplier for user {request.user.id}: {e}", exc_info=True)
+            raise serializers.ValidationError(f"خطا در دریافت اطلاعات تأمین‌کننده: {str(e)}")
+        
+        # Check if user already has a pending or completed request
+        existing_request = ProductUploadRequest.objects.filter(
+            supplier=supplier,
+            status__in=['pending', 'completed']
+        ).first()
+        
+        if existing_request:
+            if existing_request.status == 'pending':
+                raise serializers.ValidationError("شما قبلاً یک درخواست در حال بررسی دارید. لطفاً منتظر بمانید.")
+            elif existing_request.status == 'completed':
+                raise serializers.ValidationError("درخواست شما قبلاً تکمیل شده است.")
         
         validated_data['supplier'] = supplier
         return super().create(validated_data)

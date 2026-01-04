@@ -132,6 +132,34 @@ class CategoryRequest(models.Model):
     def __str__(self):
         return f"{self.requested_name} - {self.get_status_display()} ({self.supplier.name})"
 
+class ProductUploadRequest(models.Model):
+    """
+    Model for sellers to request product upload assistance.
+    Admin will manually add 3 products for free after reviewing the request.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('completed', 'Completed'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    supplier = models.ForeignKey('users.Supplier', on_delete=models.CASCADE, related_name='product_upload_requests', help_text="Supplier who requested product upload")
+    website = models.URLField(max_length=500, help_text="Website URL provided by seller")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_notes = models.TextField(blank=True, null=True, help_text="Admin notes or rejection reason")
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_product_upload_requests', help_text="Admin who reviewed this request")
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Product Upload Request'
+        verbose_name_plural = 'Product Upload Requests'
+    
+    def __str__(self):
+        return f"Product Upload Request - {self.supplier.name} ({self.get_status_display()})"
+
 class Product(models.Model):
     APPROVAL_STATUS_PENDING = 'pending'
     APPROVAL_STATUS_APPROVED = 'approved'
