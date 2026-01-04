@@ -2,7 +2,7 @@ import re
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
-    UserProfile, BuyerProfile, VendorProfile, SellerAd, SellerAdImage, 
+    UserProfile, BuyerProfile, VendorProfile, Supplier, SellerAd, SellerAdImage, 
     ProductReview, SupplierComment, UserActivity, SupplierPortfolioItem, 
     SupplierTeamMember, SupplierContactMessage, OTP,
     SellerContact, ContactNote, ContactTask
@@ -125,6 +125,39 @@ class VendorProfileSerializer(serializers.ModelSerializer):
         elif data['rating_average'] is not None:
             # Round the annotated value
             data['rating_average'] = round(data['rating_average'], 1)
+        
+        return data
+
+class SupplierSerializer(serializers.ModelSerializer):
+    """Serializer for Supplier (Company) model"""
+    vendor_username = serializers.CharField(source='vendor.username', read_only=True)
+    product_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Supplier
+        fields = [
+            'id', 'vendor', 'vendor_username', 'name', 'website', 'phone', 'mobile',
+            'email', 'address', 'description', 'logo', 'is_active', 
+            'product_count', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['vendor', 'product_count', 'created_at', 'updated_at']
+    
+    def get_product_count(self, obj):
+        """Get number of products from this supplier"""
+        return obj.get_product_count()
+    
+    def to_representation(self, instance):
+        """Convert logo to full URL"""
+        data = super().to_representation(instance)
+        
+        request = self.context.get('request')
+        if request and data.get('logo'):
+            try:
+                logo_field = getattr(instance, 'logo', None)
+                if logo_field and logo_field.name:
+                    data['logo'] = request.build_absolute_uri(logo_field.url)
+            except Exception:
+                pass
         
         return data
 

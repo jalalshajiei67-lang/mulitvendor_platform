@@ -43,6 +43,44 @@ def reverse_remove_duplicates(apps, schema_editor):
     pass
 
 
+def remove_unique_together_conditionally(apps, schema_editor):
+    """
+    Conditionally remove unique_together constraint only if it exists.
+    This makes the migration idempotent.
+    """
+    from django.db import connection
+    
+    if connection.vendor != 'postgresql':
+        return
+    
+    with connection.cursor() as cursor:
+        # Check if unique constraint on (name, website) exists
+        cursor.execute("""
+            SELECT conname FROM pg_constraint 
+            WHERE conrelid = 'users_supplier'::regclass 
+            AND contype = 'u'
+            AND array_length(conkey, 1) = 2
+            AND (
+                SELECT attname FROM pg_attribute 
+                WHERE attrelid = 'users_supplier'::regclass 
+                AND attnum = ANY(conkey) 
+                AND attname IN ('name', 'website')
+                LIMIT 1
+            ) IS NOT NULL
+        """)
+        
+        constraints = cursor.fetchall()
+        if constraints:
+            # Constraint exists, remove it
+            for (constraint_name,) in constraints:
+                cursor.execute(f'ALTER TABLE users_supplier DROP CONSTRAINT IF EXISTS "{constraint_name}"')
+
+
+def reverse_remove_unique_together(apps, schema_editor):
+    """Reverse: Cannot recreate the constraint, so this is a no-op"""
+    pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -54,10 +92,18 @@ class Migration(migrations.Migration):
         # Step 1: Remove duplicate suppliers (data migration) - MUST happen first
         migrations.RunPython(remove_duplicate_suppliers, reverse_remove_duplicates),
         
-        # Step 2: Remove unique_together constraint before changing field type
-        migrations.AlterUniqueTogether(
-            name='supplier',
-            unique_together=set(),  # Remove unique_together constraint
+        # Step 2: Conditionally remove unique_together constraint (only if it exists)
+        # Use SeparateDatabaseAndState to handle DB operation separately from Django state
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(remove_unique_together_conditionally, reverse_remove_unique_together),
+            ],
+            state_operations=[
+                migrations.AlterUniqueTogether(
+                    name='supplier',
+                    unique_together=set(),  # Remove unique_together constraint
+                ),
+            ],
         ),
         
         # Step 3: Change ForeignKey to OneToOneField

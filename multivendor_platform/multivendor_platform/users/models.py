@@ -208,7 +208,7 @@ class PricingTier(models.Model):
     @classmethod
     def get_default_free(cls):
         """Return the default free tier, creating it if missing."""
-        from django.db import OperationalError
+        from django.db import DatabaseError
         try:
             # Try normal get_or_create first
             tier, _ = cls.objects.get_or_create(
@@ -223,7 +223,7 @@ class PricingTier(models.Model):
                 },
             )
             return tier
-        except OperationalError as e:
+        except DatabaseError as e:
             # Handle case where monthly_price_rial column doesn't exist yet (migration not applied)
             if 'monthly_price_rial' in str(e):
                 # Use only() to query without the problematic field
@@ -245,13 +245,13 @@ class PricingTier(models.Model):
                     )
                     return tier
             else:
-                # Re-raise if it's a different OperationalError
+                # Re-raise if it's a different DatabaseError
                 raise
     
     @classmethod
     def get_commission_tier(cls):
         """Return the commission-based tier, creating it if missing."""
-        from django.db import OperationalError
+        from django.db import DatabaseError
         try:
             # Try normal get_or_create first
             tier, _ = cls.objects.get_or_create(
@@ -269,7 +269,7 @@ class PricingTier(models.Model):
                 },
             )
             return tier
-        except OperationalError as e:
+        except DatabaseError as e:
             # Handle case where monthly_price_rial column doesn't exist yet (migration not applied)
             if 'monthly_price_rial' in str(e):
                 # Use only() to query without the problematic field
@@ -295,7 +295,7 @@ class PricingTier(models.Model):
                     )
                     return tier
             else:
-                # Re-raise if it's a different OperationalError
+                # Re-raise if it's a different DatabaseError
                 raise
 
 

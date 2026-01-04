@@ -4,7 +4,7 @@ import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db import IntegrityError, transaction
-from .models import UserProfile, BuyerProfile, VendorProfile, VendorSubscription
+from .models import UserProfile, BuyerProfile, VendorProfile, VendorSubscription, Supplier
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +67,31 @@ def create_or_update_role_profiles(sender, instance, created, **kwargs):
 
                 # Ensure the vendor has a subscription (defaults to free)
                 VendorSubscription.for_user(instance.user)
+                
+                # Create Supplier model (company/supplier info)
+                # This is required for products and RFQ system
+                try:
+                    supplier, supplier_created = Supplier.objects.get_or_create(
+                        vendor=instance.user,
+                        defaults={
+                            'name': vendor_profile.store_name,  # Use store name as default company name
+                            'is_active': True,
+                        }
+                    )
+                    if supplier_created:
+                        logger.info(f"Created Supplier for user {instance.user.id} ({instance.user.username}) with name: {supplier.name}")
+                except IntegrityError as e:
+                    logger.error(f"IntegrityError creating Supplier for user {instance.user.id}: {e}")
+                    # Try to get existing supplier
+                    try:
+                        supplier = Supplier.objects.get(vendor=instance.user)
+                        logger.info(f"Supplier already exists for user {instance.user.id}")
+                    except Supplier.DoesNotExist:
+                        logger.error(f"Supplier does not exist and could not be created for user {instance.user.id}")
+                        # Don't raise here - vendor can add supplier later
+                except Exception as e:
+                    logger.warning(f"Failed to create Supplier for user {instance.user.id}: {e}")
+                    # Don't raise - this is not critical for initial registration
                 
                 if vendor_created:
                     logger.info(f"Created VendorProfile for user {instance.user.id} ({instance.user.username}) with store_name: {vendor_profile.store_name}")
