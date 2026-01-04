@@ -62,6 +62,12 @@ class BlogPost(models.Model):
         ('archived', 'Archived'),
     ]
     
+    DISPLAY_LOCATION_CHOICES = [
+        ('main_blog', 'Main Blog'),
+        ('seller_education', 'Seller Education'),
+        ('buyer_education', 'Buyer Education'),
+    ]
+    
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blog_posts')
     category = models.ForeignKey(BlogCategory, on_delete=models.CASCADE, related_name='blog_posts')
     linked_subcategories = models.ManyToManyField(
@@ -82,6 +88,13 @@ class BlogPost(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     published_at = models.DateTimeField(null=True, blank=True)
     
+    # Display locations: where this post should appear
+    display_locations = models.JSONField(
+        default=list,
+        help_text='Select where this post should be displayed. Can select multiple locations.',
+        blank=True
+    )
+    
     # SEO fields
     meta_title = models.CharField(max_length=200, blank=True, null=True)
     meta_description = models.CharField(max_length=300, blank=True, null=True)
@@ -93,6 +106,12 @@ class BlogPost(models.Model):
             models.Index(fields=['category', 'status']),
             models.Index(fields=['is_featured', 'status']),
         ]
+    
+    def has_display_location(self, location):
+        """Check if post should be displayed in a specific location"""
+        if not self.display_locations:
+            return False
+        return location in self.display_locations
     
     def __str__(self):
         return self.title

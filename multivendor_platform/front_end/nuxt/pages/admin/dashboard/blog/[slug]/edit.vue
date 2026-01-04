@@ -169,6 +169,37 @@
                   hide-details
                   class="mb-4"
                 ></v-switch>
+
+                <!-- Display Locations -->
+                <div class="mb-4">
+                  <div class="text-body-2 font-weight-medium mb-2">نمایش در:</div>
+                  <v-checkbox
+                    v-model="form.display_locations"
+                    value="main_blog"
+                    label="بلاگ اصلی"
+                    hide-details
+                    density="compact"
+                    class="mb-1"
+                  ></v-checkbox>
+                  <v-checkbox
+                    v-model="form.display_locations"
+                    value="seller_education"
+                    label="آموزش فروشندگان"
+                    hide-details
+                    density="compact"
+                    class="mb-1"
+                  ></v-checkbox>
+                  <v-checkbox
+                    v-model="form.display_locations"
+                    value="buyer_education"
+                    label="آموزش خریداران"
+                    hide-details
+                    density="compact"
+                  ></v-checkbox>
+                  <div class="text-caption text-medium-emphasis mt-1">
+                    می‌توانید چند مورد را انتخاب کنید
+                  </div>
+                </div>
               </v-card-text>
 
               <v-divider></v-divider>
@@ -261,6 +292,7 @@ const form = ref({
   linked_subcategory_ids: [] as number[],
   status: 'draft',
   is_featured: false,
+  display_locations: ['main_blog'] as string[],
   meta_title: '',
   meta_description: '',
   featured_image: null as File | null
@@ -342,6 +374,7 @@ const loadPost = async () => {
         linked_subcategory_ids: post.linked_subcategory_ids || [],
         status: post.status || 'draft',
         is_featured: post.is_featured || false,
+        display_locations: post.display_locations || ['main_blog'],
         meta_title: post.meta_title || '',
         meta_description: post.meta_description || '',
         featured_image: null
@@ -396,6 +429,10 @@ const submitForm = async () => {
           subcategoryIds.forEach(id => {
             formData.append('linked_subcategory_ids', String(id))
           })
+        } else if (key === 'display_locations') {
+          // Handle array of display locations
+          const locations = value as string[]
+          formData.append('display_locations', JSON.stringify(locations))
         } else {
           formData.append(key, String(value))
         }

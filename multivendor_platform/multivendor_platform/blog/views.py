@@ -340,6 +340,82 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             serializer.save(post=post, author=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get'])
+    def seller_education(self, request):
+        """
+        Get blog posts for seller education section
+        Returns only published posts with 'seller_education' in display_locations
+        """
+        # Get all published posts first
+        all_posts = BlogPost.objects.filter(
+            status='published'
+        ).select_related(
+            'author',
+            'category'
+        ).annotate(
+            comment_count=Count(
+                'comments',
+                filter=Q(comments__is_approved=True),
+                distinct=True
+            )
+        ).order_by('-created_at')
+        
+        # Filter posts that have 'seller_education' in display_locations
+        # Note: This uses Python filtering for JSONField compatibility across databases
+        education_posts = [
+            post for post in all_posts 
+            if post.display_locations and isinstance(post.display_locations, list) and 'seller_education' in post.display_locations
+        ]
+        
+        # Apply pagination
+        paginator = BlogPagination()
+        page = paginator.paginate_queryset(education_posts, request)
+        
+        if page is not None:
+            serializer = BlogPostListSerializer(page, many=True, context={'request': request})
+            return paginator.get_paginated_response(serializer.data)
+        
+        serializer = BlogPostListSerializer(education_posts, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def buyer_education(self, request):
+        """
+        Get blog posts for buyer education section
+        Returns only published posts with 'buyer_education' in display_locations
+        """
+        # Get all published posts first
+        all_posts = BlogPost.objects.filter(
+            status='published'
+        ).select_related(
+            'author',
+            'category'
+        ).annotate(
+            comment_count=Count(
+                'comments',
+                filter=Q(comments__is_approved=True),
+                distinct=True
+            )
+        ).order_by('-created_at')
+        
+        # Filter posts that have 'buyer_education' in display_locations
+        # Note: This uses Python filtering for JSONField compatibility across databases
+        education_posts = [
+            post for post in all_posts 
+            if post.display_locations and isinstance(post.display_locations, list) and 'buyer_education' in post.display_locations
+        ]
+        
+        # Apply pagination
+        paginator = BlogPagination()
+        page = paginator.paginate_queryset(education_posts, request)
+        
+        if page is not None:
+            serializer = BlogPostListSerializer(page, many=True, context={'request': request})
+            return paginator.get_paginated_response(serializer.data)
+        
+        serializer = BlogPostListSerializer(education_posts, many=True, context={'request': request})
+        return Response(serializer.data)
 
 class BlogCommentViewSet(viewsets.ModelViewSet):
     """

@@ -291,6 +291,15 @@
             >
               اشتراک تجربه
             </v-btn>
+            <v-btn
+              to="/seller/dashboard?tab=education"
+              variant="text"
+              size="small"
+              class="text-white nav-btn"
+              prepend-icon="mdi-school"
+            >
+              آموزش
+            </v-btn>
             <v-tooltip
               :text="
                 hasGoldTierOrAbove
@@ -379,6 +388,9 @@
                 prepend-icon="mdi-lightbulb-on-outline"
               >
                 <v-list-item-title>اشتراک تجربه</v-list-item-title>
+              </v-list-item>
+              <v-list-item to="/seller/dashboard?tab=education" prepend-icon="mdi-school">
+                <v-list-item-title>آموزش</v-list-item-title>
               </v-list-item>
               <v-list-item
                 :to="hasGoldTierOrAbove ? '/seller/dashboard?tab=invite' : undefined"

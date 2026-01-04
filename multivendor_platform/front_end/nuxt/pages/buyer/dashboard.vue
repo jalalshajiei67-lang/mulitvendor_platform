@@ -45,6 +45,10 @@
               <v-icon start>mdi-comment-text</v-icon>
               نظرات من
             </v-tab>
+            <v-tab value="education">
+              <v-icon start>mdi-school</v-icon>
+              آموزش
+            </v-tab>
           </v-tabs>
 
           <v-card-text class="pa-4">
@@ -557,6 +561,14 @@
                   </v-data-table>
                 </div>
               </v-window-item>
+              
+              <!-- Education Tab -->
+              <v-window-item value="education">
+                <div class="py-4">
+                  <EducationPostList type="buyer" />
+                </div>
+              </v-window-item>
+              
               <!-- Auctions Tab -->
               <v-window-item value="auctions">
                 <div class="py-4">
@@ -611,6 +623,7 @@ import { useBuyerApi } from '~/composables/useBuyerApi'
 import { useAuctionApi } from '~/composables/useAuctionApi'
 import type { BuyerOrder, BuyerReview, BuyerRFQ } from '~/composables/useBuyerApi'
 import AuctionCard from '~/components/auction/AuctionCard.vue'
+import EducationPostList from '~/components/education/EducationPostList.vue'
 
 definePageMeta({
   middleware: 'authenticated',

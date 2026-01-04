@@ -936,6 +936,13 @@
                 </v-card>
               </div>
             </v-window-item>
+
+            <!-- Education Tab -->
+            <v-window-item value="education">
+              <div class="py-2">
+                <EducationPostList type="seller" />
+              </div>
+            </v-window-item>
           </v-window>
         </v-card>
       </v-col>
@@ -984,6 +991,7 @@ const InsightsFeed = defineAsyncComponent(() => import('~/components/gamificatio
 const WelcomeOnboardingTour = defineAsyncComponent(() => import('~/components/gamification/WelcomeOnboardingTour.vue'))
 const CrmManager = defineAsyncComponent(() => import('~/components/crm/CrmManager.vue'))
 const PaymentHistorySection = defineAsyncComponent(() => import('~/components/seller/PaymentHistorySection.vue'))
+import EducationPostList from '~/components/education/EducationPostList.vue'
 import { useGamificationStore } from '~/stores/gamification'
 import { useGamificationApi, type SellerInsight } from '~/composables/useGamification'
 import { useGamificationDashboard, type DashboardData, type CurrentTask } from '~/composables/useGamificationDashboard'

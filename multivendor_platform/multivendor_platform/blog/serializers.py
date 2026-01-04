@@ -135,7 +135,7 @@ class BlogPostListSerializer(serializers.ModelSerializer):
             'id', 'title', 'slug', 'excerpt', 'featured_image',
             'author', 'author_name', 'category', 'category_name', 'category_color',
             'status', 'is_featured', 'view_count', 'comment_count',
-            'reading_time', 'created_at', 'updated_at', 'published_at'
+            'reading_time', 'display_locations', 'created_at', 'updated_at', 'published_at'
         ]
         read_only_fields = ['slug', 'view_count', 'created_at', 'updated_at', 'published_at']
     
@@ -203,7 +203,7 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
             'author', 'author_name', 'author_email', 'category', 'category_id',
             'linked_subcategories', 'linked_subcategory_ids',
             'status', 'is_featured', 'view_count', 'comment_count',
-            'reading_time', 'meta_title', 'meta_description',
+            'reading_time', 'display_locations', 'meta_title', 'meta_description',
             'comments', 'created_at', 'updated_at', 'published_at'
         ]
         read_only_fields = ['slug', 'view_count', 'created_at', 'updated_at', 'published_at']
@@ -266,6 +266,22 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
                 for sub in obj.linked_subcategories.all()
             ]
 
+    def to_internal_value(self, data):
+        # Handle display_locations when it comes as JSON string from FormData
+        if 'display_locations' in data and isinstance(data.get('display_locations'), str):
+            import json
+            try:
+                # Make QueryDict mutable for editing
+                if hasattr(data, '_mutable'):
+                    data._mutable = True
+                data['display_locations'] = json.loads(data['display_locations'])
+                if hasattr(data, '_mutable'):
+                    data._mutable = False
+            except (json.JSONDecodeError, AttributeError, TypeError):
+                # If parsing fails, continue with original value
+                pass
+        return super().to_internal_value(data)
+
     def create(self, validated_data):
         subcategory_ids = validated_data.pop('linked_subcategory_ids', [])
         instance = super().create(validated_data)
@@ -296,11 +312,28 @@ class BlogPostCreateSerializer(serializers.ModelSerializer):
         fields = [
             'title', 'excerpt', 'content', 'featured_image',
             'category', 'linked_subcategory_ids', 'status', 'is_featured',
-            'meta_title', 'meta_description'
+            'display_locations', 'meta_title', 'meta_description'
         ]
+
+    def to_internal_value(self, data):
+        # Handle display_locations when it comes as JSON string from FormData
+        if 'display_locations' in data and isinstance(data['display_locations'], str):
+            import json
+            try:
+                data._mutable = True
+                data['display_locations'] = json.loads(data['display_locations'])
+                data._mutable = False
+            except (json.JSONDecodeError, AttributeError):
+                # If parsing fails or data is not mutable, continue with original value
+                pass
+        return super().to_internal_value(data)
 
     def create(self, validated_data):
         subcategory_ids = validated_data.pop('linked_subcategory_ids', [])
+        # Ensure display_locations defaults to main_blog if empty
+        display_locations = validated_data.get('display_locations', [])
+        if not display_locations:
+            validated_data['display_locations'] = ['main_blog']
         instance = super().create(validated_data)
         if subcategory_ids:
             instance.linked_subcategories.set(subcategory_ids)
