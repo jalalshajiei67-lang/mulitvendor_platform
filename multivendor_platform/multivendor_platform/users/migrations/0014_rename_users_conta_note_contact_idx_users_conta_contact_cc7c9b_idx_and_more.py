@@ -90,7 +90,54 @@ class Migration(migrations.Migration):
 
     operations = [
         # Conditionally rename indexes (only if they exist)
-        migrations.RunPython(rename_indexes_conditionally, reverse_rename_indexes),
+        # Use SeparateDatabaseAndState so Django knows these operations were done
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(rename_indexes_conditionally, reverse_rename_indexes),
+            ],
+            state_operations=[
+                migrations.RenameIndex(
+                    model_name='contactnote',
+                    new_name='users_conta_contact_cc7c9b_idx',
+                    old_name='users_conta_note_contact_idx',
+                ),
+                migrations.RenameIndex(
+                    model_name='contactnote',
+                    new_name='users_conta_seller__6aa312_idx',
+                    old_name='users_conta_note_seller_idx',
+                ),
+                migrations.RenameIndex(
+                    model_name='contacttask',
+                    new_name='users_conta_seller__827342_idx',
+                    old_name='users_conta_task_seller_idx',
+                ),
+                migrations.RenameIndex(
+                    model_name='contacttask',
+                    new_name='users_conta_contact_c2ee35_idx',
+                    old_name='users_conta_task_contact_idx',
+                ),
+                migrations.RenameIndex(
+                    model_name='contacttask',
+                    new_name='users_conta_due_dat_3bd16a_idx',
+                    old_name='users_conta_due_dat_idx',
+                ),
+                migrations.RenameIndex(
+                    model_name='sellercontact',
+                    new_name='users_selle_seller__f6671c_idx',
+                    old_name='users_selle_seller_i_idx',
+                ),
+                migrations.RenameIndex(
+                    model_name='sellercontact',
+                    new_name='users_selle_phone_7e9e71_idx',
+                    old_name='users_selle_phone_idx',
+                ),
+                migrations.RenameIndex(
+                    model_name='sellercontact',
+                    new_name='users_selle_email_159c06_idx',
+                    old_name='users_selle_email_idx',
+                ),
+            ],
+        ),
         
         # Conditionally add monthly_price_rial column (only if it doesn't exist)
         # Use SeparateDatabaseAndState to handle DB operation separately from Django state
