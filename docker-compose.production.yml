@@ -100,11 +100,13 @@ services:
     networks:
       - multivendor_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      # Test actual connection with credentials, not just pg_isready
+      # This ensures the database is ready for authenticated connections
+      test: ["CMD-SHELL", "PGPASSWORD=${DB_PASSWORD} psql -U ${DB_USER} -d ${DB_NAME} -c 'SELECT 1;' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 30s  # Increased from 10s to give more time for initialization
     deploy:
       resources:
         limits:

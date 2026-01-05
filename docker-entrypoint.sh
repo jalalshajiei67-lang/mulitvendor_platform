@@ -26,14 +26,27 @@ fi
 wait_for_db() {
     echo "[2/9] Waiting for database to be ready..."
     
-    max_retries=30
+    max_retries=50  # Increased from 30
     retry_count=0
     wait_time=2
     
     while [ $retry_count -lt $max_retries ]; do
-        if pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" > /dev/null 2>&1; then
-            echo "✅ Database is ready!"
-            return 0
+        # Test actual connection with credentials using psql
+        # This ensures the database is ready for authenticated connections
+        if [ -n "$DB_PASSWORD" ]; then
+            export PGPASSWORD="$DB_PASSWORD"
+            if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" > /dev/null 2>&1; then
+                unset PGPASSWORD
+                echo "✅ Database is ready and accepting authenticated connections!"
+                return 0
+            fi
+            unset PGPASSWORD
+        else
+            # Try without password (unlikely in production)
+            if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" > /dev/null 2>&1; then
+                echo "✅ Database is ready and accepting authenticated connections!"
+                return 0
+            fi
         fi
         
         retry_count=$((retry_count + 1))
@@ -53,6 +66,13 @@ wait_for_db() {
     echo "   DB_PORT=$DB_PORT"
     echo "   DB_NAME=$DB_NAME"
     echo "   DB_USER=$DB_USER"
+    echo ""
+    echo "   Testing connection manually..."
+    if [ -n "$DB_PASSWORD" ]; then
+        export PGPASSWORD="$DB_PASSWORD"
+        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" 2>&1 || true
+        unset PGPASSWORD
+    fi
     exit 1
 }
 
@@ -61,24 +81,42 @@ test_db_connection() {
     echo ""
     echo "[3/9] Testing database connection with retry logic..."
     
-    max_retries=5
+    max_retries=10  # Increased from 5
     retry_count=0
     
     while [ $retry_count -lt $max_retries ]; do
-        if python manage.py check --database default 2>&1; then
+        # Capture both stdout and stderr to see the actual error
+        if python manage.py check --database default > /tmp/db_check.log 2>&1; then
             echo "✅ Database connection successful!"
+            rm -f /tmp/db_check.log
             return 0
+        else
+            # Show the actual error
+            if [ -f /tmp/db_check.log ]; then
+                echo "⚠️  Database connection failed. Error details:"
+                grep -i "error\|exception\|fatal\|operational" /tmp/db_check.log | head -3 || tail -3 /tmp/db_check.log
+            fi
         fi
         
         retry_count=$((retry_count + 1))
         if [ $retry_count -lt $max_retries ]; then
-            echo "⚠️  Database connection failed (attempt $retry_count/$max_retries), retrying in 3s..."
-            sleep 3
+            echo "⚠️  Database connection failed (attempt $retry_count/$max_retries), retrying in 5s..."
+            sleep 5  # Increased from 3s
         fi
     done
     
     echo "❌ Database connection failed after $max_retries attempts!"
-    echo "   Please verify database settings and credentials"
+    echo "   Last error details:"
+    if [ -f /tmp/db_check.log ]; then
+        cat /tmp/db_check.log
+        rm -f /tmp/db_check.log
+    fi
+    echo ""
+    echo "   Please verify:"
+    echo "   - Database credentials are correct"
+    echo "   - Database exists: $DB_NAME"
+    echo "   - User has permissions: $DB_USER"
+    echo "   - Network connectivity to $DB_HOST:$DB_PORT"
     exit 1
 }
 

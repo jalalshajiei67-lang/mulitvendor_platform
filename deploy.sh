@@ -66,6 +66,10 @@ docker compose -f docker-compose.production.yml build
 echo "🚀 Updating services..."
 docker compose -f docker-compose.production.yml up -d --remove-orphans
 
+# Wait for containers to start and network to initialize
+echo "⏳ Waiting for containers to initialize (15s)..."
+sleep 15
+
 # 3. Wait for database to be ready
 echo "⏳ Waiting for Database to be ready..."
 DB_CONTAINER=$(docker ps --filter "name=multivendor_db" --format "{{.Names}}" | head -n 1)
