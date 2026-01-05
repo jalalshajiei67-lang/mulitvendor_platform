@@ -973,6 +973,7 @@ import { useSellerApi } from '~/composables/useSellerApi'
 import type { SellerOrder, SellerReview } from '~/composables/useSellerApi'
 import { useRfqApi } from '~/composables/useRfqApi'
 import { useCrmApi } from '~/composables/useCrmApi'
+import { formatErrorMessage } from '~/utils/apiErrors'
 // Lazy load heavy components for better initial load performance
 const MiniWebsiteSettings = defineAsyncComponent(() => import('~/components/supplier/MiniWebsiteSettings.vue'))
 const PortfolioManager = defineAsyncComponent(() => import('~/components/supplier/PortfolioManager.vue'))
@@ -1728,8 +1729,10 @@ const revealLeadContact = async (leadId: number) => {
       showSnackbar('مشتری با موفقیت به سیستم مدیریت ارتباط با مشتریان اضافه شد. برای مشاهده به بخش CRM مراجعه کنید.', 'success')
     } catch (crmError: any) {
       console.error('Failed to add contact to CRM:', crmError)
-      // Don't show contact info if CRM add fails
-      showSnackbar('خطا در افزودن مشتری به سیستم مدیریت ارتباط با مشتریان. لطفاً دوباره تلاش کنید.', 'error')
+      
+      // Format error message with proper parsing
+      const errorMessage = formatErrorMessage(crmError)
+      showSnackbar(errorMessage || 'خطا در افزودن مشتری به سیستم مدیریت ارتباط با مشتریان. لطفاً دوباره تلاش کنید.', 'error')
     }
   } catch (error: any) {
     console.error('Failed to reveal contact:', error)

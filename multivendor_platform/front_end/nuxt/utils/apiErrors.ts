@@ -124,7 +124,16 @@ function getFieldLabel(fieldName: string): string {
     canonical_url: 'URL کانونیکال',
     schema_markup: 'Schema Markup',
     image_alt_text: 'متن جایگزین تصویر',
-    og_image: 'تصویر Open Graph'
+    og_image: 'تصویر Open Graph',
+    // CRM Contact fields
+    first_name: 'نام',
+    last_name: 'نام خانوادگی',
+    company_name: 'نام شرکت',
+    phone: 'شماره تلفن',
+    email: 'ایمیل',
+    address: 'آدرس',
+    notes: 'یادداشت',
+    source_order: 'سفارش منبع'
   }
   
   return fieldLabels[fieldName] || fieldName

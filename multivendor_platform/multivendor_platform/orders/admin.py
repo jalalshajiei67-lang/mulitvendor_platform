@@ -4,7 +4,7 @@ from .models import Order, OrderItem, Payment, OrderImage
 
 
 class OrderAdminForm(forms.ModelForm):
-    """Ensure admin form keeps email optional."""
+    """Ensure admin form keeps email optional and sets required fields."""
 
     class Meta:
         model = Order
@@ -13,6 +13,10 @@ class OrderAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['email'].required = False
+        self.fields['first_name'].required = True
+        self.fields['last_name'].required = True
+        self.fields['phone_number'].required = True
+        self.fields['unique_needs'].required = True
 
 
 class OrderItemInline(admin.TabularInline):
