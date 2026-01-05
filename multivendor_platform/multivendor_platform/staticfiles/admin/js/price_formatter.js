@@ -4,8 +4,16 @@
  * No decimals allowed
  */
 
-(function($) {
+(function() {
     'use strict';
+
+    // Check if jQuery is available (either as $ or django.jQuery)
+    var $ = window.django && window.django.jQuery ? window.django.jQuery : window.jQuery;
+    
+    if (!$) {
+        console.error('jQuery not found. Price formatter cannot run.');
+        return;
+    }
 
     function formatPrice(value) {
         // Remove all non-digit characters
@@ -85,5 +93,5 @@
         }
     });
 
-})(django.jQuery);
+})();
 

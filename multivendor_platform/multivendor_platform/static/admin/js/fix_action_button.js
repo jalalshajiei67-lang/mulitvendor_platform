@@ -8,13 +8,19 @@
 
     console.log('🔧 Admin action button fix loaded');
 
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+
     function initActionButton() {
         // Find the action select dropdown
         const actionSelect = document.querySelector('select[name="action"]');
 
         if (!actionSelect) {
-            console.warn('⚠️ Action select not found. Retrying...');
-            setTimeout(initActionButton, 500);
+            retryCount++;
+            if (retryCount < MAX_RETRIES) {
+                setTimeout(initActionButton, 500);
+            }
+            // Silent fail after max retries - this page might not have actions
             return;
         }
 

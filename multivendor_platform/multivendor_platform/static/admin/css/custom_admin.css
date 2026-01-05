@@ -1,5 +1,20 @@
 /* Custom Admin CSS - Fix Action Button Visibility */
 
+/* ============================================
+   RTL Support - Proper CSS Writing Mode Setup
+   ============================================ */
+/* Fix for "writing-mode, direction, text-orientation" warning */
+:root {
+    direction: rtl;
+    text-orientation: mixed;
+    writing-mode: horizontal-tb;
+}
+
+html {
+    direction: rtl;
+    text-align: right;
+}
+
 /* Persian/Farsi Font Support */
 /* Add Persian font fallbacks to TinyMCE and admin interface */
 body,
@@ -7,6 +22,8 @@ body,
 .admin-interface,
 .django-admin {
     font-family: 'Vazir', 'Tahoma', 'Arial', 'Helvetica Neue', 'Helvetica', sans-serif !important;
+    direction: rtl;
+    text-align: right;
 }
 
 /* TinyMCE Persian font support */
