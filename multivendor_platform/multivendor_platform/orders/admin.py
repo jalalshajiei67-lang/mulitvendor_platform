@@ -37,6 +37,7 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = ['order_number', 'buyer', 'status', 'is_rfq', 'is_free', 'category', 'total_amount', 'is_paid', 'created_at']
     list_filter = ['status', 'is_paid', 'is_rfq', 'is_free', 'category', 'created_at']
     search_fields = ['order_number', 'buyer__username', 'buyer__email', 'first_name', 'last_name', 'phone_number']
+    autocomplete_fields = ['category']
     inlines = [OrderItemInline, PaymentInline, OrderImageInline]
     readonly_fields = ['order_number', 'created_at', 'updated_at']
     actions = ['delete_selected']  # Include delete action
