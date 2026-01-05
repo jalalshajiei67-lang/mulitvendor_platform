@@ -102,7 +102,9 @@ services:
     healthcheck:
       # Test actual connection with credentials, not just pg_isready
       # This ensures the database is ready for authenticated connections
-      test: ["CMD-SHELL", "PGPASSWORD=${DB_PASSWORD} psql -U ${DB_USER} -d ${DB_NAME} -c 'SELECT 1;' || exit 1"]
+      # Use $$ to escape $ so docker-compose doesn't expand it, letting shell expand it instead
+      # This safely handles special characters in passwords
+      test: ["CMD-SHELL", "export PGPASSWORD=\"$$POSTGRES_PASSWORD\" && psql -h localhost -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -c 'SELECT 1;' > /dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 5
