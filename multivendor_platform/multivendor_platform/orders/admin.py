@@ -64,7 +64,8 @@ class OrderAdmin(admin.ModelAdmin):
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
         initial.setdefault('is_rfq', True)
-        initial.setdefault('status', 'pending')
+        initial.setdefault('status', 'confirmed')
+        initial.setdefault('lead_source', 'phone')
         return initial
     
     class Media:
