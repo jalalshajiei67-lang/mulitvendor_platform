@@ -170,7 +170,9 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Collected static files
+# STATIC_ROOT: Configurable via environment variable for production (Docker volumes)
+# Defaults to 'staticfiles' for local development, '/app/static' for production (matches docker-compose volume mount)
+STATIC_ROOT = os.environ.get('STATIC_ROOT', os.path.join(BASE_DIR, 'staticfiles'))
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),  # Source static files directory
 ]

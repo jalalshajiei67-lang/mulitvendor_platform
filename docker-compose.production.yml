@@ -190,6 +190,7 @@ services:
       - SITE_URL=${SITE_URL}
       - USE_TLS=True
       - SESSION_COOKIE_AGE=1209600
+      - STATIC_ROOT=/app/static  # Match docker volume mount for stateless best practices
     # Use entrypoint script which handles migrations, static files, and starts server
     # The entrypoint script will fix migration sequence automatically
     command: []
