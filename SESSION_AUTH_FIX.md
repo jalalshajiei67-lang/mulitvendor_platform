@@ -77,3 +77,4 @@ For production, you may want session auth back. But for local development with N
 
 **Restart Django now and test!** 🚀
 
+

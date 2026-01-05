@@ -12,9 +12,9 @@
               alt="لوگو ایندکسو" 
               class="logo-image"
             />
-            <div class="mr-3">
+            <div class="mr-3 logo-text">
               <strong class="text-primary text-subtitle-1">ایندکسو</strong>
-              <div class="text-caption text-medium-emphasis">خرید و فروش آسان ماشین‌آلات</div>
+              <div class="text-caption text-medium-emphasis logo-subtitle">خرید و فروش آسان ماشین‌آلات</div>
             </div>
           </NuxtLink>
         </div>
@@ -31,7 +31,7 @@
         </div>
 
         <ClientOnly>
-          <div class="d-flex align-center gap-2">
+          <div class="d-flex align-center gap-2 header-buttons">
             <template v-if="isAuthenticated">
               <!-- Notification Bell -->
               <v-menu
@@ -375,6 +375,10 @@ watch(
   margin-left: 8px;
 }
 
+.header-buttons .v-btn + .v-btn {
+  margin-left: 2px;
+}
+
 .notification-item {
   cursor: pointer;
   transition: background-color 0.2s;
@@ -388,6 +392,21 @@ watch(
 @media (max-width: 600px) {
   .logo-image {
     height: 40px;
+  }
+
+  .logo-text {
+    max-width: 140px;
+    overflow: hidden;
+  }
+
+  .logo-subtitle {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .logo-text {
+    max-width: 100px;
   }
 }
 </style>

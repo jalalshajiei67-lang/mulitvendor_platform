@@ -50,3 +50,4 @@ echo "To fix missing objects, run:"
 echo "  python manage.py create_missing_seller_objects"
 echo "=========================================="
 
+

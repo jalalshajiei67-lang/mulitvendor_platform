@@ -115,3 +115,4 @@ multivendor_platform/multivendor_platform/
 
 Check the full documentation: `docs/fixes/SELLER_SIGNUP_FIX.md`
 
+

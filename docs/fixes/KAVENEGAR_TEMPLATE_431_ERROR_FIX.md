@@ -77,3 +77,4 @@ If the issue persists:
 2. Verify API key is correct
 3. Contact Kavenegar support if template structure is correct but still getting errors
 
+

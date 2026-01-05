@@ -28,3 +28,4 @@ echo "      python manage.py runserver"
 echo ""
 echo "Or simply restart your Django server - Django will pick up .env.local automatically if you're using django-environ"
 
+

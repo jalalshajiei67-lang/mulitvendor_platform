@@ -29,3 +29,4 @@ echo "  - If all show 403: Check DRF permissions or view-level restrictions"
 echo "  - If curl works but browser doesn't: CORS/CSRF issue"
 echo "  - If OPTIONS works but GET doesn't: Authentication/permission issue"
 
+

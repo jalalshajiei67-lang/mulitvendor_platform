@@ -74,3 +74,4 @@ class BidAdmin(admin.ModelAdmin):
 
 
 
+

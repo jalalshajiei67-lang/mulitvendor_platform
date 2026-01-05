@@ -189,3 +189,4 @@ And Nuxt console should have **NO errors**!
 
 **Try the Quick Fix command first!** 🚀
 
+

@@ -2,10 +2,10 @@
   <div v-if="product" class="product-detail">
     <section class="hero">
       <v-container class="py-8">
-        <h1 class="text-h3 text-md-h2 font-weight-bold text-white mb-3">
+        <h1 class="product-title-hero font-weight-bold text-white mb-3">
           {{ product.name }}
         </h1>
-        <p class="text-body-1 text-white opacity-85 max-w-720">
+        <p class="product-description-hero text-white opacity-85 max-w-720">
           {{ product.short_description }}
         </p>
       </v-container>
@@ -132,7 +132,7 @@
           </v-card>
 
           <v-card elevation="1" rounded="xl" class="pa-6">
-            <h2 class="text-subtitle-1 font-weight-bold mb-4">
+            <h2 class="section-heading-sm font-weight-bold mb-4">
               {{ t('keySpecifications') }}
             </h2>
             <div v-if="product.availability_status || product.condition || product.origin || product.sku || product.stock || product.minimum_order_quantity || product.country_of_origin || product.lead_time_days">
@@ -225,11 +225,11 @@
       <v-row class="mt-8">
         <v-col cols="12" md="8">
           <v-card elevation="1" rounded="xl" class="pa-6">
-            <h2 class="text-h5 font-weight-bold mb-4 readable-heading">توضیحات محصول</h2>
+            <h2 class="section-heading font-weight-bold mb-4 readable-heading">توضیحات محصول</h2>
             
             <!-- Key Features Table -->
             <div v-if="product.features && product.features.length > 0" class="mb-6">
-              <h3 class="text-h6 font-weight-bold mb-3">ویژگی‌های کلیدی</h3>
+              <h3 class="subsection-heading font-weight-bold mb-3">ویژگی‌های کلیدی</h3>
               <v-table density="comfortable">
                 <thead>
                   <tr>
@@ -254,7 +254,7 @@
 
         <v-col cols="12" md="4">
           <v-card v-if="product.related_products?.length" elevation="1" rounded="xl" class="pa-6">
-            <h2 class="text-subtitle-1 font-weight-bold mb-4">{{ t('relatedProducts') }}</h2>
+            <h2 class="section-heading-sm font-weight-bold mb-4">{{ t('relatedProducts') }}</h2>
             <v-list lines="two" density="comfortable">
               <v-list-item
                 v-for="item in product.related_products"
@@ -622,6 +622,87 @@ useHead(() => {
   z-index: 1;
 }
 
+/* Typography optimized for users over 40 */
+.product-title-hero {
+  font-size: 1.5rem; /* 24px - reduced from ~48-60px */
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+@media (min-width: 600px) {
+  .product-title-hero {
+    font-size: 1.75rem; /* 28px */
+  }
+}
+
+@media (min-width: 960px) {
+  .product-title-hero {
+    font-size: 2rem; /* 32px - much more reasonable than 60px */
+    line-height: 1.4;
+  }
+}
+
+.product-description-hero {
+  font-size: 1.0625rem; /* 17px base - increased from 16px */
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+@media (min-width: 600px) {
+  .product-description-hero {
+    font-size: 1.125rem; /* 18px - increased from 17px */
+  }
+}
+
+@media (min-width: 960px) {
+  .product-description-hero {
+    font-size: 1.1875rem; /* 19px - increased from 18px */
+    line-height: 1.75;
+  }
+}
+
+.section-heading {
+  font-size: 1.375rem; /* 22px */
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+@media (min-width: 600px) {
+  .section-heading {
+    font-size: 1.5rem; /* 24px */
+  }
+}
+
+@media (min-width: 960px) {
+  .section-heading {
+    font-size: 1.625rem; /* 26px */
+  }
+}
+
+.section-heading-sm {
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+@media (min-width: 600px) {
+  .section-heading-sm {
+    font-size: 1.25rem; /* 20px */
+  }
+}
+
+.subsection-heading {
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+@media (min-width: 600px) {
+  .subsection-heading {
+    font-size: 1.25rem; /* 20px */
+  }
+}
+
 .product-detail .no-image {
   height: 420px;
   display: flex;
@@ -641,9 +722,9 @@ useHead(() => {
   gap: 6px;
 }
 
-/* Typography improvements */
+/* Typography improvements - optimized for users over 40 */
 .readable-heading {
-  line-height: 1.4;
+  line-height: 1.5; /* Improved from 1.4 for better readability */
   letter-spacing: -0.01em;
   color: rgba(var(--v-theme-on-surface), 0.96);
 }
@@ -658,7 +739,7 @@ useHead(() => {
 .meta-text {
   line-height: 1.6;
   color: rgba(var(--v-theme-on-surface), 0.72);
-  font-size: 0.875rem;
+  font-size: 0.9375rem; /* 15px - slightly larger from 0.875rem/14px for better readability */
 }
 
 /* Content body styling */
@@ -689,11 +770,12 @@ useHead(() => {
   margin-bottom: 0;
 }
 
-/* Medium.com-inspired heading spacing */
+/* Heading spacing optimized for users over 40 - reduced sizes */
 .product-detail .content-body :deep(h1) {
-  font-size: 2.5rem;
-  margin-top: 3rem;
-  margin-bottom: 1.5rem;
+  font-size: 1.75rem; /* 28px - reduced from 2.5rem/40px */
+  line-height: 1.5;
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .product-detail .content-body :deep(h1:first-child) {
@@ -701,42 +783,47 @@ useHead(() => {
 }
 
 .product-detail .content-body :deep(h2) {
-  font-size: 2rem;
-  margin-top: 2.5rem;
-  margin-bottom: 1.25rem;
-}
-
-.product-detail .content-body :deep(h3) {
-  font-size: 1.75rem;
+  font-size: 1.5rem; /* 24px - reduced from 2rem/32px */
+  line-height: 1.5;
   margin-top: 2rem;
   margin-bottom: 1rem;
 }
 
-.product-detail .content-body :deep(h4) {
-  font-size: 1.5rem;
+.product-detail .content-body :deep(h3) {
+  font-size: 1.375rem; /* 22px - reduced from 1.75rem/28px */
+  line-height: 1.5;
   margin-top: 1.75rem;
   margin-bottom: 0.875rem;
 }
 
-.product-detail .content-body :deep(h5) {
-  font-size: 1.25rem;
+.product-detail .content-body :deep(h4) {
+  font-size: 1.25rem; /* 20px - reduced from 1.5rem/24px */
+  line-height: 1.5;
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
+}
+
+.product-detail .content-body :deep(h5) {
+  font-size: 1.125rem; /* 18px - reduced from 1.25rem/20px */
+  line-height: 1.5;
+  margin-top: 1.25rem;
+  margin-bottom: 0.625rem;
 }
 
 .product-detail .content-body :deep(h6) {
-  font-size: 1.125rem;
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
+  font-size: 1.0625rem; /* 17px - reduced from 1.125rem/18px */
+  line-height: 1.5;
+  margin-top: 1.25rem;
+  margin-bottom: 0.625rem;
 }
 
-/* Medium.com-inspired paragraph spacing */
+/* Paragraph spacing optimized for readability */
 .product-detail .content-body :deep(p) {
   line-height: 1.8;
   margin-top: 0;
   margin-bottom: 1.75rem;
   color: rgba(var(--v-theme-on-surface), 0.87);
-  font-size: 1.05rem;
+  font-size: 1.125rem; /* 18px - increased from 17px for better readability */
   text-align: justify;
   max-width: 65ch;
 }

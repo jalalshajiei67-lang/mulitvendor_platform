@@ -275,3 +275,4 @@ python3 manage.py shell
 | Frontend lists | ✅ Yes | ✅ Yes |
 | Complete flow | ❌ Broken | ✅ Fixed |
 
+

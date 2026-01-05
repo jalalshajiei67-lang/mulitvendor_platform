@@ -24,3 +24,4 @@ echo "Or just export the variables now:"
 echo "   export DRF_ANON_RATE=10000/hour"
 echo "   export DRF_USER_RATE=10000/hour"
 
+

@@ -68,3 +68,4 @@ CORS_REPLACE_HTTPS_REFERER = False  # ❌ Deprecated setting
 
 **Deploy now and the error should be gone!** 🚀
 
+
