@@ -317,6 +317,12 @@ onMounted(() => {
       referralCode.value = stored
     }
   }
+
+  // Handle role query parameter (for landing pages)
+  const roleParam = route.query.role as string
+  if (roleParam && (roleParam === 'seller' || roleParam === 'buyer')) {
+    selectRole(roleParam)
+  }
 })
 
 const form = reactive({

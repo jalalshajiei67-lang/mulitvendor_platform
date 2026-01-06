@@ -2,10 +2,10 @@ export default defineNuxtRouteMiddleware((to) => {
   const authStore = useAuthStore()
 
   if (!authStore.isAuthenticated) {
-    // Allow /seller (exact path) to be public as a landing page
-    // Protect /seller/* routes (like /seller/dashboard) but not /seller itself
-    if (to.path === '/seller') {
-      return // Allow public access to seller landing page
+    // Allow public access to seller landing pages
+    const publicSellerRoutes = ['/seller/landing', '/seller']
+    if (publicSellerRoutes.includes(to.path)) {
+      return // Allow public access to seller landing pages
     }
     
     const protectedRoutes = ['/buyer', '/seller', '/admin']
