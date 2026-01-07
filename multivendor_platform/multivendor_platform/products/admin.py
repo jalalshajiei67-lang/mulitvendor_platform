@@ -21,6 +21,7 @@ from .models import (
     Product,
     ProductImage,
     ProductComment,
+    ProductFeature,
     Label,
     LabelGroup,
     LabelComboSeoPage,
@@ -839,6 +840,35 @@ class ProductCommentInline(admin.TabularInline):
     readonly_fields = ['author', 'created_at']
     can_delete = True
 
+class ProductFeatureInline(admin.TabularInline):
+    """Inline for managing product key features"""
+    model = ProductFeature
+    extra = 1
+    max_num = 10
+    fields = ['name', 'value', 'sort_order']
+    verbose_name = 'ویژگی کلیدی'
+    verbose_name_plural = 'ویژگی‌های کلیدی'
+    
+    def get_extra(self, request, obj=None, **kwargs):
+        """Show extra fields based on existing features"""
+        if obj and obj.pk:
+            existing_count = obj.features.count()
+            return max(0, min(10 - existing_count, 1))
+        return 1
+    
+    def get_readonly_fields(self, request, obj=None):
+        """Make sort_order read-only for existing features"""
+        return []
+    
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        """Customize form fields"""
+        field = super().formfield_for_dbfield(db_field, request, **kwargs)
+        if db_field.name == 'name':
+            field.widget.attrs['placeholder'] = 'مثال: وزن، ابعاد، قدرت موتور، ظرفیت'
+        elif db_field.name == 'value':
+            field.widget.attrs['placeholder'] = 'مثال: 100 کیلوگرم، 50x30x20 سانتی‌متر، 5 اسب بخار'
+        return field
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
@@ -856,7 +886,7 @@ class ProductAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
     filter_horizontal = ['subcategories', 'labels']
     autocomplete_fields = ['subcategories', 'labels', 'primary_category', 'supplier']
-    inlines = [ProductImageInline, ProductCommentInline]
+    inlines = [ProductImageInline, ProductFeatureInline, ProductCommentInline]
     actions = ['make_active', 'make_inactive', 'approve_products', 'reject_products', 'delete_selected']  # Enable bulk actions with delete
 
     def get_queryset(self, request):
@@ -894,6 +924,10 @@ class ProductAdmin(admin.ModelAdmin):
         }),
         ('Pricing & Inventory', {
             'fields': ('price', 'stock')
+        }),
+        ('Product Status & Origin', {
+            'fields': ('availability_status', 'condition', 'origin', 'lead_time_days'),
+            'description': 'وضعیت موجودی، وضعیت محصول، مبدا و زمان تحویل محصول'
         }),
         ('SEO Settings', {
             'fields': ('meta_title', 'meta_description', 'canonical_url', 'schema_markup'),
@@ -1039,6 +1073,15 @@ class ProductAdmin(admin.ModelAdmin):
             obj.approval_status = Product.APPROVAL_STATUS_APPROVED
         
         super().save_model(request, obj, form, change)
+        
+        # Validate features count (max 10)
+        if change and obj.pk:
+            feature_count = obj.features.count()
+            if feature_count > 10:
+                messages.warning(
+                    request,
+                    f'این محصول {feature_count} ویژگی دارد. لطفاً تعداد را به ۱۰ یا کمتر کاهش دهید.'
+                )
         
         # Handle multiple images upload
         if hasattr(request, 'FILES'):

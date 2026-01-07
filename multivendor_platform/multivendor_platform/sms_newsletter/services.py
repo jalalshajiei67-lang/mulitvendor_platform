@@ -156,11 +156,11 @@ def send_sms_via_kavenegar(
         # Log the request for debugging (without exposing full API key)
         logger.info(f"Sending SMS via Kavenegar - Template: {template_name}, Receptor: {phone}, Token: '{greeting}', Token10: '{seller_name_display}' ({len(seller_name_display)} chars, {seller_name_display.count(' ')} spaces), Token20: '{filter_name_display}' ({len(filter_name_display)} chars, {filter_name_display.count(' ')} spaces)")
         
-        # Use POST method to send data
+        # Use GET method (Kavenegar verify/lookup.json requires GET, not POST)
         try:
-            response = requests.post(
+            response = requests.get(
                 base_url, 
-                data=params,
+                params=params,
                 timeout=30
             )
             response.raise_for_status()
